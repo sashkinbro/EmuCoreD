@@ -51,8 +51,12 @@ ehthumbs.db
 CMakeUserPresets.json
 compile_commands.json
 
-# Firebase local state
+# Firebase local state and project configuration - never commit
 .firebase/
+.firebaserc
+firebase.json
+firestore.rules
+firestore.indexes.json
 firebase-debug.log
 firestore-debug.log
 ui-debug.log
