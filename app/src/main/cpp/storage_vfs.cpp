@@ -159,7 +159,7 @@ retro_vfs_interface interface{GetPath, Open, Close, Size, Tell, Seek, Read, Writ
 
 bool InitializeStorageVfs(JavaVM *vm, JNIEnv *env) {
     javaVm = vm;
-    jclass local = env->FindClass("com/sbro/emucored/core/PspStorageBridge");
+    jclass local = env->FindClass("com/sbro/emucored/core/SafStorageBridge");
     if (!local) return false;
     storageClass = static_cast<jclass>(env->NewGlobalRef(local));
     env->DeleteLocalRef(local);

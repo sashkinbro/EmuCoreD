@@ -692,7 +692,7 @@ class RetroAchievementsRepository private constructor(context: Context) {
     /** Hash the original game through the same seekable SAF VFS used by the core. */
     private fun resolveHashablePath(path: String): String? {
         val prepared = DocumentPathResolver.prepareGameLaunchPath(appContext, path) ?: return null
-        return com.sbro.emucored.core.PspStorageBridge.prepare(appContext, prepared)
+        return com.sbro.emucored.core.SafStorageBridge.prepare(appContext, prepared)
     }
 
     fun onGameStopped() {

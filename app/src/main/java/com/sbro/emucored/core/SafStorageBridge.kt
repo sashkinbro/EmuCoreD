@@ -6,43 +6,14 @@ import android.provider.DocumentsContract
 import androidx.annotation.Keep
 import java.security.MessageDigest
 import java.util.concurrent.ConcurrentHashMap
-import java.util.concurrent.atomic.AtomicBoolean
-import java.nio.file.Files
-import java.nio.file.Path
-import java.nio.file.SimpleFileVisitor
-import java.nio.file.FileVisitResult
-import java.nio.file.attribute.BasicFileAttributes
 
 /** Maps SAF documents to native VFS paths. Only metadata is cached; game bytes stay in place. */
 @Keep
-object PspStorageBridge {
+object SafStorageBridge {
     private const val PREFIX = "/__emucored_saf__/"
     private data class Entry(val uri: Uri, val name: String, val directory: Boolean, val size: Long)
     private data class Mount(val context: Context, val root: Entry, val entries: ConcurrentHashMap<String, Entry>)
     private val mounts = ConcurrentHashMap<String, Mount>()
-    private val legacyCacheRemoved = AtomicBoolean()
-
-    /** Remove only the obsolete app-owned image copies, never the selected game folder. */
-    fun removeLegacyImageCache(context: Context) {
-        if (!legacyCacheRemoved.compareAndSet(false, true)) return
-        for (name in listOf("swanstation-cue", "swanstation-disc", "psp-achievements")) {
-            runCatching {
-                val root = context.cacheDir.toPath().resolve(name)
-                // walkFileTree does not follow symlinks (old versions created descriptor links).
-                if (Files.exists(root)) Files.walkFileTree(root, object : SimpleFileVisitor<Path>() {
-                    override fun visitFile(file: Path, attrs: BasicFileAttributes): FileVisitResult {
-                        Files.delete(file)
-                        return FileVisitResult.CONTINUE
-                    }
-                    override fun postVisitDirectory(dir: Path, error: java.io.IOException?): FileVisitResult {
-                        if (error != null) throw error
-                        Files.delete(dir)
-                        return FileVisitResult.CONTINUE
-                    }
-                })
-            }
-        }
-    }
 
     fun prepare(context: Context, path: String): String? = runCatching {
         if (!path.startsWith("content://")) return path

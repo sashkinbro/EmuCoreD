@@ -133,7 +133,7 @@ internal object CoreRuntime {
         systemDirectory = File(root, "system").apply { mkdirs() }.absolutePath
         saveDirectory = File(root, "save").apply { mkdirs() }.absolutePath
         coreAssetsDirectory = File(root, "assets").apply { mkdirs() }.absolutePath
-        SwanStationOptions.initialize(context.applicationContext)
+        CoreOptionStore.initialize(context.applicationContext)
         runCatching {
             bridge.nativeInit(systemDirectory, saveDirectory, coreAssetsDirectory)
             bridge.apiVersion()
@@ -331,10 +331,10 @@ internal object CoreRuntime {
         // Explicit user choices from the settings / game manager / in-game menu
         // win over every derived default.
         AzaharCoreOptions.all().forEach { option ->
-            SwanStationOptions.value(option.key)?.let { bridge.nativeSetOption(option.key, it) }
+            CoreOptionStore.value(option.key)?.let { bridge.nativeSetOption(option.key, it) }
         }
         // Full catalogue overrides win over the derived defaults as well.
-        SwanStationOptions.persistedEntries().forEach { (key, value) ->
+        CoreOptionStore.persistedEntries().forEach { (key, value) ->
             bridge.nativeSetOption(key, value)
         }
         // Renderer and internal resolution are owned by the app-level controls,
@@ -357,7 +357,7 @@ internal object CoreRuntime {
 
     /** Persists and forwards a Azahar core option. */
     fun setCoreOption(key: String, value: String) {
-        SwanStationOptions.set(key, value)
+        CoreOptionStore.set(key, value)
         bridge.nativeSetOption(key, value)
     }
 
@@ -371,7 +371,7 @@ internal object CoreRuntime {
 
     /** Effective value of a core option (user override or core default). */
     fun coreOptionValue(key: String): String? =
-        SwanStationOptions.value(key) ?: AzaharCoreOptions.option(key)?.defaultValue
+        CoreOptionStore.value(key) ?: AzaharCoreOptions.option(key)?.defaultValue
 
     /**
      * Forwards a core option without persisting it. Used for per-game overrides
@@ -1021,7 +1021,6 @@ internal object CoreRuntime {
     }
 
     private fun loadDisc(handle: Long, gamePath: String): Int {
-        context?.let(PspStorageBridge::removeLegacyImageCache)
         val app = context
         val displayName = if (gamePath.startsWith("content://")) {
             app?.let { DocumentPathResolver.getDisplayName(it, gamePath) }.orEmpty()
@@ -1053,7 +1052,7 @@ internal object CoreRuntime {
         val path = when {
             gamePath.startsWith("content://") -> {
                 val application = app ?: return -1
-                PspStorageBridge.prepare(application, gamePath) ?: return -1
+                SafStorageBridge.prepare(application, gamePath) ?: return -1
             }
             // The libretro core opens plain filesystem paths, so a file:// URI
             // coming from a launcher intent must be decoded first.
