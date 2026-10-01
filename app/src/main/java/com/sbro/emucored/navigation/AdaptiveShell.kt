@@ -31,6 +31,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Code
 import androidx.compose.material.icons.rounded.EmojiEvents
 import androidx.compose.material.icons.rounded.Person
 import androidx.compose.material.icons.rounded.Home
@@ -628,12 +629,11 @@ private fun SideNavigation(
         (navigateGameSettingsManager != null && DrawerItemId.GAME_SETTINGS !in hiddenDrawerItems) ||
             (navigateDataTransfer != null && DrawerItemId.DATA_TRANSFER !in hiddenDrawerItems) ||
             (resetAllSettings != null && DrawerItemId.RESET_SETTINGS !in hiddenDrawerItems)
-    // The Azahar libretro core does not implement retro_cheat_set, so the cheat
-    // manager stays out of the drawer.
     val showTools =
         (navigateMemoryCardManager != null && DrawerItemId.MEMORY_CARDS !in hiddenDrawerItems) ||
             (navigateTextureManager != null && DrawerItemId.TEXTURE_MANAGER !in hiddenDrawerItems) ||
-            (navigateSaveManager != null && DrawerItemId.SAVE_STATES !in hiddenDrawerItems)
+            (navigateSaveManager != null && DrawerItemId.SAVE_STATES !in hiddenDrawerItems) ||
+            (navigateCheatManager != null && DrawerItemId.CHEAT_MANAGER !in hiddenDrawerItems)
 
     val content: @Composable () -> Unit = {
         Column(
@@ -834,6 +834,13 @@ private fun SideNavigation(
                         icon = Icons.Rounded.Save,
                         label = stringResource(R.string.shell_save_states),
                         onClick = navigateSaveManager
+                    )
+                }
+                if (navigateCheatManager != null && DrawerItemId.CHEAT_MANAGER !in hiddenDrawerItems) {
+                    ShellAction(
+                        icon = Icons.Rounded.Code,
+                        label = stringResource(R.string.cheat_manager_title),
+                        onClick = navigateCheatManager
                     )
                 }
             }

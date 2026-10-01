@@ -1,41 +1,28 @@
 package com.sbro.emucored.ui.cheats
 
-import android.provider.OpenableColumns
-import android.widget.Toast
+import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.animation.core.tween
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.rounded.ArrowBack
-import androidx.compose.material.icons.automirrored.rounded.ArrowForward
-import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.DeleteOutline
+import androidx.compose.material.icons.rounded.Download
 import androidx.compose.material.icons.rounded.FolderOpen
-import androidx.compose.material.icons.rounded.Folder
-import androidx.compose.material.icons.rounded.Search
-import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
@@ -52,699 +39,286 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.sbro.emucored.R
+import com.sbro.emucored.core.NativeApp
 import com.sbro.emucored.data.AppPreferences
-import com.sbro.emucored.data.CheatBlock
-import com.sbro.emucored.data.CheatGameConfig
-import com.sbro.emucored.data.CheatRepository
 import com.sbro.emucored.data.ContentLibraryRepository
 import com.sbro.emucored.data.GameItem
-import com.sbro.emucored.core.NativeApp
-import com.sbro.emucored.data.SelectedGameIdentity
-import com.sbro.emucored.ui.common.AppAlertDialog
+import com.sbro.emucored.data.N3dsCheatRepository
 import com.sbro.emucored.ui.common.LibraryGamePicker
 import com.sbro.emucored.ui.common.ScreenTopBar
 import com.sbro.emucored.ui.common.appScreenTopPadding
-import com.sbro.emucored.ui.common.navigationBarsHorizontalPaddingValues
 import com.sbro.emucored.ui.theme.ScreenHorizontalPadding
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.sync.Mutex
-import kotlinx.coroutines.sync.withLock
-import kotlinx.coroutines.withContext
 import com.sbro.emucored.ui.theme.neon.neonShape
-import com.sbro.emucored.ui.theme.neon.neonButtonShape
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
-@OptIn(ExperimentalLayoutApi::class)
+/** 3DS cheat manager: Gateway cheat files keyed by the 16-digit title id. */
 @Composable
 fun CheatManagerScreen(onBackClick: () -> Unit) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val preferences = remember(context) { AppPreferences(context) }
-    val cheatRepository = remember(context) { CheatRepository(context) }
+    val repository = remember(context) { N3dsCheatRepository(context) }
     val libraryRepository = remember(context) { ContentLibraryRepository(context) }
-    val cheatWriteMutex = remember { Mutex() }
     val cheatsEnabled by preferences.enableCheats.collectAsState(initial = false)
-    val topInset = appScreenTopPadding()
-    val bottomInset = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
-    val horizontalSystemBarPadding = navigationBarsHorizontalPaddingValues()
 
     var games by remember { mutableStateOf<List<GameItem>>(emptyList()) }
-    var gamesLoading by remember { mutableStateOf(true) }
     var selectedPath by remember { mutableStateOf<String?>(null) }
-    var identity by remember { mutableStateOf<SelectedGameIdentity?>(null) }
-    var config by remember { mutableStateOf<CheatGameConfig?>(null) }
-    var resolvingIdentity by remember { mutableStateOf(false) }
-    var pendingDelete by remember { mutableStateOf<CheatGameConfig?>(null) }
-    var selectedCheatCategory by remember { mutableStateOf<CheatCategory?>(null) }
-    var cheatSearchVisible by remember { mutableStateOf(false) }
-    var cheatSearchQuery by remember { mutableStateOf("") }
-    // Metadata resolution reads the disc header, which is too slow to repeat
-    // every time the user flips back and forth between games. Disc images are
-    // immutable here, so cache the resolved identity per library path.
-    val identityCache = remember { mutableMapOf<String, SelectedGameIdentity>() }
+    var sections by remember { mutableStateOf<List<N3dsCheatRepository.Section>>(emptyList()) }
+    var busy by remember { mutableStateOf(false) }
+    var statusMessage by remember { mutableStateOf<String?>(null) }
+    var showDeleteDialog by remember { mutableStateOf(false) }
+
+    val selectedGame = games.firstOrNull { it.path == selectedPath }
+    val titleId = selectedGame?.let(repository::titleIdOf)
+    val topInset = appScreenTopPadding()
+    val bottomInset = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
 
     val importSuccess = stringResource(R.string.cheat_manager_import_success)
-    val importFailure = stringResource(R.string.cheat_manager_import_failed)
+    val importFailed = stringResource(R.string.cheat_manager_import_failed)
+    val installSuccess = stringResource(R.string.cheat_catalog_install_success)
+    val installFailed = stringResource(R.string.cheat_catalog_install_failed)
     val deleteSuccess = stringResource(R.string.cheat_manager_delete_success)
+    val noTitleId = stringResource(R.string.cheat_manager_crc_unavailable, selectedGame?.title.orEmpty())
 
-    suspend fun loadConfig(selectedIdentity: SelectedGameIdentity?): CheatGameConfig? = withContext(Dispatchers.IO) {
-        val serial = selectedIdentity?.serial.orEmpty()
-        val crc = selectedIdentity?.crc
-        val keys = buildList {
-            if (serial.isNotBlank() && !crc.isNullOrBlank()) add("${serial}_$crc")
-            if (!crc.isNullOrBlank()) add(crc)
-            if (serial.isNotBlank()) add(serial)
-        }
-        cheatRepository.getGameConfig(keys, serial, crc)
+    fun applyToCore() {
+        titleId?.let { NativeApp.loadCheats(repository.cheatFile(it).absolutePath) }
     }
 
-    fun syncSelectedGame() {
-        scope.launch {
-            val loaded = loadConfig(identity) ?: return@launch
-            config = loaded
-            withContext(Dispatchers.IO) {
-                cheatWriteMutex.withLock {
-                    cheatRepository.syncActiveCheats(
-                        loaded.gameKey,
-                        loaded.serial,
-                        loaded.crc,
-                        includeCheats = true
-                    )
-                    val coreFile = cheatRepository.activeCoreCheatFile(loaded.gameKey, loaded.serial, loaded.crc)
-                    if (coreFile != null) {
-                        NativeApp.loadCheats(coreFile.absolutePath)
-                    } else {
-                        NativeApp.clearCheats()
-                    }
-                }
-            }
-        }
+    fun reloadSections() {
+        titleId?.let { sections = repository.read(it) }
     }
 
     LaunchedEffect(Unit) {
         games = withContext(Dispatchers.IO) { libraryRepository.loadGames() }
         selectedPath = games.firstOrNull()?.path
-        // The identity effect below only starts after this composition, so mark
-        // the resolution as in progress now. Otherwise the catalog section can
-        // flash its "no packs for this game" card for a frame while the
-        // selected game is known but its identity is not resolved yet.
-        resolvingIdentity = games.isNotEmpty()
-        gamesLoading = false
     }
-
-    val selectedGame = games.firstOrNull { it.path == selectedPath }
     LaunchedEffect(selectedPath) {
-        val game = selectedGame
-        if (game == null) {
-            identity = null
-            config = null
-            resolvingIdentity = false
-            return@LaunchedEffect
-        }
-        identity = null
-        resolvingIdentity = true
-        val cachedIdentity = identityCache[game.path]
-        val resolved = cachedIdentity ?: withContext(Dispatchers.IO) { libraryRepository.resolveIdentity(game) }
-            .also { identityCache[game.path] = it }
-        if (selectedPath != game.path) return@LaunchedEffect
-        identity = resolved
-        // Keep the previous game's list on screen until the new one is ready,
-        // so switching games doesn't collapse and rebuild the whole list.
-        config = loadConfig(resolved)
-        resolvingIdentity = false
-    }
-
-    LaunchedEffect(config?.gameKey) {
-        selectedCheatCategory = null
-        cheatSearchVisible = false
-        cheatSearchQuery = ""
-    }
-
-    val installedBlocks = config?.blocks.orEmpty()
-    val categoryGroups = remember(installedBlocks) { groupCheatBlocks(installedBlocks) }
-    val visibleInstalledBlocks = remember(installedBlocks, categoryGroups, selectedCheatCategory, cheatSearchQuery) {
-        when {
-            cheatSearchQuery.isNotBlank() -> installedBlocks.filter { block ->
-                block.title.contains(cheatSearchQuery.trim(), ignoreCase = true) ||
-                    block.author?.contains(cheatSearchQuery.trim(), ignoreCase = true) == true
-            }
-            selectedCheatCategory != null -> categoryGroups
-                .firstOrNull { it.first == selectedCheatCategory }
-                ?.second
-                .orEmpty()
-            else -> emptyList()
+        sections = withContext(Dispatchers.IO) {
+            titleId?.let { repository.read(it) } ?: emptyList()
         }
     }
 
-    val importLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
-        uri ?: return@rememberLauncherForActivityResult
+    val importPicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri: Uri? ->
+        val id = titleId
+        if (uri == null || id == null) return@rememberLauncherForActivityResult
         scope.launch {
-            val result = withContext(Dispatchers.IO) {
-                runCatching {
-                    val text = context.contentResolver.openInputStream(uri)?.use { it.readBytes().decodeToString() }
-                        ?: return@runCatching 0
-                    val fallbackName = runCatching {
-                        context.contentResolver.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)
-                            ?.use { cursor ->
-                                if (cursor.moveToFirst()) cursor.getString(0) else null
-                            }
-                    }.getOrNull()?.substringBeforeLast('.')
-                    val gameKey = identity?.let { resolved ->
-                        if (!resolved.serial.isNullOrBlank() && !resolved.crc.isNullOrBlank()) {
-                            "${resolved.serial}_${resolved.crc}"
-                        } else resolved.crc ?: resolved.serial
-                    } ?: selectedGame?.serial?.takeIf { it.isNotBlank() }
-                        ?: fallbackName
-                        ?: "cheat_${System.currentTimeMillis()}"
-                    cheatRepository.importCheatFile(gameKey, text, enableAllByDefault = false)
-                }.getOrDefault(0)
+            busy = true
+            val ok = withContext(Dispatchers.IO) { repository.import(id, uri) }
+            if (ok) {
+                reloadSections()
+                applyToCore()
             }
-            if (result > 0) {
-                preferences.setEnableCheats(true)
-                config = loadConfig(identity)
-            }
-            Toast.makeText(context, if (result > 0) importSuccess else importFailure, Toast.LENGTH_LONG).show()
+            statusMessage = if (ok) importSuccess else importFailed
+            busy = false
         }
     }
 
-    Surface(
-        modifier = Modifier.fillMaxSize(),
-        color = MaterialTheme.colorScheme.background,
-        contentColor = MaterialTheme.colorScheme.onBackground
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(top = topInset, bottom = bottomInset)
     ) {
+        ScreenTopBar(
+            title = stringResource(R.string.cheat_manager_title),
+            onBackClick = onBackClick
+        )
         LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(horizontalSystemBarPadding),
+            modifier = Modifier.fillMaxSize(),
             contentPadding = PaddingValues(
                 start = ScreenHorizontalPadding,
                 end = ScreenHorizontalPadding,
-                bottom = 24.dp + bottomInset
+                top = 12.dp,
+                bottom = 24.dp
             ),
-            verticalArrangement = Arrangement.spacedBy(14.dp)
+            verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            item {
-                ScreenTopBar(
-                    title = stringResource(R.string.cheat_manager_title),
-                    onBackClick = onBackClick,
-                    modifier = Modifier.padding(top = topInset)
-                )
-            }
-            item {
-                Surface(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = neonShape(22.dp),
-                    color = MaterialTheme.colorScheme.surface,
-                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
-                ) {
-                    Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(16.dp)
-                        ) {
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(
-                                    stringResource(R.string.cheat_manager_enable),
-                                    style = MaterialTheme.typography.titleMedium,
-                                    fontWeight = FontWeight.SemiBold
-                                )
-                                Text(
-                                    stringResource(R.string.cheat_manager_enable_desc),
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-                            Switch(
-                                checked = cheatsEnabled,
-                                onCheckedChange = { enabled ->
-                                    scope.launch {
-                                        preferences.setEnableCheats(enabled)
-                                        val currentConfig = config
-                                        if (currentConfig != null) {
-                                            cheatRepository.syncActiveCheats(
-                                                currentConfig.gameKey,
-                                                currentConfig.serial,
-                                                currentConfig.crc,
-                                                includeCheats = enabled
-                                            )
-                                            val coreFile = cheatRepository.activeCoreCheatFile(
-                                                currentConfig.gameKey,
-                                                currentConfig.serial,
-                                                currentConfig.crc
-                                            )
-                                            if (coreFile != null) {
-                                                NativeApp.loadCheats(coreFile.absolutePath)
-                                            } else {
-                                                NativeApp.clearCheats()
-                                            }
-                                        } else {
-                                            NativeApp.clearCheats()
-                                        }
-                                    }
-                                }
-                            )
-                        }
-                        OutlinedButton(
-                            shape = neonButtonShape(),onClick = { importLauncher.launch(arrayOf("*/*")) }) {
-                            Icon(Icons.Rounded.FolderOpen, contentDescription = null)
-                            Spacer(Modifier.width(8.dp))
-                            Text(stringResource(R.string.cheat_manager_import_pnach))
-                        }
-                    }
-                }
-            }
             item {
                 LibraryGamePicker(
                     games = games,
                     selectedPath = selectedPath,
-                    onSelected = { game ->
-                        if (game.path != selectedPath) {
-                            // Leave the current list in place; the resolver below
-                            // swaps it once the new game's data is loaded.
-                            identity = null
-                            resolvingIdentity = true
-                            selectedPath = game.path
-                        }
-                    },
-                    horizontalContentPadding = ScreenHorizontalPadding,
-                    fullBleedPadding = ScreenHorizontalPadding
+                    onSelected = { game -> selectedPath = game.path }
                 )
             }
-            if (selectedGame != null) {
-                item {
-                    Surface(
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = neonShape(18.dp),
-                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
-                        contentColor = MaterialTheme.colorScheme.onSurface
-                    ) {
-                        val serial = identity?.serial ?: selectedGame.serial
-                        val crc = identity?.crc
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(14.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(10.dp)
-                        ) {
-                            if (resolvingIdentity) {
-                                CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
-                            }
-                            Text(
-                                text = when {
-                                    resolvingIdentity -> serial ?: stringResource(R.string.content_serial_unknown)
-                                    crc != null -> stringResource(
-                                        R.string.cheat_manager_detected_identity,
-                                        serial.orEmpty(),
-                                        crc
-                                    )
-                                    else -> stringResource(
-                                        R.string.cheat_manager_crc_unavailable,
-                                        serial.orEmpty()
-                                    )
-                                },
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurface
-                            )
-                        }
-                    }
-                }
-            }
-            item(key = "cheat-online-catalog") {
-                CheatOnlineCatalogSection(
-                    selectedGame = selectedGame,
-                    identity = identity,
-                    resolvingIdentity = resolvingIdentity,
-                    gamesLoading = gamesLoading,
-                    onInstalled = { syncSelectedGame() }
-                )
-            }
-            config?.let { current ->
-                item(key = "installed-cheats-header") {
+
+            item {
+                Surface(shape = neonShape(14.dp)) {
                     Row(
                         modifier = Modifier
-                            .animateItem(
-                                fadeInSpec = tween(220),
-                                placementSpec = tween(220),
-                                fadeOutSpec = tween(140)
-                            )
-                            .fillMaxWidth(),
+                            .fillMaxWidth()
+                            .padding(horizontal = 14.dp, vertical = 10.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text(
-                            text = stringResource(R.string.cheat_manager_installed),
-                            modifier = Modifier.weight(1f),
-                            style = MaterialTheme.typography.titleLarge,
-                            fontWeight = FontWeight.Bold
-                        )
-                        IconButton(
-                            onClick = {
-                                cheatSearchVisible = !cheatSearchVisible
-                                selectedCheatCategory = null
-                                if (!cheatSearchVisible) cheatSearchQuery = ""
-                            }
-                        ) {
-                            Icon(
-                                imageVector = if (cheatSearchVisible) Icons.Rounded.Close else Icons.Rounded.Search,
-                                contentDescription = stringResource(R.string.cheat_manager_search)
-                            )
-                        }
-                    }
-                }
-                if (cheatSearchVisible) {
-                    item(key = "cheat-search-field") {
-                        OutlinedTextField(
-                            value = cheatSearchQuery,
-                            onValueChange = { cheatSearchQuery = it },
-                            modifier = Modifier
-                                .animateItem(
-                                    fadeInSpec = tween(220),
-                                    placementSpec = tween(220),
-                                    fadeOutSpec = tween(140)
-                                )
-                                .fillMaxWidth(),
-                            placeholder = { Text(stringResource(R.string.cheat_manager_search)) },
-                            leadingIcon = { Icon(Icons.Rounded.Search, contentDescription = null) },
-                            trailingIcon = if (cheatSearchQuery.isNotEmpty()) {
-                                {
-                                    IconButton(onClick = { cheatSearchQuery = "" }) {
-                                        Icon(
-                                            Icons.Rounded.Close,
-                                            contentDescription = stringResource(R.string.home_search_clear)
-                                        )
-                                    }
-                                }
-                            } else null,
-                            singleLine = true,
-                            shape = neonShape(18.dp)
-                        )
-                    }
-                }
-                if (!cheatSearchVisible) {
-                    item(key = "cheat-folder-header") {
-                        CheatCategoryBrowserHeader(
-                            selectedCategory = selectedCheatCategory,
-                            count = if (selectedCheatCategory == null) {
-                                categoryGroups.sumOf { it.second.size }
-                            } else {
-                                visibleInstalledBlocks.size
-                            },
-                            onBack = { selectedCheatCategory = null },
-                            modifier = Modifier.animateItem(
-                                fadeInSpec = tween(220),
-                                placementSpec = tween(220),
-                                fadeOutSpec = tween(140)
-                            )
-                        )
-                    }
-                } else {
-                    item(key = "cheat-search-header") {
-                        Row(
-                            modifier = Modifier
-                                .animateItem(
-                                    fadeInSpec = tween(220),
-                                    placementSpec = tween(220),
-                                    fadeOutSpec = tween(140)
-                                )
-                                .fillMaxWidth(),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
+                        Column(modifier = Modifier.weight(1f)) {
                             Text(
-                                text = stringResource(R.string.cheat_manager_search),
-                                modifier = Modifier.weight(1f),
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.SemiBold
+                                text = stringResource(R.string.cheat_manager_enable),
+                                style = MaterialTheme.typography.bodyLarge
                             )
                             Text(
-                                text = stringResource(
-                                    R.string.cheat_manager_category_count,
-                                    visibleInstalledBlocks.size
-                                ),
-                                style = MaterialTheme.typography.labelLarge,
+                                text = stringResource(R.string.cheat_manager_enable_desc),
+                                style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
-                    }
-                }
-                if (!cheatSearchVisible && selectedCheatCategory == null) {
-                    items(categoryGroups, key = { item -> "cheat-category-${item.first.name}" }) { (category, blocks) ->
-                        CheatCategoryCard(
-                            category = category,
-                            count = blocks.size,
-                            onClick = { selectedCheatCategory = category },
-                            modifier = Modifier.animateItem(
-                                fadeInSpec = tween(220),
-                                placementSpec = tween(220),
-                                fadeOutSpec = tween(140)
-                            )
+                        Switch(
+                            checked = cheatsEnabled,
+                            onCheckedChange = { enabled ->
+                                scope.launch { preferences.setEnableCheats(enabled) }
+                                if (enabled) applyToCore()
+                            }
                         )
                     }
-                } else {
-                    if (visibleInstalledBlocks.isEmpty()) {
-                        item(key = "cheat-search-empty") {
-                            CheatSearchEmptyState(
-                                modifier = Modifier.animateItem(
-                                    fadeInSpec = tween(220),
-                                    placementSpec = tween(220),
-                                    fadeOutSpec = tween(140)
-                                )
-                            )
-                        }
-                    } else {
-                        items(visibleInstalledBlocks, key = { block -> "cheat-block-${block.id}" }) { block ->
-                            CheatToggleCard(
-                                block = block,
-                                onEnabledChange = { enabled ->
-                                    val latest = config ?: current
-                                    val updatedBlocks = latest.blocks.map { item ->
-                                        if (item.id == block.id) item.copy(enabled = enabled) else item
-                                    }
-                                    config = latest.copy(blocks = updatedBlocks)
-                                    scope.launch(Dispatchers.IO) {
-                                        cheatWriteMutex.withLock {
-                                            // Toggle a single ID so changes made in the
-                                            // in-game menu cannot be overwritten by a
-                                            // stale copy of the enabled set.
-                                            cheatRepository.setBlockEnabled(latest.gameKey, block.id, enabled)
-                                            cheatRepository.syncActiveCheats(
-                                                latest.gameKey,
-                                                latest.serial,
-                                                latest.crc
-                                            )
-                                            val coreFile = cheatRepository.activeCoreCheatFile(
-                                                latest.gameKey,
-                                                latest.serial,
-                                                latest.crc
-                                            )
-                                            if (coreFile != null) {
-                                                NativeApp.loadCheats(coreFile.absolutePath)
-                                            } else {
-                                                NativeApp.clearCheats()
-                                            }
-                                        }
-                                    }
-                                },
-                                modifier = Modifier.animateItem(
-                                    fadeInSpec = tween(220),
-                                    placementSpec = tween(220),
-                                    fadeOutSpec = tween(140)
-                                )
-                            )
-                        }
-                    }
                 }
-                item(key = "cheat-delete") {
+            }
+
+            item {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
                     OutlinedButton(
-                        shape = neonButtonShape(),
-                        onClick = { pendingDelete = current },
-                        modifier = Modifier.animateItem(
-                            fadeInSpec = tween(220),
-                            placementSpec = tween(220),
-                            fadeOutSpec = tween(140)
-                        )
+                        onClick = {
+                            val id = titleId ?: return@OutlinedButton
+                            scope.launch {
+                                busy = true
+                                val ok = withContext(Dispatchers.IO) {
+                                    repository.installFromCatalog(id)
+                                }
+                                if (ok) {
+                                    reloadSections()
+                                    applyToCore()
+                                }
+                                statusMessage = if (ok) installSuccess else installFailed
+                                busy = false
+                            }
+                        },
+                        enabled = !busy && titleId != null,
+                        modifier = Modifier.weight(1f)
                     ) {
-                        Icon(Icons.Rounded.DeleteOutline, contentDescription = null)
-                        Spacer(Modifier.width(8.dp))
-                        Text(stringResource(R.string.cheat_manager_delete))
+                        Icon(Icons.Rounded.Download, contentDescription = null)
+                        Text(stringResource(R.string.cheat_catalog_title))
+                    }
+                    OutlinedButton(
+                        onClick = { importPicker.launch(arrayOf("text/plain", "*/*")) },
+                        enabled = !busy && titleId != null,
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Icon(Icons.Rounded.FolderOpen, contentDescription = null)
+                        Text(stringResource(R.string.cheat_manager_import_pnach))
+                    }
+                }
+            }
+
+            item {
+                OutlinedButton(
+                    onClick = { showDeleteDialog = true },
+                    enabled = !busy && titleId != null && sections.isNotEmpty(),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Icon(Icons.Rounded.DeleteOutline, contentDescription = null)
+                    Text(stringResource(R.string.cheat_manager_delete))
+                }
+            }
+
+            statusMessage?.let { message ->
+                item {
+                    Text(
+                        text = message,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
+            }
+
+            if (titleId == null) {
+                item {
+                    Text(
+                        text = noTitleId,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            } else if (sections.isEmpty()) {
+                item {
+                    Text(
+                        text = stringResource(R.string.cheat_catalog_no_packs),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            } else {
+                item {
+                    Text(
+                        text = stringResource(R.string.cheat_manager_installed),
+                        style = MaterialTheme.typography.titleSmall
+                    )
+                }
+                items(sections) { section ->
+                    Surface(shape = neonShape(14.dp)) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 14.dp, vertical = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = section.name,
+                                style = MaterialTheme.typography.bodyMedium,
+                                maxLines = 2,
+                                overflow = TextOverflow.Ellipsis,
+                                modifier = Modifier.weight(1f)
+                            )
+                            Switch(
+                                checked = section.enabled,
+                                onCheckedChange = { checked ->
+                                    val id = titleId ?: return@Switch
+                                    val updated = sections.map {
+                                        if (it.name == section.name) it.copy(enabled = checked) else it
+                                    }
+                                    sections = updated
+                                    scope.launch {
+                                        withContext(Dispatchers.IO) { repository.write(id, updated) }
+                                        applyToCore()
+                                    }
+                                }
+                            )
+                        }
                     }
                 }
             }
         }
     }
 
-    pendingDelete?.let { current ->
-        AppAlertDialog(
-            onDismissRequest = { pendingDelete = null },
+    if (showDeleteDialog) {
+        AlertDialog(
+            onDismissRequest = { showDeleteDialog = false },
             title = { Text(stringResource(R.string.cheat_manager_delete_title)) },
             text = { Text(stringResource(R.string.cheat_manager_delete_confirm)) },
             confirmButton = {
                 TextButton(onClick = {
-                    cheatRepository.deleteImportedCheats(current.gameKey, current.serial, current.crc)
-                    NativeApp.clearCheats()
-                    config = null
-                    pendingDelete = null
-                    Toast.makeText(context, deleteSuccess, Toast.LENGTH_SHORT).show()
-                }) { Text(stringResource(R.string.delete)) }
+                    showDeleteDialog = false
+                    val id = titleId ?: return@TextButton
+                    scope.launch {
+                        withContext(Dispatchers.IO) {
+                            repository.delete(id)
+                            NativeApp.clearCheats()
+                        }
+                        reloadSections()
+                        statusMessage = deleteSuccess
+                    }
+                }) {
+                    Text(stringResource(android.R.string.ok))
+                }
             },
             dismissButton = {
-                TextButton(onClick = { pendingDelete = null }) { Text(stringResource(R.string.cancel)) }
-            }
-        )
-    }
-}
-
-@Composable
-private fun CheatCategoryBrowserHeader(
-    selectedCategory: CheatCategory?,
-    count: Int,
-    onBack: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    Row(
-        modifier = modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        if (selectedCategory == null) {
-            Icon(
-                imageVector = Icons.Rounded.Folder,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary
-            )
-            Spacer(Modifier.width(9.dp))
-            Text(
-                text = stringResource(R.string.cheat_manager_categories),
-                modifier = Modifier.weight(1f),
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold
-            )
-        } else {
-            TextButton(onClick = onBack, modifier = Modifier.weight(1f)) {
-                Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = null)
-                Spacer(Modifier.width(7.dp))
-                Icon(Icons.Rounded.FolderOpen, contentDescription = null)
-                Spacer(Modifier.width(7.dp))
-                Text(
-                    text = stringResource(selectedCategory.titleRes),
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-            }
-        }
-        Text(
-            text = stringResource(R.string.cheat_manager_category_count, count),
-            style = MaterialTheme.typography.labelLarge,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-    }
-}
-
-@Composable
-private fun CheatCategoryCard(
-    category: CheatCategory,
-    count: Int,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    Surface(
-        onClick = onClick,
-        modifier = modifier.fillMaxWidth(),
-        shape = neonShape(18.dp),
-        color = MaterialTheme.colorScheme.surface,
-        contentColor = MaterialTheme.colorScheme.onSurface,
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.72f))
-    ) {
-        Row(
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 15.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            Surface(
-                shape = neonShape(13.dp),
-                color = MaterialTheme.colorScheme.primaryContainer,
-                contentColor = MaterialTheme.colorScheme.onPrimaryContainer
-            ) {
-                Icon(
-                    imageVector = Icons.Rounded.Folder,
-                    contentDescription = null,
-                    modifier = Modifier.padding(10.dp).size(21.dp)
-                )
-            }
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = stringResource(category.titleRes),
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold
-                )
-                Text(
-                    text = stringResource(R.string.cheat_manager_category_count, count),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-            Icon(
-                imageVector = Icons.AutoMirrored.Rounded.ArrowForward,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary
-            )
-        }
-    }
-}
-
-@Composable
-private fun CheatToggleCard(
-    block: CheatBlock,
-    onEnabledChange: (Boolean) -> Unit,
-    modifier: Modifier = Modifier
-) {
-    Surface(
-        modifier = modifier.fillMaxWidth(),
-        shape = neonShape(16.dp),
-        color = MaterialTheme.colorScheme.surface,
-        contentColor = MaterialTheme.colorScheme.onSurface
-    ) {
-        Row(
-            modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = block.title,
-                    style = MaterialTheme.typography.bodyLarge
-                )
-                block.author?.takeIf { it.isNotBlank() }?.let { author ->
-                    Text(
-                        text = author,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+                TextButton(onClick = { showDeleteDialog = false }) {
+                    Text(stringResource(android.R.string.cancel))
                 }
             }
-            Switch(
-                checked = block.enabled,
-                onCheckedChange = onEnabledChange
-            )
-        }
-    }
-}
-
-@Composable
-private fun CheatSearchEmptyState(modifier: Modifier = Modifier) {
-    Surface(
-        modifier = modifier.fillMaxWidth(),
-        shape = neonShape(18.dp),
-        color = MaterialTheme.colorScheme.surface,
-        contentColor = MaterialTheme.colorScheme.onSurfaceVariant
-    ) {
-        Text(
-            text = stringResource(R.string.cheat_manager_search_empty),
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 18.dp),
-            style = MaterialTheme.typography.bodyLarge
         )
     }
 }
