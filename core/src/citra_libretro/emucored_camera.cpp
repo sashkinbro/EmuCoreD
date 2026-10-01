@@ -190,12 +190,15 @@ void emucored_camera_configure(int slot, int enabled, int flip) {
     Settings::values.camera_config[slot] = std::to_string(slot);
     Settings::values.camera_flip[slot] = std::clamp(flip, 0, 3);
 
-    // Apply immediately when the camera service is already running.
-    auto cam =
-        Core::System::GetInstance().ServiceManager().GetService<Service::CAM::Module::Interface>(
-            "cam:u");
-    if (cam) {
-        cam->GetModule()->ReloadCameraDevices();
+    // Apply immediately when the camera service is already running. The
+    // service manager only exists once the system is powered on, so this must
+    // stay behind the power check.
+    auto& system = Core::System::GetInstance();
+    if (system.IsPoweredOn()) {
+        auto cam = system.ServiceManager().GetService<Service::CAM::Module::Interface>("cam:u");
+        if (cam) {
+            cam->GetModule()->ReloadCameraDevices();
+        }
     }
 }
 

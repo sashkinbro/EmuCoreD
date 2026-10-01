@@ -40,20 +40,8 @@ object N3dsGameMetadataReader {
         // The NCCH header carries the 16 hex digit title ID, the 3DS equivalent
         // of a disc serial, plus a product code (CTR-P-XXXX).
         val ncch = readNcchIdentity(context, path)
-        // CIA installers are not NCCH containers, so read the title id from the
-        // embedded ticket metadata instead.
-        val ciaTitleId = if (ncch?.titleId == null || ncch.titleId == 0L) {
-            if (path.substringAfterLast('.', "").equals("cia", ignoreCase = true)) {
-                CiaExtractor.readTitleId(context, path)
-            } else {
-                null
-            }
-        } else {
-            null
-        }
         val serial = ncch?.titleId?.takeIf { it != 0L }
             ?.let { String.format(Locale.US, "%016x", it) }
-            ?: ciaTitleId
             ?: ncch?.productCode
             ?: smdhProductCode
         if (title == null && serial == null) null else N3dsGameMetadata(title, serial)
