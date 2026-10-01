@@ -30,6 +30,7 @@ add_library(citra_libretro SHARED
         emucored_cia.cpp
         emucored_camera.cpp
         emucored_network.cpp
+        emucored_cheats.cpp
         $<TARGET_OBJECTS:citra_libretro_common>)
 
 if(ANDROID)

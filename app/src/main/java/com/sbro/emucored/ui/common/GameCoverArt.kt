@@ -122,7 +122,7 @@ fun GameCoverArt(
             bitmap = currentBitmap.asImageBitmap(),
             contentDescription = fallbackTitle,
             contentScale = contentScale,
-            modifier = imageModifier
+            modifier = imageModifier.clip(neonShape(20.dp))
         )
     } else {
         Box(

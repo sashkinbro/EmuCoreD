@@ -110,6 +110,7 @@ struct CoreApi {
     void (*cheat_reset)() = nullptr;
     void (*cheat_set)(unsigned, bool, const char*) = nullptr;
     void (*cheat_reload)() = nullptr;
+    void (*cheat_clear)() = nullptr;
     bool (*load_game)(const retro_game_info*) = nullptr;
     void (*unload_game)() = nullptr;
     bool (*rewind_step)() = nullptr;
@@ -329,6 +330,7 @@ bool LoadCoreLocked() {
     g_core.cheat_reset = reinterpret_cast<void (*)()>(resolve("retro_cheat_reset"));
     g_core.cheat_set = reinterpret_cast<void (*)(unsigned, bool, const char*)>(resolve("retro_cheat_set"));
     g_core.cheat_reload = reinterpret_cast<void (*)()>(resolve("emucored_cheat_reload"));
+    g_core.cheat_clear = reinterpret_cast<void (*)()>(resolve("emucored_cheat_clear"));
     g_core.load_game = reinterpret_cast<bool (*)(const retro_game_info*)>(resolve("retro_load_game"));
     g_core.unload_game = reinterpret_cast<void (*)()>(resolve("retro_unload_game"));
     g_core.rewind_step = reinterpret_cast<bool (*)()>(resolve("emucored_rewind_step"));
@@ -1803,13 +1805,16 @@ Java_com_sbro_emucored_core_NativeCoreBridge_setTextureReplacementsPathOverride(
 
 JNIEXPORT void JNICALL
 Java_com_sbro_emucored_core_NativeCoreBridge_loadCheats(JNIEnv*, jobject, jstring) {
-    // The Azahar libretro core does not implement retro_cheat_set; cheat
-    // management stays available in the standalone emulator only.
+    // The Kotlin cheat manager writes Gateway cheat files into the core's
+    // cheats directory; this asks the core to load them for the running title.
+    if (!LoadCoreLocked() || g_core.cheat_reload == nullptr) return;
+    g_core.cheat_reload();
 }
 
 JNIEXPORT void JNICALL
 Java_com_sbro_emucored_core_NativeCoreBridge_clearCheats(JNIEnv*, jobject) {
-    if (g_core.cheat_reset != nullptr) g_core.cheat_reset();
+    if (!LoadCoreLocked() || g_core.cheat_clear == nullptr) return;
+    g_core.cheat_clear();
 }
 
 JNIEXPORT jstring JNICALL
