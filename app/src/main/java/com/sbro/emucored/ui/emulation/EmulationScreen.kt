@@ -79,6 +79,7 @@ import androidx.compose.material.icons.rounded.Restore
 import androidx.compose.material.icons.rounded.Save
 import androidx.compose.material.icons.rounded.SettingsSuggest
 import androidx.compose.material.icons.rounded.Star
+import androidx.compose.material.icons.rounded.SwapVert
 import androidx.compose.material.icons.rounded.TouchApp
 import androidx.compose.material.icons.rounded.Visibility
 import androidx.compose.material.icons.rounded.VisibilityOff
@@ -1587,6 +1588,13 @@ fun EmulationScreen(
                     onSetRenderer = { viewModel.setRenderer(it) },
                     onSetUpscale = { viewModel.setUpscale(it) },
                     onSetAspectRatio = { viewModel.setAspectRatio(it) },
+                    onSwapScreens = {
+                        viewModel.onPadInput(overlayPadIndex, PadKey.HOME, 0, true)
+                        scope.launch {
+                            delay(120)
+                            viewModel.onPadInput(overlayPadIndex, PadKey.HOME, 0, false)
+                        }
+                    },
                     onSetDisplayCrop = { viewModel.setDisplayCrop(it) },
                     onSetLocalMultiplayerMode = viewModel::setLocalMultiplayerMode,
                     onSetMtvu = { viewModel.setMtvu(it) },
@@ -2904,6 +2912,7 @@ private fun EmulationSidebarMenu(
     onSetRenderer: (Int) -> Unit,
     onSetUpscale: (Float) -> Unit,
     onSetAspectRatio: (Int) -> Unit,
+    onSwapScreens: () -> Unit,
     onSetDisplayCrop: (DisplayCrop) -> Unit,
     onSetLocalMultiplayerMode: (Int) -> Unit,
     onSetMtvu: (Boolean) -> Unit,
@@ -3909,6 +3918,12 @@ private fun EmulationSidebarMenu(
                             allowWrap = false,
                             helpText = stringResource(R.string.settings_help_aspect_ratio),
                             onResetToDefault = { onSetAspectRatio(globalDefaults.aspectRatio) }
+                        )
+
+                        MenuButton(
+                            icon = Icons.Rounded.SwapVert,
+                            text = stringResource(R.string.settings_gamepad_action_swap_screen),
+                            onClick = onSwapScreens
                         )
 
                         LiveSelectionRow(
