@@ -136,12 +136,14 @@ class N3dsCatalogRepository(private val context: Context) {
 
     data class CatalogCover(val igdbId: Long, val coverUrl: String?, val heroUrl: String?)
 
-    private val coverMatchCache = java.util.concurrent.ConcurrentHashMap<String, CatalogCover?>()
+    private val coverMatchCache = java.util.concurrent.ConcurrentHashMap<String, CatalogCover>()
+    private val coverMatchMisses = java.util.concurrent.ConcurrentHashMap.newKeySet<String>()
 
     /** Cover art for the library, matched through the bundled IGDB catalog. */
     fun findCoverMatch(serial: String?, title: String?): CatalogCover? {
         val cacheKey = "${serial.orEmpty()}\u0000${title.orEmpty()}".lowercase(Locale.ROOT)
-        if (coverMatchCache.containsKey(cacheKey)) return coverMatchCache[cacheKey]
+        coverMatchCache[cacheKey]?.let { return it }
+        if (cacheKey in coverMatchMisses) return null
         val match = runCatching {
             val id = findBestMatchId(serial, title) ?: return@runCatching null
             val db = getDatabase() ?: return@runCatching null
@@ -153,7 +155,8 @@ class N3dsCatalogRepository(private val context: Context) {
                 else CatalogCover(id, cursor.getString(0), cursor.getString(1))
             }
         }.getOrNull()
-        coverMatchCache[cacheKey] = match
+        // ConcurrentHashMap rejects null values, so misses get their own set.
+        if (match == null) coverMatchMisses.add(cacheKey) else coverMatchCache[cacheKey] = match
         return match
     }
 

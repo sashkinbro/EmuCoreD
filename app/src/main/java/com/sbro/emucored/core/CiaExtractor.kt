@@ -34,14 +34,26 @@ object CiaExtractor {
     private const val SECTION_ALIGN = 0x40
     private const val COPY_BUFFER_BYTES = 1 shl 20
     private const val NCCH_HEADER_SIZE = 0x200
-    private const val SCAN_LIMIT_BYTES = 32L * 1024 * 1024
+    private const val SCAN_LIMIT_BYTES = 128L * 1024 * 1024
 
     private data class Candidate(
         val offset: Long,
         val size: Long,
         val programId: Long,
         val noCrypto: Boolean,
-    )
+        val exefsOffset: Long,
+        val exefsSize: Long,
+        val romfsOffset: Long,
+        val romfsSize: Long,
+    ) {
+        /** A plausible executable NCCH header rather than encrypted noise. */
+        val looksLikeExecutable: Boolean
+            get() = (programId ushr 48) == 0x0004L &&
+                size >= 0x100000 &&
+                exefsSize > 0 &&
+                exefsOffset + exefsSize <= size &&
+                (romfsSize == 0L || romfsOffset + romfsSize <= size)
+    }
 
     private class Source(val channel: FileChannel, private val owner: Closeable?) : Closeable {
         fun size(): Long = channel.size()
@@ -88,14 +100,19 @@ object CiaExtractor {
             offset = align(offset + tmdSize)
 
             val candidates = scanCandidates(source, offset, minOf(fileSize, offset + SCAN_LIMIT_BYTES))
-            val readbleBoot = candidates
-                .filter { it.size >= 0x100000 && it.size <= contentSize }
+            val boot = candidates
+                .filter { it.looksLikeExecutable && it.size <= contentSize }
                 .maxByOrNull { it.size }
-            val boot = readbleBoot
-                ?: throw CiaExtractionException(
+            // An encrypted CIA hides its main NCCH header, leaving only small
+            // readable side contents (manuals). Those are never close in size
+            // to the whole content area, so a tiny best candidate means the
+            // game itself is encrypted.
+            if (boot == null || boot.size < contentSize / 4) {
+                throw CiaExtractionException(
                     "This CIA is encrypted or compressed. Azahar only loads decrypted CIA files.",
                     com.sbro.emucored.R.string.cia_decrypt_required
                 )
+            }
             if (!boot.noCrypto) {
                 Log.w(TAG, "CIA boot content may be encrypted; the core will decide whether it can load it")
             }
@@ -161,9 +178,20 @@ object CiaExtractor {
                     val header = source.read(absolute, NCCH_HEADER_SIZE)
                     if (header.size >= NCCH_HEADER_SIZE) {
                         val size = u32(header, 0x04)
-                        val programId = u64(header, 0x120)
-                        val flags = header[0x192].toInt() and 0xFF
-                        candidates.add(Candidate(absolute, size, programId, (flags and 0x04) != 0))
+                        val programId = u64(header, 0x18)
+                        val flags = header[0x8F].toInt() and 0xFF
+                        candidates.add(
+                            Candidate(
+                                offset = absolute,
+                                size = size,
+                                programId = programId,
+                                noCrypto = (flags and 0x04) != 0,
+                                exefsOffset = u32(header, 0xA0),
+                                exefsSize = u32(header, 0xA4),
+                                romfsOffset = u32(header, 0xB0),
+                                romfsSize = u32(header, 0xB4),
+                            )
+                        )
                     }
                     index += NCCH_HEADER_SIZE
                     continue

@@ -27,6 +27,8 @@ ehthumbs.db
 # Local catalog tooling and IGDB credentials - never push these.
 /IGDB/
 /tools/
+
+# Firebase Hosting site sources are deployed from the local working tree only.
 /public/
 
 # Firmware / BIOS dumps - never commit
