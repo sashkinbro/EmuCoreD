@@ -65,22 +65,25 @@ class CoverArtRepository(context: Context) {
     /** Never flash an embedded icon or a previous style before the selected artwork loads. */
     fun displayCoverPath(serial: String?, title: String?, candidate: String?): String? {
         if (candidate != null && !isManagedCoverCachePath(candidate)) return candidate
-        if (hasIndexedCover(serial, title)) return findCachedCoverPath(serial)
+        if (hasIndexedCover(serial, title)) return findCachedCoverPath(serial, title = title)
         return candidate
     }
 
     fun findCachedCoverPath(
         serial: String?,
         styleOverride: Int? = null,
-        ignoreDisabled: Boolean = false
+        ignoreDisabled: Boolean = false,
+        title: String? = null
     ): String? {
         val style = resolveCoverArtStyle(styleOverride)
         if (!ignoreDisabled && style == AppPreferences.COVER_ART_STYLE_DISABLED) {
             return null
         }
-        val normalizedSerial = normalizeSerial(serial)
+        // 3DS CIAs often expose a title but no serial, so the cache key falls
+        // back to the game title in that case.
+        val normalizedSerial = coverKey(serial, title)
         if (normalizedSerial == null) {
-            Log.d(TAG, "No serial provided")
+            Log.d(TAG, "No serial or title provided")
             return null
         }
         val preferredFiles = if (style == AppPreferences.COVER_ART_STYLE_3D) {
@@ -109,9 +112,10 @@ class CoverArtRepository(context: Context) {
     fun findCachedCoverUri(
         serial: String?,
         styleOverride: Int? = null,
-        ignoreDisabled: Boolean = false
+        ignoreDisabled: Boolean = false,
+        title: String? = null
     ): String? {
-        return findCachedCoverPath(serial, styleOverride, ignoreDisabled)
+        return findCachedCoverPath(serial, styleOverride, ignoreDisabled, title)
     }
 
     fun downloadCover(
@@ -125,14 +129,12 @@ class CoverArtRepository(context: Context) {
             Log.d(TAG, "Cover download skipped: cover art style is disabled")
             return null
         }
-        val normalizedSerial = normalizeSerial(serial)
-        if (normalizedSerial == null && title.isNullOrBlank()) {
+        val coverKey = coverKey(serial, title)
+        if (coverKey == null) {
             Log.w(TAG, "Cannot download cover: no serial or title")
             return null
         }
         val coverBaseUrl = resolveCoverBaseUrl(style)
-        val coverKey = normalizedSerial ?: title!!.trim().lowercase(Locale.ROOT)
-            .replace(Regex("[^a-z0-9]+"), "_").take(80)
         val flightKey = "$style|$coverBaseUrl|$coverKey"
         lateinit var flight: PendingCoverDownload
         var ownsDownload = false
@@ -355,6 +357,16 @@ class CoverArtRepository(context: Context) {
 
         return (formatted ?: cleanSerial.replace(Regex("[^A-Z0-9_-]"), ""))
             .also { Log.d(TAG, "Normalized: '$serial' -> '$it'") }
+    }
+
+    /** Cache key for a cover: the serial when available, otherwise the title. */
+    private fun coverKey(serial: String?, title: String?): String? {
+        normalizeSerial(serial)?.let { return it }
+        val normalizedTitle = title?.trim()?.lowercase(Locale.ROOT)
+            ?.replace(Regex("[^a-z0-9]+"), "_")
+            ?.trim('_')
+            ?.take(80)
+        return normalizedTitle?.takeIf { it.isNotBlank() }
     }
 
     private fun resolveCoverBaseUrl(style: Int = resolveCoverArtStyle()): String? {

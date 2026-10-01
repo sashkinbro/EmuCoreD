@@ -139,7 +139,7 @@ class GameRepository {
         // A loose homebrew ELF has no retail identity; do not guess its artwork from a short filename.
         val serial = game.serial?.takeIf(String::isNotBlank)
         val covers = CoverArtRepository(context)
-        val downloaded = if (serial != null) covers.downloadCover(serial, title = game.title) else null
+        val downloaded = covers.downloadCover(serial, title = game.title)
         if (covers.hasIndexedCover(serial, game.title)) return downloaded
         return downloaded
             ?: game.coverArtPath?.takeIf { File(it).isFile }
@@ -216,7 +216,7 @@ class GameRepository {
                         fileSize = entrySize,
                         lastModified = file.lastModified(),
                         coverArtPath = customCoverRepository.findCustomCoverPath(file.absolutePath)
-                            ?: coverRepository.findCachedCoverPath(serial)
+                            ?: coverRepository.findCachedCoverPath(serial, title = title)
                             ?: N3dsGameMetadataReader.extractIcon(context, file.absolutePath)
                             ?: cachedGame?.coverArtPath?.takeIf { File(it).exists() }
                             ?: coverCandidates[normalizeBaseName(file.nameWithoutExtension)]?.absolutePath
@@ -316,7 +316,7 @@ class GameRepository {
                         fileSize = entrySize,
                         lastModified = lastModified,
                         coverArtPath = customCoverRepository.findCustomCoverPath(uriPath)
-                            ?: coverRepository.findCachedCoverUri(serial)
+                            ?: coverRepository.findCachedCoverUri(serial, title = title)
                             ?: N3dsGameMetadataReader.extractIcon(context, uriPath)
                             ?: cachedGame?.coverArtPath
                             ?: coverCandidates[normalizeBaseName(name.substringBeforeLast('.'))]?.uri?.toString()
@@ -338,7 +338,7 @@ class GameRepository {
         val titleKey = normalizeBaseName(cleanGameName(title ?: EmulatorBridge.getGameTitle(path)))
         val coverCandidates = buildLocalCoverCandidates(parent.listFiles().orEmpty())
         return CustomGameCoverRepository(context).findCustomCoverPath(path)
-            ?: CoverArtRepository(context).findCachedCoverPath(serial)
+            ?: CoverArtRepository(context).findCachedCoverPath(serial, title = title)
             ?: N3dsGameMetadataReader.extractIcon(context, path)
             ?: coverCandidates[baseName]?.absolutePath
             ?: coverCandidates[titleKey]?.absolutePath
@@ -346,7 +346,7 @@ class GameRepository {
 
     private fun findDocumentCover(path: String, context: Context, serial: String?, title: String?): String? {
         CustomGameCoverRepository(context).findCustomCoverPath(path)?.let { return it }
-        CoverArtRepository(context).findCachedCoverUri(serial)?.let { return it }
+        CoverArtRepository(context).findCachedCoverUri(serial, title = title)?.let { return it }
         N3dsGameMetadataReader.extractIcon(context, path)?.let { return it }
 
         val uri = path.toUri()
