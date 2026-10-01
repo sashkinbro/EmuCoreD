@@ -1,0 +1,63 @@
+# Build outputs
+/build/
+/app/build/
+/app/release/
+/app/.cxx/
+/app/.externalNativeBuild/
+/core/build/
+/core/.cxx/
+/core-android/build/
+/core-android/.cxx/
+/core-android/.externalNativeBuild/
+/.gradle/
+/.kotlin/
+/out/
+
+# Local configuration
+local.properties
+
+# IDE
+/.idea/
+*.iml
+.DS_Store
+Thumbs.db
+Desktop.ini
+ehthumbs.db
+
+# Local catalog tooling and IGDB credentials - never push these.
+/IGDB/
+/tools/
+/public/
+
+# Firmware / BIOS dumps - never commit
+/bios/
+*.bin
+
+# Commercial game images - never commit
+*.3ds
+*.3dsx
+*.cci
+*.cxi
+*.cia
+*.app
+*.iso
+*.cso
+*.chd
+
+# Native build artifacts (generated outside ignored build dirs)
+/EmuCoreD-release.apk
+CMakeUserPresets.json
+compile_commands.json
+
+# Firebase local state
+.firebase/
+firebase-debug.log
+firestore-debug.log
+ui-debug.log
+
+# Firebase client configuration for this app (contains project API keys)
+/app/google-services.json
+
+# Release signing material
+*.jks
+*.keystore

@@ -1,0 +1,94 @@
+// Android wrapper around the vendored Azahar core in ../core.
+//
+// This module does not contain any Java/Kotlin code or Azahar's own frontend:
+// it only compiles the upstream CMake project with ENABLE_LIBRETRO=ON,
+// producing libazahar_libretro_android.so and shipping it as a jniLib of this
+// library module. The EmuCoreD JNI bridge in :app loads the produced library
+// at runtime through dlopen.
+plugins {
+    alias(libs.plugins.android.library)
+}
+
+android {
+    namespace = "com.sbro.emucored.core.azahar"
+    compileSdk {
+        version = release(37)
+    }
+    ndkVersion = "29.0.14206865"
+
+    defaultConfig {
+        minSdk = 26
+        ndk {
+            abiFilters += "arm64-v8a"
+        }
+        externalNativeBuild {
+            cmake {
+                arguments += listOf(
+                    "-DENABLE_LIBRETRO=ON",
+                    "-DANDROID_STL=c++_static",
+                    // Azahar's desktop frontends and services are not part of
+                    // the libretro core build. ENABLE_LIBRETRO force-disables
+                    // the incompatible ones, but stating them explicitly keeps
+                    // CMake's configuration stable and easy to audit.
+                    "-DENABLE_QT=OFF",
+                    "-DENABLE_SDL2=OFF",
+                    "-DENABLE_TESTS=OFF",
+                    "-DENABLE_ROOM=OFF",
+                    "-DENABLE_ROOM_STANDALONE=OFF",
+                    "-DENABLE_WEB_SERVICE=OFF",
+                    "-DENABLE_SCRIPTING=OFF",
+                    "-DENABLE_GDBSTUB=OFF",
+                    "-DENABLE_OPENAL=OFF",
+                    "-DENABLE_CUBEB=OFF",
+                    "-DENABLE_LIBUSB=OFF",
+                    "-DENABLE_DISCORD_RPC=OFF",
+                    "-DENABLE_NATIVE_OPTIMIZATION=OFF",
+                    // The Android build does not need upstream's LTO pass; the
+                    // frontend already compiles the core at -O3.
+                    "-DENABLE_LTO=OFF",
+                    // NDK clang is newer than the compiler matrix upstream's
+                    // warnings-as-errors mode was tuned for.
+                    "-DCITRA_WARNINGS_AS_ERRORS=OFF"
+                )
+                targets += "citra_libretro"
+            }
+        }
+    }
+
+    externalNativeBuild {
+        cmake {
+            path = file("../core/CMakeLists.txt")
+            version = "3.30.5"
+        }
+    }
+
+    buildTypes {
+        debug {
+            // This module compiles the emulator itself. Keep the debug symbols,
+            // but optimize the core so test APKs measure real emulation speed.
+            externalNativeBuild {
+                cmake {
+                    arguments += listOf(
+                        "-DCMAKE_C_FLAGS_DEBUG=-O3 -g",
+                        "-DCMAKE_CXX_FLAGS_DEBUG=-O3 -g"
+                    )
+                }
+            }
+        }
+        release {
+            externalNativeBuild {
+                cmake {
+                    arguments += listOf(
+                        "-DCMAKE_C_FLAGS_RELWITHDEBINFO=-O3 -g -DNDEBUG",
+                        "-DCMAKE_CXX_FLAGS_RELWITHDEBINFO=-O3 -g -DNDEBUG"
+                    )
+                }
+            }
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
+    }
+}

@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Gold Pro variant of the EmuCoreD "A" mark. The shadow pass keeps the
+         joint flush, exactly like the default launcher foreground. -->
+    <path
+        android:fillColor="#00000000"
+        android:pathData="M32,82 L54,31 L76,82"
+        android:strokeColor="#5A431B"
+        android:strokeAlpha="0.68"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:strokeWidth="8" />
+    <path
+        android:fillColor="#00000000"
+        android:pathData="M41,61 L66,61"
+        android:strokeColor="#5A431B"
+        android:strokeAlpha="0.68"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:strokeWidth="8" />
+    <!-- Rounded A: left leg, apex and right leg as one stroke so the joint
+         stays flush instead of overlapping round caps. -->
+    <path
+        android:fillColor="#00000000"
+        android:pathData="M32,80 L54,29 L76,80"
+        android:strokeColor="#D8B45F"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:strokeWidth="8" />
+    <!-- Rounded A: crossbar ends on the leg centrelines, tucked under them. -->
+    <path
+        android:fillColor="#00000000"
+        android:pathData="M41,59 L66,59"
+        android:strokeColor="#B58A35"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:strokeWidth="8" />
+    <path
+        android:fillColor="#FFE8A6"
+        android:pathData="M50,51 L54,46 L58,51 L54,56 Z" />
+</vector>
