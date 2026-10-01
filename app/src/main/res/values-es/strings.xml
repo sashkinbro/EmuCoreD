@@ -2560,4 +2560,26 @@
     <string name="settings_camera_flip_vertical">Vertical</string>
     <string name="settings_camera_flip_reverse">Invertido</string>
     <string name="settings_help_camera">Alimenta la cámara seleccionada de la 3DS con una imagen fija mientras se juega.</string>
+    <string name="settings_multiplayer_title">Multijugador en línea</string>
+    <string name="settings_multiplayer_status_offline">No conectado</string>
+    <string name="settings_multiplayer_status_joined">En una sala</string>
+    <string name="settings_multiplayer_status_hosting">Sala creada</string>
+    <string name="settings_multiplayer_host">Crear una sala</string>
+    <string name="settings_multiplayer_join">Unirse a una sala</string>
+    <string name="settings_multiplayer_room_name">Nombre de la sala</string>
+    <string name="settings_multiplayer_address">Dirección del servidor</string>
+    <string name="settings_multiplayer_password">Contraseña</string>
+    <string name="settings_multiplayer_port">Puerto</string>
+    <string name="settings_multiplayer_max_players">Máx. jugadores</string>
+    <string name="settings_multiplayer_host_action">Crear</string>
+    <string name="settings_multiplayer_join_action">Unirse</string>
+    <string name="settings_multiplayer_leave">Salir</string>
+    <string name="settings_multiplayer_refresh">Actualizar</string>
+    <string name="settings_multiplayer_public_rooms">Salas públicas</string>
+    <string name="settings_multiplayer_members">Miembros</string>
+    <string name="settings_multiplayer_message">Mensaje</string>
+    <string name="settings_multiplayer_send">Enviar</string>
+    <string name="settings_multiplayer_no_rooms">No se encontraron salas públicas</string>
+    <string name="settings_multiplayer_error">Error de red</string>
+    <string name="settings_multiplayer_hosted_hint">Los jugadores en la misma red pueden unirse con tu dirección.</string>
 </resources>

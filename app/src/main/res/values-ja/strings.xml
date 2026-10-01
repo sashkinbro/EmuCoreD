@@ -2557,4 +2557,26 @@
     <string name="settings_camera_flip_vertical">垂直</string>
     <string name="settings_camera_flip_reverse">逆</string>
     <string name="settings_help_camera">ゲーム実行中、選択した3DSカメラに静止画を供給します。</string>
+    <string name="settings_multiplayer_title">オンラインマルチプレイ</string>
+    <string name="settings_multiplayer_status_offline">未接続</string>
+    <string name="settings_multiplayer_status_joined">ルームに参加中</string>
+    <string name="settings_multiplayer_status_hosting">ルームを作成済み</string>
+    <string name="settings_multiplayer_host">ルームを作成</string>
+    <string name="settings_multiplayer_join">ルームに参加</string>
+    <string name="settings_multiplayer_room_name">ルーム名</string>
+    <string name="settings_multiplayer_address">サーバーアドレス</string>
+    <string name="settings_multiplayer_password">パスワード</string>
+    <string name="settings_multiplayer_port">ポート</string>
+    <string name="settings_multiplayer_max_players">最大プレイヤー数</string>
+    <string name="settings_multiplayer_host_action">作成</string>
+    <string name="settings_multiplayer_join_action">参加</string>
+    <string name="settings_multiplayer_leave">退出</string>
+    <string name="settings_multiplayer_refresh">更新</string>
+    <string name="settings_multiplayer_public_rooms">公開ルーム</string>
+    <string name="settings_multiplayer_members">メンバー</string>
+    <string name="settings_multiplayer_message">メッセージ</string>
+    <string name="settings_multiplayer_send">送信</string>
+    <string name="settings_multiplayer_no_rooms">公開ルームが見つかりません</string>
+    <string name="settings_multiplayer_error">ネットワークエラー</string>
+    <string name="settings_multiplayer_hosted_hint">同じネットワークのプレイヤーはあなたのアドレスで参加できます。</string>
 </resources>

@@ -2566,4 +2566,26 @@
     <string name="settings_camera_flip_vertical">عمودي</string>
     <string name="settings_camera_flip_reverse">معكوس</string>
     <string name="settings_help_camera">يغذي الكاميرا المحددة في 3DS بصورة ثابتة أثناء تشغيل اللعبة.</string>
+    <string name="settings_multiplayer_title">اللعب الجماعي عبر الإنترنت</string>
+    <string name="settings_multiplayer_status_offline">غير متصل</string>
+    <string name="settings_multiplayer_status_joined">في غرفة</string>
+    <string name="settings_multiplayer_status_hosting">تم إنشاء الغرفة</string>
+    <string name="settings_multiplayer_host">إنشاء غرفة</string>
+    <string name="settings_multiplayer_join">الانضمام إلى غرفة</string>
+    <string name="settings_multiplayer_room_name">اسم الغرفة</string>
+    <string name="settings_multiplayer_address">عنوان الخادم</string>
+    <string name="settings_multiplayer_password">كلمة المرور</string>
+    <string name="settings_multiplayer_port">المنفذ</string>
+    <string name="settings_multiplayer_max_players">الحد الأقصى للاعبين</string>
+    <string name="settings_multiplayer_host_action">إنشاء</string>
+    <string name="settings_multiplayer_join_action">انضمام</string>
+    <string name="settings_multiplayer_leave">مغادرة</string>
+    <string name="settings_multiplayer_refresh">تحديث</string>
+    <string name="settings_multiplayer_public_rooms">الغرف العامة</string>
+    <string name="settings_multiplayer_members">الأعضاء</string>
+    <string name="settings_multiplayer_message">رسالة</string>
+    <string name="settings_multiplayer_send">إرسال</string>
+    <string name="settings_multiplayer_no_rooms">لم يتم العثور على غرف عامة</string>
+    <string name="settings_multiplayer_error">خطأ في الشبكة</string>
+    <string name="settings_multiplayer_hosted_hint">يمكن للاعبين على نفس الشبكة الانضمام عبر عنوانك.</string>
 </resources>

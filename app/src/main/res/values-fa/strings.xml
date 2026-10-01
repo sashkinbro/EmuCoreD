@@ -2573,4 +2573,26 @@
     <string name="settings_camera_flip_vertical">عمودی</string>
     <string name="settings_camera_flip_reverse">معکوس</string>
     <string name="settings_help_camera">در حین بازی یک تصویر ثابت به دوربین انتخاب‌شده 3DS می‌دهد.</string>
+    <string name="settings_multiplayer_title">چندنفره آنلاین</string>
+    <string name="settings_multiplayer_status_offline">متصل نیست</string>
+    <string name="settings_multiplayer_status_joined">در یک اتاق</string>
+    <string name="settings_multiplayer_status_hosting">اتاق ساخته شد</string>
+    <string name="settings_multiplayer_host">ساخت اتاق</string>
+    <string name="settings_multiplayer_join">پیوستن به اتاق</string>
+    <string name="settings_multiplayer_room_name">نام اتاق</string>
+    <string name="settings_multiplayer_address">آدرس سرور</string>
+    <string name="settings_multiplayer_password">رمز عبور</string>
+    <string name="settings_multiplayer_port">پورت</string>
+    <string name="settings_multiplayer_max_players">حداکثر بازیکنان</string>
+    <string name="settings_multiplayer_host_action">ساخت</string>
+    <string name="settings_multiplayer_join_action">پیوستن</string>
+    <string name="settings_multiplayer_leave">خروج</string>
+    <string name="settings_multiplayer_refresh">بازخوانی</string>
+    <string name="settings_multiplayer_public_rooms">اتاق‌های عمومی</string>
+    <string name="settings_multiplayer_members">اعضا</string>
+    <string name="settings_multiplayer_message">پیام</string>
+    <string name="settings_multiplayer_send">ارسال</string>
+    <string name="settings_multiplayer_no_rooms">اتاق عمومی یافت نشد</string>
+    <string name="settings_multiplayer_error">خطای شبکه</string>
+    <string name="settings_multiplayer_hosted_hint">بازیکنان در همان شبکه می‌توانند با آدرس شما بپیوندند.</string>
 </resources>

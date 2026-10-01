@@ -2579,4 +2579,26 @@
     <string name="settings_camera_flip_vertical">Svisle</string>
     <string name="settings_camera_flip_reverse">Obráceně</string>
     <string name="settings_help_camera">Během hry napájí vybranou kameru 3DS statickým obrázkem.</string>
+    <string name="settings_multiplayer_title">Online multiplayer</string>
+    <string name="settings_multiplayer_status_offline">Nepřipojeno</string>
+    <string name="settings_multiplayer_status_joined">V místnosti</string>
+    <string name="settings_multiplayer_status_hosting">Místnost vytvořena</string>
+    <string name="settings_multiplayer_host">Vytvořit místnost</string>
+    <string name="settings_multiplayer_join">Připojit se k místnosti</string>
+    <string name="settings_multiplayer_room_name">Název místnosti</string>
+    <string name="settings_multiplayer_address">Adresa serveru</string>
+    <string name="settings_multiplayer_password">Heslo</string>
+    <string name="settings_multiplayer_port">Port</string>
+    <string name="settings_multiplayer_max_players">Max. hráčů</string>
+    <string name="settings_multiplayer_host_action">Vytvořit</string>
+    <string name="settings_multiplayer_join_action">Připojit se</string>
+    <string name="settings_multiplayer_leave">Odejít</string>
+    <string name="settings_multiplayer_refresh">Obnovit</string>
+    <string name="settings_multiplayer_public_rooms">Veřejné místnosti</string>
+    <string name="settings_multiplayer_members">Členové</string>
+    <string name="settings_multiplayer_message">Zpráva</string>
+    <string name="settings_multiplayer_send">Odeslat</string>
+    <string name="settings_multiplayer_no_rooms">Žádné veřejné místnosti</string>
+    <string name="settings_multiplayer_error">Chyba sítě</string>
+    <string name="settings_multiplayer_hosted_hint">Hráči ve stejné síti se mohou připojit přes vaši adresu.</string>
 </resources>

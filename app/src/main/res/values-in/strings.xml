@@ -2572,4 +2572,26 @@
     <string name="settings_camera_flip_vertical">Vertikal</string>
     <string name="settings_camera_flip_reverse">Terbalik</string>
     <string name="settings_help_camera">Memberi gambar diam ke kamera 3DS yang dipilih saat game berjalan.</string>
+    <string name="settings_multiplayer_title">Multipemain online</string>
+    <string name="settings_multiplayer_status_offline">Tidak terhubung</string>
+    <string name="settings_multiplayer_status_joined">Di dalam ruangan</string>
+    <string name="settings_multiplayer_status_hosting">Ruangan dibuat</string>
+    <string name="settings_multiplayer_host">Buat ruangan</string>
+    <string name="settings_multiplayer_join">Gabung ke ruangan</string>
+    <string name="settings_multiplayer_room_name">Nama ruangan</string>
+    <string name="settings_multiplayer_address">Alamat server</string>
+    <string name="settings_multiplayer_password">Kata sandi</string>
+    <string name="settings_multiplayer_port">Port</string>
+    <string name="settings_multiplayer_max_players">Maks. pemain</string>
+    <string name="settings_multiplayer_host_action">Buat</string>
+    <string name="settings_multiplayer_join_action">Gabung</string>
+    <string name="settings_multiplayer_leave">Keluar</string>
+    <string name="settings_multiplayer_refresh">Segarkan</string>
+    <string name="settings_multiplayer_public_rooms">Ruangan publik</string>
+    <string name="settings_multiplayer_members">Anggota</string>
+    <string name="settings_multiplayer_message">Pesan</string>
+    <string name="settings_multiplayer_send">Kirim</string>
+    <string name="settings_multiplayer_no_rooms">Ruangan publik tidak ditemukan</string>
+    <string name="settings_multiplayer_error">Kesalahan jaringan</string>
+    <string name="settings_multiplayer_hosted_hint">Pemain di jaringan yang sama dapat bergabung dengan alamat Anda.</string>
 </resources>

@@ -2558,4 +2558,26 @@
     <string name="settings_camera_flip_vertical">लंबवत</string>
     <string name="settings_camera_flip_reverse">उलटा</string>
     <string name="settings_help_camera">गेम चलते समय चयनित 3DS कैमरा को स्थिर छवि देता है।</string>
+    <string name="settings_multiplayer_title">ऑनलाइन मल्टीप्लेयर</string>
+    <string name="settings_multiplayer_status_offline">कनेक्ट नहीं</string>
+    <string name="settings_multiplayer_status_joined">कमरे में</string>
+    <string name="settings_multiplayer_status_hosting">कमरा बन गया</string>
+    <string name="settings_multiplayer_host">कमरा बनाएं</string>
+    <string name="settings_multiplayer_join">कमरे में शामिल हों</string>
+    <string name="settings_multiplayer_room_name">कमरे का नाम</string>
+    <string name="settings_multiplayer_address">सर्वर पता</string>
+    <string name="settings_multiplayer_password">पासवर्ड</string>
+    <string name="settings_multiplayer_port">पोर्ट</string>
+    <string name="settings_multiplayer_max_players">अधिकतम खिलाड़ी</string>
+    <string name="settings_multiplayer_host_action">बनाएं</string>
+    <string name="settings_multiplayer_join_action">शामिल हों</string>
+    <string name="settings_multiplayer_leave">छोड़ें</string>
+    <string name="settings_multiplayer_refresh">रीफ़्रेश</string>
+    <string name="settings_multiplayer_public_rooms">सार्वजनिक कमरे</string>
+    <string name="settings_multiplayer_members">सदस्य</string>
+    <string name="settings_multiplayer_message">संदेश</string>
+    <string name="settings_multiplayer_send">भेजें</string>
+    <string name="settings_multiplayer_no_rooms">कोई सार्वजनिक कमरा नहीं मिला</string>
+    <string name="settings_multiplayer_error">नेटवर्क त्रुटि</string>
+    <string name="settings_multiplayer_hosted_hint">एक ही नेटवर्क के खिलाड़ी आपके पते से जुड़ सकते हैं।</string>
 </resources>

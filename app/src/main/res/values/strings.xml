@@ -2581,4 +2581,26 @@
     <string name="settings_camera_flip_vertical">Vertical</string>
     <string name="settings_camera_flip_reverse">Reverse</string>
     <string name="settings_help_camera">Feeds a still image to the selected 3DS camera while a game is running.</string>
+    <string name="settings_multiplayer_title">Online multiplayer</string>
+    <string name="settings_multiplayer_status_offline">Not connected</string>
+    <string name="settings_multiplayer_status_joined">In a room</string>
+    <string name="settings_multiplayer_status_hosting">Hosting a room</string>
+    <string name="settings_multiplayer_host">Host a room</string>
+    <string name="settings_multiplayer_join">Join a room</string>
+    <string name="settings_multiplayer_room_name">Room name</string>
+    <string name="settings_multiplayer_address">Server address</string>
+    <string name="settings_multiplayer_password">Password</string>
+    <string name="settings_multiplayer_port">Port</string>
+    <string name="settings_multiplayer_max_players">Max players</string>
+    <string name="settings_multiplayer_host_action">Host</string>
+    <string name="settings_multiplayer_join_action">Join</string>
+    <string name="settings_multiplayer_leave">Leave</string>
+    <string name="settings_multiplayer_refresh">Refresh</string>
+    <string name="settings_multiplayer_public_rooms">Public rooms</string>
+    <string name="settings_multiplayer_members">Members</string>
+    <string name="settings_multiplayer_message">Message</string>
+    <string name="settings_multiplayer_send">Send</string>
+    <string name="settings_multiplayer_no_rooms">No public rooms found</string>
+    <string name="settings_multiplayer_error">Network error</string>
+    <string name="settings_multiplayer_hosted_hint">Players on the same network can join with your address.</string>
 </resources>

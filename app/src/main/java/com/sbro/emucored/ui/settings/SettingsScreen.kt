@@ -281,7 +281,7 @@ import com.sbro.emucored.ui.theme.neon.neonShapeCorners
 import java.util.Locale
 
 private enum class SettingsTab {
-    General, Graphics, Controls, Emulation, Audio, Library, Customization, GameMenu, Updates, Pro, About
+    General, Graphics, Controls, Emulation, Audio, Multiplayer, Library, Customization, GameMenu, Updates, Pro, About
 }
 
 @OptIn(ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class)
@@ -1783,6 +1783,10 @@ private fun SettingsContent(
                             }
                         )
                     }
+                }
+
+                SettingsTab.Multiplayer -> {
+                    MultiplayerSettingsSection()
                 }
 
                 SettingsTab.Library -> {
@@ -6188,6 +6192,7 @@ private fun SettingsTab.label(): String {
         SettingsTab.Customization -> stringResource(R.string.settings_customization_tab)
         SettingsTab.GameMenu -> stringResource(R.string.settings_game_menu_tab)
         SettingsTab.Audio -> stringResource(R.string.settings_audio_tab)
+        SettingsTab.Multiplayer -> stringResource(R.string.settings_network_tab)
         SettingsTab.Controls -> stringResource(R.string.settings_controls_tab)
         SettingsTab.Emulation -> stringResource(R.string.settings_emulation_tab)
         SettingsTab.Library -> stringResource(R.string.settings_library_tab)
@@ -6204,6 +6209,7 @@ private fun SettingsTab.icon(): ImageVector {
         SettingsTab.Customization -> Icons.Rounded.Palette
         SettingsTab.GameMenu -> Icons.Rounded.MoreVert
         SettingsTab.Audio -> Icons.AutoMirrored.Rounded.VolumeUp
+        SettingsTab.Multiplayer -> Icons.Rounded.Language
         SettingsTab.Controls -> Icons.Rounded.Gamepad
         SettingsTab.Emulation -> Icons.Rounded.Speed
         SettingsTab.Library -> Icons.Rounded.FolderOpen
@@ -6218,6 +6224,7 @@ private fun String.toSettingsTab(): SettingsTab {
         "customization", "customize", "appearance", "background", "font", "layout" -> SettingsTab.Customization
         "game_menu", "game-menu", "ingame", "in-game", "menu" -> SettingsTab.GameMenu
         "audio", "sound" -> SettingsTab.Audio
+        "multiplayer", "network", "netplay", "room", "rooms" -> SettingsTab.Multiplayer
         "controls" -> SettingsTab.Controls
         "graphics", "video", "renderer", "display" -> SettingsTab.Graphics
         "paths", "files", "memorycards", "memory_cards", "memory-cards", "memcards", "covers",

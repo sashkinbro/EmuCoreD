@@ -2559,4 +2559,26 @@
     <string name="settings_camera_flip_vertical">垂直</string>
     <string name="settings_camera_flip_reverse">反向</string>
     <string name="settings_help_camera">游戏运行时为所选 3DS 摄像头提供静态图片。</string>
+    <string name="settings_multiplayer_title">在线多人</string>
+    <string name="settings_multiplayer_status_offline">未连接</string>
+    <string name="settings_multiplayer_status_joined">在房间中</string>
+    <string name="settings_multiplayer_status_hosting">已创建房间</string>
+    <string name="settings_multiplayer_host">创建房间</string>
+    <string name="settings_multiplayer_join">加入房间</string>
+    <string name="settings_multiplayer_room_name">房间名称</string>
+    <string name="settings_multiplayer_address">服务器地址</string>
+    <string name="settings_multiplayer_password">密码</string>
+    <string name="settings_multiplayer_port">端口</string>
+    <string name="settings_multiplayer_max_players">最大玩家数</string>
+    <string name="settings_multiplayer_host_action">创建</string>
+    <string name="settings_multiplayer_join_action">加入</string>
+    <string name="settings_multiplayer_leave">离开</string>
+    <string name="settings_multiplayer_refresh">刷新</string>
+    <string name="settings_multiplayer_public_rooms">公共房间</string>
+    <string name="settings_multiplayer_members">成员</string>
+    <string name="settings_multiplayer_message">消息</string>
+    <string name="settings_multiplayer_send">发送</string>
+    <string name="settings_multiplayer_no_rooms">未找到公共房间</string>
+    <string name="settings_multiplayer_error">网络错误</string>
+    <string name="settings_multiplayer_hosted_hint">同一网络的玩家可通过你的地址加入。</string>
 </resources>

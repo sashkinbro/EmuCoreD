@@ -2563,4 +2563,26 @@
     <string name="settings_camera_flip_vertical">Вертикально</string>
     <string name="settings_camera_flip_reverse">Обернено</string>
     <string name="settings_help_camera">Подає статичне зображення на вибрану камеру 3DS під час гри.</string>
+    <string name="settings_multiplayer_title">Онлайн-мультиплеєр</string>
+    <string name="settings_multiplayer_status_offline">Не підключено</string>
+    <string name="settings_multiplayer_status_joined">У кімнаті</string>
+    <string name="settings_multiplayer_status_hosting">Кімнату створено</string>
+    <string name="settings_multiplayer_host">Створити кімнату</string>
+    <string name="settings_multiplayer_join">Приєднатися до кімнати</string>
+    <string name="settings_multiplayer_room_name">Назва кімнати</string>
+    <string name="settings_multiplayer_address">Адреса сервера</string>
+    <string name="settings_multiplayer_password">Пароль</string>
+    <string name="settings_multiplayer_port">Порт</string>
+    <string name="settings_multiplayer_max_players">Макс. гравців</string>
+    <string name="settings_multiplayer_host_action">Створити</string>
+    <string name="settings_multiplayer_join_action">Приєднатися</string>
+    <string name="settings_multiplayer_leave">Вийти</string>
+    <string name="settings_multiplayer_refresh">Оновити</string>
+    <string name="settings_multiplayer_public_rooms">Публічні кімнати</string>
+    <string name="settings_multiplayer_members">Учасники</string>
+    <string name="settings_multiplayer_message">Повідомлення</string>
+    <string name="settings_multiplayer_send">Надіслати</string>
+    <string name="settings_multiplayer_no_rooms">Публічних кімнат не знайдено</string>
+    <string name="settings_multiplayer_error">Помилка мережі</string>
+    <string name="settings_multiplayer_hosted_hint">Гравці в тій самій мережі можуть приєднатися за вашою адресою.</string>
 </resources>

@@ -2558,4 +2558,26 @@
     <string name="settings_camera_flip_vertical">Dikey</string>
     <string name="settings_camera_flip_reverse">Ters</string>
     <string name="settings_help_camera">Oyun sırasında seçilen 3DS kamerasına sabit görüntü sağlar.</string>
+    <string name="settings_multiplayer_title">Çevrimiçi çok oyunculu</string>
+    <string name="settings_multiplayer_status_offline">Bağlı değil</string>
+    <string name="settings_multiplayer_status_joined">Bir odada</string>
+    <string name="settings_multiplayer_status_hosting">Oda oluşturuldu</string>
+    <string name="settings_multiplayer_host">Oda oluştur</string>
+    <string name="settings_multiplayer_join">Odaya katıl</string>
+    <string name="settings_multiplayer_room_name">Oda adı</string>
+    <string name="settings_multiplayer_address">Sunucu adresi</string>
+    <string name="settings_multiplayer_password">Parola</string>
+    <string name="settings_multiplayer_port">Bağlantı noktası</string>
+    <string name="settings_multiplayer_max_players">Maks. oyuncu</string>
+    <string name="settings_multiplayer_host_action">Oluştur</string>
+    <string name="settings_multiplayer_join_action">Katıl</string>
+    <string name="settings_multiplayer_leave">Ayrıl</string>
+    <string name="settings_multiplayer_refresh">Yenile</string>
+    <string name="settings_multiplayer_public_rooms">Genel odalar</string>
+    <string name="settings_multiplayer_members">Üyeler</string>
+    <string name="settings_multiplayer_message">Mesaj</string>
+    <string name="settings_multiplayer_send">Gönder</string>
+    <string name="settings_multiplayer_no_rooms">Genel oda bulunamadı</string>
+    <string name="settings_multiplayer_error">Ağ hatası</string>
+    <string name="settings_multiplayer_hosted_hint">Aynı ağdaki oyuncular adresinizle katılabilir.</string>
 </resources>
