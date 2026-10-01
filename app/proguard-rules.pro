@@ -1,6 +1,6 @@
 # EmuCoreD R8 rules.
 #
-# This app is a Compose/Kotlin frontend around the bundled PPSSPP libretro
+# This app is a Compose/Kotlin frontend around the bundled Azahar libretro
 # core and its JNI bridge (libemucored_jni.so). Runtime name lookups need explicit keeps:
 # JNI entry points, classes resolved by the Discord partner SDK,
 # and kotlinx.serialization serializers used for persisted JSON and

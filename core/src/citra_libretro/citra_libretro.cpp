@@ -56,7 +56,15 @@
 
 class CitraLibRetro {
 public:
-    CitraLibRetro() : log_filter(Common::Log::Level::Debug) {}
+    // Release cores stay on the info level so shipping builds do not spam
+    // logcat with per-frame debug output.
+#ifdef NDEBUG
+    static constexpr Common::Log::Level kDefaultLogLevel = Common::Log::Level::Info;
+#else
+    static constexpr Common::Log::Level kDefaultLogLevel = Common::Log::Level::Debug;
+#endif
+
+    CitraLibRetro() : log_filter(kDefaultLogLevel) {}
 
     Common::Log::Filter log_filter;
     std::unique_ptr<EmuWindow_LibRetro> emu_window;

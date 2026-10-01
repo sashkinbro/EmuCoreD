@@ -149,7 +149,7 @@ fun EmuCoreDLoadingAnimation(
             )
 
             Text(
-                text = "A",
+                text = "D",
                 style = MaterialTheme.typography.headlineLarge.copy(
                     fontWeight = FontWeight.Black,
                     color = color
