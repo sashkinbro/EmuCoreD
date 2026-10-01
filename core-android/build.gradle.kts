@@ -35,7 +35,7 @@ android {
                     "-DENABLE_TESTS=OFF",
                     "-DENABLE_ROOM=OFF",
                     "-DENABLE_ROOM_STANDALONE=OFF",
-                    "-DENABLE_WEB_SERVICE=OFF",
+                    "-DENABLE_WEB_SERVICE=ON",
                     "-DENABLE_SCRIPTING=OFF",
                     "-DENABLE_GDBSTUB=OFF",
                     "-DENABLE_OPENAL=OFF",

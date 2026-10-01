@@ -124,6 +124,24 @@ struct CoreApi {
     // EmuCoreD core extension: frontend-provided still-image cameras.
     void (*camera_configure)(int, int, int) = nullptr;
     void (*camera_set_frame)(int, int, int, const uint16_t*, int) = nullptr;
+    // EmuCoreD core extension: Azahar Room online multiplayer.
+    int (*net_init)() = nullptr;
+    int (*net_create_room)(const char*, int, const char*, const char*, unsigned long long,
+                           const char*, const char*, int) = nullptr;
+    int (*net_join_room)(const char*, int, const char*, const char*) = nullptr;
+    void (*net_leave_room)() = nullptr;
+    int (*net_is_joined)() = nullptr;
+    int (*net_is_moderator)() = nullptr;
+    int (*net_is_hosting)() = nullptr;
+    void (*net_send_chat)(const char*) = nullptr;
+    void (*net_kick)(const char*) = nullptr;
+    void (*net_ban)(const char*) = nullptr;
+    void (*net_unban)(const char*) = nullptr;
+    int (*net_room_info)(char*, int) = nullptr;
+    int (*net_public_rooms)(char*, int) = nullptr;
+    int (*net_ban_list)(char*, int) = nullptr;
+    int (*net_poll_event)(int*, char*, int) = nullptr;
+    void (*net_shutdown)() = nullptr;
 };
 
 CoreApi g_core;
@@ -323,6 +341,31 @@ bool LoadCoreLocked() {
     g_core.camera_set_frame =
         reinterpret_cast<void (*)(int, int, int, const uint16_t*, int)>(
             resolve("emucored_camera_set_frame"));
+    g_core.net_init = reinterpret_cast<int (*)()>(resolve("emucored_net_init"));
+    g_core.net_create_room =
+        reinterpret_cast<int (*)(const char*, int, const char*, const char*, unsigned long long,
+                                 const char*, const char*, int)>(
+            resolve("emucored_net_create_room"));
+    g_core.net_join_room =
+        reinterpret_cast<int (*)(const char*, int, const char*, const char*)>(
+            resolve("emucored_net_join_room"));
+    g_core.net_leave_room = reinterpret_cast<void (*)()>(resolve("emucored_net_leave_room"));
+    g_core.net_is_joined = reinterpret_cast<int (*)()>(resolve("emucored_net_is_joined"));
+    g_core.net_is_moderator = reinterpret_cast<int (*)()>(resolve("emucored_net_is_moderator"));
+    g_core.net_is_hosting = reinterpret_cast<int (*)()>(resolve("emucored_net_is_hosting"));
+    g_core.net_send_chat =
+        reinterpret_cast<void (*)(const char*)>(resolve("emucored_net_send_chat"));
+    g_core.net_kick = reinterpret_cast<void (*)(const char*)>(resolve("emucored_net_kick"));
+    g_core.net_ban = reinterpret_cast<void (*)(const char*)>(resolve("emucored_net_ban"));
+    g_core.net_unban = reinterpret_cast<void (*)(const char*)>(resolve("emucored_net_unban"));
+    g_core.net_room_info =
+        reinterpret_cast<int (*)(char*, int)>(resolve("emucored_net_room_info"));
+    g_core.net_public_rooms =
+        reinterpret_cast<int (*)(char*, int)>(resolve("emucored_net_public_rooms"));
+    g_core.net_ban_list = reinterpret_cast<int (*)(char*, int)>(resolve("emucored_net_ban_list"));
+    g_core.net_poll_event =
+        reinterpret_cast<int (*)(int*, char*, int)>(resolve("emucored_net_poll_event"));
+    g_core.net_shutdown = reinterpret_cast<void (*)()>(resolve("emucored_net_shutdown"));
 
     if (g_core.set_environment == nullptr || g_core.init == nullptr || g_core.load_game == nullptr ||
         g_core.run == nullptr || g_core.get_system_info == nullptr) {
@@ -1536,6 +1579,150 @@ Java_com_sbro_emucored_core_NativeCoreBridge_nativeSetCameraFrame(JNIEnv* env, j
     env->GetShortArrayRegion(pixels, 0, length, reinterpret_cast<jshort*>(data.data()));
     g_core.camera_set_frame(static_cast<int>(slot), static_cast<int>(width),
                             static_cast<int>(height), data.data(), static_cast<int>(length));
+}
+
+namespace {
+
+constexpr size_t kNetBufferSize = 64 * 1024;
+
+jstring NetBufferToString(JNIEnv* env, const std::vector<char>& buffer) {
+    return env->NewStringUTF(buffer.data());
+}
+
+std::vector<char> MakeNetBuffer() {
+    std::vector<char> buffer(kNetBufferSize, 0);
+    return buffer;
+}
+
+} // Anonymous namespace
+
+JNIEXPORT jint JNICALL
+Java_com_sbro_emucored_core_NativeCoreBridge_nativeNetInit(JNIEnv*, jobject) {
+    if (!LoadCoreLocked() || g_core.net_init == nullptr) return -1;
+    return g_core.net_init();
+}
+
+JNIEXPORT jint JNICALL
+Java_com_sbro_emucored_core_NativeCoreBridge_nativeNetCreateRoom(
+    JNIEnv* env, jobject, jstring ip, jint port, jstring username, jstring game_name, jlong game_id,
+    jstring password, jstring room_name, jint max_players) {
+    if (!LoadCoreLocked() || g_core.net_create_room == nullptr) return -1;
+    const std::string ip_string = ToString(env, ip);
+    const std::string username_string = ToString(env, username);
+    const std::string game_name_string = ToString(env, game_name);
+    const std::string password_string = ToString(env, password);
+    const std::string room_name_string = ToString(env, room_name);
+    return g_core.net_create_room(ip_string.c_str(), static_cast<int>(port),
+                                  username_string.c_str(), game_name_string.c_str(),
+                                  static_cast<unsigned long long>(game_id),
+                                  password_string.c_str(), room_name_string.c_str(),
+                                  static_cast<int>(max_players));
+}
+
+JNIEXPORT jint JNICALL
+Java_com_sbro_emucored_core_NativeCoreBridge_nativeNetJoinRoom(JNIEnv* env, jobject, jstring ip,
+                                                                jint port, jstring username,
+                                                                jstring password) {
+    if (!LoadCoreLocked() || g_core.net_join_room == nullptr) return -1;
+    const std::string ip_string = ToString(env, ip);
+    const std::string username_string = ToString(env, username);
+    const std::string password_string = ToString(env, password);
+    return g_core.net_join_room(ip_string.c_str(), static_cast<int>(port),
+                                username_string.c_str(), password_string.c_str());
+}
+
+JNIEXPORT void JNICALL
+Java_com_sbro_emucored_core_NativeCoreBridge_nativeNetLeaveRoom(JNIEnv*, jobject) {
+    if (!LoadCoreLocked() || g_core.net_leave_room == nullptr) return;
+    g_core.net_leave_room();
+}
+
+JNIEXPORT jboolean JNICALL
+Java_com_sbro_emucored_core_NativeCoreBridge_nativeNetIsJoined(JNIEnv*, jobject) {
+    if (!LoadCoreLocked() || g_core.net_is_joined == nullptr) return JNI_FALSE;
+    return g_core.net_is_joined() != 0 ? JNI_TRUE : JNI_FALSE;
+}
+
+JNIEXPORT jboolean JNICALL
+Java_com_sbro_emucored_core_NativeCoreBridge_nativeNetIsModerator(JNIEnv*, jobject) {
+    if (!LoadCoreLocked() || g_core.net_is_moderator == nullptr) return JNI_FALSE;
+    return g_core.net_is_moderator() != 0 ? JNI_TRUE : JNI_FALSE;
+}
+
+JNIEXPORT jboolean JNICALL
+Java_com_sbro_emucored_core_NativeCoreBridge_nativeNetIsHosting(JNIEnv*, jobject) {
+    if (!LoadCoreLocked() || g_core.net_is_hosting == nullptr) return JNI_FALSE;
+    return g_core.net_is_hosting() != 0 ? JNI_TRUE : JNI_FALSE;
+}
+
+JNIEXPORT void JNICALL
+Java_com_sbro_emucored_core_NativeCoreBridge_nativeNetSendChat(JNIEnv* env, jobject, jstring message) {
+    if (!LoadCoreLocked() || g_core.net_send_chat == nullptr) return;
+    const std::string message_string = ToString(env, message);
+    g_core.net_send_chat(message_string.c_str());
+}
+
+JNIEXPORT void JNICALL
+Java_com_sbro_emucored_core_NativeCoreBridge_nativeNetKick(JNIEnv* env, jobject, jstring username) {
+    if (!LoadCoreLocked() || g_core.net_kick == nullptr) return;
+    const std::string username_string = ToString(env, username);
+    g_core.net_kick(username_string.c_str());
+}
+
+JNIEXPORT void JNICALL
+Java_com_sbro_emucored_core_NativeCoreBridge_nativeNetBan(JNIEnv* env, jobject, jstring username) {
+    if (!LoadCoreLocked() || g_core.net_ban == nullptr) return;
+    const std::string username_string = ToString(env, username);
+    g_core.net_ban(username_string.c_str());
+}
+
+JNIEXPORT void JNICALL
+Java_com_sbro_emucored_core_NativeCoreBridge_nativeNetUnban(JNIEnv* env, jobject, jstring username) {
+    if (!LoadCoreLocked() || g_core.net_unban == nullptr) return;
+    const std::string username_string = ToString(env, username);
+    g_core.net_unban(username_string.c_str());
+}
+
+JNIEXPORT jstring JNICALL
+Java_com_sbro_emucored_core_NativeCoreBridge_nativeNetRoomInfo(JNIEnv* env, jobject) {
+    if (!LoadCoreLocked() || g_core.net_room_info == nullptr) return nullptr;
+    auto buffer = MakeNetBuffer();
+    g_core.net_room_info(buffer.data(), static_cast<int>(buffer.size()));
+    return NetBufferToString(env, buffer);
+}
+
+JNIEXPORT jstring JNICALL
+Java_com_sbro_emucored_core_NativeCoreBridge_nativeNetPublicRooms(JNIEnv* env, jobject) {
+    if (!LoadCoreLocked() || g_core.net_public_rooms == nullptr) return nullptr;
+    auto buffer = MakeNetBuffer();
+    g_core.net_public_rooms(buffer.data(), static_cast<int>(buffer.size()));
+    return NetBufferToString(env, buffer);
+}
+
+JNIEXPORT jstring JNICALL
+Java_com_sbro_emucored_core_NativeCoreBridge_nativeNetBanList(JNIEnv* env, jobject) {
+    if (!LoadCoreLocked() || g_core.net_ban_list == nullptr) return nullptr;
+    auto buffer = MakeNetBuffer();
+    g_core.net_ban_list(buffer.data(), static_cast<int>(buffer.size()));
+    return NetBufferToString(env, buffer);
+}
+
+JNIEXPORT jstring JNICALL
+Java_com_sbro_emucored_core_NativeCoreBridge_nativeNetPollEvent(JNIEnv* env, jobject) {
+    if (!LoadCoreLocked() || g_core.net_poll_event == nullptr) return nullptr;
+    auto buffer = MakeNetBuffer();
+    int status = 0;
+    if (g_core.net_poll_event(&status, buffer.data(), static_cast<int>(buffer.size())) == 0) {
+        return nullptr;
+    }
+    const std::string event = std::to_string(status) + "|" + buffer.data();
+    return env->NewStringUTF(event.c_str());
+}
+
+JNIEXPORT void JNICALL
+Java_com_sbro_emucored_core_NativeCoreBridge_nativeNetShutdown(JNIEnv*, jobject) {
+    if (!LoadCoreLocked() || g_core.net_shutdown == nullptr) return;
+    g_core.net_shutdown();
 }
 
 JNIEXPORT void JNICALL

@@ -29,6 +29,7 @@ add_library(citra_libretro SHARED
         citra_libretro.h
         emucored_cia.cpp
         emucored_camera.cpp
+        emucored_network.cpp
         $<TARGET_OBJECTS:citra_libretro_common>)
 
 if(ANDROID)
@@ -59,6 +60,11 @@ target_compile_definitions(audio_core PRIVATE HAVE_LIBRETRO)
 target_compile_definitions(input_common PRIVATE HAVE_LIBRETRO)
 
 target_link_libraries(citra_libretro PRIVATE citra_common citra_core)
+# Azahar Room (online multiplayer) and the public room list service.
+target_link_libraries(citra_libretro PRIVATE network)
+if(ENABLE_WEB_SERVICE)
+    target_link_libraries(citra_libretro PRIVATE web_service)
+endif()
 target_link_libraries(citra_libretro PRIVATE Boost::boost dds-ktx libretro tsl::robin_map)
 # emucored_cia.cpp decrypts CIA contents with the same Crypto++ library the
 # installer uses.

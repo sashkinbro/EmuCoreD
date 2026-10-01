@@ -47,6 +47,35 @@ class NativeCoreBridge {
     /** Supplies RGB565 pixels for one 3DS camera slot (width * height shorts). */
     external fun nativeSetCameraFrame(slot: Int, width: Int, height: Int, pixels: ShortArray)
 
+    // ---------------------------------------------------------------------
+    // Azahar Room (online multiplayer).
+    // ---------------------------------------------------------------------
+    external fun nativeNetInit(): Int
+    external fun nativeNetCreateRoom(
+        ip: String,
+        port: Int,
+        username: String,
+        gameName: String,
+        gameId: Long,
+        password: String,
+        roomName: String,
+        maxPlayers: Int
+    ): Int
+    external fun nativeNetJoinRoom(ip: String, port: Int, username: String, password: String): Int
+    external fun nativeNetLeaveRoom()
+    external fun nativeNetIsJoined(): Boolean
+    external fun nativeNetIsModerator(): Boolean
+    external fun nativeNetIsHosting(): Boolean
+    external fun nativeNetSendChat(message: String)
+    external fun nativeNetKick(username: String)
+    external fun nativeNetBan(username: String)
+    external fun nativeNetUnban(username: String)
+    external fun nativeNetRoomInfo(): String?
+    external fun nativeNetPublicRooms(): String?
+    external fun nativeNetBanList(): String?
+    external fun nativeNetPollEvent(): String?
+    external fun nativeNetShutdown()
+
     /**
      * Runs one guest frame; audio is pulled by the output stream callback.
      * Returns the emulated clock in microseconds after the frame, or 0 when the
