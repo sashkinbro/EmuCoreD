@@ -536,7 +536,6 @@
     <string name="emulation_quick_save_confirm_desc">Isso substituirá o slot %1$d pelo estado atual do jogo.</string>
     <string name="emulation_quick_load_confirm_title">Carregar estado?</string>
     <string name="emulation_quick_load_confirm_desc">Isso restaurará o slot %1$d e substituirá seu progresso atual não salvo.</string>
-    <string name="settings_aspect_ratio_107">10:7</string>
     <string name="emulation_screen_tab">Tela</string>
     <string name="settings_gamepad_player_1">Jogador 1</string>
     <string name="settings_gamepad_player_2">Jogador 2</string>
@@ -2546,4 +2545,5 @@
     <string name="settings_stick_toggle_target_left">Analógico esquerdo</string>
     <string name="settings_stick_toggle_target_right">Analógico direito</string>
     <string name="cia_unsupported">Não foi possível preparar este arquivo CIA. Use um arquivo .3ds, .cci ou .cxi descriptografado.</string>
+    <string name="settings_gamepad_action_swap_screen">Trocar telas</string>
 </resources>

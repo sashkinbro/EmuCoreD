@@ -285,7 +285,6 @@
     <string name="settings_aspect_ratio_auto">Auto</string>
     <string name="settings_aspect_ratio_43">4:3</string>
     <string name="settings_aspect_ratio_169">16:9</string>
-    <string name="settings_aspect_ratio_107">10:7</string>
     <string name="settings_paths">Pliki</string>
     <string name="settings_bios_path">Plik BIOS</string>
     <string name="settings_bios_picker_title">Wybierz plik BIOS</string>
@@ -2565,4 +2564,5 @@
     <string name="settings_stick_toggle_target_left">Lewy drążek</string>
     <string name="settings_stick_toggle_target_right">Prawy drążek</string>
     <string name="cia_unsupported">Nie udało się przygotować tego pliku CIA. Użyj odszyfrowanego pliku .3ds, .cci lub .cxi.</string>
+    <string name="settings_gamepad_action_swap_screen">Zamień ekrany</string>
 </resources>

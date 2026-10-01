@@ -127,7 +127,7 @@ class CoverArtRepository(context: Context) {
         }
         val normalizedSerial = normalizeSerial(serial)
         if (normalizedSerial == null && title.isNullOrBlank()) {
-            Log.w(TAG, "Cannot download cover: no PSP serial or title")
+            Log.w(TAG, "Cannot download cover: no serial or title")
             return null
         }
         val coverBaseUrl = resolveCoverBaseUrl(style)
@@ -204,9 +204,9 @@ class CoverArtRepository(context: Context) {
         } else {
             val cover = com.sbro.emucored.data.n3ds.N3dsCoverIndexRepository(context).find(originalSerial, title, style == AppPreferences.COVER_ART_STYLE_3D)
             if (cover != null) {
-                result = downloadFromUrl(cover.url, coverFile, missFile, "EmuCoreD PSP covers", cover.sha256)
-                if (result == null && style != AppPreferences.COVER_ART_STYLE_3D) {
-                    result = downloadFromUrl(cover.sourceUrl, coverFile, missFile, "IGDB PSP catalog")
+                result = downloadFromUrl(cover.url, coverFile, missFile, "IGDB catalog", cover.sha256)
+                if (result == null && style != AppPreferences.COVER_ART_STYLE_3D && cover.sourceUrl.isNotBlank()) {
+                    result = downloadFromUrl(cover.sourceUrl, coverFile, missFile, "IGDB hero image")
                 }
             }
         }
@@ -293,7 +293,7 @@ class CoverArtRepository(context: Context) {
                     }
                 }
 
-                if (expectedSha256 != null) {
+                if (!expectedSha256.isNullOrBlank()) {
                     val digest = java.security.MessageDigest.getInstance("SHA-256")
                     tempFile.inputStream().use { input ->
                         val buffer = ByteArray(8192)

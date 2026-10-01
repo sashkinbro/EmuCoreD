@@ -66,6 +66,7 @@ fun actionLabel(actionId: String): String = stringResource(when (actionId) {
     "start" -> R.string.settings_gamepad_action_start
     "fast_forward" -> R.string.emulation_fast_forward
     "rewind" -> R.string.emulation_rewind
+    "swap_screen" -> R.string.settings_gamepad_action_swap_screen
     else -> R.string.settings_gamepad_section
 })
 

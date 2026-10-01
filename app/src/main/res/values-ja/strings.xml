@@ -187,7 +187,6 @@
     <string name="settings_aspect_ratio_auto">自動</string>
     <string name="settings_aspect_ratio_43">4:3</string>
     <string name="settings_aspect_ratio_169">16:9</string>
-    <string name="settings_aspect_ratio_107">10:7</string>
     <string name="settings_paths">ファイル</string>
     <string name="settings_bios_path">BIOSファイル</string>
     <string name="settings_bios_picker_title">BIOSファイルの選択</string>
@@ -2543,4 +2542,5 @@
     <string name="settings_stick_toggle_target_left">左スティック</string>
     <string name="settings_stick_toggle_target_right">右スティック</string>
     <string name="cia_unsupported">このCIAファイルを準備できませんでした。復号済みの.3ds、.cci、.cxiファイルをお試しください。</string>
+    <string name="settings_gamepad_action_swap_screen">画面を入れ替え</string>
 </resources>

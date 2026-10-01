@@ -2225,6 +2225,7 @@ private fun OnScreenControls(
         "rewind" -> { pressed -> onPadInput(127, 0, pressed) }
         "pressure" -> { pressed -> onPadInput(PadKey.PRESSURE, 0, pressed) }
         "home" -> { pressed -> onPadInput(PadKey.HOME, 0, pressed) }
+        "swap_screen" -> { pressed -> onPadInput(PadKey.HOME, 0, pressed) }
         "touch" -> { pressed -> onPadInput(PadKey.TOUCH, 0, pressed) }
         else -> null
     }
@@ -3897,7 +3898,6 @@ private fun EmulationSidebarMenu(
                                 LiveSelectionOption(1, stringResource(R.string.emulation_aspect_auto)),
                                 LiveSelectionOption(2, "4:3"),
                                 LiveSelectionOption(3, "16:9"),
-                                LiveSelectionOption(4, stringResource(R.string.settings_aspect_ratio_107)),
                                 LiveSelectionOption(
                                     value = 0,
                                     icon = Icons.Rounded.Fullscreen,

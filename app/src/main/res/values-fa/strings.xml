@@ -281,7 +281,6 @@
     <string name="settings_aspect_ratio_auto">خودکار</string>
     <string name="settings_aspect_ratio_43">4:3</string>
     <string name="settings_aspect_ratio_169">16:9</string>
-    <string name="settings_aspect_ratio_107">10:7</string>
     <string name="settings_paths">فایل‌ها</string>
     <string name="settings_bios_path">فایل BIOS</string>
     <string name="settings_bios_picker_title">انتخاب فایل BIOS</string>
@@ -2559,4 +2558,5 @@
     <string name="settings_stick_toggle_target_left">آنالوگ چپ</string>
     <string name="settings_stick_toggle_target_right">آنالوگ راست</string>
     <string name="cia_unsupported">این فایل CIA آماده نشد. از فایل رمزگشایی‌شده .3ds، .cci یا .cxi استفاده کنید.</string>
+    <string name="settings_gamepad_action_swap_screen">جابه‌جایی صفحه‌ها</string>
 </resources>

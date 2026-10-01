@@ -164,10 +164,12 @@ struct FrontendState {
     std::atomic<bool> options_dirty{false};
     retro_core_options_update_display_callback update_display_callback{};
 
-    // Last frame geometry reported by the core.
+    // Last frame geometry reported by the core. The default aspect is the
+    // standard 3DS layout (top and bottom screen stacked: 400x480) and is
+    // replaced by the core-provided aspect as soon as a game is loaded.
     unsigned frame_width = 0;
     unsigned frame_height = 0;
-    double aspect_ratio = 16.0 / 9.0;
+    double aspect_ratio = 400.0 / 480.0;
     std::atomic<bool> av_info_refresh_pending{true};
     // Synthetic emulated clock: Azahar does not export an emulated-time hook,
     // and each retro_run call presents exactly one 60 Hz guest frame.
@@ -719,7 +721,7 @@ struct RectF {
 };
 
 RectF FitDisplayRect(int win_width, int win_height, double aspect) {
-    if (aspect <= 0.0) aspect = 16.0 / 9.0;
+    if (aspect <= 0.0) aspect = 400.0 / 480.0;
     const double window_aspect = static_cast<double>(win_width) / static_cast<double>(win_height);
     int width = 0;
     int height = 0;
@@ -740,7 +742,6 @@ double DisplayAspectForMode(int mode, double core_aspect) {
     switch (mode) {
         case 2: return 4.0 / 3.0;
         case 3: return 16.0 / 9.0;
-        case 4: return 10.0 / 7.0;
         default: return core_aspect;
     }
 }
@@ -1073,6 +1074,9 @@ void RetroVideoRefresh(const void* data, unsigned width, unsigned height, size_t
     if (data == RETRO_HW_FRAME_BUFFER_VALID) {
         g_frontend.frame_width = width;
         g_frontend.frame_height = height;
+        if (width > 0 && height > 0) {
+            g_frontend.aspect_ratio = static_cast<double>(width) / static_cast<double>(height);
+        }
         if (vulkan::IsActive()) {
             const int mode = g_frontend.display_aspect_mode.load();
             const double aspect = DisplayAspectForMode(mode, g_frontend.aspect_ratio);
@@ -1453,6 +1457,15 @@ Java_com_sbro_emucored_core_NativeCoreBridge_loadDisc(JNIEnv* env, jobject, jlon
     g_frontend.game_loaded.store(true);
     g_frontend.shutdown_requested.store(false);
     g_frontend.av_info_refresh_pending.store(true);
+    // The core reports the aspect ratio of the active screen layout; use it
+    // for the "Auto" presentation mode instead of the old PSP default.
+    if (g_core.get_system_av_info != nullptr) {
+        retro_system_av_info av_info{};
+        g_core.get_system_av_info(&av_info);
+        if (av_info.geometry.aspect_ratio > 0.0f) {
+            g_frontend.aspect_ratio = av_info.geometry.aspect_ratio;
+        }
+    }
     LOGI("Loaded content: %s", path_string.c_str());
     return 0;
 }

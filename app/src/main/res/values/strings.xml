@@ -290,7 +290,6 @@
     <string name="settings_aspect_ratio_auto">Auto</string>
     <string name="settings_aspect_ratio_43">4:3</string>
     <string name="settings_aspect_ratio_169">16:9</string>
-    <string name="settings_aspect_ratio_107">10:7</string>
     <string name="settings_paths">Files</string>
     <string name="settings_bios_path">BIOS File</string>
     <string name="settings_bios_picker_title">Choose BIOS File</string>
@@ -2567,4 +2566,5 @@
     <string name="core_update_reset_keep">Keep current settings</string>
     <string name="core_update_reset_done">Settings have been reset</string>
     <string name="cia_unsupported">This CIA file could not be prepared. Try a decrypted .3ds, .cci or .cxi file.</string>
+    <string name="settings_gamepad_action_swap_screen">Swap Screens</string>
 </resources>

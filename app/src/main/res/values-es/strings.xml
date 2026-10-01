@@ -536,7 +536,6 @@
     <string name="emulation_quick_save_confirm_desc">Esto sobrescribirá la ranura %1$d con el estado actual del juego.</string>
     <string name="emulation_quick_load_confirm_title">¿Cargar estado?</string>
     <string name="emulation_quick_load_confirm_desc">Esto restaurará la ranura %1$d y reemplazará tu progreso actual no guardado.</string>
-    <string name="settings_aspect_ratio_107">10:7</string>
     <string name="emulation_screen_tab">Pantalla</string>
     <string name="settings_gamepad_player_1">Jugador 1</string>
     <string name="settings_gamepad_player_2">Jugador 2</string>
@@ -2546,4 +2545,5 @@
     <string name="settings_stick_toggle_target_left">Stick izquierdo</string>
     <string name="settings_stick_toggle_target_right">Stick derecho</string>
     <string name="cia_unsupported">No se pudo preparar este archivo CIA. Usa un archivo .3ds, .cci o .cxi descifrado.</string>
+    <string name="settings_gamepad_action_swap_screen">Cambiar pantallas</string>
 </resources>

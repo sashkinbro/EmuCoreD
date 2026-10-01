@@ -187,7 +187,6 @@
     <string name="settings_aspect_ratio_auto">자동</string>
     <string name="settings_aspect_ratio_43">4:3</string>
     <string name="settings_aspect_ratio_169">16:9</string>
-    <string name="settings_aspect_ratio_107">10:7</string>
     <string name="settings_paths">파일</string>
     <string name="settings_bios_path">BIOS 파일</string>
     <string name="settings_bios_picker_title">BIOS 파일 선택</string>
@@ -2543,4 +2542,5 @@
     <string name="settings_stick_toggle_target_left">왼쪽 스틱</string>
     <string name="settings_stick_toggle_target_right">오른쪽 스틱</string>
     <string name="cia_unsupported">이 CIA 파일을 준비할 수 없습니다. 복호화된 .3ds, .cci 또는 .cxi 파일을 사용하세요.</string>
+    <string name="settings_gamepad_action_swap_screen">화면 전환</string>
 </resources>

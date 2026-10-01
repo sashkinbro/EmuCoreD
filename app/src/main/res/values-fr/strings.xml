@@ -536,7 +536,6 @@
     <string name="emulation_quick_save_confirm_desc">Cela écrasera l\'emplacement %1$d avec l\'état actuel du jeu.</string>
     <string name="emulation_quick_load_confirm_title">Charger l\'état ?</string>
     <string name="emulation_quick_load_confirm_desc">Cela restaurera l\'emplacement %1$d et remplacera votre progression actuelle non sauvegardée.</string>
-    <string name="settings_aspect_ratio_107">10:7</string>
     <string name="emulation_screen_tab">Écran</string>
     <string name="settings_gamepad_player_1">Joueur 1</string>
     <string name="settings_gamepad_player_2">Joueur 2</string>
@@ -2546,4 +2545,5 @@
     <string name="settings_stick_toggle_target_left">Stick gauche</string>
     <string name="settings_stick_toggle_target_right">Stick droit</string>
     <string name="cia_unsupported">Impossible de préparer ce fichier CIA. Utilisez un fichier .3ds, .cci ou .cxi déchiffré.</string>
+    <string name="settings_gamepad_action_swap_screen">Permuter les écrans</string>
 </resources>

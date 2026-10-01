@@ -281,7 +281,6 @@
     <string name="settings_aspect_ratio_auto">Otomatis</string>
     <string name="settings_aspect_ratio_43">4:3</string>
     <string name="settings_aspect_ratio_169">16:9</string>
-    <string name="settings_aspect_ratio_107">10:7</string>
     <string name="settings_paths">File</string>
     <string name="settings_bios_path">File BIOS</string>
     <string name="settings_bios_picker_title">Pilih File BIOS</string>
@@ -2558,4 +2557,5 @@
     <string name="settings_stick_toggle_target_left">Stik kiri</string>
     <string name="settings_stick_toggle_target_right">Stik kanan</string>
     <string name="cia_unsupported">File CIA ini tidak dapat disiapkan. Gunakan file .3ds, .cci, atau .cxi yang didekripsi.</string>
+    <string name="settings_gamepad_action_swap_screen">Tukar layar</string>
 </resources>

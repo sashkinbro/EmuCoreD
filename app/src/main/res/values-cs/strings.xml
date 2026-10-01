@@ -287,7 +287,6 @@
     <string name="settings_aspect_ratio_auto">Auto</string>
     <string name="settings_aspect_ratio_43">4:3</string>
     <string name="settings_aspect_ratio_169">16:9</string>
-    <string name="settings_aspect_ratio_107">10:7</string>
     <string name="settings_paths">Soubory</string>
     <string name="settings_bios_path">Soubor BIOS</string>
     <string name="settings_bios_picker_title">Vyberte soubor BIOS</string>
@@ -2565,4 +2564,5 @@
     <string name="settings_stick_toggle_target_left">Levý stick</string>
     <string name="settings_stick_toggle_target_right">Pravý stick</string>
     <string name="cia_unsupported">Toto CIA se nepodařilo připravit. Zkuste dešifrovaný soubor .3ds, .cci nebo .cxi.</string>
+    <string name="settings_gamepad_action_swap_screen">Prohodit obrazovky</string>
 </resources>

@@ -536,7 +536,6 @@
     <string name="emulation_quick_save_confirm_desc">Это перезапишет слот %1$d текущим состоянием игры.</string>
     <string name="emulation_quick_load_confirm_title">Загрузить состояние?</string>
     <string name="emulation_quick_load_confirm_desc">Это восстановит слот %1$d и заменит ваш текущий несохраненный прогресс.</string>
-    <string name="settings_aspect_ratio_107">10:7</string>
     <string name="emulation_screen_tab">Экран</string>
     <string name="settings_gamepad_player_1">Игрок 1</string>
     <string name="settings_gamepad_player_2">Игрок 2</string>
@@ -2548,4 +2547,5 @@
     <string name="settings_stick_toggle_target_left">Левый стик</string>
     <string name="settings_stick_toggle_target_right">Правый стик</string>
     <string name="cia_unsupported">Не удалось подготовить эту CIA. Попробуйте расшифрованный файл .3ds, .cci или .cxi.</string>
+    <string name="settings_gamepad_action_swap_screen">Сменить экраны</string>
 </resources>

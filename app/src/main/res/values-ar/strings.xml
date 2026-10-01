@@ -187,7 +187,6 @@
     <string name="settings_aspect_ratio_auto">تلقائي</string>
     <string name="settings_aspect_ratio_43">4:3</string>
     <string name="settings_aspect_ratio_169">16:9</string>
-    <string name="settings_aspect_ratio_107">10:7</string>
     <string name="settings_paths">الملفات</string>
     <string name="settings_bios_path">ملف BIOS</string>
     <string name="settings_bios_picker_title">اختر ملف BIOS</string>
@@ -2552,4 +2551,5 @@
     <string name="settings_stick_toggle_target_left">العصا اليسرى</string>
     <string name="settings_stick_toggle_target_right">العصا اليمنى</string>
     <string name="cia_unsupported">تعذّر تجهيز ملف CIA هذا. استخدم ملف ‎.3ds‎ أو ‎.cci‎ أو ‎.cxi‎ مفكوك التشفير.</string>
+    <string name="settings_gamepad_action_swap_screen">تبديل الشاشات</string>
 </resources>

@@ -536,7 +536,6 @@
     <string name="emulation_quick_save_confirm_desc">Dies überschreibt Steckplatz %1$d mit dem aktuellen Spielstand.</string>
     <string name="emulation_quick_load_confirm_title">Spielstand laden?</string>
     <string name="emulation_quick_load_confirm_desc">Dies stellt Steckplatz %1$d wieder her und ersetzt deinen aktuellen, ungespeicherten Fortschritt.</string>
-    <string name="settings_aspect_ratio_107">10:7</string>
     <string name="emulation_screen_tab">Bildschirm</string>
     <string name="settings_gamepad_player_1">Spieler 1</string>
     <string name="settings_gamepad_player_2">Spieler 2</string>
@@ -2546,4 +2545,5 @@
     <string name="settings_stick_toggle_target_left">Linker Stick</string>
     <string name="settings_stick_toggle_target_right">Rechter Stick</string>
     <string name="cia_unsupported">Diese CIA konnte nicht vorbereitet werden. Verwende eine entschlüsselte .3ds-, .cci- oder .cxi-Datei.</string>
+    <string name="settings_gamepad_action_swap_screen">Bildschirme tauschen</string>
 </resources>

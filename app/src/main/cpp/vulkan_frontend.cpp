@@ -1043,7 +1043,7 @@ bool RecreateSwapchain() {
 PresentRect FitDisplayRect(const VkExtent2D& extent, double display_aspect, bool stretch) {
     PresentRect rect{0, 0, static_cast<int>(extent.width), static_cast<int>(extent.height)};
     if (stretch) return rect;
-    if (display_aspect <= 0.0 || !std::isfinite(display_aspect)) display_aspect = 4.0 / 3.0;
+    if (display_aspect <= 0.0 || !std::isfinite(display_aspect)) display_aspect = 400.0 / 480.0;
 
     const double window_aspect = static_cast<double>(extent.width) / static_cast<double>(extent.height);
     int width;

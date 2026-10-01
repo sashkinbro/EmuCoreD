@@ -536,7 +536,6 @@
     <string name="emulation_quick_save_confirm_desc">这将使用当前游戏状态覆盖插槽 %1$d。</string>
     <string name="emulation_quick_load_confirm_title">加载状态？</string>
     <string name="emulation_quick_load_confirm_desc">这将恢复插槽 %1$d 并替换您当前未保存的进度。</string>
-    <string name="settings_aspect_ratio_107">10:7</string>
     <string name="emulation_screen_tab">屏幕</string>
     <string name="settings_gamepad_player_1">玩家 1</string>
     <string name="settings_gamepad_player_2">玩家 2</string>
@@ -2545,4 +2544,5 @@
     <string name="settings_stick_toggle_target_left">左摇杆</string>
     <string name="settings_stick_toggle_target_right">右摇杆</string>
     <string name="cia_unsupported">无法准备此 CIA 文件。请使用解密后的 .3ds、.cci 或 .cxi 文件。</string>
+    <string name="settings_gamepad_action_swap_screen">切换屏幕</string>
 </resources>
