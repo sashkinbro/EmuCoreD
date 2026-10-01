@@ -2552,4 +2552,18 @@
     <string name="settings_stick_toggle_target_right">العصا اليمنى</string>
     <string name="cia_unsupported">تعذّر تجهيز ملف CIA هذا. استخدم ملف ‎.3ds‎ أو ‎.cci‎ أو ‎.cxi‎ مفكوك التشفير.</string>
     <string name="settings_gamepad_action_swap_screen">تبديل الشاشات</string>
+    <string name="settings_camera_section">الكاميرا</string>
+    <string name="settings_camera_outer_right">الكاميرا الخارجية اليمنى</string>
+    <string name="settings_camera_inner">الكاميرا الداخلية</string>
+    <string name="settings_camera_outer_left">الكاميرا الخارجية اليسرى</string>
+    <string name="settings_camera_off">إيقاف</string>
+    <string name="settings_camera_still_image">صورة ثابتة</string>
+    <string name="settings_camera_image">صورة</string>
+    <string name="settings_camera_choose_image">اختيار صورة</string>
+    <string name="settings_camera_flip">قلب</string>
+    <string name="settings_camera_flip_none">بلا</string>
+    <string name="settings_camera_flip_horizontal">أفقي</string>
+    <string name="settings_camera_flip_vertical">عمودي</string>
+    <string name="settings_camera_flip_reverse">معكوس</string>
+    <string name="settings_help_camera">يغذي الكاميرا المحددة في 3DS بصورة ثابتة أثناء تشغيل اللعبة.</string>
 </resources>

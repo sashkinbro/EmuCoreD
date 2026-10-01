@@ -2546,4 +2546,18 @@
     <string name="settings_stick_toggle_target_right">Stick derecho</string>
     <string name="cia_unsupported">No se pudo preparar este archivo CIA. Usa un archivo .3ds, .cci o .cxi descifrado.</string>
     <string name="settings_gamepad_action_swap_screen">Cambiar pantallas</string>
+    <string name="settings_camera_section">Cámara</string>
+    <string name="settings_camera_outer_right">Cámara exterior derecha</string>
+    <string name="settings_camera_inner">Cámara interior</string>
+    <string name="settings_camera_outer_left">Cámara exterior izquierda</string>
+    <string name="settings_camera_off">Desactivada</string>
+    <string name="settings_camera_still_image">Imagen fija</string>
+    <string name="settings_camera_image">Imagen</string>
+    <string name="settings_camera_choose_image">Elegir imagen</string>
+    <string name="settings_camera_flip">Voltear</string>
+    <string name="settings_camera_flip_none">Ninguno</string>
+    <string name="settings_camera_flip_horizontal">Horizontal</string>
+    <string name="settings_camera_flip_vertical">Vertical</string>
+    <string name="settings_camera_flip_reverse">Invertido</string>
+    <string name="settings_help_camera">Alimenta la cámara seleccionada de la 3DS con una imagen fija mientras se juega.</string>
 </resources>

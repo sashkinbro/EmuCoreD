@@ -2545,4 +2545,18 @@
     <string name="settings_stick_toggle_target_right">右摇杆</string>
     <string name="cia_unsupported">无法准备此 CIA 文件。请使用解密后的 .3ds、.cci 或 .cxi 文件。</string>
     <string name="settings_gamepad_action_swap_screen">切换屏幕</string>
+    <string name="settings_camera_section">摄像头</string>
+    <string name="settings_camera_outer_right">外置右摄像头</string>
+    <string name="settings_camera_inner">内置摄像头</string>
+    <string name="settings_camera_outer_left">外置左摄像头</string>
+    <string name="settings_camera_off">关闭</string>
+    <string name="settings_camera_still_image">静态图片</string>
+    <string name="settings_camera_image">图片</string>
+    <string name="settings_camera_choose_image">选择图片</string>
+    <string name="settings_camera_flip">翻转</string>
+    <string name="settings_camera_flip_none">无</string>
+    <string name="settings_camera_flip_horizontal">水平</string>
+    <string name="settings_camera_flip_vertical">垂直</string>
+    <string name="settings_camera_flip_reverse">反向</string>
+    <string name="settings_help_camera">游戏运行时为所选 3DS 摄像头提供静态图片。</string>
 </resources>

@@ -2544,4 +2544,18 @@
     <string name="settings_stick_toggle_target_right">दायाँ स्टिक</string>
     <string name="cia_unsupported">यह CIA फ़ाइल तैयार नहीं हो सकी। डिक्रिप्टेड .3ds, .cci या .cxi फ़ाइल आज़माएँ।</string>
     <string name="settings_gamepad_action_swap_screen">स्क्रीन बदलें</string>
+    <string name="settings_camera_section">कैमरा</string>
+    <string name="settings_camera_outer_right">बाहरी दायां कैमरा</string>
+    <string name="settings_camera_inner">आंतरिक कैमरा</string>
+    <string name="settings_camera_outer_left">बाहरी बायां कैमरा</string>
+    <string name="settings_camera_off">बंद</string>
+    <string name="settings_camera_still_image">स्थिर छवि</string>
+    <string name="settings_camera_image">छवि</string>
+    <string name="settings_camera_choose_image">छवि चुनें</string>
+    <string name="settings_camera_flip">पलटें</string>
+    <string name="settings_camera_flip_none">कोई नहीं</string>
+    <string name="settings_camera_flip_horizontal">क्षैतिज</string>
+    <string name="settings_camera_flip_vertical">लंबवत</string>
+    <string name="settings_camera_flip_reverse">उलटा</string>
+    <string name="settings_help_camera">गेम चलते समय चयनित 3DS कैमरा को स्थिर छवि देता है।</string>
 </resources>

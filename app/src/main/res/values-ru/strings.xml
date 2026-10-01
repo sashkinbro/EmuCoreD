@@ -2548,4 +2548,18 @@
     <string name="settings_stick_toggle_target_right">Правый стик</string>
     <string name="cia_unsupported">Не удалось подготовить эту CIA. Попробуйте расшифрованный файл .3ds, .cci или .cxi.</string>
     <string name="settings_gamepad_action_swap_screen">Сменить экраны</string>
+    <string name="settings_camera_section">Камера</string>
+    <string name="settings_camera_outer_right">Внешняя правая камера</string>
+    <string name="settings_camera_inner">Внутренняя камера</string>
+    <string name="settings_camera_outer_left">Внешняя левая камера</string>
+    <string name="settings_camera_off">Выключена</string>
+    <string name="settings_camera_still_image">Статичное изображение</string>
+    <string name="settings_camera_image">Изображение</string>
+    <string name="settings_camera_choose_image">Выбрать изображение</string>
+    <string name="settings_camera_flip">Отражение</string>
+    <string name="settings_camera_flip_none">Нет</string>
+    <string name="settings_camera_flip_horizontal">Горизонтально</string>
+    <string name="settings_camera_flip_vertical">Вертикально</string>
+    <string name="settings_camera_flip_reverse">Обратно</string>
+    <string name="settings_help_camera">Подаёт статичное изображение на выбранную камеру 3DS во время игры.</string>
 </resources>

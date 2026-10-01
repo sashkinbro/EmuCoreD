@@ -284,6 +284,9 @@ internal object CoreRuntime {
         applyStartOptions(coreRenderer)
         val handle = bridge.createSession()
         if (handle == 0L) return@withLock false
+        // Cameras are configured per launch: the core reads the settings when
+        // the camera service starts during game boot.
+        context?.let { CameraSettingsStore.applyToCore(it, bridge) }
         // Attach the surface before loading content: SET_HW_RENDER fires inside
         // retro_load_game and needs a window to build the render context.
         if (bridge.setSurface(handle, surface, coreRenderer) != 0) {

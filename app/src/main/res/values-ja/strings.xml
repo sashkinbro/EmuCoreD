@@ -2543,4 +2543,18 @@
     <string name="settings_stick_toggle_target_right">右スティック</string>
     <string name="cia_unsupported">このCIAファイルを準備できませんでした。復号済みの.3ds、.cci、.cxiファイルをお試しください。</string>
     <string name="settings_gamepad_action_swap_screen">画面を入れ替え</string>
+    <string name="settings_camera_section">カメラ</string>
+    <string name="settings_camera_outer_right">外側右カメラ</string>
+    <string name="settings_camera_inner">内側カメラ</string>
+    <string name="settings_camera_outer_left">外側左カメラ</string>
+    <string name="settings_camera_off">オフ</string>
+    <string name="settings_camera_still_image">静止画</string>
+    <string name="settings_camera_image">画像</string>
+    <string name="settings_camera_choose_image">画像を選択</string>
+    <string name="settings_camera_flip">反転</string>
+    <string name="settings_camera_flip_none">なし</string>
+    <string name="settings_camera_flip_horizontal">水平</string>
+    <string name="settings_camera_flip_vertical">垂直</string>
+    <string name="settings_camera_flip_reverse">逆</string>
+    <string name="settings_help_camera">ゲーム実行中、選択した3DSカメラに静止画を供給します。</string>
 </resources>

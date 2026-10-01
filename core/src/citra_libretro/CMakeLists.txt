@@ -28,6 +28,7 @@ add_library(citra_libretro SHARED
         citra_libretro.cpp
         citra_libretro.h
         emucored_cia.cpp
+        emucored_camera.cpp
         $<TARGET_OBJECTS:citra_libretro_common>)
 
 if(ANDROID)

@@ -2549,4 +2549,18 @@
     <string name="settings_stick_toggle_target_right">Правий стік</string>
     <string name="cia_unsupported">Не вдалося підготувати цю CIA. Спробуйте розшифрований файл .3ds, .cci або .cxi.</string>
     <string name="settings_gamepad_action_swap_screen">Поміняти екрани</string>
+    <string name="settings_camera_section">Камера</string>
+    <string name="settings_camera_outer_right">Зовнішня права камера</string>
+    <string name="settings_camera_inner">Внутрішня камера</string>
+    <string name="settings_camera_outer_left">Зовнішня ліва камера</string>
+    <string name="settings_camera_off">Вимкнено</string>
+    <string name="settings_camera_still_image">Статичне зображення</string>
+    <string name="settings_camera_image">Зображення</string>
+    <string name="settings_camera_choose_image">Вибрати зображення</string>
+    <string name="settings_camera_flip">Віддзеркалення</string>
+    <string name="settings_camera_flip_none">Немає</string>
+    <string name="settings_camera_flip_horizontal">Горизонтально</string>
+    <string name="settings_camera_flip_vertical">Вертикально</string>
+    <string name="settings_camera_flip_reverse">Обернено</string>
+    <string name="settings_help_camera">Подає статичне зображення на вибрану камеру 3DS під час гри.</string>
 </resources>

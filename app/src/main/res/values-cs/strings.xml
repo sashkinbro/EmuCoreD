@@ -2565,4 +2565,18 @@
     <string name="settings_stick_toggle_target_right">Pravý stick</string>
     <string name="cia_unsupported">Toto CIA se nepodařilo připravit. Zkuste dešifrovaný soubor .3ds, .cci nebo .cxi.</string>
     <string name="settings_gamepad_action_swap_screen">Prohodit obrazovky</string>
+    <string name="settings_camera_section">Kamera</string>
+    <string name="settings_camera_outer_right">Pravá vnější kamera</string>
+    <string name="settings_camera_inner">Vnitřní kamera</string>
+    <string name="settings_camera_outer_left">Levá vnější kamera</string>
+    <string name="settings_camera_off">Vypnuto</string>
+    <string name="settings_camera_still_image">Statický obrázek</string>
+    <string name="settings_camera_image">Obrázek</string>
+    <string name="settings_camera_choose_image">Vybrat obrázek</string>
+    <string name="settings_camera_flip">Otočení</string>
+    <string name="settings_camera_flip_none">Žádné</string>
+    <string name="settings_camera_flip_horizontal">Vodorovně</string>
+    <string name="settings_camera_flip_vertical">Svisle</string>
+    <string name="settings_camera_flip_reverse">Obráceně</string>
+    <string name="settings_help_camera">Během hry napájí vybranou kameru 3DS statickým obrázkem.</string>
 </resources>

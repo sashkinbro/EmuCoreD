@@ -42,6 +42,11 @@ class NativeCoreBridge {
     external fun loadDisc(handle: Long, path: String): Int
     external fun reset(handle: Long): Int
 
+    /** Enables/disables the frontend still-image camera for one 3DS camera slot. */
+    external fun nativeSetCameraConfig(slot: Int, enabled: Boolean, flip: Int)
+    /** Supplies RGB565 pixels for one 3DS camera slot (width * height shorts). */
+    external fun nativeSetCameraFrame(slot: Int, width: Int, height: Int, pixels: ShortArray)
+
     /**
      * Runs one guest frame; audio is pulled by the output stream callback.
      * Returns the emulated clock in microseconds after the frame, or 0 when the

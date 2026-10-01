@@ -2558,4 +2558,18 @@
     <string name="settings_stick_toggle_target_right">Stik kanan</string>
     <string name="cia_unsupported">File CIA ini tidak dapat disiapkan. Gunakan file .3ds, .cci, atau .cxi yang didekripsi.</string>
     <string name="settings_gamepad_action_swap_screen">Tukar layar</string>
+    <string name="settings_camera_section">Kamera</string>
+    <string name="settings_camera_outer_right">Kamera luar kanan</string>
+    <string name="settings_camera_inner">Kamera dalam</string>
+    <string name="settings_camera_outer_left">Kamera luar kiri</string>
+    <string name="settings_camera_off">Nonaktif</string>
+    <string name="settings_camera_still_image">Gambar diam</string>
+    <string name="settings_camera_image">Gambar</string>
+    <string name="settings_camera_choose_image">Pilih gambar</string>
+    <string name="settings_camera_flip">Balik</string>
+    <string name="settings_camera_flip_none">Tidak ada</string>
+    <string name="settings_camera_flip_horizontal">Horizontal</string>
+    <string name="settings_camera_flip_vertical">Vertikal</string>
+    <string name="settings_camera_flip_reverse">Terbalik</string>
+    <string name="settings_help_camera">Memberi gambar diam ke kamera 3DS yang dipilih saat game berjalan.</string>
 </resources>

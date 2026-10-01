@@ -121,6 +121,9 @@ struct CoreApi {
     const char* (*boot_error)() = nullptr;
     // EmuCoreD core extension: extract a decrypted NCCH from a CIA content.
     int (*extract_cia_content_fd)(int, const char*, unsigned) = nullptr;
+    // EmuCoreD core extension: frontend-provided still-image cameras.
+    void (*camera_configure)(int, int, int) = nullptr;
+    void (*camera_set_frame)(int, int, int, const uint16_t*, int) = nullptr;
 };
 
 CoreApi g_core;
@@ -315,6 +318,11 @@ bool LoadCoreLocked() {
     g_core.emulated_time_us = reinterpret_cast<uint64_t (*)()>(resolve("emucored_emulated_time_us"));
     g_core.extract_cia_content_fd =
         reinterpret_cast<int (*)(int, const char*, unsigned)>(resolve("emucored_extract_cia_content_fd"));
+    g_core.camera_configure =
+        reinterpret_cast<void (*)(int, int, int)>(resolve("emucored_camera_configure"));
+    g_core.camera_set_frame =
+        reinterpret_cast<void (*)(int, int, int, const uint16_t*, int)>(
+            resolve("emucored_camera_set_frame"));
 
     if (g_core.set_environment == nullptr || g_core.init == nullptr || g_core.load_game == nullptr ||
         g_core.run == nullptr || g_core.get_system_info == nullptr) {
@@ -1507,6 +1515,27 @@ Java_com_sbro_emucored_core_NativeCoreBridge_extractCiaContent(JNIEnv* env, jobj
     if (output.empty()) return -1;
     return static_cast<jint>(g_core.extract_cia_content_fd(
         static_cast<int>(fd), output.c_str(), static_cast<unsigned>(content_index)));
+}
+
+JNIEXPORT void JNICALL
+Java_com_sbro_emucored_core_NativeCoreBridge_nativeSetCameraConfig(JNIEnv*, jobject, jint slot,
+                                                                    jboolean enabled, jint flip) {
+    if (!LoadCoreLocked() || g_core.camera_configure == nullptr) return;
+    g_core.camera_configure(static_cast<int>(slot), enabled == JNI_TRUE ? 1 : 0,
+                            static_cast<int>(flip));
+}
+
+JNIEXPORT void JNICALL
+Java_com_sbro_emucored_core_NativeCoreBridge_nativeSetCameraFrame(JNIEnv* env, jobject, jint slot,
+                                                                   jint width, jint height,
+                                                                   jshortArray pixels) {
+    if (!LoadCoreLocked() || g_core.camera_set_frame == nullptr || pixels == nullptr) return;
+    const jsize length = env->GetArrayLength(pixels);
+    if (length <= 0 || width <= 0 || height <= 0) return;
+    std::vector<uint16_t> data(static_cast<size_t>(length));
+    env->GetShortArrayRegion(pixels, 0, length, reinterpret_cast<jshort*>(data.data()));
+    g_core.camera_set_frame(static_cast<int>(slot), static_cast<int>(width),
+                            static_cast<int>(height), data.data(), static_cast<int>(length));
 }
 
 JNIEXPORT void JNICALL

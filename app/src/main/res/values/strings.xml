@@ -2567,4 +2567,18 @@
     <string name="core_update_reset_done">Settings have been reset</string>
     <string name="cia_unsupported">This CIA file could not be prepared. Try a decrypted .3ds, .cci or .cxi file.</string>
     <string name="settings_gamepad_action_swap_screen">Swap Screens</string>
+    <string name="settings_camera_section">Camera</string>
+    <string name="settings_camera_outer_right">Outer right camera</string>
+    <string name="settings_camera_inner">Inner camera</string>
+    <string name="settings_camera_outer_left">Outer left camera</string>
+    <string name="settings_camera_off">Off</string>
+    <string name="settings_camera_still_image">Still image</string>
+    <string name="settings_camera_image">Image</string>
+    <string name="settings_camera_choose_image">Choose image</string>
+    <string name="settings_camera_flip">Flip</string>
+    <string name="settings_camera_flip_none">None</string>
+    <string name="settings_camera_flip_horizontal">Horizontal</string>
+    <string name="settings_camera_flip_vertical">Vertical</string>
+    <string name="settings_camera_flip_reverse">Reverse</string>
+    <string name="settings_help_camera">Feeds a still image to the selected 3DS camera while a game is running.</string>
 </resources>

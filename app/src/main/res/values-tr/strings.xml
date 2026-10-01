@@ -2544,4 +2544,18 @@
     <string name="settings_stick_toggle_target_right">Sağ çubuk</string>
     <string name="cia_unsupported">Bu CIA dosyası hazırlanamadı. Şifresi çözülmüş bir .3ds, .cci veya .cxi dosyası deneyin.</string>
     <string name="settings_gamepad_action_swap_screen">Ekranları değiştir</string>
+    <string name="settings_camera_section">Kamera</string>
+    <string name="settings_camera_outer_right">Dış sağ kamera</string>
+    <string name="settings_camera_inner">İç kamera</string>
+    <string name="settings_camera_outer_left">Dış sol kamera</string>
+    <string name="settings_camera_off">Kapalı</string>
+    <string name="settings_camera_still_image">Sabit görüntü</string>
+    <string name="settings_camera_image">Görüntü</string>
+    <string name="settings_camera_choose_image">Görüntü seç</string>
+    <string name="settings_camera_flip">Çevir</string>
+    <string name="settings_camera_flip_none">Yok</string>
+    <string name="settings_camera_flip_horizontal">Yatay</string>
+    <string name="settings_camera_flip_vertical">Dikey</string>
+    <string name="settings_camera_flip_reverse">Ters</string>
+    <string name="settings_help_camera">Oyun sırasında seçilen 3DS kamerasına sabit görüntü sağlar.</string>
 </resources>

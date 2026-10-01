@@ -2559,4 +2559,18 @@
     <string name="settings_stick_toggle_target_right">آنالوگ راست</string>
     <string name="cia_unsupported">این فایل CIA آماده نشد. از فایل رمزگشایی‌شده .3ds، .cci یا .cxi استفاده کنید.</string>
     <string name="settings_gamepad_action_swap_screen">جابه‌جایی صفحه‌ها</string>
+    <string name="settings_camera_section">دوربین</string>
+    <string name="settings_camera_outer_right">دوربین بیرونی راست</string>
+    <string name="settings_camera_inner">دوربین داخلی</string>
+    <string name="settings_camera_outer_left">دوربین بیرونی چپ</string>
+    <string name="settings_camera_off">خاموش</string>
+    <string name="settings_camera_still_image">تصویر ثابت</string>
+    <string name="settings_camera_image">تصویر</string>
+    <string name="settings_camera_choose_image">انتخاب تصویر</string>
+    <string name="settings_camera_flip">چرخش</string>
+    <string name="settings_camera_flip_none">هیچ</string>
+    <string name="settings_camera_flip_horizontal">افقی</string>
+    <string name="settings_camera_flip_vertical">عمودی</string>
+    <string name="settings_camera_flip_reverse">معکوس</string>
+    <string name="settings_help_camera">در حین بازی یک تصویر ثابت به دوربین انتخاب‌شده 3DS می‌دهد.</string>
 </resources>

@@ -84,6 +84,7 @@ import androidx.compose.material.icons.rounded.MoreVert
 import androidx.compose.material.icons.rounded.Newspaper
 import androidx.compose.material.icons.rounded.Palette
 import androidx.compose.material.icons.rounded.Person
+import androidx.compose.material.icons.rounded.PhotoCamera
 import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material.icons.rounded.RateReview
 import androidx.compose.material.icons.rounded.Restore
@@ -191,6 +192,7 @@ import com.sbro.emucored.core.buildUpscaleOptions
 import com.sbro.emucored.core.upscaleKeyToMultiplier
 import com.sbro.emucored.core.upscaleMultiplierKey
 import com.sbro.emucored.core.AzaharCoreOptions
+import com.sbro.emucored.core.CameraSettingsStore
 import com.sbro.emucored.core.azaharCoreOptionHelpRes
 import com.sbro.emucored.core.AzaharCoreOptionLocalization
 import com.sbro.emucored.core.LocalTvUiEnvironment
@@ -1065,6 +1067,30 @@ private fun SettingsContent(
     val emulationAllowsBothOrientations by viewModel.emulationAllowsBothOrientations.collectAsState()
     val notSetLabel = stringResource(R.string.settings_not_set)
     var selectedGamepadPadIndex by rememberSaveable { mutableIntStateOf(0) }
+    // Camera settings are stored outside the ViewModel: they are only pushed to
+    // the core when a game session starts.
+    var cameraSettingsVersion by remember { mutableIntStateOf(0) }
+    var cameraPickerSlot by remember { mutableIntStateOf(-1) }
+    val cameraImagePicker = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocument()
+    ) { uri: Uri? ->
+        val slot = cameraPickerSlot
+        cameraPickerSlot = -1
+        if (uri != null && slot in 0..2) {
+            runCatching {
+                context.contentResolver.takePersistableUriPermission(
+                    uri, Intent.FLAG_GRANT_READ_URI_PERMISSION
+                )
+            }
+            CameraSettingsStore.setConfig(
+                context,
+                slot,
+                CameraSettingsStore.config(context, slot)
+                    .copy(enabled = true, imagePath = uri.toString())
+            )
+            cameraSettingsVersion++
+        }
+    }
     Box(
         modifier = modifier
             .fillMaxWidth()
@@ -1963,6 +1989,63 @@ private fun SettingsContent(
                                 coreGraphicsVersion++
                             }
                         )
+                    }
+
+                    SettingsSection(title = stringResource(R.string.settings_camera_section)) {
+                        val cameraConfigs = remember(cameraSettingsVersion) {
+                            (0..2).map { slot -> CameraSettingsStore.config(context, slot) }
+                        }
+                        (0..2).forEach { slot ->
+                            val config = cameraConfigs[slot]
+                            ChoiceSection(
+                                title = cameraSlotTitle(slot),
+                                options = listOf(
+                                    0 to stringResource(R.string.settings_camera_off),
+                                    1 to stringResource(R.string.settings_camera_still_image)
+                                ),
+                                selectedValue = if (config.enabled) 1 else 0,
+                                onSelect = { value ->
+                                    CameraSettingsStore.setConfig(
+                                        context,
+                                        slot,
+                                        config.copy(enabled = value == 1)
+                                    )
+                                    cameraSettingsVersion++
+                                },
+                                helpText = stringResource(R.string.settings_help_camera)
+                            )
+                            if (config.enabled) {
+                                SettingsItem(
+                                    icon = Icons.Rounded.PhotoCamera,
+                                    label = stringResource(R.string.settings_camera_image),
+                                    value = config.imagePath
+                                        ?.let { Uri.parse(it).lastPathSegment }
+                                        ?: stringResource(R.string.settings_camera_choose_image),
+                                    onClick = {
+                                        cameraPickerSlot = slot
+                                        cameraImagePicker.launch(arrayOf("image/*"))
+                                    }
+                                )
+                                ChoiceSection(
+                                    title = stringResource(R.string.settings_camera_flip),
+                                    options = listOf(
+                                        CameraSettingsStore.FLIP_NONE to stringResource(R.string.settings_camera_flip_none),
+                                        CameraSettingsStore.FLIP_HORIZONTAL to stringResource(R.string.settings_camera_flip_horizontal),
+                                        CameraSettingsStore.FLIP_VERTICAL to stringResource(R.string.settings_camera_flip_vertical),
+                                        CameraSettingsStore.FLIP_REVERSE to stringResource(R.string.settings_camera_flip_reverse)
+                                    ),
+                                    selectedValue = config.flip,
+                                    onSelect = { value ->
+                                        CameraSettingsStore.setConfig(
+                                            context,
+                                            slot,
+                                            config.copy(flip = value)
+                                        )
+                                        cameraSettingsVersion++
+                                    }
+                                )
+                            }
+                        }
                     }
 
                 }
@@ -5345,6 +5428,15 @@ private fun fpsOverlayMetricOptions(): List<Pair<Int, String>> = listOf(
     PerformanceOverlayMetrics.RESOLUTION to stringResource(R.string.settings_fps_metric_resolution),
     PerformanceOverlayMetrics.HOST_CPU to stringResource(R.string.settings_fps_metric_host_cpu),
     PerformanceOverlayMetrics.AUDIO to stringResource(R.string.settings_fps_metric_audio)
+)
+
+@Composable
+private fun cameraSlotTitle(slot: Int): String = stringResource(
+    when (slot) {
+        CameraSettingsStore.SLOT_INNER -> R.string.settings_camera_inner
+        CameraSettingsStore.SLOT_OUTER_LEFT -> R.string.settings_camera_outer_left
+        else -> R.string.settings_camera_outer_right
+    }
 )
 
 @StringRes
