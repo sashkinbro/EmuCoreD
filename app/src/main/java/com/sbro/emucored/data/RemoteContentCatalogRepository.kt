@@ -199,7 +199,12 @@ class RemoteContentCatalogRepository(context: Context) {
                     id = item.requiredString("id"),
                     name = item.requiredString("name"),
                     gameTitle = item.requiredString("gameTitle"),
-                    serials = item.stringList("serials").mapNotNull(::normalizeSerial).distinct(),
+                    serials = (item.stringList("titleIds") + item.stringList("serials"))
+                        .mapNotNull { raw ->
+                            raw.trim().uppercase(Locale.US)
+                                .takeIf { it.matches(Regex("[0-9A-F]{16}")) }
+                        }
+                        .distinct(),
                     version = item.requiredString("version"),
                     authors = item.stringList("authors").filter(String::isNotBlank),
                     credits = item.string("credits"),
@@ -244,7 +249,12 @@ class RemoteContentCatalogRepository(context: Context) {
                 RemoteCheatPack(
                     id = item.requiredString("id"),
                     title = item.requiredString("title"),
-                    serials = item.stringList("serials").mapNotNull(::normalizeSerial).distinct(),
+                    serials = (item.stringList("titleIds") + item.stringList("serials"))
+                        .mapNotNull { raw ->
+                            raw.trim().uppercase(Locale.US)
+                                .takeIf { it.matches(Regex("[0-9A-F]{16}")) }
+                        }
+                        .distinct(),
                     crc = item.string("crc").uppercase(Locale.US),
                     authors = item.stringList("authors").filter(String::isNotBlank),
                     description = item.string("description"),

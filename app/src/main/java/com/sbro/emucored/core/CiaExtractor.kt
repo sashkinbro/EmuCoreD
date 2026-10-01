@@ -32,6 +32,25 @@ object CiaExtractor {
     private const val CIA_HEADER_SIZE = 0x2020
     private const val SECTION_ALIGN = 0x40
 
+    /** Reads the 16-digit title id from a CIA container without extracting it. */
+    fun readTitleId(context: Context, path: String): String? = runCatching {
+        openSource(context, path).use { descriptor ->
+            val fileDescriptor = descriptor.fileDescriptor
+            val header = readAt(fileDescriptor, 0, CIA_HEADER_SIZE) ?: return@use null
+            if (u32(header, 0x00) != CIA_HEADER_SIZE.toLong()) return@use null
+            val certSize = u32(header, 0x08)
+            val ticketSize = u32(header, 0x0C)
+            val tmdSize = u32(header, 0x10)
+            if (tmdSize <= 0L || tmdSize > 16L * 1024 * 1024) return@use null
+            val ticketOffset = align(align(CIA_HEADER_SIZE.toLong()) + certSize)
+            val tmdOffset = align(ticketOffset + ticketSize)
+            val tmd = readAt(fileDescriptor, tmdOffset, tmdSize.toInt()) ?: return@use null
+            val base = findIssuer(tmd) ?: return@use null
+            val titleId = u64be(tmd, base + 0x4C)
+            titleId.takeIf { it != 0L }?.let { String.format(Locale.US, "%016x", it) }
+        }
+    }.getOrNull()
+
     fun ensureExtracted(context: Context, path: String): File {
         val outputDirectory = File(context.getExternalFilesDir(null) ?: context.filesDir, "cia")
             .apply { mkdirs() }

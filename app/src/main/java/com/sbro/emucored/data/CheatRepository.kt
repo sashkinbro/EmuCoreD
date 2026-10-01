@@ -383,6 +383,11 @@ class CheatRepository(private val context: Context) {
     }
 
     private fun canonicalActiveCheatFile(serial: String?, crc: String): File {
+        // Azahar loads cheats/<TITLEID>.txt from its own user directory; the
+        // active directory already points at that folder.
+        if (serial != null && serial.matches(Regex("[0-9a-fA-F]{16}"))) {
+            return File(activeDir().canonicalFile, "${serial.uppercase(Locale.US)}.txt")
+        }
         val name = if (serial.isNullOrBlank()) {
             "$crc.pnach"
         } else {
@@ -391,10 +396,26 @@ class CheatRepository(private val context: Context) {
         return File(activeDir().canonicalFile, name)
     }
 
-    private fun coreCheatFile(pnachFile: File): File =
-        File(pnachFile.parentFile, "${pnachFile.nameWithoutExtension}.ini")
+    private fun coreCheatFile(pnachFile: File): File {
+        if (pnachFile.name.matches(Regex("[0-9A-F]{16}\\.txt"))) {
+            return pnachFile
+        }
+        return File(pnachFile.parentFile, "${pnachFile.nameWithoutExtension}.ini")
+    }
 
     private fun buildCoreCheatContents(blocks: List<CheatBlock>, serial: String?): String? {
+        if (serial != null && serial.matches(Regex("[0-9a-fA-F]{16}"))) {
+            val output = StringBuilder()
+            blocks.forEach { block ->
+                val label = cheatBlockLabel(block).replace('\n', ' ').replace('\r', ' ').trim()
+                if (label.isEmpty()) return@forEach
+                output.append('[').append(label).append("]\n")
+                if (block.enabled) output.append("*citra_enabled\n")
+                block.lines.forEach { line -> output.append(line).append('\n') }
+                output.append('\n')
+            }
+            return output.toString()
+        }
         val gameId = serial?.replace(Regex("[^A-Za-z0-9]"), "")?.uppercase(Locale.US)
             ?.takeIf { it.matches(Regex("[A-Z]{4}[0-9]{5}")) } ?: return null
         val output = StringBuilder()
@@ -524,7 +545,49 @@ private val GAME_SERIAL_REGEX = Regex(
 private fun normalizeCheatSerial(value: String?): String? =
     value?.uppercase(Locale.US)?.replace(Regex("[^A-Z0-9]"), "")?.takeIf { it.isNotBlank() }
 
+/** Parses the Gateway format used by Azahar: `[name]` sections with code lines. */
+internal fun parseGatewayCheatBlocks(raw: String): List<CheatBlock> {
+    val lines = raw.trimStart('\uFEFF').lineSequence().map { it.trim() }.toList()
+    if (lines.none { it.startsWith("[") && it.endsWith("]") }) return emptyList()
+    val blocks = mutableListOf<CheatBlock>()
+    var title: String? = null
+    var enabled = false
+    var index = 1
+    val code = mutableListOf<String>()
+
+    fun flush() {
+        val current = title
+        if (current != null && code.isNotEmpty()) {
+            val slug = current.lowercase(Locale.US).replace(Regex("[^a-z0-9]+"), "_").trim('_')
+            blocks += CheatBlock(
+                id = "${slug.ifBlank { "cheat" }}_$index",
+                title = current,
+                lines = code.toList(),
+                enabled = enabled
+            )
+            index++
+        }
+        code.clear()
+        enabled = false
+    }
+
+    lines.forEach { line ->
+        when {
+            line.startsWith("[") && line.endsWith("]") -> {
+                flush()
+                title = line.substring(1, line.length - 1)
+            }
+            line.equals("*citra_enabled", ignoreCase = true) -> enabled = true
+            line.isEmpty() || line.startsWith("//") || line.startsWith(";") -> Unit
+            title != null -> code += line
+        }
+    }
+    flush()
+    return blocks
+}
+
 internal fun parseCheatBlocks(raw: String, serialFilter: String? = null): List<CheatBlock> {
+    parseGatewayCheatBlocks(raw).takeIf { it.isNotEmpty() }?.let { return it }
     val targetSerial = normalizeCheatSerial(serialFilter)
     val lines = raw.trimStart('\uFEFF').lineSequence().map { it.trimEnd() }.toList()
     val blocks = mutableListOf<CheatBlock>()

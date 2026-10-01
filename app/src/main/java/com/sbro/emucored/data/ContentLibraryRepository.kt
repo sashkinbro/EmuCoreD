@@ -21,7 +21,6 @@ class ContentLibraryRepository(context: Context) {
         val preferEnglish = preferences.preferEnglishGameTitles.first()
         return cache.loadSnapshot(GameLibraryCacheRepository.libraryKey(paths), preferEnglish)
             .games
-            .filter { !it.serial.isNullOrBlank() }
             .sortedBy { it.title.lowercase(Locale.getDefault()) }
     }
 
