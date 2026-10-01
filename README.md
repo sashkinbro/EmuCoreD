@@ -106,7 +106,7 @@ The catalogs credit the original sources. Redistributable files are mirrored in 
 
 ## Credits and license
 
-EmuCoreD builds on Azahar, which is based on Citra. The vendored core and its dependencies retain their copyright and license notices in `core/`.
+EmuCoreD builds on Azahar, which is based on Citra. The root [LICENSE.TXT](LICENSE.TXT) is an exact copy of Azahar's upstream license file (GPLv2 or later). The vendored core and its dependencies retain their copyright and license notices in `core/`.
 
 Thanks to the Azahar and Citra contributors, and to the RetroAchievements team for rcheevos.
 
