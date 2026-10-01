@@ -628,9 +628,10 @@ private fun SideNavigation(
         (navigateGameSettingsManager != null && DrawerItemId.GAME_SETTINGS !in hiddenDrawerItems) ||
             (navigateDataTransfer != null && DrawerItemId.DATA_TRANSFER !in hiddenDrawerItems) ||
             (resetAllSettings != null && DrawerItemId.RESET_SETTINGS !in hiddenDrawerItems)
+    // The Azahar libretro core does not implement retro_cheat_set, so the cheat
+    // manager stays out of the drawer.
     val showTools =
         (navigateMemoryCardManager != null && DrawerItemId.MEMORY_CARDS !in hiddenDrawerItems) ||
-            (navigateCheatManager != null && DrawerItemId.CHEAT_MANAGER !in hiddenDrawerItems) ||
             (navigateTextureManager != null && DrawerItemId.TEXTURE_MANAGER !in hiddenDrawerItems) ||
             (navigateSaveManager != null && DrawerItemId.SAVE_STATES !in hiddenDrawerItems)
 
@@ -818,13 +819,6 @@ private fun SideNavigation(
                         icon = Icons.Rounded.Memory,
                         label = stringResource(R.string.shell_memory_cards),
                         onClick = navigateMemoryCardManager
-                    )
-                }
-                if (navigateCheatManager != null && DrawerItemId.CHEAT_MANAGER !in hiddenDrawerItems) {
-                    ShellAction(
-                        icon = Icons.Rounded.SportsEsports,
-                        label = stringResource(R.string.shell_cheat_manager),
-                        onClick = navigateCheatManager
                     )
                 }
                 if (navigateTextureManager != null && DrawerItemId.TEXTURE_MANAGER !in hiddenDrawerItems) {

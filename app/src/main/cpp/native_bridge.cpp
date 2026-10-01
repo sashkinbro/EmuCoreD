@@ -119,6 +119,8 @@ struct CoreApi {
     int (*game_asset)(const char*, int, uint8_t*, size_t) = nullptr;
     int (*game_asset_fd)(int, int, uint8_t*, size_t) = nullptr;
     const char* (*boot_error)() = nullptr;
+    // EmuCoreD core extension: extract a decrypted NCCH from a CIA content.
+    int (*extract_cia_content_fd)(int, const char*, unsigned) = nullptr;
 };
 
 CoreApi g_core;
@@ -309,6 +311,8 @@ bool LoadCoreLocked() {
     g_core.rewind_step = reinterpret_cast<bool (*)()>(resolve("emucored_rewind_step"));
     g_core.set_rewind_enabled = reinterpret_cast<void (*)(bool)>(resolve("emucored_set_rewind_enabled"));
     g_core.emulated_time_us = reinterpret_cast<uint64_t (*)()>(resolve("emucored_emulated_time_us"));
+    g_core.extract_cia_content_fd =
+        reinterpret_cast<int (*)(int, const char*, unsigned)>(resolve("emucored_extract_cia_content_fd"));
 
     if (g_core.set_environment == nullptr || g_core.init == nullptr || g_core.load_game == nullptr ||
         g_core.run == nullptr || g_core.get_system_info == nullptr) {
@@ -1479,6 +1483,17 @@ Java_com_sbro_emucored_core_NativeCoreBridge_setPadAnalogMode(JNIEnv*, jobject, 
                                                               jboolean enabled) {
     if (handle == 0 || port < 0 || port > 1) return;
     g_frontend.pad_analog_mode[port].store(enabled == JNI_TRUE);
+}
+
+JNIEXPORT jint JNICALL
+Java_com_sbro_emucored_core_NativeCoreBridge_extractCiaContent(JNIEnv* env, jobject, jint fd,
+                                                               jstring out_path,
+                                                               jint content_index) {
+    if (!LoadCoreLocked() || g_core.extract_cia_content_fd == nullptr) return -1;
+    const std::string output = ToString(env, out_path);
+    if (output.empty()) return -1;
+    return static_cast<jint>(g_core.extract_cia_content_fd(
+        static_cast<int>(fd), output.c_str(), static_cast<unsigned>(content_index)));
 }
 
 JNIEXPORT void JNICALL

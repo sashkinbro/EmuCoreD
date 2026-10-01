@@ -2541,4 +2541,9 @@
     <string name="settings_help_core_enable_motion">Überträgt Gyroskop- und Beschleunigungsdaten an Spiele mit Bewegungssteuerung.</string>
     <string name="settings_help_core_motion_sensitivity">Regelt, wie stark Gerätebewegungen in Spielbewegungen umgesetzt werden.</string>
     <string name="cia_decrypt_required">Diese CIA ist verschlüsselt. Azahar lädt nur entschlüsselte CIA-Dateien; entschlüssele sie zuerst.</string>
+    <string name="settings_stick_toggle_target">D-Pad-Umschaltknopf</string>
+    <string name="settings_stick_toggle_target_desc">Der Punkt in der Mitte ersetzt den gewählten Analogstick an derselben Stelle durch ein D-Pad.</string>
+    <string name="settings_stick_toggle_target_left">Linker Stick</string>
+    <string name="settings_stick_toggle_target_right">Rechter Stick</string>
+    <string name="cia_unsupported">Diese CIA konnte nicht vorbereitet werden. Verwende eine entschlüsselte .3ds-, .cci- oder .cxi-Datei.</string>
 </resources>

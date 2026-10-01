@@ -2538,4 +2538,9 @@
     <string name="settings_help_core_enable_motion">자이로스코프와 가속도계 데이터를 모션 지원 게임에 전달합니다.</string>
     <string name="settings_help_core_motion_sensitivity">기기 움직임이 게임 움직임으로 얼마나 반영될지 조절합니다.</string>
     <string name="cia_decrypt_required">이 CIA는 암호화되어 있습니다. Azahar는 복호화된 CIA만 불러옵니다. 먼저 복호화하세요.</string>
+    <string name="settings_stick_toggle_target">D-pad 전환 버튼</string>
+    <string name="settings_stick_toggle_target_desc">가운데 점 버튼은 선택한 아날로그 스틱을 같은 위치에서 D-pad로 바꿉니다.</string>
+    <string name="settings_stick_toggle_target_left">왼쪽 스틱</string>
+    <string name="settings_stick_toggle_target_right">오른쪽 스틱</string>
+    <string name="cia_unsupported">이 CIA 파일을 준비할 수 없습니다. 복호화된 .3ds, .cci 또는 .cxi 파일을 사용하세요.</string>
 </resources>

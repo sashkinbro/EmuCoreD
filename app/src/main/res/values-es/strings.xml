@@ -2541,4 +2541,9 @@
     <string name="settings_help_core_enable_motion">Envía datos del giroscopio y acelerómetro a juegos con controles de movimiento.</string>
     <string name="settings_help_core_motion_sensitivity">Ajusta cuánto se traduce el movimiento del dispositivo en movimiento del juego.</string>
     <string name="cia_decrypt_required">Esta CIA está cifrada. Azahar solo carga archivos CIA descifrados; descífrala primero.</string>
+    <string name="settings_stick_toggle_target">Botón de cambio a D-pad</string>
+    <string name="settings_stick_toggle_target_desc">El botón de punto central cambia el stick analógico elegido por una cruceta en el mismo sitio.</string>
+    <string name="settings_stick_toggle_target_left">Stick izquierdo</string>
+    <string name="settings_stick_toggle_target_right">Stick derecho</string>
+    <string name="cia_unsupported">No se pudo preparar este archivo CIA. Usa un archivo .3ds, .cci o .cxi descifrado.</string>
 </resources>

@@ -2553,4 +2553,9 @@
     <string name="settings_help_core_enable_motion">Mengirim data giroskop dan akselerometer ke game dengan kontrol gerak.</string>
     <string name="settings_help_core_motion_sensitivity">Mengatur seberapa kuat gerakan perangkat menjadi gerakan dalam game.</string>
     <string name="cia_decrypt_required">CIA ini terenkripsi. Azahar hanya memuat file CIA yang didekripsi; dekripsi dulu.</string>
+    <string name="settings_stick_toggle_target">Tombol ganti D-pad</string>
+    <string name="settings_stick_toggle_target_desc">Tombol titik di tengah menukar stik analog terpilih dengan D-pad di posisi yang sama.</string>
+    <string name="settings_stick_toggle_target_left">Stik kiri</string>
+    <string name="settings_stick_toggle_target_right">Stik kanan</string>
+    <string name="cia_unsupported">File CIA ini tidak dapat disiapkan. Gunakan file .3ds, .cci, atau .cxi yang didekripsi.</string>
 </resources>

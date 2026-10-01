@@ -2541,4 +2541,9 @@
     <string name="settings_help_core_enable_motion">Transmet les données du gyroscope et de l\'accéléromètre aux jeux compatibles.</string>
     <string name="settings_help_core_motion_sensitivity">Ajuste la force de conversion des mouvements de l\'appareil en jeu.</string>
     <string name="cia_decrypt_required">Ce fichier CIA est chiffré. Azahar ne charge que les CIA déchiffrés ; déchiffrez-le d\'abord.</string>
+    <string name="settings_stick_toggle_target">Bouton de bascule D-pad</string>
+    <string name="settings_stick_toggle_target_desc">Le bouton point au centre remplace le stick analogique choisi par une croix directionnelle au même endroit.</string>
+    <string name="settings_stick_toggle_target_left">Stick gauche</string>
+    <string name="settings_stick_toggle_target_right">Stick droit</string>
+    <string name="cia_unsupported">Impossible de préparer ce fichier CIA. Utilisez un fichier .3ds, .cci ou .cxi déchiffré.</string>
 </resources>

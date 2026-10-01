@@ -2544,4 +2544,9 @@
     <string name="settings_help_core_enable_motion">Передає дані гіроскопа й акселерометра пристрою в ігри з підтримкою руху.</string>
     <string name="settings_help_core_motion_sensitivity">Регулює, наскільки сильно рух пристрою перетворюється на рух у грі.</string>
     <string name="cia_decrypt_required">Ця CIA зашифрована. Azahar відкриває лише розшифровані CIA-файли; спершу розшифруйте її.</string>
+    <string name="settings_stick_toggle_target">Кнопка перемикання на D-pad</string>
+    <string name="settings_stick_toggle_target_desc">Кнопка-крапка посередині замінює вибраний аналоговий стік на D-pad на тому ж місці.</string>
+    <string name="settings_stick_toggle_target_left">Лівий стік</string>
+    <string name="settings_stick_toggle_target_right">Правий стік</string>
+    <string name="cia_unsupported">Не вдалося підготувати цю CIA. Спробуйте розшифрований файл .3ds, .cci або .cxi.</string>
 </resources>

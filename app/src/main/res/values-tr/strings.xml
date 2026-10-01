@@ -2539,4 +2539,9 @@
     <string name="settings_help_core_enable_motion">Hareket kontrolü destekleyen oyunlara jiroskop ve ivmeölçer verisi gönderir.</string>
     <string name="settings_help_core_motion_sensitivity">Cihaz hareketinin oyuna ne kadar yansıyacağını ayarlar.</string>
     <string name="cia_decrypt_required">Bu CIA şifreli. Azahar yalnızca şifresi çözülmüş CIA dosyalarını açar; önce şifresini çözün.</string>
+    <string name="settings_stick_toggle_target">D-pad değiştirme düğmesi</string>
+    <string name="settings_stick_toggle_target_desc">Ortadaki nokta düğmesi seçilen analog çubuğu aynı yerde D-pad ile değiştirir.</string>
+    <string name="settings_stick_toggle_target_left">Sol çubuk</string>
+    <string name="settings_stick_toggle_target_right">Sağ çubuk</string>
+    <string name="cia_unsupported">Bu CIA dosyası hazırlanamadı. Şifresi çözülmüş bir .3ds, .cci veya .cxi dosyası deneyin.</string>
 </resources>

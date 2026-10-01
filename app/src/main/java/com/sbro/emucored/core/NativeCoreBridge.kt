@@ -115,6 +115,14 @@ class NativeCoreBridge {
     // AAudio buffering; cheats go through retro_cheat_set in the native bridge.
     fun setAudioBufferMs(@Suppress("UNUSED_PARAMETER") milliseconds: Int) = Unit
 
+    /**
+     * Extracts the given CIA content into [outPath] as a decrypted NCCH image
+     * using the core's built-in keys. Returns 0 on success, -1 for a malformed
+     * container, -2 when keys are missing, -3 for encrypted content without a
+     * usable title key and -4 for unsupported seed crypto.
+     */
+    external fun extractCiaContent(fd: Int, outPath: String, contentIndex: Int): Int
+
     /** Loads active GameShark-style codes from a PCSX `.cht` container. */
     external fun loadCheats(path: String)
     external fun clearCheats()

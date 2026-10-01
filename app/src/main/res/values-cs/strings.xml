@@ -2560,4 +2560,9 @@
     <string name="settings_help_core_enable_motion">Předává data gyroskopu a akcelerometru hrám s podporou pohybu.</string>
     <string name="settings_help_core_motion_sensitivity">Nastavuje, jak silně se pohyb zařízení přenáší do hry.</string>
     <string name="cia_decrypt_required">Toto CIA je zašifrované. Azahar otevírá jen dešifrované soubory CIA; nejprve jej dešifrujte.</string>
+    <string name="settings_stick_toggle_target">Tlačítko přepnutí na D-pad</string>
+    <string name="settings_stick_toggle_target_desc">Tečka uprostřed nahradí zvolený analogový stick křížovým ovladačem na stejném místě.</string>
+    <string name="settings_stick_toggle_target_left">Levý stick</string>
+    <string name="settings_stick_toggle_target_right">Pravý stick</string>
+    <string name="cia_unsupported">Toto CIA se nepodařilo připravit. Zkuste dešifrovaný soubor .3ds, .cci nebo .cxi.</string>
 </resources>

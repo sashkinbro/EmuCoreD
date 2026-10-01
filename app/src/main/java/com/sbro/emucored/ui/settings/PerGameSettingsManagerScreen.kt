@@ -145,15 +145,15 @@ import com.sbro.emucored.ui.theme.neon.neonShape
 private enum class GameSettingsManagerTab {
     Core,
     Runtime,
-    Network,
     Audio,
     Controls,
 }
 
+// The Azahar core has no network options, so the game manager offers no
+// Network tab.
 private val SupportedGameSettingsManagerTabs = listOf(
     GameSettingsManagerTab.Core,
     GameSettingsManagerTab.Runtime,
-    GameSettingsManagerTab.Network,
     GameSettingsManagerTab.Audio,
     GameSettingsManagerTab.Controls
 )
@@ -767,7 +767,6 @@ private fun GameSettingsManagerTabRow(
                         text = when (tab) {
                             GameSettingsManagerTab.Core -> stringResource(R.string.settings_graphics_tab)
                             GameSettingsManagerTab.Runtime -> stringResource(R.string.game_settings_manager_tab_system)
-                            GameSettingsManagerTab.Network -> stringResource(R.string.settings_network_tab)
                             GameSettingsManagerTab.Audio -> stringResource(R.string.settings_audio_tab)
                             GameSettingsManagerTab.Controls -> stringResource(R.string.settings_controls_tab)
                         }
@@ -1017,15 +1016,6 @@ private fun GameSettingsTabContent(
                     )
                 }
 
-            }
-            GameSettingsManagerTab.Network -> {
-                EditorSection(title = stringResource(R.string.settings_network_tab)) {
-                    CoreOptionManagerRows(
-                        options = AzaharCoreOptions.networkOptions(),
-                        draft = draft,
-                        onDraftChange = onDraftChange
-                    )
-                }
             }
             GameSettingsManagerTab.Audio -> {
                 EditorSection(title = stringResource(R.string.settings_audio_control)) {
@@ -1636,7 +1626,6 @@ private fun Modifier.sectionContentFullBleed(horizontalPadding: Dp): Modifier {
 private fun GameSettingsManagerTab.title(): String = when (this) {
     GameSettingsManagerTab.Core -> stringResource(R.string.settings_graphics_tab)
     GameSettingsManagerTab.Runtime -> stringResource(R.string.game_settings_manager_tab_system)
-    GameSettingsManagerTab.Network -> stringResource(R.string.settings_network_tab)
     GameSettingsManagerTab.Audio -> stringResource(R.string.settings_audio_tab)
     GameSettingsManagerTab.Controls -> stringResource(R.string.settings_controls_tab)
 }

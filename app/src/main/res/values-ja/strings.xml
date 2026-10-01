@@ -2538,4 +2538,9 @@
     <string name="settings_help_core_enable_motion">ジャイロと加速度のデータをモーション対応ゲームに送ります。</string>
     <string name="settings_help_core_motion_sensitivity">端末の動きをゲーム内の動きにどれだけ反映するかを調整します。</string>
     <string name="cia_decrypt_required">このCIAは暗号化されています。Azaharは復号済みCIAのみ読み込めます。先に復号してください。</string>
+    <string name="settings_stick_toggle_target">D-pad切替ボタン</string>
+    <string name="settings_stick_toggle_target_desc">中央のドットボタンは、選択したアナログスティックを同じ位置でD-padに切り替えます。</string>
+    <string name="settings_stick_toggle_target_left">左スティック</string>
+    <string name="settings_stick_toggle_target_right">右スティック</string>
+    <string name="cia_unsupported">このCIAファイルを準備できませんでした。復号済みの.3ds、.cci、.cxiファイルをお試しください。</string>
 </resources>

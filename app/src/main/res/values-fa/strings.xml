@@ -2554,4 +2554,9 @@
     <string name="settings_help_core_enable_motion">داده‌های ژیروسکوپ و شتاب‌سنج را به بازی‌های دارای کنترل حرکتی می‌فرستد.</string>
     <string name="settings_help_core_motion_sensitivity">میزان تبدیل حرکت دستگاه به حرکت در بازی را تنظیم می‌کند.</string>
     <string name="cia_decrypt_required">این CIA رمزنگاری شده است. Azahar فقط فایل‌های CIA رمزگشایی‌شده را باز می‌کند؛ ابتدا آن را رمزگشایی کنید.</string>
+    <string name="settings_stick_toggle_target">دکمه تبدیل به D-pad</string>
+    <string name="settings_stick_toggle_target_desc">دکمه نقطه‌ای در وسط، آنالوگ انتخاب‌شده را در همان مکان به D-pad تبدیل می‌کند.</string>
+    <string name="settings_stick_toggle_target_left">آنالوگ چپ</string>
+    <string name="settings_stick_toggle_target_right">آنالوگ راست</string>
+    <string name="cia_unsupported">این فایل CIA آماده نشد. از فایل رمزگشایی‌شده .3ds، .cci یا .cxi استفاده کنید.</string>
 </resources>

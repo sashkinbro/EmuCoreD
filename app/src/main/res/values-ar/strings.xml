@@ -2547,4 +2547,9 @@
     <string name="settings_help_core_enable_motion">يرسل بيانات الجيروسكوب ومقياس التسارع للألعاب التي تدعم الحركة.</string>
     <string name="settings_help_core_motion_sensitivity">يضبط مدى تحويل حركة الجهاز إلى حركة داخل اللعبة.</string>
     <string name="cia_decrypt_required">ملف CIA مشفّر. يشغّل Azahar ملفات CIA المفكوكة فقط؛ فكّ التشفير أولاً.</string>
+    <string name="settings_stick_toggle_target">زر تبديل D-pad</string>
+    <string name="settings_stick_toggle_target_desc">زر النقطة في الوسط يستبدل العصا التناظرية المختارة بلوحة الاتجاهات في نفس الموضع.</string>
+    <string name="settings_stick_toggle_target_left">العصا اليسرى</string>
+    <string name="settings_stick_toggle_target_right">العصا اليمنى</string>
+    <string name="cia_unsupported">تعذّر تجهيز ملف CIA هذا. استخدم ملف ‎.3ds‎ أو ‎.cci‎ أو ‎.cxi‎ مفكوك التشفير.</string>
 </resources>

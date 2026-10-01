@@ -556,15 +556,26 @@ u64 GetSize(const int fd) {
     return buf.st_size;
 }
 
+// EmuCoreD patch: libretro-common's rfseek returns the resulting stream
+// position instead of zero on success, so the stdio style comparisons below
+// must accept any non-negative result when the libretro VFS is in use.
+static bool SeekSucceeded(int64_t result) {
+#ifdef HAVE_LIBRETRO_VFS
+    return result >= 0;
+#else
+    return result == 0;
+#endif
+}
+
 u64 GetSize(FILE* f) {
     // can't use off_t here because it can be 32-bit
     u64 pos = FTELL(f);
-    if (FSEEK(f, 0, SEEK_END) != 0) {
+    if (!SeekSucceeded(FSEEK(f, 0, SEEK_END))) {
         LOG_ERROR(Common_Filesystem, "GetSize: seek failed {}: {}", fmt::ptr(f), GetLastErrorMsg());
         return 0;
     }
     u64 size = FTELL(f);
-    if ((size != pos) && (FSEEK(f, pos, SEEK_SET) != 0)) {
+    if ((size != pos) && !SeekSucceeded(FSEEK(f, pos, SEEK_SET))) {
         LOG_ERROR(Common_Filesystem, "GetSize: seek failed {}: {}", fmt::ptr(f), GetLastErrorMsg());
         return 0;
     }
@@ -1416,7 +1427,7 @@ u64 IOFile::GetSize() const {
 }
 
 bool IOFile::Seek(s64 off, int origin) {
-    if (!IsOpen() || 0 != FSEEK(m_file, off, origin))
+    if (!IsOpen() || !SeekSucceeded(FSEEK(m_file, off, origin)))
         m_good = false;
 
     return m_good;

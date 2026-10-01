@@ -179,11 +179,11 @@ fun N3dsSdCardScreen(onBackClick: () -> Unit) {
                             }
                             Column(Modifier.padding(start = 14.dp),
                                 verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                                Text(stringResource(R.string.psp_memstick_title),
-                                    style = MaterialTheme.typography.titleLarge.copy(
+                                Text(stringResource(R.string.psp_memstick_saves_count, saves.size),
+                                    style = MaterialTheme.typography.titleMedium.copy(
                                         fontWeight = FontWeight.SemiBold),
                                     color = MaterialTheme.colorScheme.onSurface)
-                                Text(stringResource(R.string.psp_memstick_saves_count, saves.size),
+                                Text("sdmc:/",
                                     style = MaterialTheme.typography.labelMedium,
                                     color = MaterialTheme.colorScheme.primary)
                             }

@@ -2566,4 +2566,5 @@
     <string name="core_update_reset_action">Reset settings</string>
     <string name="core_update_reset_keep">Keep current settings</string>
     <string name="core_update_reset_done">Settings have been reset</string>
+    <string name="cia_unsupported">This CIA file could not be prepared. Try a decrypted .3ds, .cci or .cxi file.</string>
 </resources>

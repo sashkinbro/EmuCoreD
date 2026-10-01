@@ -252,16 +252,9 @@ object NativeApp {
     @JvmStatic fun setFrameSkip(frames: Int) {
         val clamped = frames.coerceIn(0, 4)
         CoreRuntime.updateSetting("EmuCoreD/GS", "FrameSkip", clamped.toString())
-        // Azahar's frameskip skips GPU draw work, which is what actually saves
-        // frame time. The frontend present-drop counter stays at zero so the two
-        // mechanisms cannot stack.
-        runCatching { CoreRuntime.bridge.setFrameSkip(0) }
-        runCatching {
-            CoreRuntime.bridge.nativeSetOption(
-                "ppsspp_frameskip",
-                if (clamped == 0) "disabled" else clamped.toString()
-            )
-        }
+        // The Azahar core always renders a complete frame, so the only
+        // frontend-side frame skip is dropping presents.
+        runCatching { CoreRuntime.bridge.setFrameSkip(clamped) }
     }
     @JvmStatic fun setDisplayCrop(crop: com.sbro.emucored.data.DisplayCrop) {
         val value = crop.sanitized()

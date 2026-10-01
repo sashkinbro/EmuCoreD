@@ -2539,4 +2539,9 @@
     <string name="settings_help_core_enable_motion">मोशन कंट्रोल वाले गेम को जायरोस्कोप और एक्सेलेरोमीटर डेटा भेजता है।</string>
     <string name="settings_help_core_motion_sensitivity">डिवाइस मूवमेंट का खेल में असर कितना हो, समायोजित करता है।</string>
     <string name="cia_decrypt_required">यह CIA एन्क्रिप्टेड है। Azahar केवल डिक्रिप्टेड CIA फ़ाइलें खोलता है; पहले इसे डिक्रिप्ट करें।</string>
+    <string name="settings_stick_toggle_target">D-pad टॉगल बटन</string>
+    <string name="settings_stick_toggle_target_desc">बीच का डॉट बटन चुने गए एनालॉग स्टिक को उसी जगह D-pad से बदल देता है।</string>
+    <string name="settings_stick_toggle_target_left">बायाँ स्टिक</string>
+    <string name="settings_stick_toggle_target_right">दायाँ स्टिक</string>
+    <string name="cia_unsupported">यह CIA फ़ाइल तैयार नहीं हो सकी। डिक्रिप्टेड .3ds, .cci या .cxi फ़ाइल आज़माएँ।</string>
 </resources>

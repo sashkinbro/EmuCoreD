@@ -2540,4 +2540,9 @@
     <string name="settings_help_core_enable_motion">将设备陀螺仪和加速度计数据发送给支持体感的游戏。</string>
     <string name="settings_help_core_motion_sensitivity">调整设备动作转化为游戏动作的强度。</string>
     <string name="cia_decrypt_required">此 CIA 已加密。Azahar 只能加载解密后的 CIA 文件，请先解密。</string>
+    <string name="settings_stick_toggle_target">D-pad 切换按钮</string>
+    <string name="settings_stick_toggle_target_desc">中间的圆点按钮会在同一位置把所选摇杆切换为十字键。</string>
+    <string name="settings_stick_toggle_target_left">左摇杆</string>
+    <string name="settings_stick_toggle_target_right">右摇杆</string>
+    <string name="cia_unsupported">无法准备此 CIA 文件。请使用解密后的 .3ds、.cci 或 .cxi 文件。</string>
 </resources>

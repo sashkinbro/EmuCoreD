@@ -2560,4 +2560,9 @@
     <string name="settings_help_core_enable_motion">Przekazuje dane żyroskopu i akcelerometru do gier obsługujących ruch.</string>
     <string name="settings_help_core_motion_sensitivity">Reguluje siłę przełożenia ruchu urządzenia na ruch w grze.</string>
     <string name="cia_decrypt_required">Ten plik CIA jest zaszyfrowany. Azahar otwiera tylko odszyfrowane pliki CIA — najpierw je odszyfruj.</string>
+    <string name="settings_stick_toggle_target">Przycisk zamiany na D-pad</string>
+    <string name="settings_stick_toggle_target_desc">Kropka na środku zamienia wybrany drążek analogowy na D-pad w tym samym miejscu.</string>
+    <string name="settings_stick_toggle_target_left">Lewy drążek</string>
+    <string name="settings_stick_toggle_target_right">Prawy drążek</string>
+    <string name="cia_unsupported">Nie udało się przygotować tego pliku CIA. Użyj odszyfrowanego pliku .3ds, .cci lub .cxi.</string>
 </resources>
