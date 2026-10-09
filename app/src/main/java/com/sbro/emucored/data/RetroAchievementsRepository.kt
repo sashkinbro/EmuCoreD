@@ -3,6 +3,7 @@ package com.sbro.emucored.data
 import android.content.Context
 import com.sbro.emucored.core.DocumentPathResolver
 import com.sbro.emucored.core.NativeApp
+import com.sbro.emucored.core.RetroAchievementsBridge
 import com.sbro.emucored.core.SetupValidator
 import com.sbro.emucored.data.RetroAchievementsCatalog.parseAccountProgress
 import com.sbro.emucored.data.RetroAchievementsCatalog.parseGameTitles
@@ -201,53 +202,53 @@ class RetroAchievementsRepository private constructor(context: Context) {
 
         scope.launch {
             enabled = preferences.retroAchievementsEnabled.first()
-            NativeApp.achievementsSetEnabled(enabled)
-            NativeApp.achievementsSetHardcore(preferences.retroAchievementsHardcore.first())
-            NativeApp.achievementsSetUnofficial(preferences.retroAchievementsUnofficial.first())
-            NativeApp.achievementsSetEncore(preferences.retroAchievementsEncore.first())
+            RetroAchievementsBridge.updateEnabled(enabled)
+            RetroAchievementsBridge.updateHardcore(preferences.retroAchievementsHardcore.first())
+            RetroAchievementsBridge.updateUnofficial(preferences.retroAchievementsUnofficial.first())
+            RetroAchievementsBridge.updateEncore(preferences.retroAchievementsEncore.first())
 
             val username = preferences.retroAchievementsUsername.first()
             val token = preferences.retroAchievementsToken.first()
             storedUsername = username
             storedToken = token
             if (!username.isNullOrBlank() && !token.isNullOrBlank()) {
-                NativeApp.achievementsLoginWithToken(username, token)
+                RetroAchievementsBridge.loginWithToken(username, token)
             }
 
             scope.launch {
                 preferences.retroAchievementsEnabled.collect { value ->
                     val wasEnabled = enabled
                     enabled = value
-                    NativeApp.achievementsSetEnabled(value)
+                    RetroAchievementsBridge.updateEnabled(value)
                     if (value && !wasEnabled) {
                         pendingGamePath?.let { path ->
                             if (loadedGamePath != path) {
                                 loadedGamePath = path
-                                NativeApp.achievementsLoadGame(path)
+                                RetroAchievementsBridge.loadGame(path)
                             }
                         }
                     } else if (!value && loadedGamePath != null) {
                         loadedGamePath = null
                         clearCachedGame()
-                        NativeApp.achievementsUnloadGame()
+                        RetroAchievementsBridge.unloadGame()
                     }
                 }
             }
             scope.launch {
-                preferences.retroAchievementsHardcore.collect { NativeApp.achievementsSetHardcore(it) }
+                preferences.retroAchievementsHardcore.collect { RetroAchievementsBridge.updateHardcore(it) }
             }
             scope.launch {
-                preferences.retroAchievementsUnofficial.collect { NativeApp.achievementsSetUnofficial(it) }
+                preferences.retroAchievementsUnofficial.collect { RetroAchievementsBridge.updateUnofficial(it) }
             }
             scope.launch {
-                preferences.retroAchievementsEncore.collect { NativeApp.achievementsSetEncore(it) }
+                preferences.retroAchievementsEncore.collect { RetroAchievementsBridge.updateEncore(it) }
             }
         }
     }
 
     fun state(): RetroAchievementsState {
         ensureInitialized()
-        val raw = NativeApp.achievementsStateJson()
+        val raw = RetroAchievementsBridge.stateJson()
         if (raw.isBlank()) return RetroAchievementsState(available = false)
         return runCatching {
             val json = JSONObject(raw)
@@ -317,7 +318,7 @@ class RetroAchievementsRepository private constructor(context: Context) {
 
     fun achievements(): List<AchievementItem> {
         ensureInitialized()
-        val raw = NativeApp.achievementsAchievementsJson()
+        val raw = RetroAchievementsBridge.achievementsJson()
         if (raw.isBlank()) return emptyList()
         val parsed = runCatching {
             val array = JSONArray(raw)
@@ -364,7 +365,7 @@ class RetroAchievementsRepository private constructor(context: Context) {
 
     fun pollEvents(): List<RetroAchievementsEvent> {
         ensureInitialized()
-        val raw = NativeApp.achievementsPollEventsJson()
+        val raw = RetroAchievementsBridge.pollEventsJson()
         if (raw.isBlank()) return emptyList()
         val events = runCatching {
             val array = JSONArray(raw)
@@ -686,7 +687,7 @@ class RetroAchievementsRepository private constructor(context: Context) {
         if (!enabled || loadedGamePath == hashablePath) return
         clearCachedGame()
         loadedGamePath = hashablePath
-        NativeApp.achievementsLoadGame(hashablePath)
+        RetroAchievementsBridge.loadGame(hashablePath)
     }
 
     /** Hash the original game through the same seekable SAF VFS used by the core. */
@@ -699,12 +700,12 @@ class RetroAchievementsRepository private constructor(context: Context) {
         pendingGamePath = null
         if (loadedGamePath == null) return
         loadedGamePath = null
-        NativeApp.achievementsUnloadGame()
+        RetroAchievementsBridge.unloadGame()
     }
 
     fun login(username: String, password: String) {
         ensureInitialized()
-        NativeApp.achievementsLoginWithPassword(username, password)
+        RetroAchievementsBridge.loginWithPassword(username, password)
     }
 
     fun logout() {
@@ -720,8 +721,8 @@ class RetroAchievementsRepository private constructor(context: Context) {
         gameDataCache.clear()
         gameTitleCache.clear()
         cachedActiveGameData = null
-        NativeApp.achievementsLogout()
-        NativeApp.achievementsUnloadGame()
+        RetroAchievementsBridge.logout()
+        RetroAchievementsBridge.unloadGame()
         scope.launch {
             preferences.setRetroAchievementsUsername(null)
             preferences.setRetroAchievementsToken(null)

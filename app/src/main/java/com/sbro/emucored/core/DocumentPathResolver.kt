@@ -665,12 +665,7 @@ object DocumentPathResolver {
     private fun isValidPreparedBiosFile(file: File): Boolean {
         if (!file.isFile || file.extension.lowercase() !in biosImageExtensions) return false
         if (file.length() <= 0L || file.length() > MAX_IMPORTED_BIOS_BYTES) return false
-        return if (NativeApp.hasNativeCore) {
-            runCatching { NativeApp.isBiosPath(file.absolutePath) }.getOrDefault(false) ||
-                isLikelyMainBiosName(file.name)
-        } else {
-            isLikelyMainBiosName(file.name)
-        }
+        return isLikelyMainBiosName(file.name)
     }
 
     private fun prepareFlatStagingDirectory(stagingDir: File) {

@@ -802,7 +802,6 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
     fun setPadVibration(enabled: Boolean) {
         viewModelScope.launch {
             preferences.setPadVibration(enabled)
-            EmulatorBridge.setPadVibration(enabled)
         }
     }
 
@@ -1018,7 +1017,6 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
         viewModelScope.launch {
             val normalized = if (value <= 0) 0 else value.coerceIn(20, 120)
             preferences.setTargetFps(normalized)
-            EmulatorBridge.setTargetFps(normalized)
         }
     }
 

@@ -26,6 +26,9 @@ object EmuCoreNative {
     const val SAVESTATE_SLOT_COUNT = 11
     const val QUICKSAVE_SLOT = 0
 
+    /** Default touchscreen device name the core registers for touch input. */
+    const val TOUCHSCREEN_DEVICE = "Touchscreen"
+
     @Volatile
     var isLoaded: Boolean = false
         private set

@@ -12,50 +12,9 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
 # The emulator core (Azahar, vendored in /core) is built by the :core-android
-# Gradle module and shipped as libazahar_libretro_android.so. This target is the
-# EmuCoreD frontend bridge; it loads the core at runtime through dlopen and
-# drives it via the libretro API.
-set(CORE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../../../../core")
-set(LIBRETRO_COMMON_DIR "${CORE_DIR}/externals/libretro-common/libretro-common")
-set(RCHEEVOS_DIR "${CMAKE_CURRENT_SOURCE_DIR}/third_party/rcheevos")
-
-add_library(rcheevos_frontend STATIC
-    "${RCHEEVOS_DIR}/src/rc_client.c"
-    "${RCHEEVOS_DIR}/src/rc_compat.c"
-    "${RCHEEVOS_DIR}/src/rc_libretro.c"
-    "${RCHEEVOS_DIR}/src/rc_util.c"
-    "${RCHEEVOS_DIR}/src/rc_version.c"
-    "${RCHEEVOS_DIR}/src/rapi/rc_api_common.c"
-    "${RCHEEVOS_DIR}/src/rapi/rc_api_editor.c"
-    "${RCHEEVOS_DIR}/src/rapi/rc_api_info.c"
-    "${RCHEEVOS_DIR}/src/rapi/rc_api_runtime.c"
-    "${RCHEEVOS_DIR}/src/rapi/rc_api_user.c"
-    "${RCHEEVOS_DIR}/src/rcheevos/alloc.c"
-    "${RCHEEVOS_DIR}/src/rcheevos/condition.c"
-    "${RCHEEVOS_DIR}/src/rcheevos/condset.c"
-    "${RCHEEVOS_DIR}/src/rcheevos/consoleinfo.c"
-    "${RCHEEVOS_DIR}/src/rcheevos/format.c"
-    "${RCHEEVOS_DIR}/src/rcheevos/lboard.c"
-    "${RCHEEVOS_DIR}/src/rcheevos/memref.c"
-    "${RCHEEVOS_DIR}/src/rcheevos/operand.c"
-    "${RCHEEVOS_DIR}/src/rcheevos/rc_validate.c"
-    "${RCHEEVOS_DIR}/src/rcheevos/richpresence.c"
-    "${RCHEEVOS_DIR}/src/rcheevos/runtime.c"
-    "${RCHEEVOS_DIR}/src/rcheevos/runtime_progress.c"
-    "${RCHEEVOS_DIR}/src/rcheevos/trigger.c"
-    "${RCHEEVOS_DIR}/src/rcheevos/value.c"
-    "${RCHEEVOS_DIR}/src/rhash/aes.c"
-    "${RCHEEVOS_DIR}/src/rhash/cdreader.c"
-    "${RCHEEVOS_DIR}/src/rhash/hash.c"
-    "${RCHEEVOS_DIR}/src/rhash/hash_disc.c"
-    "${RCHEEVOS_DIR}/src/rhash/hash_encrypted.c"
-    "${RCHEEVOS_DIR}/src/rhash/hash_rom.c"
-    "${RCHEEVOS_DIR}/src/rhash/hash_zip.c"
-    "${RCHEEVOS_DIR}/src/rhash/md5.c"
-)
-target_include_directories(rcheevos_frontend PUBLIC "${RCHEEVOS_DIR}/include" "${RCHEEVOS_DIR}/src")
-target_include_directories(rcheevos_frontend PRIVATE "${LIBRETRO_COMMON_DIR}/include")
-target_compile_definitions(rcheevos_frontend PUBLIC RC_CLIENT_SUPPORTS_HASH)
+# Gradle module and shipped as libemucore_core.so. EmuCoreD talks to it through
+# the core's own Android bridge (com.sbro.emucored.core.EmuCoreNative), so this
+# module only builds the small helper libraries that are not part of the core.
 
 # The Discord Social SDK is optional and runs in the isolated :discord process.
 if(DISCORD_SDK_DIR)
@@ -70,54 +29,3 @@ if(DISCORD_SDK_DIR)
         set_target_properties(emucored_discord PROPERTIES OUTPUT_NAME "emucored_discord")
     endif()
 endif()
-
-add_library(emucored_jni SHARED
-    native_bridge.cpp
-    storage_vfs.cpp
-    achievements_bridge.cpp
-    shader_effect.cpp
-    shader_chain.cpp
-    shader_chain_present.cpp
-    vulkan_frontend.cpp
-)
-
-# Build the same pinned RetroArch .slangp runtime used by EmuCoreR when Cargo
-# is available. The GL effect presenter remains available as a fallback.
-add_subdirectory(third_party/librashader)
-if(TARGET librashader)
-    target_link_libraries(emucored_jni PRIVATE librashader)
-    target_compile_definitions(emucored_jni PRIVATE EMUCORED_HAVE_LIBRASHADER=1)
-endif()
-
-target_include_directories(emucored_jni PRIVATE
-    "${LIBRETRO_COMMON_DIR}/include"
-    "${RCHEEVOS_DIR}/include"
-    "${RCHEEVOS_DIR}/src"
-)
-
-find_library(EGL_LIBRARY EGL)
-find_library(GLES_LIBRARY GLESv3)
-find_library(AAUDIO_LIBRARY aaudio)
-find_library(VULKAN_LIBRARY vulkan)
-
-target_link_libraries(emucored_jni PRIVATE
-    rcheevos_frontend
-    android
-    log
-    dl
-    ${EGL_LIBRARY}
-    ${GLES_LIBRARY}
-    ${AAUDIO_LIBRARY}
-    ${VULKAN_LIBRARY}
-)
-
-target_compile_options(emucored_jni PRIVATE
-    -Wall -Wextra
-    $<$<NOT:$<CONFIG:Debug>>:-O3>
-)
-
-set_target_properties(emucored_jni PROPERTIES
-    CXX_VISIBILITY_PRESET hidden
-    VISIBILITY_INLINES_HIDDEN ON
-    OUTPUT_NAME "emucored_jni"
-)

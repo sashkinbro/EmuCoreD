@@ -107,30 +107,12 @@ object BiosValidator {
 
     private fun isValidLocalBios(file: File): Boolean {
         if (!file.isFile || !isBiosCandidate(file.name, file.length())) return false
-        val knownValidShape = isUsableMainBiosImage(file.name, file.length()) && file.canRead()
-        if (!NativeApp.hasNativeCore) return knownValidShape
-        return runCatching { NativeApp.isBiosPath(file.absolutePath) }.getOrDefault(false) || knownValidShape
+        return isUsableMainBiosImage(file.name, file.length()) && file.canRead()
     }
 
     private fun isValidContentBios(context: Context, uri: Uri, displayName: String, fileSize: Long): Boolean {
         if (!isBiosCandidate(displayName, fileSize)) return false
-        val knownValidShape = isUsableMainBiosImage(displayName, fileSize) && isReadable(context, uri)
-        if (!NativeApp.hasNativeCore) return knownValidShape
-
-        val descriptor = runCatching { context.contentResolver.openFileDescriptor(uri, "r") }.getOrNull()
-            ?: return knownValidShape
-        var detachedFd = -1
-        return try {
-            detachedFd = descriptor.detachFd()
-            NativeApp.isBiosFd(detachedFd) || knownValidShape
-        } catch (_: RuntimeException) {
-            if (detachedFd >= 0) {
-                runCatching { ParcelFileDescriptor.adoptFd(detachedFd).close() }
-            }
-            knownValidShape
-        } finally {
-            runCatching { descriptor.close() }
-        }
+        return isUsableMainBiosImage(displayName, fileSize) && isReadable(context, uri)
     }
 
     private fun isBiosCandidate(name: String?, fileSize: Long): Boolean =
