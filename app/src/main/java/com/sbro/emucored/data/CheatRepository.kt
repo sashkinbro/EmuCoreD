@@ -60,7 +60,7 @@ class CheatRepository(private val context: Context) {
     }
 
     fun listImportedCheatFiles(): List<CheatFileEntry> {
-        return importedDir.listFiles { file -> file.isFile && file.extension.equals("pnach", ignoreCase = true) }
+        return importedDir.listFiles { file -> file.isFile && file.extension.equals("txt", ignoreCase = true) }
             ?.sortedBy { it.name.lowercase() }
             ?.map { file ->
                 val raw = runCatching { file.readText() }.getOrDefault("")
@@ -103,18 +103,14 @@ class CheatRepository(private val context: Context) {
                 .filter { old.contains(it.id) }
                 .map(::cheatBlockSignature)
                 .toSet()
-        val importedBlocks = parseCheatBlocks(contents, serialFromGameKey(normalizedGameKey))
+        val importedBlocks = parseCheatBlocks(contents)
         if (importedBlocks.isEmpty()) return@synchronized 0
         val blocks = if (mergeWithExisting) {
             mergeCheatBlocks(existingBlocks, importedBlocks)
         } else {
             importedBlocks
         }
-        val storedContents = if (mergeWithExisting || isPpssppCheatFileContents(contents)) {
-            serializeCheatBlocks(blocks)
-        } else {
-            contents
-        }
+        val storedContents = if (mergeWithExisting) serializeCheatBlocks(blocks) else contents
         target.parentFile?.mkdirs()
         writeTextAtomically(target, storedContents)
         val enabledIds = if (enableAllByDefault) {
@@ -200,8 +196,7 @@ class CheatRepository(private val context: Context) {
         gameKey: String,
         serial: String?,
         crc: String?,
-        includeCheats: Boolean = true,
-        patchBlocks: List<CheatBlock> = emptyList()
+        includeCheats: Boolean = true
     ) = synchronized(CHEAT_IO_LOCK) {
         val source = resolveImportedFile(gameKey)
         val normalizedGameKey = source.nameWithoutExtension
@@ -215,15 +210,13 @@ class CheatRepository(private val context: Context) {
         } else {
             emptyList()
         }
-        val blocks = (enabledCheatBlocks + patchBlocks).distinctBy(::cheatBlockSignature)
+        val blocks = enabledCheatBlocks.distinctBy(::cheatBlockSignature)
         val candidates = activeCheatFileCandidates(normalizedSerial, normalizedCrc)
         val target = canonicalActiveCheatFile(normalizedSerial, normalizedCrc)
         if (blocks.isEmpty()) {
             val stale = (candidates + recordedActiveCheatFiles(normalizedGameKey))
                 .distinctBy(File::getAbsolutePath)
             stale.forEach { if (it.exists()) it.delete() }
-            stale.map(::coreCheatFile).distinctBy(File::getAbsolutePath)
-                .forEach { if (it.exists()) it.delete() }
             clearRecordedActiveCheatFiles(normalizedGameKey)
             return@synchronized
         }
@@ -237,29 +230,17 @@ class CheatRepository(private val context: Context) {
         }.trim() + "\n"
         candidates.filterNot { it == target }.forEach { if (it.exists()) it.delete() }
         recordedActiveCheatFiles(normalizedGameKey).filterNot { it == target }.forEach { if (it.exists()) it.delete() }
-        candidates.filterNot { it == target }.map(::coreCheatFile).forEach { if (it.exists()) it.delete() }
-        recordedActiveCheatFiles(normalizedGameKey).filterNot { it == target }.map(::coreCheatFile)
-            .forEach { if (it.exists()) it.delete() }
         writeTextAtomically(target, contents)
         recordActiveCheatFile(normalizedGameKey, target)
-        val coreTarget = coreCheatFile(target)
-        val coreContents = buildCoreCheatContents(blocks, normalizedSerial)
-        if (coreContents == null) {
-            if (coreTarget.exists()) coreTarget.delete()
-        } else {
-            writeTextAtomically(coreTarget, coreContents)
-        }
     }
 
-    /** Azahar CWCheat file matching the active imported cheat selection. */
+    /** Gateway cheat file the core loads for the active imported selection. */
     fun activeCoreCheatFile(gameKey: String, serial: String?, crc: String?): File? {
         val normalizedCrc = effectiveCrc(crc, serial, normalizeGameKey(gameKey))
         val normalizedSerial = serial?.trim()?.uppercase()?.takeIf { it.isNotBlank() }
-        val canonical = coreCheatFile(canonicalActiveCheatFile(normalizedSerial, normalizedCrc))
+        val canonical = canonicalActiveCheatFile(normalizedSerial, normalizedCrc)
         if (canonical.exists()) return canonical
-        return recordedActiveCheatFiles(normalizeGameKey(gameKey))
-            .map(::coreCheatFile)
-            .firstOrNull { it.exists() }
+        return recordedActiveCheatFiles(normalizeGameKey(gameKey)).firstOrNull { it.exists() }
     }
 
     /**
@@ -278,18 +259,11 @@ class CheatRepository(private val context: Context) {
         source.delete()
         setEnabledBlocks(normalizedGameKey, emptySet())
         recordedActiveCheatFiles(normalizedGameKey).forEach { if (it.exists()) it.delete() }
-        recordedActiveCheatFiles(normalizedGameKey).map(::coreCheatFile)
-            .forEach { if (it.exists()) it.delete() }
         clearRecordedActiveCheatFiles(normalizedGameKey)
-        val inferred = inferSerialAndCrc(normalizedGameKey)
         val normalizedCrc = crc?.trim()?.uppercase()?.takeIf { it.isNotBlank() }
-            ?: inferred?.second
             ?: return@synchronized
         val normalizedSerial = serial?.trim()?.uppercase()?.takeIf { it.isNotBlank() }
-            ?: inferred?.first
         activeCheatFileCandidates(normalizedSerial, normalizedCrc).forEach { if (it.exists()) it.delete() }
-        activeCheatFileCandidates(normalizedSerial, normalizedCrc).map(::coreCheatFile)
-            .forEach { if (it.exists()) it.delete() }
     }
 
     fun exportJson(): JSONObject {
@@ -300,7 +274,7 @@ class CheatRepository(private val context: Context) {
         writeEnabledIds(json.optJSONObject("enabled") ?: JSONObject())
     }
 
-    private fun importedFile(gameKey: String): File = File(importedDir, "${sanitizeFileName(gameKey)}.pnach")
+    private fun importedFile(gameKey: String): File = File(importedDir, "${sanitizeFileName(gameKey)}.txt")
 
     private fun resolveImportedFile(gameKey: String): File {
         // Serial-style keys reach this point with either '-' or '_' as the
@@ -317,7 +291,7 @@ class CheatRepository(private val context: Context) {
         for (variant in variants) {
             val candidate = importedFile(variant)
             val matches = importedDir.listFiles { file ->
-                file.isFile && file.extension.equals("pnach", ignoreCase = true) &&
+                file.isFile && file.extension.equals("txt", ignoreCase = true) &&
                     file.nameWithoutExtension.equals(candidate.nameWithoutExtension, ignoreCase = true)
             }.orEmpty()
             matches.firstOrNull { it.name == candidate.name }?.let { return it }
@@ -341,9 +315,6 @@ class CheatRepository(private val context: Context) {
 
     private fun normalizeGameKey(gameKey: String): String = sanitizeFileName(gameKey).ifBlank { "cheat" }
 
-    private fun serialFromGameKey(gameKey: String): String? =
-        GAME_SERIAL_REGEX.find(gameKey)?.value?.let(::normalizeCheatSerial)
-
     private fun isPpssppCheatFileContents(contents: String): Boolean =
         contents.lineSequence().any { line ->
             val trimmed = line.trimStart('\uFEFF', ' ', '\t')
@@ -351,17 +322,6 @@ class CheatRepository(private val context: Context) {
                 trimmed.startsWith("_L ", ignoreCase = true) ||
                 trimmed.startsWith("_C", ignoreCase = true)
         }
-
-    private fun inferSerialAndCrc(gameKey: String): Pair<String?, String>? {
-        val serialAndCrc = Regex("^([A-Z]{4}[-_]?\\d{5})[_-]([0-9A-F]{8})$", RegexOption.IGNORE_CASE)
-            .matchEntire(gameKey)
-        if (serialAndCrc != null) {
-            return serialAndCrc.groupValues[1].uppercase().replace('_', '-') to
-                serialAndCrc.groupValues[2].uppercase()
-        }
-        val crcOnly = gameKey.uppercase().takeIf { it.matches(Regex("[0-9A-F]{8}")) }
-        return crcOnly?.let { null to it }
-    }
 
     private fun storedValues(state: JSONObject, normalizedKey: String, legacyKey: String): Set<String> {
         val caseInsensitiveKey = state.keys().asSequence().firstOrNull { key ->
@@ -376,7 +336,7 @@ class CheatRepository(private val context: Context) {
 
     private fun activeCheatFileCandidates(serial: String?, crc: String): List<File> {
         val names = linkedSetOf<String>()
-        if (!serial.isNullOrBlank()) names += "${sanitizeFileName(serial)}_$crc.pnach"
+        if (!serial.isNullOrBlank()) names += "${sanitizeFileName(serial)}_$crc.txt"
         names += "$crc.pnach"
         val root = activeDir().canonicalFile
         return names.map { File(root, it) }
@@ -389,71 +349,36 @@ class CheatRepository(private val context: Context) {
             return File(activeDir().canonicalFile, "${serial.uppercase(Locale.US)}.txt")
         }
         val name = if (serial.isNullOrBlank()) {
-            "$crc.pnach"
+            "$crc.txt"
         } else {
-            "${sanitizeFileName(serial)}_$crc.pnach"
+            "${sanitizeFileName(serial)}_$crc.txt"
         }
         return File(activeDir().canonicalFile, name)
     }
 
-    private fun coreCheatFile(pnachFile: File): File {
-        if (pnachFile.name.matches(Regex("[0-9A-F]{16}\\.txt"))) {
-            return pnachFile
-        }
-        return File(pnachFile.parentFile, "${pnachFile.nameWithoutExtension}.ini")
-    }
-
+    /**
+     * Azahar reads Gateway cheat files (`[name]` sections with raw code lines)
+     * from its own cheats directory, keyed by the 16 hex digit title ID.
+     */
     private fun buildCoreCheatContents(blocks: List<CheatBlock>, serial: String?): String? {
-        if (serial != null && serial.matches(Regex("[0-9a-fA-F]{16}"))) {
-            val output = StringBuilder()
-            blocks.forEach { block ->
-                val label = cheatBlockLabel(block).replace('\n', ' ').replace('\r', ' ').trim()
-                if (label.isEmpty()) return@forEach
-                output.append('[').append(label).append("]\n")
-                if (block.enabled) output.append("*citra_enabled\n")
-                block.lines.forEach { line -> output.append(line).append('\n') }
-                output.append('\n')
-            }
-            return output.toString()
-        }
-        val gameId = serial?.replace(Regex("[^A-Za-z0-9]"), "")?.uppercase(Locale.US)
-            ?.takeIf { it.matches(Regex("[A-Z]{4}[0-9]{5}")) } ?: return null
+        val titleId = serial?.takeIf { it.matches(Regex("[0-9a-fA-F]{16}")) } ?: return null
         val output = StringBuilder()
-        output.append("_S ").append(gameId).append('\n')
-        var convertedAny = false
         blocks.forEach { block ->
-            val codeLines = convertCheatBlock(block) ?: return@forEach
-            convertedAny = true
-            val title = cheatBlockLabel(block).replace('\n', ' ').replace('\r', ' ')
-            output.append("_C1 ").append(title).append('\n')
-            codeLines.forEach { code ->
-                val parts = code.trim().split(Regex("\\s+"), limit = 2)
-                if (parts.size == 2) {
-                    output.append("_L 0x").append(parts[0]).append(" 0x")
-                        .append(parts[1].padStart(8, '0')).append('\n')
-                }
-            }
+            val label = cheatBlockLabel(block).replace('\n', ' ').replace('\r', ' ').trim()
+            if (label.isEmpty()) return@forEach
+            output.append('[').append(label).append("]\n")
+            if (block.enabled) output.append("*citra_enabled\n")
+            block.lines.forEach { line -> output.append(line).append('\n') }
+            output.append('\n')
         }
-        return if (convertedAny) output.toString() else null
-    }
-
-    private fun convertCheatBlock(block: CheatBlock): List<String>? {
-        val codeLines = mutableListOf<String>()
-        block.lines.forEach { rawLine ->
-            val line = rawLine.substringBefore("//").substringBefore("#").trim()
-            if (line.isEmpty()) return@forEach
-            if (line.startsWith("//") || line.startsWith("#") || line.startsWith(";")) return@forEach
-            if (RAW_CODE_REGEX.matchEntire(line) == null) return null
-            codeLines += line.uppercase(Locale.US)
-        }
-        return codeLines.ifEmpty { null }
+        return output.toString().ifBlank { null }
     }
 
     private fun recordedActiveCheatFiles(gameKey: String): List<File> {
         val names = loadActiveTargets().optJSONArray(gameKey)?.toStringSet().orEmpty()
         val root = activeDir().canonicalFile
         return names.mapNotNull { name ->
-            if (name != File(name).name || !name.endsWith(".pnach", ignoreCase = true)) return@mapNotNull null
+            if (name != File(name).name || !name.endsWith(".txt", ignoreCase = true)) return@mapNotNull null
             File(root, name).canonicalFile.takeIf { it.parentFile == root }
         }
     }
@@ -500,8 +425,6 @@ class CheatRepository(private val context: Context) {
         val CHEAT_IO_LOCK = Any()
     }
 
-    internal fun parsePatchBlocks(raw: String): List<CheatBlock> = parseCheatBlocks(raw)
-
     private fun cheatBlockLabel(block: CheatBlock): String {
         val author = block.author?.trim().orEmpty()
         return if (author.isEmpty()) block.title else "${block.title} (by $author)"
@@ -522,28 +445,6 @@ private fun JSONArray.toStringSet(): Set<String> {
         }
     }
 }
-
-private val RAW_CODE_REGEX = Regex("[0-9A-Fa-f]{8}[\\s:+-]+[0-9A-Fa-f]{1,8}")
-
-private val AUTHOR_LINE_REGEX = Regex("^author\\s*=\\s*(.+)$", RegexOption.IGNORE_CASE)
-
-private val LIBRETRO_DESC_REGEX = Regex("^cheat\\d+_desc\\s*=\\s*\"?(.*?)\"?\\s*$", RegexOption.IGNORE_CASE)
-private val LIBRETRO_CODE_REGEX = Regex("^cheat\\d+_code\\s*=\\s*\"?(.+?)\"?\\s*$", RegexOption.IGNORE_CASE)
-private val LIBRETRO_COUNT_REGEX = Regex("^cheats\\s*=\\s*\\d+\\s*$", RegexOption.IGNORE_CASE)
-private val LIBRETRO_TOGGLE_REGEX = Regex("^cheat\\d+_enable\\s*=.*$", RegexOption.IGNORE_CASE)
-private val METADATA_LINE_REGEX = Regex("^[A-Za-z][A-Za-z0-9 _]*\\s*=.*$")
-
-private val PPSSPP_GAME_ID_REGEX = Regex("^_[Ss]\\s+(.+?)\\s*$")
-private val PPSSPP_CHEAT_NAME_REGEX = Regex("^_[Cc]([0-9])\\s*(.*)$")
-private val PPSSPP_CODE_REGEX = Regex(
-    "^_[Ll]\\s+(?:0x)?([0-9A-Fa-f]{1,8})\\s+(?:0x)?([0-9A-Fa-f]{1,8})\\s*$"
-)
-private val GAME_SERIAL_REGEX = Regex(
-    "(?<![A-Za-z0-9])([A-Za-z]{4})[-_]?(\\d{5})(?![0-9A-Fa-f])"
-)
-
-private fun normalizeCheatSerial(value: String?): String? =
-    value?.uppercase(Locale.US)?.replace(Regex("[^A-Z0-9]"), "")?.takeIf { it.isNotBlank() }
 
 /** Parses the Gateway format used by Azahar: `[name]` sections with code lines. */
 internal fun parseGatewayCheatBlocks(raw: String): List<CheatBlock> {
@@ -587,162 +488,5 @@ internal fun parseGatewayCheatBlocks(raw: String): List<CheatBlock> {
 }
 
 internal fun parseCheatBlocks(raw: String, serialFilter: String? = null): List<CheatBlock> {
-    parseGatewayCheatBlocks(raw).takeIf { it.isNotEmpty() }?.let { return it }
-    val targetSerial = normalizeCheatSerial(serialFilter)
-    val lines = raw.trimStart('\uFEFF').lineSequence().map { it.trimEnd() }.toList()
-    val blocks = mutableListOf<CheatBlock>()
-    var currentTitle: String? = null
-    var currentAuthor: String? = null
-    var currentEnabled = false
-    var currentLines = mutableListOf<String>()
-    var index = 1
-    var currentSection: String? = null
-    var hasSections = false
-
-    fun flush() {
-        val usefulLines = currentLines.filter { line ->
-            val trimmed = line.trimStart()
-            trimmed.startsWith("patch=", ignoreCase = true) ||
-                trimmed.startsWith("dpatch=", ignoreCase = true) ||
-                RAW_CODE_REGEX.matchEntire(trimmed) != null
-        }
-        if (usefulLines.isEmpty()) {
-            currentLines = mutableListOf()
-            return
-        }
-        if (targetSerial != null && hasSections && currentSection != targetSerial) {
-            currentTitle = null
-            currentAuthor = null
-            currentEnabled = false
-            currentLines = mutableListOf()
-            return
-        }
-        val title = currentTitle?.takeIf { it.isNotBlank() } ?: "Cheat $index"
-        val slug = title.lowercase().replace(Regex("[^a-z0-9]+"), "_").trim('_')
-        blocks += CheatBlock(
-            id = "${slug.ifBlank { "cheat" }}_$index",
-            title = title,
-            lines = usefulLines,
-            enabled = currentEnabled,
-            author = currentAuthor?.takeIf { it.isNotBlank() }
-        )
-        index++
-        currentTitle = null
-        currentAuthor = null
-        currentEnabled = false
-        currentLines = mutableListOf()
-    }
-
-    lines.forEach { line ->
-        val trimmed = line.trim()
-        val ppssppGameId = PPSSPP_GAME_ID_REGEX.matchEntire(trimmed)
-        val ppssppCheatName = PPSSPP_CHEAT_NAME_REGEX.matchEntire(trimmed)
-        val ppssppCode = PPSSPP_CODE_REGEX.matchEntire(trimmed)
-        val libretroDesc = LIBRETRO_DESC_REGEX.matchEntire(trimmed)
-        val libretroCode = LIBRETRO_CODE_REGEX.matchEntire(trimmed)
-        val semicolonLabel = trimmed.takeIf { it.startsWith(";") }
-            ?.removePrefix(";")
-            ?.trim()
-            ?.takeIf { it.startsWith("[") && it.endsWith("]") }
-            ?.removeSurrounding("[", "]")
-            ?.trim()
-        val label = when {
-            trimmed.startsWith("//") -> trimmed.removePrefix("//").trim()
-            trimmed.startsWith("comment=", ignoreCase = true) -> trimmed.substringAfter('=').trim()
-            trimmed.startsWith("[") && trimmed.endsWith("]") -> trimmed.removeSurrounding("[", "]").trim()
-            !semicolonLabel.isNullOrBlank() -> semicolonLabel
-            libretroDesc != null -> libretroDesc.groupValues[1].trim()
-            else -> null
-        }
-        val isPatchLine = trimmed.startsWith("patch=", ignoreCase = true) ||
-            trimmed.startsWith("dpatch=", ignoreCase = true)
-        val codeCandidate = trimmed.substringBefore("//").substringBefore("#").trim()
-        val isRawCode = RAW_CODE_REGEX.matchEntire(codeCandidate) != null
-        val libretroCodes = libretroCode
-            ?.groupValues
-            ?.get(1)
-            ?.split('+')
-            ?.map(String::trim)
-            ?.filter(String::isNotEmpty)
-            .orEmpty()
-            .chunked(2)
-            .filter { it.size == 2 }
-            .map { "${it[0]} ${it[1]}" }
-            .filter { RAW_CODE_REGEX.matchEntire(it) != null }
-        when {
-            ppssppGameId != null -> {
-                hasSections = true
-                flush()
-                currentSection = normalizeCheatSerial(ppssppGameId.groupValues[1])
-            }
-            ppssppCheatName != null -> {
-                flush()
-                currentTitle = ppssppCheatName.groupValues[2].trim()
-                currentAuthor = null
-                currentEnabled = ppssppCheatName.groupValues[1] != "0"
-            }
-            ppssppCode != null -> {
-                if (currentTitle != null) {
-                    val address = ppssppCode.groupValues[1].uppercase(Locale.US).padStart(8, '0')
-                    val value = ppssppCode.groupValues[2].uppercase(Locale.US).padStart(8, '0')
-                    currentLines += "$address $value"
-                }
-            }
-            trimmed.startsWith("_") -> Unit
-            libretroCode != null -> {
-                if (libretroCodes.isNotEmpty()) currentLines += libretroCodes
-            }
-            !label.isNullOrBlank() -> {
-                if (currentLines.isNotEmpty()) {
-                    flush()
-                }
-                currentTitle = label
-                currentAuthor = null
-            }
-            AUTHOR_LINE_REGEX.matchEntire(trimmed) != null -> {
-                currentAuthor = AUTHOR_LINE_REGEX.matchEntire(trimmed)
-                    ?.groupValues?.get(1)?.trim()
-                    ?.takeIf { it.isNotBlank() }
-            }
-            isPatchLine -> currentLines += trimmed
-            METADATA_LINE_REGEX.matchEntire(trimmed) != null ||
-                LIBRETRO_COUNT_REGEX.matchEntire(trimmed) != null ||
-                LIBRETRO_TOGGLE_REGEX.matchEntire(trimmed) != null -> Unit
-            isRawCode && currentTitle != null -> currentLines += codeCandidate
-        }
-    }
-    flush()
-    val parsedBlocks = blocks.ifEmpty {
-        lines
-            .mapNotNull { line ->
-                line.trim().takeIf { value ->
-                    value.startsWith("patch=", ignoreCase = true) ||
-                        value.startsWith("dpatch=", ignoreCase = true) ||
-                        RAW_CODE_REGEX.matchEntire(value) != null
-                }
-            }
-            .mapIndexed { idx, line ->
-                CheatBlock(
-                    id = "cheat_${idx + 1}",
-                    title = "Cheat ${idx + 1}",
-                    lines = listOf(line),
-                    enabled = false
-                )
-            }
-    }
-    val merged = linkedMapOf<String, CheatBlock>()
-    parsedBlocks.forEach { block ->
-        val key = block.title.trim().lowercase()
-        val existing = merged[key]
-        merged[key] = if (existing == null) {
-            block
-        } else {
-            existing.copy(
-                lines = (existing.lines + block.lines).distinct(),
-                enabled = existing.enabled || block.enabled,
-                author = existing.author ?: block.author
-            )
-        }
-    }
-    return merged.values.toList()
+    return parseGatewayCheatBlocks(raw)
 }
