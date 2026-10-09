@@ -14,7 +14,7 @@ std::shared_ptr<Service::CFG::Module> cfg;
 
 extern "C" {
 
-void Java_org_citra_citra_1emu_utils_SystemSaveGame_save([[maybe_unused]] JNIEnv* env,
+void Java_com_sbro_emucored_core_SystemSaveGame_save([[maybe_unused]] JNIEnv* env,
                                                          [[maybe_unused]] jobject obj) {
     if (changes_pending) {
         changes_pending = false;
@@ -22,36 +22,36 @@ void Java_org_citra_citra_1emu_utils_SystemSaveGame_save([[maybe_unused]] JNIEnv
     }
 }
 
-void Java_org_citra_citra_1emu_utils_SystemSaveGame_load([[maybe_unused]] JNIEnv* env,
+void Java_com_sbro_emucored_core_SystemSaveGame_load([[maybe_unused]] JNIEnv* env,
                                                          [[maybe_unused]] jobject obj) {
     cfg.reset();
     cfg = Service::CFG::GetModule(Core::System::GetInstance());
 }
 
-jboolean Java_org_citra_citra_1emu_utils_SystemSaveGame_getIsSystemSetupNeeded(
+jboolean Java_com_sbro_emucored_core_SystemSaveGame_getIsSystemSetupNeeded(
     [[maybe_unused]] JNIEnv* env, [[maybe_unused]] jobject obj) {
     return cfg->IsSystemSetupNeeded();
 }
 
-void Java_org_citra_citra_1emu_utils_SystemSaveGame_setSystemSetupNeeded(
+void Java_com_sbro_emucored_core_SystemSaveGame_setSystemSetupNeeded(
     [[maybe_unused]] JNIEnv* env, [[maybe_unused]] jobject obj, jboolean needed) {
     cfg->SetSystemSetupNeeded(needed);
     changes_pending = true;
 }
 
-jstring Java_org_citra_citra_1emu_utils_SystemSaveGame_getUsername([[maybe_unused]] JNIEnv* env,
+jstring Java_com_sbro_emucored_core_SystemSaveGame_getUsername([[maybe_unused]] JNIEnv* env,
                                                                    [[maybe_unused]] jobject obj) {
     return ToJString(env, Common::UTF16ToUTF8(cfg->GetUsername()));
 }
 
-void Java_org_citra_citra_1emu_utils_SystemSaveGame_setUsername([[maybe_unused]] JNIEnv* env,
+void Java_com_sbro_emucored_core_SystemSaveGame_setUsername([[maybe_unused]] JNIEnv* env,
                                                                 [[maybe_unused]] jobject obj,
                                                                 jstring username) {
     cfg->SetUsername(Common::UTF8ToUTF16(GetJString(env, username)));
     changes_pending = true;
 }
 
-jshortArray Java_org_citra_citra_1emu_utils_SystemSaveGame_getBirthday(
+jshortArray Java_com_sbro_emucored_core_SystemSaveGame_getBirthday(
     [[maybe_unused]] JNIEnv* env, [[maybe_unused]] jobject obj) {
     jshortArray jbirthdayArray = env->NewShortArray(2);
     auto birthday = cfg->GetBirthday();
@@ -61,85 +61,85 @@ jshortArray Java_org_citra_citra_1emu_utils_SystemSaveGame_getBirthday(
     return jbirthdayArray;
 }
 
-void Java_org_citra_citra_1emu_utils_SystemSaveGame_setBirthday([[maybe_unused]] JNIEnv* env,
+void Java_com_sbro_emucored_core_SystemSaveGame_setBirthday([[maybe_unused]] JNIEnv* env,
                                                                 [[maybe_unused]] jobject obj,
                                                                 jshort jmonth, jshort jday) {
     cfg->SetBirthday(static_cast<u8>(jmonth), static_cast<u8>(jday));
     changes_pending = true;
 }
 
-jint Java_org_citra_citra_1emu_utils_SystemSaveGame_getSystemLanguage(
+jint Java_com_sbro_emucored_core_SystemSaveGame_getSystemLanguage(
     [[maybe_unused]] JNIEnv* env, [[maybe_unused]] jobject obj) {
     return cfg->GetSystemLanguage();
 }
 
-void Java_org_citra_citra_1emu_utils_SystemSaveGame_setSystemLanguage([[maybe_unused]] JNIEnv* env,
+void Java_com_sbro_emucored_core_SystemSaveGame_setSystemLanguage([[maybe_unused]] JNIEnv* env,
                                                                       [[maybe_unused]] jobject obj,
                                                                       jint jsystemLanguage) {
     cfg->SetSystemLanguage(static_cast<Service::CFG::SystemLanguage>(jsystemLanguage));
     changes_pending = true;
 }
 
-jint Java_org_citra_citra_1emu_utils_SystemSaveGame_getSoundOutputMode(
+jint Java_com_sbro_emucored_core_SystemSaveGame_getSoundOutputMode(
     [[maybe_unused]] JNIEnv* env, [[maybe_unused]] jobject obj) {
     return cfg->GetSoundOutputMode();
 }
 
-void Java_org_citra_citra_1emu_utils_SystemSaveGame_setSoundOutputMode([[maybe_unused]] JNIEnv* env,
+void Java_com_sbro_emucored_core_SystemSaveGame_setSoundOutputMode([[maybe_unused]] JNIEnv* env,
                                                                        [[maybe_unused]] jobject obj,
                                                                        jint jmode) {
     cfg->SetSoundOutputMode(static_cast<Service::CFG::SoundOutputMode>(jmode));
     changes_pending = true;
 }
 
-jshort Java_org_citra_citra_1emu_utils_SystemSaveGame_getCountryCode([[maybe_unused]] JNIEnv* env,
+jshort Java_com_sbro_emucored_core_SystemSaveGame_getCountryCode([[maybe_unused]] JNIEnv* env,
                                                                      [[maybe_unused]] jobject obj) {
     return cfg->GetCountryCode();
 }
 
-void Java_org_citra_citra_1emu_utils_SystemSaveGame_setCountryCode([[maybe_unused]] JNIEnv* env,
+void Java_com_sbro_emucored_core_SystemSaveGame_setCountryCode([[maybe_unused]] JNIEnv* env,
                                                                    [[maybe_unused]] jobject obj,
                                                                    jshort jmode) {
     cfg->SetCountryCode(static_cast<u8>(jmode));
     changes_pending = true;
 }
 
-jint Java_org_citra_citra_1emu_utils_SystemSaveGame_getPlayCoins([[maybe_unused]] JNIEnv* env,
+jint Java_com_sbro_emucored_core_SystemSaveGame_getPlayCoins([[maybe_unused]] JNIEnv* env,
                                                                  [[maybe_unused]] jobject obj) {
     return Service::PTM::Module::GetPlayCoins();
 }
 
-void Java_org_citra_citra_1emu_utils_SystemSaveGame_setPlayCoins([[maybe_unused]] JNIEnv* env,
+void Java_com_sbro_emucored_core_SystemSaveGame_setPlayCoins([[maybe_unused]] JNIEnv* env,
                                                                  [[maybe_unused]] jobject obj,
                                                                  jint jcoins) {
     Service::PTM::Module::SetPlayCoins(static_cast<u16>(jcoins));
     changes_pending = true;
 }
 
-jlong Java_org_citra_citra_1emu_utils_SystemSaveGame_getConsoleId([[maybe_unused]] JNIEnv* env,
+jlong Java_com_sbro_emucored_core_SystemSaveGame_getConsoleId([[maybe_unused]] JNIEnv* env,
                                                                   [[maybe_unused]] jobject obj) {
     return cfg->GetConsoleUniqueId();
 }
 
-void Java_org_citra_citra_1emu_utils_SystemSaveGame_regenerateConsoleId(
+void Java_com_sbro_emucored_core_SystemSaveGame_regenerateConsoleId(
     [[maybe_unused]] JNIEnv* env, [[maybe_unused]] jobject obj) {
     const auto [random_number, console_id] = cfg->GenerateConsoleUniqueId();
     cfg->SetConsoleUniqueId(random_number, console_id);
     changes_pending = true;
 }
 
-jstring Java_org_citra_citra_1emu_utils_SystemSaveGame_getMac(JNIEnv* env,
+jstring Java_com_sbro_emucored_core_SystemSaveGame_getMac(JNIEnv* env,
                                                               [[maybe_unused]] jobject obj) {
     return ToJString(env, cfg->GetMacAddress());
 }
 
-void Java_org_citra_citra_1emu_utils_SystemSaveGame_regenerateMac(JNIEnv* env,
+void Java_com_sbro_emucored_core_SystemSaveGame_regenerateMac(JNIEnv* env,
                                                                   [[maybe_unused]] jobject obj) {
     cfg->GetMacAddress() = Service::CFG::GenerateRandomMAC();
     cfg->SaveMacAddress();
 }
 
-jint Java_org_citra_citra_1emu_utils_SystemSaveGame_getCountryCompatibility(
+jint Java_com_sbro_emucored_core_SystemSaveGame_getCountryCompatibility(
     JNIEnv* env, [[maybe_unused]] jobject obj, jint region) {
     int res = 0;
     u8 country = cfg->GetCountryCode();

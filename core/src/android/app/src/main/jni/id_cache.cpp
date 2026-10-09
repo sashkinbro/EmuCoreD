@@ -178,16 +178,16 @@ jint JNI_OnLoad(JavaVM* vm, void* reserved) {
 
     // Initialize misc classes
     s_savestate_info_class = reinterpret_cast<jclass>(
-        env->NewGlobalRef(env->FindClass("org/citra/citra_emu/NativeLibrary$SaveStateInfo")));
+        env->NewGlobalRef(env->FindClass("com/sbro/emucored/core/EmuCoreNative$SaveStateInfo")));
     s_core_error_class = reinterpret_cast<jclass>(
-        env->NewGlobalRef(env->FindClass("org/citra/citra_emu/NativeLibrary$CoreError")));
+        env->NewGlobalRef(env->FindClass("com/sbro/emucored/core/EmuCoreNative$CoreError")));
 
     // Initialize NativeLibrary
-    const jclass native_library_class = env->FindClass("org/citra/citra_emu/NativeLibrary");
+    const jclass native_library_class = env->FindClass("com/sbro/emucored/core/EmuCoreNative");
     s_native_library_class = reinterpret_cast<jclass>(env->NewGlobalRef(native_library_class));
     s_on_core_error = env->GetStaticMethodID(
         s_native_library_class, "onCoreError",
-        "(Lorg/citra/citra_emu/NativeLibrary$CoreError;Ljava/lang/String;)Z");
+        "(Lcom/sbro/emucored/core/EmuCoreNative$CoreError;Ljava/lang/String;)Z");
     s_exit_emulation_activity =
         env->GetStaticMethodID(s_native_library_class, "exitEmulationActivity", "(I)V");
     s_request_camera_permission =
@@ -201,25 +201,25 @@ jint JNI_OnLoad(JavaVM* vm, void* reserved) {
     env->DeleteLocalRef(native_library_class);
 
     // Initialize Cheat
-    const jclass cheat_class = env->FindClass("org/citra/citra_emu/features/cheats/model/Cheat");
+    const jclass cheat_class = env->FindClass("com/sbro/emucored/core/Cheat");
     s_cheat_class = reinterpret_cast<jclass>(env->NewGlobalRef(cheat_class));
     s_cheat_pointer = env->GetFieldID(cheat_class, "mPointer", "J");
     s_cheat_constructor = env->GetMethodID(cheat_class, "<init>", "(J)V");
     env->DeleteLocalRef(cheat_class);
 
     // Initialize GameInfo
-    const jclass game_info_class = env->FindClass("org/citra/citra_emu/model/GameInfo");
+    const jclass game_info_class = env->FindClass("com/sbro/emucored/core/GameInfo");
     s_game_info_pointer = env->GetFieldID(game_info_class, "pointer", "J");
     env->DeleteLocalRef(game_info_class);
 
     // Initialize Disk Shader Cache Progress Dialog
     s_disk_cache_progress_class = reinterpret_cast<jclass>(
-        env->NewGlobalRef(env->FindClass("org/citra/citra_emu/utils/DiskShaderCacheProgress")));
+        env->NewGlobalRef(env->FindClass("com/sbro/emucored/core/DiskShaderCacheProgress")));
     jclass load_callback_stage_class =
-        env->FindClass("org/citra/citra_emu/utils/DiskShaderCacheProgress$LoadCallbackStage");
+        env->FindClass("com/sbro/emucored/core/DiskShaderCacheProgress$LoadCallbackStage");
     s_disk_cache_load_progress =
         env->GetStaticMethodID(s_disk_cache_progress_class, "loadProgress",
-                               "(Lorg/citra/citra_emu/utils/"
+                               "(Lcom/sbro/emucored/core/"
                                "DiskShaderCacheProgress$LoadCallbackStage;IILjava/lang/String;)V");
     s_compress_progress_method =
         env->GetStaticMethodID(s_native_library_class, "onCompressProgress", "(JJ)V");
@@ -229,7 +229,7 @@ jint JNI_OnLoad(JavaVM* vm, void* reserved) {
         return env->NewGlobalRef(env->GetStaticObjectField(
             load_callback_stage_class,
             env->GetStaticFieldID(load_callback_stage_class, stage.c_str(),
-                                  "Lorg/citra/citra_emu/utils/"
+                                  "Lcom/sbro/emucored/core/"
                                   "DiskShaderCacheProgress$LoadCallbackStage;")));
     };
     s_java_load_callback_stages.emplace(VideoCore::LoadCallbackStage::Prepare,
@@ -244,18 +244,18 @@ jint JNI_OnLoad(JavaVM* vm, void* reserved) {
 
     // CIA Install
     s_cia_install_helper_class = reinterpret_cast<jclass>(
-        env->NewGlobalRef(env->FindClass("org/citra/citra_emu/utils/CiaInstallWorker")));
+        env->NewGlobalRef(env->FindClass("com/sbro/emucored/core/CiaInstallWorker")));
     s_cia_install_helper_set_progress =
         env->GetMethodID(s_cia_install_helper_class, "setProgressCallback", "(II)V");
     // Initialize CIA InstallStatus map
     jclass cia_install_status_class =
-        env->FindClass("org/citra/citra_emu/NativeLibrary$InstallStatus");
+        env->FindClass("com/sbro/emucored/core/EmuCoreNative$InstallStatus");
     const auto to_java_cia_install_status = [env,
                                              cia_install_status_class](const std::string& stage) {
         return env->NewGlobalRef(env->GetStaticObjectField(
             cia_install_status_class, env->GetStaticFieldID(cia_install_status_class, stage.c_str(),
-                                                            "Lorg/citra/citra_emu/"
-                                                            "NativeLibrary$InstallStatus;")));
+                                                             "Lcom/sbro/emucored/core/"
+                                                             "EmuCoreNative$InstallStatus;")));
     };
     s_java_cia_install_status.emplace(Service::AM::InstallStatus::Success,
                                       to_java_cia_install_status("Success"));

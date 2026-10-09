@@ -75,18 +75,18 @@ void AndroidKeyboard::ShowError(const std::string& error) {
 
 void InitJNI(JNIEnv* env) {
     s_software_keyboard_class = reinterpret_cast<jclass>(
-        env->NewGlobalRef(env->FindClass("org/citra/citra_emu/applets/SoftwareKeyboard")));
+        env->NewGlobalRef(env->FindClass("com/sbro/emucored/core/SoftwareKeyboard")));
     s_keyboard_config_class = reinterpret_cast<jclass>(env->NewGlobalRef(
-        env->FindClass("org/citra/citra_emu/applets/SoftwareKeyboard$KeyboardConfig")));
+        env->FindClass("com/sbro/emucored/core/SoftwareKeyboard$KeyboardConfig")));
     s_keyboard_data_class = reinterpret_cast<jclass>(env->NewGlobalRef(
-        env->FindClass("org/citra/citra_emu/applets/SoftwareKeyboard$KeyboardData")));
+        env->FindClass("com/sbro/emucored/core/SoftwareKeyboard$KeyboardData")));
     s_validation_error_class = reinterpret_cast<jclass>(env->NewGlobalRef(
-        env->FindClass("org/citra/citra_emu/applets/SoftwareKeyboard$ValidationError")));
+        env->FindClass("com/sbro/emucored/core/SoftwareKeyboard$ValidationError")));
 
     s_swkbd_execute = env->GetStaticMethodID(
         s_software_keyboard_class, "execute",
-        "(Lorg/citra/citra_emu/applets/SoftwareKeyboard$KeyboardConfig;)Lorg/citra/citra_emu/"
-        "applets/SoftwareKeyboard$KeyboardData;");
+        "(Lcom/sbro/emucored/core/SoftwareKeyboard$KeyboardConfig;)"
+        "Lcom/sbro/emucored/core/SoftwareKeyboard$KeyboardData;");
     s_swkbd_show_error =
         env->GetStaticMethodID(s_software_keyboard_class, "showError", "(Ljava/lang/String;)V");
 }
@@ -121,10 +121,10 @@ jobject ToJavaValidationError(Frontend::ValidationError error) {
     return env->GetStaticObjectField(
         s_validation_error_class,
         env->GetStaticFieldID(s_validation_error_class, ValidationErrorNameMap.at(error),
-                              "Lorg/citra/citra_emu/applets/SoftwareKeyboard$ValidationError;"));
+                              "Lcom/sbro/emucored/core/SoftwareKeyboard$ValidationError;"));
 }
 
-jobject Java_org_citra_citra_1emu_applets_SoftwareKeyboard_ValidateFilters(JNIEnv* env,
+jobject Java_com_sbro_emucored_core_SoftwareKeyboard_ValidateFilters(JNIEnv* env,
                                                                            jclass clazz,
                                                                            jstring text) {
 
@@ -133,7 +133,7 @@ jobject Java_org_citra_citra_1emu_applets_SoftwareKeyboard_ValidateFilters(JNIEn
     return ToJavaValidationError(ret);
 }
 
-jobject Java_org_citra_citra_1emu_applets_SoftwareKeyboard_ValidateInput(JNIEnv* env, jclass clazz,
+jobject Java_com_sbro_emucored_core_SoftwareKeyboard_ValidateInput(JNIEnv* env, jclass clazz,
                                                                          jstring text) {
 
     const auto ret =

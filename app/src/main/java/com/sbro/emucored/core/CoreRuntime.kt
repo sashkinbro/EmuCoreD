@@ -129,16 +129,31 @@ internal object CoreRuntime {
 
     fun initialize(context: Context) {
         this.context = context.applicationContext
-        val root = File(context.filesDir, "azahar")
-        systemDirectory = File(root, "system").apply { mkdirs() }.absolutePath
-        saveDirectory = File(root, "save").apply { mkdirs() }.absolutePath
-        coreAssetsDirectory = File(root, "assets").apply { mkdirs() }.absolutePath
         CoreOptionStore.initialize(context.applicationContext)
-        runCatching {
-            bridge.nativeInit(systemDirectory, saveDirectory, coreAssetsDirectory)
-            bridge.apiVersion()
-        }.onFailure { Log.e(TAG, "Unable to initialise libretro frontend", it) }
     }
+
+    /** Directory the core uses for its NAND, SD card and system data. */
+    fun userDirectory(): String {
+        val active = context ?: return ""
+        return File(active.filesDir, "azahar").apply { mkdirs() }.absolutePath
+    }
+
+    /** Core-initiated abort: surface it to the UI as a failed session. */
+    fun reportNativeExit(resultCode: Int) {
+        Log.e(TAG, "Core exited with result $resultCode")
+        _failure.value = RuntimeFailure("core_exit_$resultCode")
+    }
+
+    fun reportNativeError(name: String, details: String) {
+        Log.e(TAG, "Core error $name: $details")
+        _failure.value = RuntimeFailure(details.ifBlank { name })
+    }
+
+    fun requestCameraPermission(): Boolean = true
+
+    fun requestMicPermission(): Boolean = true
+
+    fun onNetPlayMessage(type: Int, message: String) = Unit
 
     fun isRunning(): Boolean = running && failure.value == null && sessionLock.withLock { session != 0L }
     fun hasSession(): Boolean = sessionLock.withLock { session != 0L }

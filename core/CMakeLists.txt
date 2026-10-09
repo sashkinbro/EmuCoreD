@@ -24,6 +24,12 @@ include(CMakeDependentOption)
 project(citra LANGUAGES C CXX ASM)
 # must be invoked after project() command when using CMAKE_TOOLCHAIN_FILE
 include(FindPkgConfig)
+
+# Android's libc++ only exposes std::aligned_alloc from API level 28, while
+# EmuCoreD supports API 26. Boost.Asio would otherwise emit an unresolved
+# using declaration, so it falls back to plain operator new/delete.
+add_compile_definitions(BOOST_ASIO_DISABLE_STD_ALIGNED_ALLOC)
+
 if (CMAKE_SYSTEM_NAME STREQUAL "Darwin" OR CMAKE_SYSTEM_NAME STREQUAL "iOS")
     enable_language(OBJC OBJCXX)
 endif()

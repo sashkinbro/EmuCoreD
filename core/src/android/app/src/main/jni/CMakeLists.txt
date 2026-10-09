@@ -35,6 +35,9 @@ add_library(citra-android SHARED
 target_link_libraries(citra-android PRIVATE audio_core citra_common citra_core input_common network)
 target_link_libraries(citra-android PRIVATE android camera2ndk inih jnigraphics log mediandk yuv)
 
+# EmuCoreD ships the core's own Android bridge under the EmuCoreD library name.
+set_target_properties(citra-android PROPERTIES OUTPUT_NAME "emucore_core")
+
 if (ENABLE_OPENGL)
     target_sources(citra-android PRIVATE
         emu_window/emu_window_gl.cpp

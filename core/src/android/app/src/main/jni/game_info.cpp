@@ -103,27 +103,27 @@ static GameInfoData* GetPointer(JNIEnv* env, jobject obj) {
     return reinterpret_cast<GameInfoData*>(env->GetLongField(obj, IDCache::GetGameInfoPointer()));
 }
 
-JNIEXPORT jlong JNICALL Java_org_citra_citra_1emu_model_GameInfo_initialize(JNIEnv* env, jclass,
+JNIEXPORT jlong JNICALL Java_com_sbro_emucored_core_GameInfo_initialize(JNIEnv* env, jclass,
                                                                             jstring j_path) {
     GameInfoData* game_info_data = GetNewGameInfoData(GetJString(env, j_path));
     return reinterpret_cast<jlong>(game_info_data);
 }
 
-JNIEXPORT jboolean JNICALL Java_org_citra_citra_1emu_model_GameInfo_isValid(JNIEnv* env,
+JNIEXPORT jboolean JNICALL Java_com_sbro_emucored_core_GameInfo_isValid(JNIEnv* env,
                                                                             jobject obj) {
     return GetPointer(env, obj)->loaded;
 }
 
-JNIEXPORT jboolean JNICALL Java_org_citra_citra_1emu_model_GameInfo_isEncrypted(JNIEnv* env,
+JNIEXPORT jboolean JNICALL Java_com_sbro_emucored_core_GameInfo_isEncrypted(JNIEnv* env,
                                                                                 jobject obj) {
     return GetPointer(env, obj)->is_encrypted;
 }
 
-JNIEXPORT void JNICALL Java_org_citra_citra_1emu_model_GameInfo_finalize(JNIEnv* env, jobject obj) {
+JNIEXPORT void JNICALL Java_com_sbro_emucored_core_GameInfo_finalize(JNIEnv* env, jobject obj) {
     delete GetPointer(env, obj);
 }
 
-jstring Java_org_citra_citra_1emu_model_GameInfo_getTitle(JNIEnv* env, jobject obj) {
+jstring Java_com_sbro_emucored_core_GameInfo_getTitle(JNIEnv* env, jobject obj) {
     Loader::SMDH* smdh = &GetPointer(env, obj)->smdh;
     if (!smdh->IsValid()) {
         return ToJString(env, "");
@@ -138,7 +138,7 @@ jstring Java_org_citra_citra_1emu_model_GameInfo_getTitle(JNIEnv* env, jobject o
     return ToJString(env, Common::UTF16ToUTF8(title).data());
 }
 
-jstring Java_org_citra_citra_1emu_model_GameInfo_getCompany(JNIEnv* env, jobject obj) {
+jstring Java_com_sbro_emucored_core_GameInfo_getCompany(JNIEnv* env, jobject obj) {
     Loader::SMDH* smdh = &GetPointer(env, obj)->smdh;
     if (!smdh->IsValid()) {
         return ToJString(env, "");
@@ -154,11 +154,11 @@ jstring Java_org_citra_citra_1emu_model_GameInfo_getCompany(JNIEnv* env, jobject
     return ToJString(env, Common::UTF16ToUTF8(publisher).data());
 }
 
-jlong Java_org_citra_citra_1emu_model_GameInfo_getTitleID(JNIEnv* env, jobject obj) {
+jlong Java_com_sbro_emucored_core_GameInfo_getTitleID(JNIEnv* env, jobject obj) {
     return static_cast<jlong>(GetPointer(env, obj)->title_id);
 }
 
-jstring Java_org_citra_citra_1emu_model_GameInfo_getRegions(JNIEnv* env, jobject obj) {
+jstring Java_com_sbro_emucored_core_GameInfo_getRegions(JNIEnv* env, jobject obj) {
     Loader::SMDH* smdh = &GetPointer(env, obj)->smdh;
     if (!smdh->IsValid()) {
         return ToJString(env, "");
@@ -194,7 +194,7 @@ jstring Java_org_citra_citra_1emu_model_GameInfo_getRegions(JNIEnv* env, jobject
     return ToJString(env, result);
 }
 
-jintArray Java_org_citra_citra_1emu_model_GameInfo_getIcon(JNIEnv* env, jobject obj) {
+jintArray Java_com_sbro_emucored_core_GameInfo_getIcon(JNIEnv* env, jobject obj) {
     Loader::SMDH* smdh = &GetPointer(env, obj)->smdh;
     if (!smdh->IsValid()) {
         return nullptr;
@@ -213,11 +213,11 @@ jintArray Java_org_citra_citra_1emu_model_GameInfo_getIcon(JNIEnv* env, jobject 
     return icon;
 }
 
-jboolean Java_org_citra_citra_1emu_model_GameInfo_isSystemTitle(JNIEnv* env, jobject obj) {
+jboolean Java_com_sbro_emucored_core_GameInfo_isSystemTitle(JNIEnv* env, jobject obj) {
     return ((GetPointer(env, obj)->title_id >> 32) & 0xFFFFFFFF) == 0x00040010;
 }
 
-jboolean Java_org_citra_citra_1emu_model_GameInfo_getIsVisibleSystemTitle(JNIEnv* env,
+jboolean Java_com_sbro_emucored_core_GameInfo_getIsVisibleSystemTitle(JNIEnv* env,
                                                                           jobject obj) {
     Loader::SMDH* smdh = &GetPointer(env, obj)->smdh;
     if (!smdh->IsValid()) {
@@ -227,12 +227,12 @@ jboolean Java_org_citra_citra_1emu_model_GameInfo_getIsVisibleSystemTitle(JNIEnv
     return smdh->flags.visible;
 }
 
-jstring Java_org_citra_citra_1emu_model_GameInfo_getFileType(JNIEnv* env, jobject obj) {
+jstring Java_com_sbro_emucored_core_GameInfo_getFileType(JNIEnv* env, jobject obj) {
     std::string& file_type = GetPointer(env, obj)->file_type;
 
     return ToJString(env, file_type);
 }
-jboolean Java_org_citra_citra_1emu_model_GameInfo_getIsInsertable(JNIEnv* env, jobject obj) {
+jboolean Java_com_sbro_emucored_core_GameInfo_getIsInsertable(JNIEnv* env, jobject obj) {
     return GetPointer(env, obj)->is_insertable;
 }
 }

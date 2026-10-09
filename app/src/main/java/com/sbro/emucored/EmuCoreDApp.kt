@@ -22,9 +22,16 @@ import kotlinx.coroutines.launch
 class EmuCoreDApp : Application() {
     internal val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
+    companion object {
+        @Volatile
+        internal var instance: EmuCoreDApp? = null
+            private set
+    }
+
     @RequiresApi(Build.VERSION_CODES.P)
     override fun onCreate() {
         super.onCreate()
+        instance = this
         // The Discord SDK helper must not initialize the emulator-side application graph.
         if (getProcessName().endsWith(":discord")) return
         // CrashLogger must be the very first thing — it catches crashes in all subsequent init steps
