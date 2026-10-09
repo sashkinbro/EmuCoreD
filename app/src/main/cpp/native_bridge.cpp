@@ -1779,23 +1779,11 @@ Java_com_sbro_emucored_core_NativeCoreBridge_loadState(JNIEnv* env, jobject, jlo
     return 0;
 }
 
-JNIEXPORT jint JNICALL
-Java_com_sbro_emucored_core_NativeCoreBridge_createMemoryCard(JNIEnv*, jobject, jstring) {
-    // PSP savedata is managed by the core inside the memstick directory; the
-    // legacy PS1 memory-card manager has no native counterpart.
-    return -1;
-}
-
 JNIEXPORT void JNICALL
-Java_com_sbro_emucored_core_NativeCoreBridge_setMemoryCardPath(JNIEnv*, jobject, jint, jstring) {}
-
-JNIEXPORT void JNICALL
-Java_com_sbro_emucored_core_NativeCoreBridge_setTextureReplacementsPathOverride(JNIEnv* env, jobject,
-                                                                                 jstring path) {
-    // Historically this rebased the PSP memstick so texture packs and saves
-    // landed in the user data folder. For Azahar the same call repoints the
-    // core user directory (NAND, SDMC and system data), which the app selects
-    // from its storage-location setting.
+Java_com_sbro_emucored_core_NativeCoreBridge_setCoreUserDirectory(JNIEnv* env, jobject,
+                                                                  jstring path) {
+    // Repoints the core user directory (NAND, SDMC and system data) at the
+    // data root the user selected in the app's storage-location setting.
     const std::string data_root = ToString(env, path);
     std::lock_guard<std::mutex> lock(g_frontend.mutex);
     g_frontend.save_dir = data_root.empty() ? g_frontend.default_save_dir : data_root;

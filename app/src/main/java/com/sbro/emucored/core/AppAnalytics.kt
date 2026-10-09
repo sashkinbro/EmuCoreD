@@ -132,7 +132,6 @@ internal object AnalyticsDimensions {
 
     fun renderer(value: Int): String = when (value) {
         RendererDefaults.OPENGL -> "opengl"
-        RendererDefaults.SOFTWARE -> "software"
         RendererDefaults.VULKAN -> "vulkan"
         else -> "unknown"
     }

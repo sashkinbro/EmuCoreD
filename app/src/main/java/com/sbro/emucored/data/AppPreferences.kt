@@ -14,9 +14,7 @@ import androidx.datastore.preferences.preferencesDataStore
 import com.sbro.emucored.core.AudioDefaults
 import com.sbro.emucored.core.EmulatorBridge
 import com.sbro.emucored.core.GpuHardwareProfiles
-import com.sbro.emucored.core.GsHackDefaults
 import com.sbro.emucored.core.PerformanceProfiles
-import com.sbro.emucored.core.PerformancePresets
 import com.sbro.emucored.core.RendererDefaults
 import com.sbro.emucored.core.TvInterfaceMode
 import com.sbro.emucored.core.UPSCALE_DEFAULT
@@ -55,7 +53,6 @@ data class SettingsSnapshot(
     val emulationSideArtwork: EmulationSideArtwork = EmulationSideArtwork.NONE,
     val emulationSideArtworkRevision: Int = 0,
     val emulationSideArtworkDim: Int = AppPreferences.DEFAULT_EMULATION_SIDE_ARTWORK_DIM,
-    val localMultiplayerMode: Int = AppPreferences.LOCAL_MULTIPLAYER_OFF,
     val touchControlVisualStyle: TouchControlVisualStyle = TouchControlVisualStyle.CLASSIC,
     val touchControlPressEffect: TouchControlPressEffect = TouchControlPressEffect.GROW,
     val gameMenuLayoutStyle: GameMenuLayoutStyle = GameMenuLayoutStyle.SIDEBAR,
@@ -75,17 +72,12 @@ data class SettingsSnapshot(
     val displayCrop: DisplayCrop = DisplayCrop.None,
     val shaderChainEnabled: Boolean = false,
     val shaderChainPreset: String = "",
+    val textureReplacementsEnabled: Boolean = true,
     val audioVolume: Int = AudioDefaults.VOLUME_DEFAULT,
     val audioFastForwardVolume: Int = AudioDefaults.VOLUME_DEFAULT,
     val audioMuted: Boolean = false,
-    val audioInterpolation: Int = AudioDefaults.INTERPOLATION_DEFAULT,
-    val audioSyncMode: Int = AudioDefaults.SYNC_DEFAULT,
-    val audioLightweightSpu2: Boolean = AudioDefaults.LIGHTWEIGHT_SPU2_DEFAULT,
-    val audioBackend: Int = AudioDefaults.BACKEND_DEFAULT,
-    val audioBufferMs: Int = AudioDefaults.BUFFER_MS_DEFAULT,
     val audioOutputLatencyMs: Int = AudioDefaults.OUTPUT_LATENCY_MS_DEFAULT,
     val audioMinimalOutputLatency: Boolean = AudioDefaults.MINIMAL_OUTPUT_LATENCY_DEFAULT,
-    val autoProgressiveScan: Boolean = false,
     val padVibration: Boolean = true,
     val padVibrationStrength: Int = AppPreferences.DEFAULT_PAD_VIBRATION_STRENGTH,
     val padVibrationFallback: Boolean = true,
@@ -113,111 +105,8 @@ data class SettingsSnapshot(
     val coverArtStyle: Int = AppPreferences.COVER_ART_STYLE_3D,
     val setupComplete: Boolean = false,
     val proUnlocked: Boolean = false,
-    val enableFastBoot: Boolean = true,
-    val eeCycleRate: Int = PerformanceProfiles.safeConfig.eeCycleRate,
-    val eeCycleSkip: Int = PerformanceProfiles.safeConfig.eeCycleSkip,
-    val enableEeRecompiler: Boolean = true,
-    val enableIopRecompiler: Boolean = true,
-    val enableVu0Recompiler: Boolean = true,
-    val enableVu1Recompiler: Boolean = true,
-    val enableFastmem: Boolean = true,
-    val eeFpuRoundMode: Int = AppPreferences.DEFAULT_EE_FPU_ROUND_MODE,
-    val vu0RoundMode: Int = AppPreferences.DEFAULT_VU_ROUND_MODE,
-    val vu1RoundMode: Int = AppPreferences.DEFAULT_VU_ROUND_MODE,
-    val eeFpuClampingMode: Int = AppPreferences.DEFAULT_EE_FPU_CLAMPING_MODE,
-    val vu0ClampingMode: Int = AppPreferences.DEFAULT_VU0_CLAMPING_MODE,
-    val vu1ClampingMode: Int = AppPreferences.DEFAULT_VU1_CLAMPING_MODE,
-    val enableGameFixes: Boolean = true,
-    val enableEeTimingHack: Boolean = false,
-    val enableWaitLoopSpeedhack: Boolean = true,
-    val enableIntcStatSpeedhack: Boolean = true,
-    val enableVuFlagHack: Boolean = true,
-    val enableInstantVu1: Boolean = true,
-    val enableMtvu: Boolean = true,
-    val enableThreadPinning: Boolean = AppPreferences.DEFAULT_THREAD_PINNING,
-    val enableFastCdvd: Boolean = false,
     val enableCheats: Boolean = false,
-    val enableIcacheEmulation: Boolean = false,
-    val enableDisableStalls: Boolean = false,
-    val enablePreciseExceptions: Boolean = false,
-    val enableTurboCd: Boolean = false,
-    val enableCddaAudio: Boolean = true,
-    val enableXaDecoding: Boolean = true,
-    val enableSpuReverb: Boolean = true,
-    val enableSpuThread: Boolean = false,
-    val spuTempo: Int = 0,
-    val neonEnhancement: Boolean = false,
-    val neonEnhancementSpeedHack: Boolean = false,
-    val neonEnhancementTexAdj: Boolean = true,
-    val neonInterlace: Int = -1,
-    val gpuThreadRendering: Int = -1,
-    val showOverscan: Boolean = false,
-    val screenCentering: Int = 0,
-    val screenCenteringX: Int = 0,
-    val screenCenteringY: Int = 0,
-    val screenCenteringHAdj: Int = 0,
-    val enableFractionalFramerate: Boolean = false,
-    val altFlipMode: Int = 0,
-    val enableRgb32Output: Boolean = false,
-    val enableScaleHires: Boolean = false,
-    val multitapMode: Int = 0,
-    val analogAxisModifier: Int = 0,
-    val dualshockToggleCombo: Int = 0,
-    val cdReadAhead: Int = 0,
-    val hwDownloadMode: Int = PerformanceProfiles.safeConfig.hwDownloadMode,
     val frameSkip: Int = 0,
-    val skipDuplicateFrames: Boolean = true,
-    val textureFiltering: Int = GsHackDefaults.BILINEAR_FILTERING_DEFAULT,
-    val trilinearFiltering: Int = GsHackDefaults.TRILINEAR_FILTERING_DEFAULT,
-    val blendingAccuracy: Int = GsHackDefaults.BLENDING_ACCURACY_DEFAULT,
-    val texturePreloading: Int = GsHackDefaults.TEXTURE_PRELOADING_DEFAULT,
-    val enableFxaa: Boolean = false,
-    val sgsrMode: Int = 0,
-    val casMode: Int = 0,
-    val casSharpness: Int = 50,
-    val tvShader: Int = GsHackDefaults.TV_SHADER_DEFAULT,
-    val shadeBoostEnabled: Boolean = false,
-    val shadeBoostBrightness: Int = 50,
-    val shadeBoostContrast: Int = 50,
-    val shadeBoostSaturation: Int = 50,
-    val shadeBoostGamma: Int = 50,
-    val enableWidescreenPatches: Boolean = false,
-    val enableNoInterlacingPatches: Boolean = false,
-    val patchDatabaseUseOfficial: Boolean = true,
-    val patchDatabaseCustomUrl: String? = null,
-    val deinterlaceMode: Int = GsHackDefaults.DEINTERLACE_MODE_DEFAULT,
-    val dithering: Int = GsHackDefaults.DITHERING_DEFAULT,
-    val antiBlur: Boolean = GsHackDefaults.ANTI_BLUR_DEFAULT,
-    val anisotropicFiltering: Int = 0,
-    val enableHwMipmapping: Boolean = GsHackDefaults.HW_MIPMAPPING_DEFAULT,
-    val cpuSpriteRenderSize: Int = GsHackDefaults.CPU_SPRITE_RENDER_SIZE_DEFAULT,
-    val cpuSpriteRenderLevel: Int = GsHackDefaults.CPU_SPRITE_RENDER_LEVEL_DEFAULT,
-    val softwareClutRender: Int = GsHackDefaults.SOFTWARE_CLUT_RENDER_DEFAULT,
-    val gpuTargetClutMode: Int = GsHackDefaults.GPU_TARGET_CLUT_DEFAULT,
-    val skipDrawStart: Int = 0,
-    val skipDrawEnd: Int = 0,
-    val autoFlushHardware: Int = GsHackDefaults.AUTO_FLUSH_DEFAULT,
-    val cpuFramebufferConversion: Boolean = false,
-    val disableDepthConversion: Boolean = false,
-    val disableSafeFeatures: Boolean = false,
-    val disableRenderFixes: Boolean = false,
-    val preloadFrameData: Boolean = false,
-    val disablePartialInvalidation: Boolean = false,
-    val textureInsideRt: Int = GsHackDefaults.TEXTURE_INSIDE_RT_DEFAULT,
-    val readTargetsOnClose: Boolean = false,
-    val estimateTextureRegion: Boolean = false,
-    val gpuPaletteConversion: Boolean = false,
-    val halfPixelOffset: Int = GsHackDefaults.HALF_PIXEL_OFFSET_DEFAULT,
-    val nativeScaling: Int = GsHackDefaults.NATIVE_SCALING_DEFAULT,
-    val roundSprite: Int = GsHackDefaults.ROUND_SPRITE_DEFAULT,
-    val bilinearUpscale: Int = GsHackDefaults.BILINEAR_UPSCALE_DEFAULT,
-    val textureOffsetX: Int = 0,
-    val textureOffsetY: Int = 0,
-    val alignSprite: Boolean = false,
-    val mergeSprite: Boolean = false,
-    val forceEvenSpritePosition: Boolean = false,
-    val nativePaletteDraw: Boolean = false,
-    val performancePreset: Int = PerformancePresets.CUSTOM,
     val overlayScale: Int = 100,
     val overlayOpacity: Int = AppPreferences.DEFAULT_OVERLAY_OPACITY,
     val overlayShow: Boolean = true,
@@ -246,21 +135,16 @@ data class SettingsSnapshot(
     val gamepadRightStickUpToR2: Boolean = false,
     val gamepadRightStickDownToL2: Boolean = false,
     val gamepadButtonHaptics: Boolean = false,
-    val pressureModifierAmount: Int = AppPreferences.DEFAULT_PRESSURE_MODIFIER_AMOUNT,
     val gamepadBindings: Map<String, Int> = emptyMap(),
     val gamepadBindingsByPad: Map<Int, Map<String, Int>> = emptyMap(),
     val gamepadDeviceAssignments: Map<Int, String> = emptyMap(),
     val ignoredGamepadDevices: Set<String> = emptySet(),
-    val gpuDriverType: Int = 0,
     val mediatekAngleOpenGl: Boolean = false,
-    val customDriverPath: String? = null,
     val frameLimitEnabled: Boolean = true,
     val rewindEnabled: Boolean = false,
     val vSyncEnabled: Boolean = true,
     val fastForwardSpeed: Float = AppPreferences.DEFAULT_FAST_FORWARD_SPEED,
     val targetFps: Int = 0,
-    val ntscFramerate: Float = AppPreferences.DEFAULT_NTSC_FRAMERATE,
-    val palFramerate: Float = AppPreferences.DEFAULT_PAL_FRAMERATE
 )
 
 data class OverlayLayoutSnapshot(
@@ -294,12 +178,6 @@ data class OverlayControlLayout(
     val surfaceOnly: Boolean = false
 )
 
-private val LEGACY_CLAMPING_PREF_KEYS = listOf(
-    booleanPreferencesKey("enable_ee_clamping"),
-    booleanPreferencesKey("enable_vu0_clamping"),
-    booleanPreferencesKey("enable_vu1_clamping")
-)
-
 private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "settings")
 
 class AppPreferences(private val context: Context) {
@@ -315,47 +193,26 @@ class AppPreferences(private val context: Context) {
          * locale and manager UI.
          */
         internal val EMULATOR_CLOUD_KEYS = setOf(
-            "performanceProfile", "renderer", "upscaleMultiplier", "shaderChainEnabled",
-            "shaderChainPreset", "aspectRatio", "displayCropLeft", "displayCropTop",
-            "displayCropRight", "displayCropBottom", "audioVolume", "audioFastForwardVolume",
-            "audioMuted", "audioInterpolation", "audioSyncMode", "audioLightweightSpu2",
-            "audioBackend", "audioBufferMs", "audioOutputLatencyMs", "audioMinimalOutputLatency",
-            "autoProgressiveScan", "padVibration", "padVibrationStrength", "padVibrationFallback",
-            "showFps", "fpsOverlayMode", "fpsOverlayCorner", "fpsOverlayScale",
-            "fpsOverlayMetrics", "confirmSaveLoadActions", "backButtonExitsGame",
-            "compactControls", "keepScreenOn", "overlayScale", "overlayOpacity", "overlayShow",
-            "racingMode", "touchscreenRightStick", "touchscreenRightStickSensitivity",
-            "touchHaptics", "touchHapticsPreset", "touchHapticsStrength", "gyroMode",
-            "gyroSensitivity", "gyroSmoothing", "gyroInvertX", "gyroInvertY",
-            "gamepadStickDeadzone", "gamepadLeftStickSensitivity", "gamepadRightStickSensitivity",
-            "gamepadRightStickUpToR2", "gamepadRightStickDownToL2", "gamepadButtonHaptics",
-            "pressureModifierAmount", "enableFastBoot", "enableCheats", "enableIcacheEmulation",
-            "enableDisableStalls", "enablePreciseExceptions", "enableTurboCd", "enableCddaAudio",
-            "enableXaDecoding", "enableSpuReverb", "enableSpuThread", "spuTempo",
-            "hwDownloadMode", "frameSkip", "skipDuplicateFrames", "textureFiltering",
-            "trilinearFiltering", "blendingAccuracy", "texturePreloading",
-            "textureReplacementsEnabled", "textureReplacementsAsync", "textureReplacementsPrecache",
-            "textureDumpingEnabled", "enableFxaa", "sgsrMode", "casMode", "casSharpness",
-            "tvShader", "deinterlaceMode", "dithering", "antiBlur", "anisotropicFiltering",
-            "enableHwMipmapping", "cpuSpriteRenderSize", "cpuSpriteRenderLevel",
-            "softwareClutRender", "gpuTargetClutMode", "skipDrawStart", "skipDrawEnd",
-            "autoFlushHardware", "cpuFramebufferConversion", "disableDepthConversion",
-            "disableSafeFeatures", "disableRenderFixes", "preloadFrameData",
-            "disablePartialInvalidation", "textureInsideRt", "readTargetsOnClose",
-            "estimateTextureRegion", "gpuPaletteConversion", "halfPixelOffset", "nativeScaling",
-            "roundSprite", "bilinearUpscale", "textureOffsetX", "textureOffsetY", "alignSprite",
-            "mergeSprite", "forceEvenSpritePosition", "nativePaletteDraw", "enableAutoGamepad",
-            "hideOverlayOnGamepad", "orientationLock", "emulationAllowsBothOrientations",
-            "frameLimitEnabled", "rewindEnabled", "vSyncEnabled", "fastForwardSpeed"
+            "renderer", "upscaleMultiplier", "shaderChainEnabled",
+            "shaderChainPreset", "textureReplacementsEnabled", "aspectRatio",
+            "displayCropLeft", "displayCropTop", "displayCropRight", "displayCropBottom",
+            "audioVolume", "audioFastForwardVolume", "audioMuted", "audioOutputLatencyMs",
+            "audioMinimalOutputLatency", "padVibration", "padVibrationStrength",
+            "padVibrationFallback", "showFps", "fpsOverlayMode", "fpsOverlayCorner",
+            "fpsOverlayScale", "fpsOverlayMetrics", "confirmSaveLoadActions",
+            "backButtonExitsGame", "compactControls", "keepScreenOn", "overlayScale",
+            "overlayOpacity", "overlayShow", "racingMode", "touchscreenRightStick",
+            "touchscreenRightStickSensitivity", "touchHaptics", "touchHapticsPreset",
+            "touchHapticsStrength", "gyroMode", "gyroSensitivity", "gyroSmoothing",
+            "gyroInvertX", "gyroInvertY", "gamepadStickDeadzone",
+            "gamepadLeftStickSensitivity", "gamepadRightStickSensitivity",
+            "gamepadRightStickUpToR2", "gamepadRightStickDownToL2",
+            "gamepadButtonHaptics", "enableCheats", "frameSkip", "frameLimitEnabled",
+            "rewindEnabled", "vSyncEnabled", "fastForwardSpeed", "targetFps"
         )
 
         const val DEFAULT_LOCAL_LINK_PORT = 19072
         private const val CURRENT_OVERLAY_LAYOUT_VERSION = 18
-        const val DEFAULT_NTSC_FRAMERATE = 59.94f
-        const val MIN_REGION_FRAMERATE = 50f
-        const val MAX_REGION_FRAMERATE = 65f
-        const val DEFAULT_THREAD_PINNING = false
-        const val DEFAULT_PAL_FRAMERATE = 50f
         const val DEFAULT_FAST_FORWARD_SPEED = 2.0f
         const val DEFAULT_APP_FONT_SCALE = 1.0f
         const val MIN_APP_FONT_SCALE = 0.75f
@@ -365,11 +222,6 @@ class AppPreferences(private val context: Context) {
         const val MAX_HOME_GRID_SCALE = 1.60f
         const val DEFAULT_HOME_BACKGROUND_DIM = 48
         const val DEFAULT_EMULATION_SIDE_ARTWORK_DIM = 0
-        const val LOCAL_MULTIPLAYER_OFF = 0
-        const val LOCAL_MULTIPLAYER_SIDE_BY_SIDE = 1
-        const val LOCAL_MULTIPLAYER_STACKED = 2
-        const val LOCAL_MULTIPLAYER_HORIZONTAL_CROP = 3
-        const val LOCAL_MULTIPLAYER_HORIZONTAL_CROP_SWAPPED = 4
         const val MIN_FAST_FORWARD_SPEED = 1.25f
         const val MAX_FAST_FORWARD_SPEED = 5.0f
         private const val LEGACY_DEFAULT_LSTICK_OFFSET_X = 18f
@@ -423,7 +275,6 @@ class AppPreferences(private val context: Context) {
             ORIENTATION_LOCK_PORTRAIT, ORIENTATION_LOCK_LANDSCAPE -> value
             else -> ORIENTATION_LOCK_AUTO
         }
-        const val DEFAULT_PRESSURE_MODIFIER_AMOUNT = 50
         const val DEFAULT_PAD_VIBRATION_STRENGTH = 100
         const val DEFAULT_TOUCH_HAPTICS_STRENGTH = 60
         const val STICK_TOGGLE_LEFT = 0
@@ -454,19 +305,6 @@ class AppPreferences(private val context: Context) {
         const val MIN_FPS_OVERLAY_SCALE = 75
         const val MAX_FPS_OVERLAY_SCALE = 200
         const val DEFAULT_FPS_OVERLAY_SCALE = 100
-        const val FLOAT_ROUND_NEAREST = 0
-        const val FLOAT_ROUND_NEGATIVE = 1
-        const val FLOAT_ROUND_POSITIVE = 2
-        const val FLOAT_ROUND_CHOP = 3
-        const val CLAMPING_NONE = 0
-        const val CLAMPING_NORMAL = 1
-        const val CLAMPING_EXTRA = 2
-        const val CLAMPING_FULL = 3
-        const val DEFAULT_EE_FPU_ROUND_MODE = FLOAT_ROUND_CHOP
-        const val DEFAULT_VU_ROUND_MODE = FLOAT_ROUND_CHOP
-        const val DEFAULT_EE_FPU_CLAMPING_MODE = CLAMPING_NORMAL
-        const val DEFAULT_VU0_CLAMPING_MODE = CLAMPING_NORMAL
-        const val DEFAULT_VU1_CLAMPING_MODE = CLAMPING_NONE
 
         fun defaultOverlayControlLayouts(stickScale: Int = OVERLAY_CONTROL_SCALE_DEFAULT): Map<String, OverlayControlLayout> = mapOf(
             "l" to OverlayControlLayout(),
@@ -514,7 +352,6 @@ class AppPreferences(private val context: Context) {
         private val EMULATION_SIDE_ARTWORK = intPreferencesKey("emulation_side_artwork")
         private val EMULATION_SIDE_ARTWORK_REVISION = intPreferencesKey("emulation_side_artwork_revision")
         private val EMULATION_SIDE_ARTWORK_DIM = intPreferencesKey("emulation_side_artwork_dim")
-        private val LOCAL_MULTIPLAYER_MODE = intPreferencesKey("local_multiplayer_mode")
         private val COVER_CACHE_REVISION = intPreferencesKey("cover_cache_revision")
         private val TOUCH_CONTROL_VISUAL_STYLE = intPreferencesKey("touch_control_visual_style")
         private val TOUCH_CONTROL_PRESS_EFFECT = intPreferencesKey("touch_control_press_effect")
@@ -528,7 +365,6 @@ class AppPreferences(private val context: Context) {
         private val HIDDEN_GAME_MENU_SECTIONS = stringPreferencesKey("hidden_game_menu_sections")
         private val MEDIATEK_SETTINGS_NOTICE_SHOWN =
             booleanPreferencesKey("mediatek_settings_notice_shown")
-        private val MEMORY_CARDS_INITIALIZED = booleanPreferencesKey("memory_cards_initialized")
         private val IN_APP_REVIEW_QUALIFYING_SESSION_COUNT =
             intPreferencesKey("in_app_review_qualifying_session_count")
         private val IN_APP_REVIEW_TOTAL_ACTIVE_PLAY_TIME_MS =
@@ -564,14 +400,8 @@ class AppPreferences(private val context: Context) {
         private val AUDIO_VOLUME = intPreferencesKey("audio_volume")
         private val AUDIO_FAST_FORWARD_VOLUME = intPreferencesKey("audio_fast_forward_volume")
         private val AUDIO_MUTED = booleanPreferencesKey("audio_muted")
-        private val AUDIO_INTERPOLATION = intPreferencesKey("audio_interpolation")
-        private val AUDIO_SYNC_MODE = intPreferencesKey("audio_sync_mode")
-        private val AUDIO_LIGHTWEIGHT_SPU2 = booleanPreferencesKey("audio_lightweight_spu2")
-        private val AUDIO_BACKEND = intPreferencesKey("audio_backend")
-        private val AUDIO_BUFFER_MS = intPreferencesKey("audio_buffer_ms")
         private val AUDIO_OUTPUT_LATENCY_MS = intPreferencesKey("audio_output_latency_ms")
         private val AUDIO_MINIMAL_OUTPUT_LATENCY = booleanPreferencesKey("audio_minimal_output_latency")
-        private val AUTO_PROGRESSIVE_SCAN = booleanPreferencesKey("auto_progressive_scan")
         private val PAD_VIBRATION = booleanPreferencesKey("pad_vibration")
         private val PAD_VIBRATION_STRENGTH = intPreferencesKey("pad_vibration_strength")
         private val PAD_VIBRATION_FALLBACK = booleanPreferencesKey("pad_vibration_fallback")
@@ -601,116 +431,9 @@ class AppPreferences(private val context: Context) {
         private val TOUCHSCREEN_RIGHT_STICK = booleanPreferencesKey("touchscreen_right_stick")
         private val TOUCHSCREEN_RIGHT_STICK_SENSITIVITY = intPreferencesKey("touchscreen_right_stick_sensitivity")
         // Extended emulator settings
-        private val ENABLE_FAST_BOOT = booleanPreferencesKey("enable_fast_boot")
-        private val EE_CYCLE_RATE = intPreferencesKey("ee_cycle_rate")
-        private val EE_CYCLE_SKIP = intPreferencesKey("ee_cycle_skip")
-        private val ENABLE_EE_RECOMPILER = booleanPreferencesKey("enable_ee_recompiler")
-        private val ENABLE_IOP_RECOMPILER = booleanPreferencesKey("enable_iop_recompiler")
-        private val ENABLE_VU0_RECOMPILER = booleanPreferencesKey("enable_vu0_recompiler")
-        private val ENABLE_VU1_RECOMPILER = booleanPreferencesKey("enable_vu1_recompiler")
-        private val ENABLE_FASTMEM = booleanPreferencesKey("enable_fastmem")
-        private val EE_FPU_ROUND_MODE = intPreferencesKey("ee_fpu_round_mode")
-        private val VU0_ROUND_MODE = intPreferencesKey("vu0_round_mode")
-        private val VU1_ROUND_MODE = intPreferencesKey("vu1_round_mode")
-        private val EE_FPU_CLAMPING_MODE = intPreferencesKey("ee_fpu_clamping_mode")
-        private val VU0_CLAMPING_MODE = intPreferencesKey("vu0_clamping_mode")
-        private val VU1_CLAMPING_MODE = intPreferencesKey("vu1_clamping_mode")
-        private val ENABLE_GAME_FIXES = booleanPreferencesKey("enable_game_fixes")
-        private val ENABLE_EE_TIMING_HACK = booleanPreferencesKey("enable_ee_timing_hack")
-        private val ENABLE_WAIT_LOOP_SPEEDHACK = booleanPreferencesKey("enable_wait_loop_speedhack")
-        private val ENABLE_INTC_STAT_SPEEDHACK = booleanPreferencesKey("enable_intc_stat_speedhack")
-        private val ENABLE_VU_FLAG_HACK = booleanPreferencesKey("enable_vu_flag_hack")
-        private val ENABLE_INSTANT_VU1 = booleanPreferencesKey("enable_instant_vu1")
-        private val ENABLE_MTVU = booleanPreferencesKey("enable_mtvu")
-        private val ENABLE_THREAD_PINNING = booleanPreferencesKey("enable_thread_pinning")
-        private val ENABLE_FAST_CDVD = booleanPreferencesKey("enable_fast_cdvd")
         private val ENABLE_CHEATS = booleanPreferencesKey("enable_cheats")
-        private val ENABLE_ICACHE_EMULATION = booleanPreferencesKey("enable_icache_emulation")
-        private val ENABLE_DISABLE_STALLS = booleanPreferencesKey("enable_disable_stalls")
-        private val ENABLE_PRECISE_EXCEPTIONS = booleanPreferencesKey("enable_precise_exceptions")
-        private val ENABLE_TURBO_CD = booleanPreferencesKey("enable_turbo_cd")
-        private val ENABLE_CDDA_AUDIO = booleanPreferencesKey("enable_cdda_audio")
-        private val ENABLE_XA_DECODING = booleanPreferencesKey("enable_xa_decoding")
-        private val ENABLE_SPU_REVERB = booleanPreferencesKey("enable_spu_reverb")
-        private val ENABLE_SPU_THREAD = booleanPreferencesKey("enable_spu_thread")
-        private val SPU_TEMPO = intPreferencesKey("spu_tempo")
-        private val NEON_ENHANCEMENT = booleanPreferencesKey("neon_enhancement")
-        private val NEON_ENHANCEMENT_SPEED_HACK = booleanPreferencesKey("neon_enhancement_speed_hack")
-        private val NEON_ENHANCEMENT_TEX_ADJ = booleanPreferencesKey("neon_enhancement_tex_adj")
-        private val NEON_INTERLACE = intPreferencesKey("neon_interlace")
-        private val GPU_THREAD_RENDERING = intPreferencesKey("gpu_thread_rendering")
-        private val SHOW_OVERSCAN = booleanPreferencesKey("show_overscan")
-        private val SCREEN_CENTERING = intPreferencesKey("screen_centering")
-        private val SCREEN_CENTERING_X = intPreferencesKey("screen_centering_x")
-        private val SCREEN_CENTERING_Y = intPreferencesKey("screen_centering_y")
-        private val SCREEN_CENTERING_H_ADJ = intPreferencesKey("screen_centering_h_adj")
-        private val ENABLE_FRACTIONAL_FRAMERATE = booleanPreferencesKey("enable_fractional_framerate")
-        private val ALT_FLIP_MODE = intPreferencesKey("alt_flip_mode")
-        private val ENABLE_RGB32_OUTPUT = booleanPreferencesKey("enable_rgb32_output")
-        private val ENABLE_SCALE_HIRES = booleanPreferencesKey("enable_scale_hires")
-        private val MULTITAP_MODE = intPreferencesKey("multitap_mode")
-        private val ANALOG_AXIS_MODIFIER = intPreferencesKey("analog_axis_modifier")
-        private val DUALSHOCK_TOGGLE_COMBO = intPreferencesKey("dualshock_toggle_combo")
-        private val CD_READ_AHEAD = intPreferencesKey("cd_read_ahead")
-        private val HW_DOWNLOAD_MODE = intPreferencesKey("hw_download_mode")
         private val FRAME_SKIP = intPreferencesKey("frame_skip")
-        private val SKIP_DUPLICATE_FRAMES = booleanPreferencesKey("skip_duplicate_frames")
-        private val TEXTURE_FILTERING = intPreferencesKey("texture_filtering")
-        private val TRILINEAR_FILTERING = intPreferencesKey("trilinear_filtering")
-        private val BLENDING_ACCURACY = intPreferencesKey("blending_accuracy")
-        private val TEXTURE_PRELOADING = intPreferencesKey("texture_preloading")
         private val TEXTURE_REPLACEMENTS_ENABLED = booleanPreferencesKey("texture_replacements_enabled")
-        private val TEXTURE_REPLACEMENTS_ASYNC = booleanPreferencesKey("texture_replacements_async")
-        private val TEXTURE_REPLACEMENTS_PRECACHE = booleanPreferencesKey("texture_replacements_precache")
-        private val TEXTURE_DUMPING_ENABLED = booleanPreferencesKey("texture_dumping_enabled")
-        private val ENABLE_FXAA = booleanPreferencesKey("enable_fxaa")
-        private val SGSR_MODE = intPreferencesKey("sgsr_mode")
-        private val CAS_MODE = intPreferencesKey("cas_mode")
-        private val CAS_SHARPNESS = intPreferencesKey("cas_sharpness")
-        private val TV_SHADER = intPreferencesKey("tv_shader")
-        private val SHADEBOOST_ENABLED = booleanPreferencesKey("shadeboost_enabled")
-        private val SHADEBOOST_BRIGHTNESS = intPreferencesKey("shadeboost_brightness")
-        private val SHADEBOOST_CONTRAST = intPreferencesKey("shadeboost_contrast")
-        private val SHADEBOOST_SATURATION = intPreferencesKey("shadeboost_saturation")
-        private val SHADEBOOST_GAMMA = intPreferencesKey("shadeboost_gamma")
-        private val ENABLE_WIDESCREEN_PATCHES = booleanPreferencesKey("enable_widescreen_patches")
-        private val ENABLE_NO_INTERLACING_PATCHES = booleanPreferencesKey("enable_no_interlacing_patches")
-        private val PATCH_DATABASE_USE_OFFICIAL = booleanPreferencesKey("patch_database_use_official")
-        private val PATCH_DATABASE_CUSTOM_URL = stringPreferencesKey("patch_database_custom_url")
-        private val PATCH_DATABASE_REVISION = intPreferencesKey("patch_database_revision")
-        private val DEINTERLACE_MODE = intPreferencesKey("deinterlace_mode")
-        private val DITHERING = intPreferencesKey("dithering")
-        private val ANTI_BLUR = booleanPreferencesKey("anti_blur")
-        private val ANISOTROPIC_FILTERING = intPreferencesKey("anisotropic_filtering")
-        private val ENABLE_HW_MIPMAPPING = booleanPreferencesKey("enable_hw_mipmapping")
-        private val CPU_SPRITE_RENDER_SIZE = intPreferencesKey("cpu_sprite_render_size")
-        private val CPU_SPRITE_RENDER_LEVEL = intPreferencesKey("cpu_sprite_render_level")
-        private val SOFTWARE_CLUT_RENDER = intPreferencesKey("software_clut_render")
-        private val GPU_TARGET_CLUT_MODE = intPreferencesKey("gpu_target_clut_mode")
-        private val SKIP_DRAW_START = intPreferencesKey("skip_draw_start")
-        private val SKIP_DRAW_END = intPreferencesKey("skip_draw_end")
-        private val AUTO_FLUSH_HARDWARE = intPreferencesKey("auto_flush_hardware")
-        private val CPU_FRAMEBUFFER_CONVERSION = booleanPreferencesKey("cpu_framebuffer_conversion")
-        private val DISABLE_DEPTH_CONVERSION = booleanPreferencesKey("disable_depth_conversion")
-        private val DISABLE_SAFE_FEATURES = booleanPreferencesKey("disable_safe_features")
-        private val DISABLE_RENDER_FIXES = booleanPreferencesKey("disable_render_fixes")
-        private val PRELOAD_FRAME_DATA = booleanPreferencesKey("preload_frame_data")
-        private val DISABLE_PARTIAL_INVALIDATION = booleanPreferencesKey("disable_partial_invalidation")
-        private val TEXTURE_INSIDE_RT = intPreferencesKey("texture_inside_rt")
-        private val READ_TARGETS_ON_CLOSE = booleanPreferencesKey("read_targets_on_close")
-        private val ESTIMATE_TEXTURE_REGION = booleanPreferencesKey("estimate_texture_region")
-        private val GPU_PALETTE_CONVERSION = booleanPreferencesKey("gpu_palette_conversion")
-        private val HALF_PIXEL_OFFSET = intPreferencesKey("half_pixel_offset")
-        private val NATIVE_SCALING = intPreferencesKey("native_scaling")
-        private val ROUND_SPRITE = intPreferencesKey("round_sprite")
-        private val BILINEAR_UPSCALE = intPreferencesKey("bilinear_upscale")
-        private val TEXTURE_OFFSET_X = intPreferencesKey("texture_offset_x")
-        private val TEXTURE_OFFSET_Y = intPreferencesKey("texture_offset_y")
-        private val ALIGN_SPRITE = booleanPreferencesKey("align_sprite")
-        private val MERGE_SPRITE = booleanPreferencesKey("merge_sprite")
-        private val FORCE_EVEN_SPRITE_POSITION = booleanPreferencesKey("force_even_sprite_position")
-        private val NATIVE_PALETTE_DRAW = booleanPreferencesKey("native_palette_draw")
-        private val PERFORMANCE_PRESET = intPreferencesKey("performance_preset")
         private val ENABLE_AUTO_GAMEPAD = booleanPreferencesKey("enable_auto_gamepad")
         private val HIDE_OVERLAY_ON_GAMEPAD = booleanPreferencesKey("hide_overlay_on_gamepad")
         private val FLOATING_QUICK_ACTIONS_ENABLED = booleanPreferencesKey("floating_quick_actions_enabled")
@@ -734,7 +457,6 @@ class AppPreferences(private val context: Context) {
         private val GYRO_INVERT_X = booleanPreferencesKey("gyro_invert_x")
         private val GYRO_INVERT_Y = booleanPreferencesKey("gyro_invert_y")
         private val GAMEPAD_BUTTON_HAPTICS = booleanPreferencesKey("gamepad_button_haptics")
-        private val PRESSURE_MODIFIER_AMOUNT = intPreferencesKey("pressure_modifier_amount")
         private val GAMEPAD_STICK_DEADZONE = intPreferencesKey("gamepad_stick_deadzone")
         private val GAMEPAD_LEFT_STICK_SENSITIVITY = intPreferencesKey("gamepad_left_stick_sensitivity")
         private val GAMEPAD_RIGHT_STICK_SENSITIVITY = intPreferencesKey("gamepad_right_stick_sensitivity")
@@ -743,20 +465,14 @@ class AppPreferences(private val context: Context) {
         private val GAMEPAD_BINDINGS = stringPreferencesKey("gamepad_bindings")
         private val GAMEPAD_DEVICE_ASSIGNMENTS = stringPreferencesKey("gamepad_device_assignments")
         private val GAMEPAD_IGNORED_DEVICES = stringPreferencesKey("gamepad_ignored_devices")
-        private val GPU_DRIVER_TYPE = intPreferencesKey("gpu_driver_type")
         private val MEDIATEK_ANGLE_OPENGL = booleanPreferencesKey("mediatek_angle_opengl")
-        private val CUSTOM_DRIVER_PATH = stringPreferencesKey("custom_driver_path")
         private val FRAME_LIMIT_ENABLED = booleanPreferencesKey("frame_limit_enabled")
         private val REWIND_ENABLED = booleanPreferencesKey("rewind_enabled")
         private val VSYNC_ENABLED = booleanPreferencesKey("vsync_enabled")
         private val FAST_FORWARD_SPEED = floatPreferencesKey("fast_forward_speed")
         private val TARGET_FPS = intPreferencesKey("target_fps")
-        private val NTSC_FRAMERATE = floatPreferencesKey("ntsc_framerate")
-        private val PAL_FRAMERATE = floatPreferencesKey("pal_framerate")
         private val AUTO_SAVE_ENABLED = booleanPreferencesKey("auto_save_enabled")
         private val AUTO_SAVE_INTERVAL_MINUTES = intPreferencesKey("auto_save_interval_minutes")
-        private val MEMORY_CARD_SLOT1 = stringPreferencesKey("memory_card_slot_1")
-        private val MEMORY_CARD_SLOT2 = stringPreferencesKey("memory_card_slot_2")
 
         // Control Layout Customization
         private val DPAD_OFFSET = stringPreferencesKey("dpad_offset")
@@ -865,10 +581,6 @@ class AppPreferences(private val context: Context) {
         .map { prefs ->
             (prefs[EMULATION_SIDE_ARTWORK_DIM] ?: DEFAULT_EMULATION_SIDE_ARTWORK_DIM).coerceIn(0, 85)
         }
-        .distinctUntilChanged()
-
-    val localMultiplayerMode: Flow<Int> = context.dataStore.data
-        .map { prefs -> normalizeLocalMultiplayerMode(prefs[LOCAL_MULTIPLAYER_MODE]) }
         .distinctUntilChanged()
 
     val coverCacheRevision: Flow<Int> = context.dataStore.data
@@ -1043,18 +755,6 @@ class AppPreferences(private val context: Context) {
         context.dataStore.edit { it[EMULATION_SIDE_ARTWORK_DIM] = dim.coerceIn(0, 85) }
     }
 
-    suspend fun setLocalMultiplayerMode(mode: Int) {
-        context.dataStore.edit { it[LOCAL_MULTIPLAYER_MODE] = normalizeLocalMultiplayerMode(mode) }
-    }
-
-    private fun normalizeLocalMultiplayerMode(mode: Int?): Int = when (mode) {
-        LOCAL_MULTIPLAYER_SIDE_BY_SIDE,
-        LOCAL_MULTIPLAYER_STACKED,
-        LOCAL_MULTIPLAYER_HORIZONTAL_CROP,
-        LOCAL_MULTIPLAYER_HORIZONTAL_CROP_SWAPPED -> mode
-        else -> LOCAL_MULTIPLAYER_OFF
-    }
-
     suspend fun notifyCoverCacheCleared() {
         context.dataStore.edit { prefs ->
             prefs[COVER_CACHE_REVISION] = (prefs[COVER_CACHE_REVISION] ?: 0) + 1
@@ -1174,15 +874,6 @@ class AppPreferences(private val context: Context) {
         GpuHardwareProfiles.normalize(prefs[GPU_HARDWARE_PROFILE] ?: GpuHardwareProfiles.ADRENO)
     }
 
-
-    val gpuDriverType: Flow<Int> = context.dataStore.data.map { prefs ->
-        prefs[GPU_DRIVER_TYPE] ?: 0
-    }
-
-    val customDriverPath: Flow<String?> = context.dataStore.data.map { prefs ->
-        prefs[CUSTOM_DRIVER_PATH]
-    }
-
     suspend fun setRenderer(value: Int) {
         context.dataStore.edit { prefs ->
             prefs[RENDERER] = normalizeRendererPreference(value)
@@ -1204,6 +895,13 @@ class AppPreferences(private val context: Context) {
         return RendererDefaults.normalizeAndroidRenderer(value ?: RendererDefaults.AUTO)
     }
 
+    private fun normalizeAspectRatioPreference(value: Int?): Int {
+        return when (value) {
+            0, 1, 2, 3, 4 -> value
+            else -> 1
+        }
+    }
+
     private fun resolvePerformanceProfile(prefs: Preferences): Int {
         return PerformanceProfiles.normalize(prefs[PERFORMANCE_PROFILE] ?: PerformanceProfiles.SAFE)
     }
@@ -1213,17 +911,6 @@ class AppPreferences(private val context: Context) {
 
     private fun resolveGpuHardwareProfile(): Int {
         return GpuHardwareProfiles.detectHardwareProfile()
-    }
-
-    suspend fun setGpuDriverType(value: Int) {
-        context.dataStore.edit { it[GPU_DRIVER_TYPE] = value }
-    }
-
-    suspend fun setCustomDriverPath(path: String?) {
-        context.dataStore.edit { prefs ->
-            if (path == null) prefs.remove(CUSTOM_DRIVER_PATH)
-            else prefs[CUSTOM_DRIVER_PATH] = path
-        }
     }
 
     val frameLimitEnabled: Flow<Boolean> = context.dataStore.data.map { prefs ->
@@ -1254,46 +941,6 @@ class AppPreferences(private val context: Context) {
 
     suspend fun setAudioMuted(muted: Boolean) {
         context.dataStore.edit { it[AUDIO_MUTED] = muted }
-    }
-
-    val audioInterpolation: Flow<Int> = context.dataStore.data.map { prefs ->
-        AudioDefaults.coerceInterpolation(prefs[AUDIO_INTERPOLATION] ?: AudioDefaults.INTERPOLATION_DEFAULT)
-    }
-
-    suspend fun setAudioInterpolation(value: Int) {
-        context.dataStore.edit { it[AUDIO_INTERPOLATION] = AudioDefaults.coerceInterpolation(value) }
-    }
-
-    val audioSyncMode: Flow<Int> = context.dataStore.data.map { prefs ->
-        AudioDefaults.coerceSyncMode(prefs[AUDIO_SYNC_MODE] ?: AudioDefaults.SYNC_DEFAULT)
-    }
-
-    suspend fun setAudioSyncMode(value: Int) {
-        context.dataStore.edit { it[AUDIO_SYNC_MODE] = AudioDefaults.coerceSyncMode(value) }
-    }
-
-    val audioLightweightSpu2: Flow<Boolean> = context.dataStore.data.map { prefs ->
-        prefs[AUDIO_LIGHTWEIGHT_SPU2] ?: AudioDefaults.LIGHTWEIGHT_SPU2_DEFAULT
-    }
-
-    suspend fun setAudioLightweightSpu2(enabled: Boolean) {
-        context.dataStore.edit { it[AUDIO_LIGHTWEIGHT_SPU2] = enabled }
-    }
-
-    val audioBackend: Flow<Int> = context.dataStore.data.map { prefs ->
-        AudioDefaults.coerceBackend(prefs[AUDIO_BACKEND] ?: AudioDefaults.BACKEND_DEFAULT)
-    }
-
-    suspend fun setAudioBackend(value: Int) {
-        context.dataStore.edit { it[AUDIO_BACKEND] = AudioDefaults.coerceBackend(value) }
-    }
-
-    val audioBufferMs: Flow<Int> = context.dataStore.data.map { prefs ->
-        AudioDefaults.coerceBufferMs(prefs[AUDIO_BUFFER_MS] ?: AudioDefaults.BUFFER_MS_DEFAULT)
-    }
-
-    suspend fun setAudioBufferMs(value: Int) {
-        context.dataStore.edit { it[AUDIO_BUFFER_MS] = AudioDefaults.coerceBufferMs(value) }
     }
 
     val audioOutputLatencyMs: Flow<Int> = context.dataStore.data.map { prefs ->
@@ -1350,22 +997,6 @@ class AppPreferences(private val context: Context) {
         context.dataStore.edit { it[TARGET_FPS] = if (value <= 0) 0 else value.coerceIn(20, 120) }
     }
 
-    val ntscFramerate: Flow<Float> = context.dataStore.data.map { prefs ->
-        sanitizeRegionFramerate(prefs[NTSC_FRAMERATE], DEFAULT_NTSC_FRAMERATE)
-    }
-
-    suspend fun setNtscFramerate(value: Float) {
-        context.dataStore.edit { it[NTSC_FRAMERATE] = sanitizeRegionFramerate(value, DEFAULT_NTSC_FRAMERATE) }
-    }
-
-    val palFramerate: Flow<Float> = context.dataStore.data.map { prefs ->
-        sanitizeRegionFramerate(prefs[PAL_FRAMERATE], DEFAULT_PAL_FRAMERATE)
-    }
-
-    suspend fun setPalFramerate(value: Float) {
-        context.dataStore.edit { it[PAL_FRAMERATE] = sanitizeRegionFramerate(value, DEFAULT_PAL_FRAMERATE) }
-    }
-
     val autoSaveEnabled: Flow<Boolean> = context.dataStore.data.map { prefs ->
         prefs[AUTO_SAVE_ENABLED] ?: false
     }
@@ -1382,14 +1013,6 @@ class AppPreferences(private val context: Context) {
         context.dataStore.edit { it[AUTO_SAVE_INTERVAL_MINUTES] = value.coerceIn(1, 999) }
     }
 
-    val skipDuplicateFrames: Flow<Boolean> = context.dataStore.data.map { prefs ->
-        prefs[SKIP_DUPLICATE_FRAMES] ?: true
-    }
-
-    suspend fun setSkipDuplicateFrames(enabled: Boolean) {
-        context.dataStore.edit { it[SKIP_DUPLICATE_FRAMES] = enabled }
-    }
-
     suspend fun resetAllSettings() {
         context.dataStore.edit { prefs ->
             // Acknowledged compatibility notices are not user settings. Preserve them so a
@@ -1403,34 +1026,9 @@ class AppPreferences(private val context: Context) {
         localePrefs.edit().remove("language_tag").apply()
     }
 
-    suspend fun cleanupLegacyClampingPreferencesIfNeeded() {
-        context.dataStore.edit { prefs ->
-            LEGACY_CLAMPING_PREF_KEYS.forEach(prefs::remove)
-        }
-    }
-
-    val memoryCardSlot1: Flow<String?> = context.dataStore.data.map { prefs -> prefs[MEMORY_CARD_SLOT1] }
-    val memoryCardSlot2: Flow<String?> = context.dataStore.data.map { prefs -> prefs[MEMORY_CARD_SLOT2] }
-
-    val memoryCardsInitialized: Flow<Boolean> = context.dataStore.data
-        .map { prefs -> prefs[MEMORY_CARDS_INITIALIZED] == true }
-        .distinctUntilChanged()
-
-    suspend fun markMemoryCardsInitialized() {
-        context.dataStore.edit { prefs -> prefs[MEMORY_CARDS_INITIALIZED] = true }
-    }
-
-    suspend fun setMemoryCardAssignments(slot1: String?, slot2: String?) {
-        context.dataStore.edit { prefs ->
-            slot1?.let { prefs[MEMORY_CARD_SLOT1] = it } ?: prefs.remove(MEMORY_CARD_SLOT1)
-            slot2?.let { prefs[MEMORY_CARD_SLOT2] = it } ?: prefs.remove(MEMORY_CARD_SLOT2)
-        }
-    }
-
     val upscaleMultiplier: Flow<Float> = context.dataStore.data.map { prefs ->
         readUpscale(prefs)
     }
-
     suspend fun setUpscaleMultiplier(value: Float) {
         context.dataStore.edit { it[UPSCALE] = normalizeUpscale(value) }
     }
@@ -1673,7 +1271,6 @@ class AppPreferences(private val context: Context) {
                 emulationSideArtworkDim =
                     (prefs[EMULATION_SIDE_ARTWORK_DIM] ?: DEFAULT_EMULATION_SIDE_ARTWORK_DIM)
                         .coerceIn(0, 85),
-                localMultiplayerMode = normalizeLocalMultiplayerMode(prefs[LOCAL_MULTIPLAYER_MODE]),
                 touchControlVisualStyle = TouchControlVisualStyle.fromPreference(prefs[TOUCH_CONTROL_VISUAL_STYLE]),
                 touchControlPressEffect = TouchControlPressEffect.fromPreference(prefs[TOUCH_CONTROL_PRESS_EFFECT]),
                 gameMenuLayoutStyle = GameMenuLayoutStyle.fromPreference(prefs[GAME_MENU_LAYOUT_STYLE]),
@@ -1693,6 +1290,7 @@ class AppPreferences(private val context: Context) {
                 displayCrop = readDisplayCrop(prefs),
                 shaderChainEnabled = prefs[SHADER_CHAIN_ENABLED] ?: false,
                 shaderChainPreset = prefs[SHADER_CHAIN_PRESET].orEmpty(),
+                textureReplacementsEnabled = prefs[TEXTURE_REPLACEMENTS_ENABLED] ?: true,
                 audioVolume = AudioDefaults.coerceVolume(
                     prefs[AUDIO_VOLUME] ?: AudioDefaults.VOLUME_DEFAULT
                 ),
@@ -1700,26 +1298,11 @@ class AppPreferences(private val context: Context) {
                     prefs[AUDIO_FAST_FORWARD_VOLUME] ?: AudioDefaults.VOLUME_DEFAULT
                 ),
                 audioMuted = prefs[AUDIO_MUTED] ?: false,
-                audioInterpolation = AudioDefaults.coerceInterpolation(
-                    prefs[AUDIO_INTERPOLATION] ?: AudioDefaults.INTERPOLATION_DEFAULT
-                ),
-                audioSyncMode = AudioDefaults.coerceSyncMode(
-                    prefs[AUDIO_SYNC_MODE] ?: AudioDefaults.SYNC_DEFAULT
-                ),
-                audioLightweightSpu2 = prefs[AUDIO_LIGHTWEIGHT_SPU2]
-                    ?: AudioDefaults.LIGHTWEIGHT_SPU2_DEFAULT,
-                audioBackend = AudioDefaults.coerceBackend(
-                    prefs[AUDIO_BACKEND] ?: AudioDefaults.BACKEND_DEFAULT
-                ),
-                audioBufferMs = AudioDefaults.coerceBufferMs(
-                    prefs[AUDIO_BUFFER_MS] ?: AudioDefaults.BUFFER_MS_DEFAULT
-                ),
                 audioOutputLatencyMs = AudioDefaults.coerceOutputLatencyMs(
                     prefs[AUDIO_OUTPUT_LATENCY_MS] ?: AudioDefaults.OUTPUT_LATENCY_MS_DEFAULT
                 ),
                 audioMinimalOutputLatency = prefs[AUDIO_MINIMAL_OUTPUT_LATENCY]
                     ?: AudioDefaults.MINIMAL_OUTPUT_LATENCY_DEFAULT,
-                autoProgressiveScan = prefs[AUTO_PROGRESSIVE_SCAN] ?: false,
                 padVibration = prefs[PAD_VIBRATION] ?: true,
                 padVibrationStrength = (prefs[PAD_VIBRATION_STRENGTH] ?: DEFAULT_PAD_VIBRATION_STRENGTH).coerceIn(0, 150),
                 padVibrationFallback = prefs[PAD_VIBRATION_FALLBACK] ?: true,
@@ -1757,136 +1340,8 @@ class AppPreferences(private val context: Context) {
                 coverArtStyle = readCoverArtStyle(prefs),
                 setupComplete = prefs[ONBOARDING_COMPLETED] ?: false,
                 proUnlocked = prefs[PRO_UNLOCKED] ?: false,
-                enableFastBoot = prefs[ENABLE_FAST_BOOT] ?: true,
-                eeCycleRate = prefs[EE_CYCLE_RATE] ?: profileConfig.eeCycleRate,
-                eeCycleSkip = prefs[EE_CYCLE_SKIP] ?: profileConfig.eeCycleSkip,
-                enableEeRecompiler = prefs[ENABLE_EE_RECOMPILER] ?: true,
-                enableIopRecompiler = prefs[ENABLE_IOP_RECOMPILER] ?: true,
-                enableVu0Recompiler = prefs[ENABLE_VU0_RECOMPILER] ?: true,
-                enableVu1Recompiler = prefs[ENABLE_VU1_RECOMPILER] ?: true,
-                enableFastmem = prefs[ENABLE_FASTMEM] ?: true,
-                eeFpuRoundMode = sanitizeFloatRoundMode(prefs[EE_FPU_ROUND_MODE], DEFAULT_EE_FPU_ROUND_MODE),
-                vu0RoundMode = sanitizeFloatRoundMode(prefs[VU0_ROUND_MODE], DEFAULT_VU_ROUND_MODE),
-                vu1RoundMode = sanitizeFloatRoundMode(prefs[VU1_ROUND_MODE], DEFAULT_VU_ROUND_MODE),
-                eeFpuClampingMode = sanitizeClampingMode(prefs[EE_FPU_CLAMPING_MODE], DEFAULT_EE_FPU_CLAMPING_MODE),
-                vu0ClampingMode = sanitizeClampingMode(prefs[VU0_CLAMPING_MODE], DEFAULT_VU0_CLAMPING_MODE),
-                vu1ClampingMode = sanitizeClampingMode(prefs[VU1_CLAMPING_MODE], DEFAULT_VU1_CLAMPING_MODE),
-                enableGameFixes = prefs[ENABLE_GAME_FIXES] ?: true,
-                enableEeTimingHack = prefs[ENABLE_EE_TIMING_HACK] ?: false,
-                enableWaitLoopSpeedhack = prefs[ENABLE_WAIT_LOOP_SPEEDHACK] ?: true,
-                enableIntcStatSpeedhack = prefs[ENABLE_INTC_STAT_SPEEDHACK] ?: true,
-                enableVuFlagHack = prefs[ENABLE_VU_FLAG_HACK] ?: true,
-                enableInstantVu1 = prefs[ENABLE_INSTANT_VU1] ?: true,
-                enableMtvu = prefs[ENABLE_MTVU] ?: true,
-                enableThreadPinning = prefs[ENABLE_THREAD_PINNING] ?: DEFAULT_THREAD_PINNING,
-                enableFastCdvd = prefs[ENABLE_FAST_CDVD] ?: false,
                 enableCheats = prefs[ENABLE_CHEATS] ?: false,
-                enableIcacheEmulation = prefs[ENABLE_ICACHE_EMULATION] ?: false,
-                enableDisableStalls = prefs[ENABLE_DISABLE_STALLS] ?: false,
-                enablePreciseExceptions = prefs[ENABLE_PRECISE_EXCEPTIONS] ?: false,
-                enableTurboCd = prefs[ENABLE_TURBO_CD] ?: false,
-                enableCddaAudio = prefs[ENABLE_CDDA_AUDIO] ?: true,
-                enableXaDecoding = prefs[ENABLE_XA_DECODING] ?: true,
-                enableSpuReverb = prefs[ENABLE_SPU_REVERB] ?: true,
-                enableSpuThread = prefs[ENABLE_SPU_THREAD] ?: false,
-                spuTempo = (prefs[SPU_TEMPO] ?: 0).coerceIn(0, 5),
-                neonEnhancement = prefs[NEON_ENHANCEMENT] ?: false,
-                neonEnhancementSpeedHack = prefs[NEON_ENHANCEMENT_SPEED_HACK] ?: false,
-                neonEnhancementTexAdj = prefs[NEON_ENHANCEMENT_TEX_ADJ] ?: true,
-                neonInterlace = (prefs[NEON_INTERLACE] ?: -1).coerceIn(-1, 1),
-                gpuThreadRendering = (prefs[GPU_THREAD_RENDERING] ?: -1).coerceIn(-1, 1),
-                showOverscan = prefs[SHOW_OVERSCAN] ?: false,
-                screenCentering = (prefs[SCREEN_CENTERING] ?: 0).coerceIn(0, 3),
-                screenCenteringX = (prefs[SCREEN_CENTERING_X] ?: 0).coerceIn(-16, 16),
-                screenCenteringY = (prefs[SCREEN_CENTERING_Y] ?: 0).coerceIn(-16, 16),
-                screenCenteringHAdj = (prefs[SCREEN_CENTERING_H_ADJ] ?: 0).coerceIn(-64, 0),
-                enableFractionalFramerate = prefs[ENABLE_FRACTIONAL_FRAMERATE] ?: false,
-                altFlipMode = (prefs[ALT_FLIP_MODE] ?: 0).coerceIn(0, 2),
-                enableRgb32Output = prefs[ENABLE_RGB32_OUTPUT] ?: false,
-                enableScaleHires = prefs[ENABLE_SCALE_HIRES] ?: false,
-                multitapMode = (prefs[MULTITAP_MODE] ?: 0).coerceIn(0, 3),
-                analogAxisModifier = (prefs[ANALOG_AXIS_MODIFIER] ?: 0).coerceIn(0, 1),
-                dualshockToggleCombo = (prefs[DUALSHOCK_TOGGLE_COMBO] ?: 0).coerceIn(0, 5),
-                cdReadAhead = (prefs[CD_READ_AHEAD] ?: 0).coerceIn(0, 333000),
-                hwDownloadMode = GsHackDefaults.coerceHardwareDownloadMode(
-                    prefs[HW_DOWNLOAD_MODE] ?: profileConfig.hwDownloadMode
-                ),
-                frameSkip = GsHackDefaults.coerceFrameSkip(
-                    prefs[FRAME_SKIP] ?: GsHackDefaults.FRAME_SKIP_DEFAULT
-                ),
-                skipDuplicateFrames = prefs[SKIP_DUPLICATE_FRAMES] ?: true,
-                textureFiltering = GsHackDefaults.coerceBilinearFiltering(
-                    prefs[TEXTURE_FILTERING] ?: GsHackDefaults.BILINEAR_FILTERING_DEFAULT
-                ),
-                trilinearFiltering = prefs[TRILINEAR_FILTERING]?.let(GsHackDefaults::coerceTrilinearFiltering)
-                    ?: GsHackDefaults.TRILINEAR_FILTERING_DEFAULT,
-                blendingAccuracy = GsHackDefaults.coerceBlendingAccuracy(
-                    prefs[BLENDING_ACCURACY] ?: GsHackDefaults.BLENDING_ACCURACY_DEFAULT
-                ),
-                texturePreloading = GsHackDefaults.coerceTexturePreloading(
-                    prefs[TEXTURE_PRELOADING] ?: GsHackDefaults.TEXTURE_PRELOADING_DEFAULT
-                ),
-                enableFxaa = prefs[ENABLE_FXAA] ?: false,
-                sgsrMode = (prefs[SGSR_MODE] ?: 0).coerceIn(0, 3),
-                casMode = prefs[CAS_MODE] ?: 0,
-                casSharpness = prefs[CAS_SHARPNESS] ?: 50,
-                tvShader = prefs[TV_SHADER]?.let(GsHackDefaults::coerceTvShader) ?: GsHackDefaults.TV_SHADER_DEFAULT,
-                shadeBoostEnabled = resolveShadeBoostEnabled(
-                    explicitValue = prefs[SHADEBOOST_ENABLED],
-                    brightness = prefs[SHADEBOOST_BRIGHTNESS] ?: 50,
-                    contrast = prefs[SHADEBOOST_CONTRAST] ?: 50,
-                    saturation = prefs[SHADEBOOST_SATURATION] ?: 50,
-                    gamma = prefs[SHADEBOOST_GAMMA] ?: 50
-                ),
-                shadeBoostBrightness = prefs[SHADEBOOST_BRIGHTNESS] ?: 50,
-                shadeBoostContrast = prefs[SHADEBOOST_CONTRAST] ?: 50,
-                shadeBoostSaturation = prefs[SHADEBOOST_SATURATION] ?: 50,
-                shadeBoostGamma = prefs[SHADEBOOST_GAMMA] ?: 50,
-                enableWidescreenPatches = prefs[ENABLE_WIDESCREEN_PATCHES] ?: false,
-                enableNoInterlacingPatches = prefs[ENABLE_NO_INTERLACING_PATCHES] ?: false,
-                patchDatabaseUseOfficial = prefs[PATCH_DATABASE_USE_OFFICIAL] ?: true,
-                patchDatabaseCustomUrl = prefs[PATCH_DATABASE_CUSTOM_URL],
-                deinterlaceMode = GsHackDefaults.coerceDeinterlaceMode(
-                    prefs[DEINTERLACE_MODE] ?: GsHackDefaults.DEINTERLACE_MODE_DEFAULT
-                ),
-                dithering = GsHackDefaults.coerceDithering(
-                    prefs[DITHERING] ?: GsHackDefaults.DITHERING_DEFAULT
-                ),
-                antiBlur = prefs[ANTI_BLUR] ?: GsHackDefaults.ANTI_BLUR_DEFAULT,
-                anisotropicFiltering = GsHackDefaults.coerceAnisotropicFiltering(
-                    prefs[ANISOTROPIC_FILTERING] ?: GsHackDefaults.ANISOTROPIC_FILTERING_DEFAULT
-                ),
-                enableHwMipmapping = prefs[ENABLE_HW_MIPMAPPING] ?: GsHackDefaults.HW_MIPMAPPING_DEFAULT,
-                cpuSpriteRenderSize = prefs[CPU_SPRITE_RENDER_SIZE] ?: GsHackDefaults.CPU_SPRITE_RENDER_SIZE_DEFAULT,
-                cpuSpriteRenderLevel = prefs[CPU_SPRITE_RENDER_LEVEL] ?: GsHackDefaults.CPU_SPRITE_RENDER_LEVEL_DEFAULT,
-                softwareClutRender = prefs[SOFTWARE_CLUT_RENDER] ?: GsHackDefaults.SOFTWARE_CLUT_RENDER_DEFAULT,
-                gpuTargetClutMode = prefs[GPU_TARGET_CLUT_MODE] ?: GsHackDefaults.GPU_TARGET_CLUT_DEFAULT,
-                skipDrawStart = prefs[SKIP_DRAW_START] ?: 0,
-                skipDrawEnd = prefs[SKIP_DRAW_END] ?: 0,
-                autoFlushHardware = prefs[AUTO_FLUSH_HARDWARE] ?: GsHackDefaults.AUTO_FLUSH_DEFAULT,
-                cpuFramebufferConversion = prefs[CPU_FRAMEBUFFER_CONVERSION] ?: false,
-                disableDepthConversion = prefs[DISABLE_DEPTH_CONVERSION] ?: false,
-                disableSafeFeatures = prefs[DISABLE_SAFE_FEATURES] ?: false,
-                disableRenderFixes = prefs[DISABLE_RENDER_FIXES] ?: false,
-                preloadFrameData = prefs[PRELOAD_FRAME_DATA] ?: false,
-                disablePartialInvalidation = prefs[DISABLE_PARTIAL_INVALIDATION] ?: false,
-                textureInsideRt = prefs[TEXTURE_INSIDE_RT] ?: GsHackDefaults.TEXTURE_INSIDE_RT_DEFAULT,
-                readTargetsOnClose = prefs[READ_TARGETS_ON_CLOSE] ?: false,
-                estimateTextureRegion = prefs[ESTIMATE_TEXTURE_REGION] ?: false,
-                gpuPaletteConversion = prefs[GPU_PALETTE_CONVERSION] ?: false,
-                halfPixelOffset = prefs[HALF_PIXEL_OFFSET] ?: GsHackDefaults.HALF_PIXEL_OFFSET_DEFAULT,
-                nativeScaling = GsHackDefaults.coerceNativeScaling(
-                    prefs[NATIVE_SCALING] ?: GsHackDefaults.NATIVE_SCALING_DEFAULT
-                ),
-                roundSprite = prefs[ROUND_SPRITE] ?: GsHackDefaults.ROUND_SPRITE_DEFAULT,
-                bilinearUpscale = prefs[BILINEAR_UPSCALE] ?: GsHackDefaults.BILINEAR_UPSCALE_DEFAULT,
-                textureOffsetX = prefs[TEXTURE_OFFSET_X] ?: 0,
-                textureOffsetY = prefs[TEXTURE_OFFSET_Y] ?: 0,
-                alignSprite = prefs[ALIGN_SPRITE] ?: false,
-                mergeSprite = prefs[MERGE_SPRITE] ?: false,
-                forceEvenSpritePosition = prefs[FORCE_EVEN_SPRITE_POSITION] ?: false,
-                nativePaletteDraw = prefs[NATIVE_PALETTE_DRAW] ?: false,
-                performancePreset = PerformancePresets.CUSTOM,
+                frameSkip = (prefs[FRAME_SKIP] ?: 0).coerceIn(0, 4),
                 overlayScale = prefs[OVERLAY_SCALE] ?: 100,
                 overlayOpacity = (prefs[OVERLAY_OPACITY] ?: DEFAULT_OVERLAY_OPACITY)
                     .coerceIn(OVERLAY_OPACITY_MIN, OVERLAY_OPACITY_MAX),
@@ -1920,21 +1375,16 @@ class AppPreferences(private val context: Context) {
                 gamepadRightStickUpToR2 = prefs[GAMEPAD_RIGHT_STICK_UP_TO_R2] ?: false,
                 gamepadRightStickDownToL2 = prefs[GAMEPAD_RIGHT_STICK_DOWN_TO_L2] ?: false,
                 gamepadButtonHaptics = prefs[GAMEPAD_BUTTON_HAPTICS] ?: false,
-                pressureModifierAmount = (prefs[PRESSURE_MODIFIER_AMOUNT] ?: DEFAULT_PRESSURE_MODIFIER_AMOUNT).coerceIn(1, 100),
                 gamepadBindings = decodeGamepadBindings(prefs[GAMEPAD_BINDINGS]),
                 gamepadBindingsByPad = decodeGamepadBindingsByPad(prefs[GAMEPAD_BINDINGS]),
                 gamepadDeviceAssignments = decodeGamepadDeviceAssignments(prefs[GAMEPAD_DEVICE_ASSIGNMENTS]),
                 ignoredGamepadDevices = decodeIgnoredGamepadDevices(prefs[GAMEPAD_IGNORED_DEVICES]),
-                gpuDriverType = prefs[GPU_DRIVER_TYPE] ?: 0,
                 mediatekAngleOpenGl = prefs[MEDIATEK_ANGLE_OPENGL] ?: false,
-                customDriverPath = prefs[CUSTOM_DRIVER_PATH],
                 frameLimitEnabled = prefs[FRAME_LIMIT_ENABLED] ?: true,
                 rewindEnabled = prefs[REWIND_ENABLED] ?: false,
                 vSyncEnabled = prefs[VSYNC_ENABLED] ?: true,
                 fastForwardSpeed = sanitizeFastForwardSpeed(prefs[FAST_FORWARD_SPEED]),
-                targetFps = prefs[TARGET_FPS] ?: 0,
-                ntscFramerate = sanitizeRegionFramerate(prefs[NTSC_FRAMERATE], DEFAULT_NTSC_FRAMERATE),
-                palFramerate = sanitizeRegionFramerate(prefs[PAL_FRAMERATE], DEFAULT_PAL_FRAMERATE)
+                targetFps = prefs[TARGET_FPS] ?: 0
             )
         }
         .distinctUntilChanged()
@@ -2017,21 +1467,6 @@ class AppPreferences(private val context: Context) {
         bottom = prefs[DISPLAY_CROP_BOTTOM] ?: 0
     ).sanitized()
 
-    val autoProgressiveScan: Flow<Boolean> = context.dataStore.data.map { prefs ->
-        prefs[AUTO_PROGRESSIVE_SCAN] ?: false
-    }
-
-    suspend fun setAutoProgressiveScan(enabled: Boolean) {
-        context.dataStore.edit { it[AUTO_PROGRESSIVE_SCAN] = enabled }
-    }
-
-    private fun normalizeAspectRatioPreference(value: Int?): Int {
-        return when (value) {
-            0, 1, 2, 3, 4 -> value
-            else -> 1
-        }
-    }
-
     val padVibration: Flow<Boolean> = context.dataStore.data.map { prefs ->
         prefs[PAD_VIBRATION] ?: true
     }
@@ -2100,14 +1535,6 @@ class AppPreferences(private val context: Context) {
 
     suspend fun setGamepadButtonHaptics(enabled: Boolean) {
         context.dataStore.edit { it[GAMEPAD_BUTTON_HAPTICS] = enabled }
-    }
-
-    val pressureModifierAmount: Flow<Int> = context.dataStore.data.map { prefs ->
-        (prefs[PRESSURE_MODIFIER_AMOUNT] ?: DEFAULT_PRESSURE_MODIFIER_AMOUNT).coerceIn(1, 100)
-    }
-
-    suspend fun setPressureModifierAmount(value: Int) {
-        context.dataStore.edit { it[PRESSURE_MODIFIER_AMOUNT] = value.coerceIn(1, 100) }
     }
 
     val showFps: Flow<Boolean> = context.dataStore.data.map { prefs ->
@@ -2564,191 +1991,10 @@ class AppPreferences(private val context: Context) {
         }
     }
 
-    val eeCycleRate: Flow<Int> = context.dataStore.data.map { prefs ->
-        prefs[EE_CYCLE_RATE] ?: resolvePerformanceProfileConfig(prefs).eeCycleRate
-    }
-
-    suspend fun setEeCycleRate(value: Int) {
-        context.dataStore.edit { it[EE_CYCLE_RATE] = value.coerceIn(-3, 3) }
-    }
-
-    val eeCycleSkip: Flow<Int> = context.dataStore.data.map { prefs ->
-        prefs[EE_CYCLE_SKIP] ?: resolvePerformanceProfileConfig(prefs).eeCycleSkip
-    }
-
-    suspend fun setEeCycleSkip(value: Int) {
-        context.dataStore.edit { it[EE_CYCLE_SKIP] = value.coerceIn(0, 3) }
-    }
-
-    val enableFastBoot: Flow<Boolean> = context.dataStore.data.map { prefs ->
-        prefs[ENABLE_FAST_BOOT] ?: true
-    }
-
-    suspend fun setEnableFastBoot(enabled: Boolean) {
-        context.dataStore.edit { it[ENABLE_FAST_BOOT] = enabled }
-    }
-
-    val enableEeRecompiler: Flow<Boolean> = context.dataStore.data.map { prefs ->
-        prefs[ENABLE_EE_RECOMPILER] ?: true
-    }
-
-    suspend fun setEnableEeRecompiler(enabled: Boolean) {
-        context.dataStore.edit { it[ENABLE_EE_RECOMPILER] = enabled }
-    }
-
-    val enableIopRecompiler: Flow<Boolean> = context.dataStore.data.map { prefs ->
-        prefs[ENABLE_IOP_RECOMPILER] ?: true
-    }
-
-    suspend fun setEnableIopRecompiler(enabled: Boolean) {
-        context.dataStore.edit { it[ENABLE_IOP_RECOMPILER] = enabled }
-    }
-
-    val enableVu0Recompiler: Flow<Boolean> = context.dataStore.data.map { prefs ->
-        prefs[ENABLE_VU0_RECOMPILER] ?: true
-    }
-
-    suspend fun setEnableVu0Recompiler(enabled: Boolean) {
-        context.dataStore.edit { it[ENABLE_VU0_RECOMPILER] = enabled }
-    }
-
-    val enableVu1Recompiler: Flow<Boolean> = context.dataStore.data.map { prefs ->
-        prefs[ENABLE_VU1_RECOMPILER] ?: true
-    }
-
-    suspend fun setEnableVu1Recompiler(enabled: Boolean) {
-        context.dataStore.edit { it[ENABLE_VU1_RECOMPILER] = enabled }
-    }
-
-    val enableFastmem: Flow<Boolean> = context.dataStore.data.map { prefs ->
-        prefs[ENABLE_FASTMEM] ?: true
-    }
-
-    suspend fun setEnableFastmem(enabled: Boolean) {
-        context.dataStore.edit { it[ENABLE_FASTMEM] = enabled }
-    }
-
-    val eeFpuRoundMode: Flow<Int> = context.dataStore.data.map { prefs ->
-        sanitizeFloatRoundMode(prefs[EE_FPU_ROUND_MODE], DEFAULT_EE_FPU_ROUND_MODE)
-    }
-
-    suspend fun setEeFpuRoundMode(value: Int) {
-        context.dataStore.edit { it[EE_FPU_ROUND_MODE] = sanitizeFloatRoundMode(value, DEFAULT_EE_FPU_ROUND_MODE) }
-    }
-
-    val vu0RoundMode: Flow<Int> = context.dataStore.data.map { prefs ->
-        sanitizeFloatRoundMode(prefs[VU0_ROUND_MODE], DEFAULT_VU_ROUND_MODE)
-    }
-
-    suspend fun setVu0RoundMode(value: Int) {
-        context.dataStore.edit { it[VU0_ROUND_MODE] = sanitizeFloatRoundMode(value, DEFAULT_VU_ROUND_MODE) }
-    }
-
-    val vu1RoundMode: Flow<Int> = context.dataStore.data.map { prefs ->
-        sanitizeFloatRoundMode(prefs[VU1_ROUND_MODE], DEFAULT_VU_ROUND_MODE)
-    }
-
-    suspend fun setVu1RoundMode(value: Int) {
-        context.dataStore.edit { it[VU1_ROUND_MODE] = sanitizeFloatRoundMode(value, DEFAULT_VU_ROUND_MODE) }
-    }
-
-    val eeFpuClampingMode: Flow<Int> = context.dataStore.data.map { prefs ->
-        sanitizeClampingMode(prefs[EE_FPU_CLAMPING_MODE], DEFAULT_EE_FPU_CLAMPING_MODE)
-    }
-
-    suspend fun setEeFpuClampingMode(value: Int) {
-        context.dataStore.edit { it[EE_FPU_CLAMPING_MODE] = sanitizeClampingMode(value, DEFAULT_EE_FPU_CLAMPING_MODE) }
-    }
-
-    val vu0ClampingMode: Flow<Int> = context.dataStore.data.map { prefs ->
-        sanitizeClampingMode(prefs[VU0_CLAMPING_MODE], DEFAULT_VU0_CLAMPING_MODE)
-    }
-
-    suspend fun setVu0ClampingMode(value: Int) {
-        context.dataStore.edit { it[VU0_CLAMPING_MODE] = sanitizeClampingMode(value, DEFAULT_VU0_CLAMPING_MODE) }
-    }
-
-    val vu1ClampingMode: Flow<Int> = context.dataStore.data.map { prefs ->
-        sanitizeClampingMode(prefs[VU1_CLAMPING_MODE], DEFAULT_VU1_CLAMPING_MODE)
-    }
-
-    suspend fun setVu1ClampingMode(value: Int) {
-        context.dataStore.edit { it[VU1_CLAMPING_MODE] = sanitizeClampingMode(value, DEFAULT_VU1_CLAMPING_MODE) }
-    }
-
-    val enableGameFixes: Flow<Boolean> = context.dataStore.data.map { prefs ->
-        prefs[ENABLE_GAME_FIXES] ?: true
-    }
-
-    suspend fun setEnableGameFixes(enabled: Boolean) {
-        context.dataStore.edit { it[ENABLE_GAME_FIXES] = enabled }
-    }
-
-    val enableEeTimingHack: Flow<Boolean> = context.dataStore.data.map { prefs ->
-        prefs[ENABLE_EE_TIMING_HACK] ?: false
-    }
-
-    suspend fun setEnableEeTimingHack(enabled: Boolean) {
-        context.dataStore.edit { it[ENABLE_EE_TIMING_HACK] = enabled }
-    }
-
-    val enableWaitLoopSpeedhack: Flow<Boolean> = context.dataStore.data.map { prefs ->
-        prefs[ENABLE_WAIT_LOOP_SPEEDHACK] ?: true
-    }
-
-    suspend fun setEnableWaitLoopSpeedhack(enabled: Boolean) {
-        context.dataStore.edit { it[ENABLE_WAIT_LOOP_SPEEDHACK] = enabled }
-    }
-
-    val enableIntcStatSpeedhack: Flow<Boolean> = context.dataStore.data.map { prefs ->
-        prefs[ENABLE_INTC_STAT_SPEEDHACK] ?: true
-    }
-
-    suspend fun setEnableIntcStatSpeedhack(enabled: Boolean) {
-        context.dataStore.edit { it[ENABLE_INTC_STAT_SPEEDHACK] = enabled }
-    }
-
-    val enableVuFlagHack: Flow<Boolean> = context.dataStore.data.map { prefs ->
-        prefs[ENABLE_VU_FLAG_HACK] ?: true
-    }
-
-    suspend fun setEnableVuFlagHack(enabled: Boolean) {
-        context.dataStore.edit { it[ENABLE_VU_FLAG_HACK] = enabled }
-    }
-
-    val enableInstantVu1: Flow<Boolean> = context.dataStore.data.map { prefs ->
-        prefs[ENABLE_INSTANT_VU1] ?: true
-    }
-
-    suspend fun setEnableInstantVu1(enabled: Boolean) {
-        context.dataStore.edit { it[ENABLE_INSTANT_VU1] = enabled }
-    }
-
     // MTVU (Multi-Threaded VU1)
-    val enableMtvu: Flow<Boolean> = context.dataStore.data.map { prefs ->
-        prefs[ENABLE_MTVU] ?: true
-    }
-
-    suspend fun setEnableMtvu(enabled: Boolean) {
-        context.dataStore.edit { it[ENABLE_MTVU] = enabled }
-    }
-
-    val enableThreadPinning: Flow<Boolean> = context.dataStore.data.map { prefs ->
-        prefs[ENABLE_THREAD_PINNING] ?: DEFAULT_THREAD_PINNING
-    }
-
-    suspend fun setEnableThreadPinning(enabled: Boolean) {
-        context.dataStore.edit { it[ENABLE_THREAD_PINNING] = enabled }
-    }
 
     // Fast CDVD
-    val enableFastCdvd: Flow<Boolean> = context.dataStore.data.map { prefs ->
-        prefs[ENABLE_FAST_CDVD] ?: false
-    }
 
-    suspend fun setEnableFastCdvd(enabled: Boolean) {
-        context.dataStore.edit { it[ENABLE_FAST_CDVD] = enabled }
-    }
 
     val enableCheats: Flow<Boolean> = context.dataStore.data.map { prefs ->
         prefs[ENABLE_CHEATS] ?: false
@@ -2760,118 +2006,19 @@ class AppPreferences(private val context: Context) {
         }
     }
 
-    val enableIcacheEmulation: Flow<Boolean> = context.dataStore.data.map { prefs ->
-        prefs[ENABLE_ICACHE_EMULATION] ?: false
-    }
-    suspend fun setEnableIcacheEmulation(enabled: Boolean) {
-        context.dataStore.edit { it[ENABLE_ICACHE_EMULATION] = enabled }
-    }
-
-    val enableDisableStalls: Flow<Boolean> = context.dataStore.data.map { prefs ->
-        prefs[ENABLE_DISABLE_STALLS] ?: false
-    }
-    suspend fun setEnableDisableStalls(enabled: Boolean) {
-        context.dataStore.edit { it[ENABLE_DISABLE_STALLS] = enabled }
-    }
-
-    val enablePreciseExceptions: Flow<Boolean> = context.dataStore.data.map { prefs ->
-        prefs[ENABLE_PRECISE_EXCEPTIONS] ?: false
-    }
-    suspend fun setEnablePreciseExceptions(enabled: Boolean) {
-        context.dataStore.edit { it[ENABLE_PRECISE_EXCEPTIONS] = enabled }
-    }
-
-    val enableTurboCd: Flow<Boolean> = context.dataStore.data.map { prefs ->
-        prefs[ENABLE_TURBO_CD] ?: false
-    }
-    suspend fun setEnableTurboCd(enabled: Boolean) {
-        context.dataStore.edit { it[ENABLE_TURBO_CD] = enabled }
-    }
-
-    val enableCddaAudio: Flow<Boolean> = context.dataStore.data.map { prefs ->
-        prefs[ENABLE_CDDA_AUDIO] ?: true
-    }
-    suspend fun setEnableCddaAudio(enabled: Boolean) {
-        context.dataStore.edit { it[ENABLE_CDDA_AUDIO] = enabled }
-    }
-
-    val enableXaDecoding: Flow<Boolean> = context.dataStore.data.map { prefs ->
-        prefs[ENABLE_XA_DECODING] ?: true
-    }
-    suspend fun setEnableXaDecoding(enabled: Boolean) {
-        context.dataStore.edit { it[ENABLE_XA_DECODING] = enabled }
-    }
-
-    val enableSpuReverb: Flow<Boolean> = context.dataStore.data.map { prefs ->
-        prefs[ENABLE_SPU_REVERB] ?: true
-    }
-    suspend fun setEnableSpuReverb(enabled: Boolean) {
-        context.dataStore.edit { it[ENABLE_SPU_REVERB] = enabled }
-    }
-
-    val enableSpuThread: Flow<Boolean> = context.dataStore.data.map { prefs ->
-        prefs[ENABLE_SPU_THREAD] ?: false
-    }
-    suspend fun setEnableSpuThread(enabled: Boolean) {
-        context.dataStore.edit { it[ENABLE_SPU_THREAD] = enabled }
-    }
-
-    val spuTempo: Flow<Int> = context.dataStore.data.map { prefs ->
-        (prefs[SPU_TEMPO] ?: 0).coerceIn(0, 5)
-    }
-    suspend fun setSpuTempo(value: Int) {
-        context.dataStore.edit { it[SPU_TEMPO] = value.coerceIn(0, 5) }
-    }
-
     // Hardware Download Mode
-    val hwDownloadMode: Flow<Int> = context.dataStore.data.map { prefs ->
-        GsHackDefaults.coerceHardwareDownloadMode(
-            prefs[HW_DOWNLOAD_MODE] ?: resolvePerformanceProfileConfig(prefs).hwDownloadMode
-        )
-    }
 
-    suspend fun setHwDownloadMode(value: Int) {
-        context.dataStore.edit { it[HW_DOWNLOAD_MODE] = GsHackDefaults.coerceHardwareDownloadMode(value) }
-    }
 
     // Frame Skip: 0 = off, 1-4
     val frameSkip: Flow<Int> = context.dataStore.data.map { prefs ->
-        GsHackDefaults.coerceFrameSkip(prefs[FRAME_SKIP] ?: GsHackDefaults.FRAME_SKIP_DEFAULT)
+        (prefs[FRAME_SKIP] ?: 0).coerceIn(0, 4)
     }
 
     suspend fun setFrameSkip(value: Int) {
-        context.dataStore.edit { it[FRAME_SKIP] = GsHackDefaults.coerceFrameSkip(value) }
+        context.dataStore.edit { it[FRAME_SKIP] = value.coerceIn(0, 4) }
     }
 
     // Texture Filtering: 0 = Nearest, 1 = Bilinear, 2 = Trilinear
-    val textureFiltering: Flow<Int> = context.dataStore.data.map { prefs ->
-        GsHackDefaults.coerceBilinearFiltering(
-            prefs[TEXTURE_FILTERING] ?: GsHackDefaults.BILINEAR_FILTERING_DEFAULT
-        )
-    }
-
-    suspend fun setTextureFiltering(value: Int) {
-        context.dataStore.edit { it[TEXTURE_FILTERING] = GsHackDefaults.coerceBilinearFiltering(value) }
-    }
-
-    val trilinearFiltering: Flow<Int> = context.dataStore.data.map { prefs ->
-        prefs[TRILINEAR_FILTERING]?.let(GsHackDefaults::coerceTrilinearFiltering)
-            ?: GsHackDefaults.TRILINEAR_FILTERING_DEFAULT
-    }
-
-    suspend fun setTrilinearFiltering(value: Int) {
-        context.dataStore.edit { it[TRILINEAR_FILTERING] = GsHackDefaults.coerceTrilinearFiltering(value) }
-    }
-
-    val blendingAccuracy: Flow<Int> = context.dataStore.data.map { prefs ->
-        GsHackDefaults.coerceBlendingAccuracy(
-            prefs[BLENDING_ACCURACY] ?: GsHackDefaults.BLENDING_ACCURACY_DEFAULT
-        )
-    }
-
-    suspend fun setBlendingAccuracy(value: Int) {
-        context.dataStore.edit { it[BLENDING_ACCURACY] = GsHackDefaults.coerceBlendingAccuracy(value) }
-    }
 
     val mediatekAngleOpenGl: Flow<Boolean> = context.dataStore.data.map { prefs ->
         prefs[MEDIATEK_ANGLE_OPENGL] ?: false
@@ -2879,16 +2026,6 @@ class AppPreferences(private val context: Context) {
 
     suspend fun setMediatekAngleOpenGl(enabled: Boolean) {
         context.dataStore.edit { it[MEDIATEK_ANGLE_OPENGL] = enabled }
-    }
-
-    val texturePreloading: Flow<Int> = context.dataStore.data.map { prefs ->
-        GsHackDefaults.coerceTexturePreloading(
-            prefs[TEXTURE_PRELOADING] ?: GsHackDefaults.TEXTURE_PRELOADING_DEFAULT
-        )
-    }
-
-    suspend fun setTexturePreloading(value: Int) {
-        context.dataStore.edit { it[TEXTURE_PRELOADING] = GsHackDefaults.coerceTexturePreloading(value) }
     }
 
     val textureReplacementsEnabled: Flow<Boolean> = context.dataStore.data.map { prefs ->
@@ -2899,578 +2036,15 @@ class AppPreferences(private val context: Context) {
         context.dataStore.edit { it[TEXTURE_REPLACEMENTS_ENABLED] = enabled }
     }
 
-    val textureReplacementsAsync: Flow<Boolean> = context.dataStore.data.map { prefs ->
-        prefs[TEXTURE_REPLACEMENTS_ASYNC] ?: true
-    }
-
-    suspend fun setTextureReplacementsAsync(enabled: Boolean) {
-        context.dataStore.edit { it[TEXTURE_REPLACEMENTS_ASYNC] = enabled }
-    }
-
-    val textureReplacementsPrecache: Flow<Boolean> = context.dataStore.data.map { prefs ->
-        prefs[TEXTURE_REPLACEMENTS_PRECACHE] ?: false
-    }
-
-    suspend fun setTextureReplacementsPrecache(enabled: Boolean) {
-        context.dataStore.edit { it[TEXTURE_REPLACEMENTS_PRECACHE] = enabled }
-    }
-
-    val textureDumpingEnabled: Flow<Boolean> = context.dataStore.data.map { prefs ->
-        prefs[TEXTURE_DUMPING_ENABLED] ?: false
-    }
-
-    suspend fun setTextureDumpingEnabled(enabled: Boolean) {
-        context.dataStore.edit { it[TEXTURE_DUMPING_ENABLED] = enabled }
-    }
-
-    val enableFxaa: Flow<Boolean> = context.dataStore.data.map { prefs ->
-        prefs[ENABLE_FXAA] ?: false
-    }
-
-    suspend fun setEnableFxaa(enabled: Boolean) {
-        context.dataStore.edit { it[ENABLE_FXAA] = enabled }
-    }
-
-    val sgsrMode: Flow<Int> = context.dataStore.data.map { prefs ->
-        (prefs[SGSR_MODE] ?: 0).coerceIn(0, 3)
-    }
-
-    suspend fun setSgsrMode(value: Int) {
-        context.dataStore.edit { it[SGSR_MODE] = value.coerceIn(0, 3) }
-    }
-
-    val casMode: Flow<Int> = context.dataStore.data.map { prefs ->
-        prefs[CAS_MODE] ?: 0
-    }
-
-    suspend fun setCasMode(value: Int) {
-        context.dataStore.edit { it[CAS_MODE] = value.coerceIn(0, 2) }
-    }
-
-    val casSharpness: Flow<Int> = context.dataStore.data.map { prefs ->
-        prefs[CAS_SHARPNESS] ?: 50
-    }
-
-    suspend fun setCasSharpness(value: Int) {
-        context.dataStore.edit { it[CAS_SHARPNESS] = value.coerceIn(0, 100) }
-    }
-
-    val tvShader: Flow<Int> = context.dataStore.data.map { prefs ->
-        prefs[TV_SHADER]?.let(GsHackDefaults::coerceTvShader) ?: GsHackDefaults.TV_SHADER_DEFAULT
-    }
-
-    suspend fun setTvShader(value: Int) {
-        context.dataStore.edit { it[TV_SHADER] = GsHackDefaults.coerceTvShader(value) }
-    }
-
-    val shadeBoostEnabled: Flow<Boolean> = context.dataStore.data.map { prefs ->
-        resolveShadeBoostEnabled(
-            explicitValue = prefs[SHADEBOOST_ENABLED],
-            brightness = prefs[SHADEBOOST_BRIGHTNESS] ?: 50,
-            contrast = prefs[SHADEBOOST_CONTRAST] ?: 50,
-            saturation = prefs[SHADEBOOST_SATURATION] ?: 50,
-            gamma = prefs[SHADEBOOST_GAMMA] ?: 50
-        )
-    }
-
-    suspend fun setShadeBoostEnabled(enabled: Boolean) {
-        context.dataStore.edit { it[SHADEBOOST_ENABLED] = enabled }
-    }
-
-    val shadeBoostBrightness: Flow<Int> = context.dataStore.data.map { prefs ->
-        prefs[SHADEBOOST_BRIGHTNESS] ?: 50
-    }
-
-    suspend fun setShadeBoostBrightness(value: Int) {
-        context.dataStore.edit { it[SHADEBOOST_BRIGHTNESS] = value.coerceIn(1, 100) }
-    }
-
-    val shadeBoostContrast: Flow<Int> = context.dataStore.data.map { prefs ->
-        prefs[SHADEBOOST_CONTRAST] ?: 50
-    }
-
-    suspend fun setShadeBoostContrast(value: Int) {
-        context.dataStore.edit { it[SHADEBOOST_CONTRAST] = value.coerceIn(1, 100) }
-    }
-
-    val shadeBoostSaturation: Flow<Int> = context.dataStore.data.map { prefs ->
-        prefs[SHADEBOOST_SATURATION] ?: 50
-    }
-
-    suspend fun setShadeBoostSaturation(value: Int) {
-        context.dataStore.edit { it[SHADEBOOST_SATURATION] = value.coerceIn(1, 100) }
-    }
-
-    val shadeBoostGamma: Flow<Int> = context.dataStore.data.map { prefs ->
-        prefs[SHADEBOOST_GAMMA] ?: 50
-    }
-
-    suspend fun setShadeBoostGamma(value: Int) {
-        context.dataStore.edit { it[SHADEBOOST_GAMMA] = value.coerceIn(1, 100) }
-    }
-
     // Widescreen Patches
-    val enableWidescreenPatches: Flow<Boolean> = context.dataStore.data.map { prefs ->
-        prefs[ENABLE_WIDESCREEN_PATCHES] ?: false
-    }
-
-    suspend fun setEnableWidescreenPatches(enabled: Boolean) {
-        context.dataStore.edit { it[ENABLE_WIDESCREEN_PATCHES] = enabled }
-    }
-
-    val enableNoInterlacingPatches: Flow<Boolean> = context.dataStore.data.map { prefs ->
-        prefs[ENABLE_NO_INTERLACING_PATCHES] ?: false
-    }
-
-    suspend fun setEnableNoInterlacingPatches(enabled: Boolean) {
-        context.dataStore.edit { it[ENABLE_NO_INTERLACING_PATCHES] = enabled }
-    }
 
     // Patch database source
-    val patchDatabaseUseOfficial: Flow<Boolean> = context.dataStore.data.map { prefs ->
-        prefs[PATCH_DATABASE_USE_OFFICIAL] ?: true
-    }
-
-    suspend fun setPatchDatabaseUseOfficial(enabled: Boolean) {
-        context.dataStore.edit { it[PATCH_DATABASE_USE_OFFICIAL] = enabled }
-    }
-
-    val patchDatabaseCustomUrl: Flow<String?> = context.dataStore.data.map { prefs ->
-        prefs[PATCH_DATABASE_CUSTOM_URL]
-    }
-
-    suspend fun setPatchDatabaseCustomUrl(url: String?) {
-        context.dataStore.edit { prefs ->
-            if (url.isNullOrBlank()) {
-                prefs.remove(PATCH_DATABASE_CUSTOM_URL)
-            } else {
-                prefs[PATCH_DATABASE_CUSTOM_URL] = url.trim()
-            }
-        }
-    }
-
-    fun getPatchDatabaseUseOfficialSync(): Boolean {
-        return kotlinx.coroutines.runBlocking {
-            context.dataStore.data.map { it[PATCH_DATABASE_USE_OFFICIAL] ?: true }.first()
-        }
-    }
-
-    fun getPatchDatabaseCustomUrlSync(): String? {
-        return kotlinx.coroutines.runBlocking {
-            context.dataStore.data.map { it[PATCH_DATABASE_CUSTOM_URL] }.first()
-        }
-    }
-
-    val patchDatabaseRevision: Flow<Int> = context.dataStore.data.map { prefs ->
-        prefs[PATCH_DATABASE_REVISION] ?: 0
-    }
-
-    suspend fun bumpPatchDatabaseRevision() {
-        context.dataStore.edit { prefs ->
-            prefs[PATCH_DATABASE_REVISION] = (prefs[PATCH_DATABASE_REVISION] ?: 0) + 1
-        }
-    }
-
-    val deinterlaceMode: Flow<Int> = context.dataStore.data.map { prefs ->
-        GsHackDefaults.coerceDeinterlaceMode(
-            prefs[DEINTERLACE_MODE] ?: GsHackDefaults.DEINTERLACE_MODE_DEFAULT
-        )
-    }
-
-    suspend fun setDeinterlaceMode(value: Int) {
-        context.dataStore.edit { it[DEINTERLACE_MODE] = GsHackDefaults.coerceDeinterlaceMode(value) }
-    }
-
-    val dithering: Flow<Int> = context.dataStore.data.map { prefs ->
-        GsHackDefaults.coerceDithering(prefs[DITHERING] ?: GsHackDefaults.DITHERING_DEFAULT)
-    }
-
-    suspend fun setDithering(value: Int) {
-        context.dataStore.edit { it[DITHERING] = GsHackDefaults.coerceDithering(value) }
-    }
-
-    val antiBlur: Flow<Boolean> = context.dataStore.data.map { prefs ->
-        prefs[ANTI_BLUR] ?: GsHackDefaults.ANTI_BLUR_DEFAULT
-    }
-
-    suspend fun setAntiBlur(enabled: Boolean) {
-        context.dataStore.edit { it[ANTI_BLUR] = enabled }
-    }
 
     // Anisotropic Filtering: 0 = off, 2, 4, 8, 16
-    val anisotropicFiltering: Flow<Int> = context.dataStore.data.map { prefs ->
-        GsHackDefaults.coerceAnisotropicFiltering(
-            prefs[ANISOTROPIC_FILTERING] ?: GsHackDefaults.ANISOTROPIC_FILTERING_DEFAULT
-        )
-    }
-
-    suspend fun setAnisotropicFiltering(value: Int) {
-        context.dataStore.edit { it[ANISOTROPIC_FILTERING] = GsHackDefaults.coerceAnisotropicFiltering(value) }
-    }
-
-    val enableHwMipmapping: Flow<Boolean> = context.dataStore.data.map { prefs ->
-        prefs[ENABLE_HW_MIPMAPPING] ?: GsHackDefaults.HW_MIPMAPPING_DEFAULT
-    }
-
-    suspend fun setEnableHwMipmapping(enabled: Boolean) {
-        context.dataStore.edit { it[ENABLE_HW_MIPMAPPING] = enabled }
-    }
-
-    val cpuSpriteRenderSize: Flow<Int> = context.dataStore.data.map { prefs ->
-        prefs[CPU_SPRITE_RENDER_SIZE] ?: GsHackDefaults.CPU_SPRITE_RENDER_SIZE_DEFAULT
-    }
-
-    suspend fun setCpuSpriteRenderSize(value: Int) {
-        context.dataStore.edit { it[CPU_SPRITE_RENDER_SIZE] = value.coerceIn(0, 10) }
-    }
-
-    val cpuSpriteRenderLevel: Flow<Int> = context.dataStore.data.map { prefs ->
-        prefs[CPU_SPRITE_RENDER_LEVEL] ?: GsHackDefaults.CPU_SPRITE_RENDER_LEVEL_DEFAULT
-    }
-
-    suspend fun setCpuSpriteRenderLevel(value: Int) {
-        context.dataStore.edit { it[CPU_SPRITE_RENDER_LEVEL] = value.coerceIn(0, 2) }
-    }
-
-    val softwareClutRender: Flow<Int> = context.dataStore.data.map { prefs ->
-        prefs[SOFTWARE_CLUT_RENDER] ?: GsHackDefaults.SOFTWARE_CLUT_RENDER_DEFAULT
-    }
-
-    suspend fun setSoftwareClutRender(value: Int) {
-        context.dataStore.edit { it[SOFTWARE_CLUT_RENDER] = value.coerceIn(0, 2) }
-    }
-
-    val gpuTargetClutMode: Flow<Int> = context.dataStore.data.map { prefs ->
-        prefs[GPU_TARGET_CLUT_MODE] ?: GsHackDefaults.GPU_TARGET_CLUT_DEFAULT
-    }
-
-    suspend fun setGpuTargetClutMode(value: Int) {
-        context.dataStore.edit { it[GPU_TARGET_CLUT_MODE] = value.coerceIn(0, 2) }
-    }
-
-    val skipDrawStart: Flow<Int> = context.dataStore.data.map { prefs ->
-        prefs[SKIP_DRAW_START] ?: 0
-    }
-
-    suspend fun setSkipDrawStart(value: Int) {
-        context.dataStore.edit { it[SKIP_DRAW_START] = value.coerceIn(0, 5000) }
-    }
-
-    val skipDrawEnd: Flow<Int> = context.dataStore.data.map { prefs ->
-        prefs[SKIP_DRAW_END] ?: 0
-    }
-
-    suspend fun setSkipDrawEnd(value: Int) {
-        context.dataStore.edit { it[SKIP_DRAW_END] = value.coerceIn(0, 5000) }
-    }
-
-    val autoFlushHardware: Flow<Int> = context.dataStore.data.map { prefs ->
-        prefs[AUTO_FLUSH_HARDWARE] ?: GsHackDefaults.AUTO_FLUSH_DEFAULT
-    }
-
-    suspend fun setAutoFlushHardware(value: Int) {
-        context.dataStore.edit { it[AUTO_FLUSH_HARDWARE] = value.coerceIn(0, 2) }
-    }
-
-    val cpuFramebufferConversion: Flow<Boolean> = context.dataStore.data.map { prefs ->
-        prefs[CPU_FRAMEBUFFER_CONVERSION] ?: false
-    }
-
-    suspend fun setCpuFramebufferConversion(enabled: Boolean) {
-        context.dataStore.edit { it[CPU_FRAMEBUFFER_CONVERSION] = enabled }
-    }
-
-    val disableDepthConversion: Flow<Boolean> = context.dataStore.data.map { prefs ->
-        prefs[DISABLE_DEPTH_CONVERSION] ?: false
-    }
-
-    suspend fun setDisableDepthConversion(enabled: Boolean) {
-        context.dataStore.edit { it[DISABLE_DEPTH_CONVERSION] = enabled }
-    }
-
-    val disableSafeFeatures: Flow<Boolean> = context.dataStore.data.map { prefs ->
-        prefs[DISABLE_SAFE_FEATURES] ?: false
-    }
-
-    suspend fun setDisableSafeFeatures(enabled: Boolean) {
-        context.dataStore.edit { it[DISABLE_SAFE_FEATURES] = enabled }
-    }
-
-    val disableRenderFixes: Flow<Boolean> = context.dataStore.data.map { prefs ->
-        prefs[DISABLE_RENDER_FIXES] ?: false
-    }
-
-    suspend fun setDisableRenderFixes(enabled: Boolean) {
-        context.dataStore.edit { it[DISABLE_RENDER_FIXES] = enabled }
-    }
-
-    val preloadFrameData: Flow<Boolean> = context.dataStore.data.map { prefs ->
-        prefs[PRELOAD_FRAME_DATA] ?: false
-    }
-
-    suspend fun setPreloadFrameData(enabled: Boolean) {
-        context.dataStore.edit { it[PRELOAD_FRAME_DATA] = enabled }
-    }
-
-    val disablePartialInvalidation: Flow<Boolean> = context.dataStore.data.map { prefs ->
-        prefs[DISABLE_PARTIAL_INVALIDATION] ?: false
-    }
-
-    suspend fun setDisablePartialInvalidation(enabled: Boolean) {
-        context.dataStore.edit { it[DISABLE_PARTIAL_INVALIDATION] = enabled }
-    }
-
-    val textureInsideRt: Flow<Int> = context.dataStore.data.map { prefs ->
-        prefs[TEXTURE_INSIDE_RT] ?: GsHackDefaults.TEXTURE_INSIDE_RT_DEFAULT
-    }
-
-    suspend fun setTextureInsideRt(value: Int) {
-        context.dataStore.edit { it[TEXTURE_INSIDE_RT] = value.coerceIn(0, 2) }
-    }
-
-    val readTargetsOnClose: Flow<Boolean> = context.dataStore.data.map { prefs ->
-        prefs[READ_TARGETS_ON_CLOSE] ?: false
-    }
-
-    suspend fun setReadTargetsOnClose(enabled: Boolean) {
-        context.dataStore.edit { it[READ_TARGETS_ON_CLOSE] = enabled }
-    }
-
-    val estimateTextureRegion: Flow<Boolean> = context.dataStore.data.map { prefs ->
-        prefs[ESTIMATE_TEXTURE_REGION] ?: false
-    }
-
-    suspend fun setEstimateTextureRegion(enabled: Boolean) {
-        context.dataStore.edit { it[ESTIMATE_TEXTURE_REGION] = enabled }
-    }
-
-    val gpuPaletteConversion: Flow<Boolean> = context.dataStore.data.map { prefs ->
-        prefs[GPU_PALETTE_CONVERSION] ?: false
-    }
-
-    suspend fun setGpuPaletteConversion(enabled: Boolean) {
-        context.dataStore.edit { it[GPU_PALETTE_CONVERSION] = enabled }
-    }
-
-    val halfPixelOffset: Flow<Int> = context.dataStore.data.map { prefs ->
-        prefs[HALF_PIXEL_OFFSET] ?: GsHackDefaults.HALF_PIXEL_OFFSET_DEFAULT
-    }
-
-    suspend fun setHalfPixelOffset(value: Int) {
-        context.dataStore.edit { it[HALF_PIXEL_OFFSET] = value.coerceIn(0, 5) }
-    }
-
-    val nativeScaling: Flow<Int> = context.dataStore.data.map { prefs ->
-        GsHackDefaults.coerceNativeScaling(
-            prefs[NATIVE_SCALING] ?: GsHackDefaults.NATIVE_SCALING_DEFAULT
-        )
-    }
-
-    suspend fun setNativeScaling(value: Int) {
-        context.dataStore.edit { it[NATIVE_SCALING] = GsHackDefaults.coerceNativeScaling(value) }
-    }
-
-    val roundSprite: Flow<Int> = context.dataStore.data.map { prefs ->
-        prefs[ROUND_SPRITE] ?: GsHackDefaults.ROUND_SPRITE_DEFAULT
-    }
-
-    suspend fun setRoundSprite(value: Int) {
-        context.dataStore.edit { it[ROUND_SPRITE] = value.coerceIn(0, 2) }
-    }
-
-    val bilinearUpscale: Flow<Int> = context.dataStore.data.map { prefs ->
-        prefs[BILINEAR_UPSCALE] ?: GsHackDefaults.BILINEAR_UPSCALE_DEFAULT
-    }
-
-    suspend fun setBilinearUpscale(value: Int) {
-        context.dataStore.edit { it[BILINEAR_UPSCALE] = value.coerceIn(0, 2) }
-    }
-
-    val textureOffsetX: Flow<Int> = context.dataStore.data.map { prefs ->
-        prefs[TEXTURE_OFFSET_X] ?: 0
-    }
-
-    suspend fun setTextureOffsetX(value: Int) {
-        context.dataStore.edit { it[TEXTURE_OFFSET_X] = value.coerceIn(-4096, 4096) }
-    }
-
-    val textureOffsetY: Flow<Int> = context.dataStore.data.map { prefs ->
-        prefs[TEXTURE_OFFSET_Y] ?: 0
-    }
-
-    suspend fun setTextureOffsetY(value: Int) {
-        context.dataStore.edit { it[TEXTURE_OFFSET_Y] = value.coerceIn(-4096, 4096) }
-    }
-
-    val alignSprite: Flow<Boolean> = context.dataStore.data.map { prefs ->
-        prefs[ALIGN_SPRITE] ?: false
-    }
-
-    suspend fun setAlignSprite(enabled: Boolean) {
-        context.dataStore.edit { it[ALIGN_SPRITE] = enabled }
-    }
-
-    val mergeSprite: Flow<Boolean> = context.dataStore.data.map { prefs ->
-        prefs[MERGE_SPRITE] ?: false
-    }
-
-    suspend fun setMergeSprite(enabled: Boolean) {
-        context.dataStore.edit { it[MERGE_SPRITE] = enabled }
-    }
-
-    val forceEvenSpritePosition: Flow<Boolean> = context.dataStore.data.map { prefs ->
-        prefs[FORCE_EVEN_SPRITE_POSITION] ?: false
-    }
-
-    suspend fun setForceEvenSpritePosition(enabled: Boolean) {
-        context.dataStore.edit { it[FORCE_EVEN_SPRITE_POSITION] = enabled }
-    }
-
-    val nativePaletteDraw: Flow<Boolean> = context.dataStore.data.map { prefs ->
-        prefs[NATIVE_PALETTE_DRAW] ?: false
-    }
-
-    suspend fun setNativePaletteDraw(enabled: Boolean) {
-        context.dataStore.edit { it[NATIVE_PALETTE_DRAW] = enabled }
-    }
 
     // === Core-specific GPU/Video settings ===
 
-    val neonEnhancement: Flow<Boolean> = context.dataStore.data.map { prefs ->
-        prefs[NEON_ENHANCEMENT] ?: false
-    }
-    suspend fun setNeonEnhancement(enabled: Boolean) {
-        context.dataStore.edit { it[NEON_ENHANCEMENT] = enabled }
-    }
-
-    val neonEnhancementSpeedHack: Flow<Boolean> = context.dataStore.data.map { prefs ->
-        prefs[NEON_ENHANCEMENT_SPEED_HACK] ?: false
-    }
-    suspend fun setNeonEnhancementSpeedHack(enabled: Boolean) {
-        context.dataStore.edit { it[NEON_ENHANCEMENT_SPEED_HACK] = enabled }
-    }
-
-    val neonEnhancementTexAdj: Flow<Boolean> = context.dataStore.data.map { prefs ->
-        prefs[NEON_ENHANCEMENT_TEX_ADJ] ?: true
-    }
-    suspend fun setNeonEnhancementTexAdj(enabled: Boolean) {
-        context.dataStore.edit { it[NEON_ENHANCEMENT_TEX_ADJ] = enabled }
-    }
-
-    val neonInterlace: Flow<Int> = context.dataStore.data.map { prefs ->
-        (prefs[NEON_INTERLACE] ?: -1).coerceIn(-1, 1)
-    }
-    suspend fun setNeonInterlace(value: Int) {
-        context.dataStore.edit { it[NEON_INTERLACE] = value.coerceIn(-1, 1) }
-    }
-
-    val gpuThreadRendering: Flow<Int> = context.dataStore.data.map { prefs ->
-        (prefs[GPU_THREAD_RENDERING] ?: -1).coerceIn(-1, 1)
-    }
-    suspend fun setGpuThreadRendering(value: Int) {
-        context.dataStore.edit { it[GPU_THREAD_RENDERING] = value.coerceIn(-1, 1) }
-    }
-
-    val showOverscan: Flow<Boolean> = context.dataStore.data.map { prefs ->
-        prefs[SHOW_OVERSCAN] ?: false
-    }
-    suspend fun setShowOverscan(enabled: Boolean) {
-        context.dataStore.edit { it[SHOW_OVERSCAN] = enabled }
-    }
-
-    val screenCentering: Flow<Int> = context.dataStore.data.map { prefs ->
-        (prefs[SCREEN_CENTERING] ?: 0).coerceIn(0, 3)
-    }
-    suspend fun setScreenCentering(value: Int) {
-        context.dataStore.edit { it[SCREEN_CENTERING] = value.coerceIn(0, 3) }
-    }
-
-    val screenCenteringX: Flow<Int> = context.dataStore.data.map { prefs ->
-        (prefs[SCREEN_CENTERING_X] ?: 0).coerceIn(-16, 16)
-    }
-    suspend fun setScreenCenteringX(value: Int) {
-        context.dataStore.edit { it[SCREEN_CENTERING_X] = value.coerceIn(-16, 16) }
-    }
-
-    val screenCenteringY: Flow<Int> = context.dataStore.data.map { prefs ->
-        (prefs[SCREEN_CENTERING_Y] ?: 0).coerceIn(-16, 16)
-    }
-    suspend fun setScreenCenteringY(value: Int) {
-        context.dataStore.edit { it[SCREEN_CENTERING_Y] = value.coerceIn(-16, 16) }
-    }
-
-    val screenCenteringHAdj: Flow<Int> = context.dataStore.data.map { prefs ->
-        (prefs[SCREEN_CENTERING_H_ADJ] ?: 0).coerceIn(-64, 0)
-    }
-    suspend fun setScreenCenteringHAdj(value: Int) {
-        context.dataStore.edit { it[SCREEN_CENTERING_H_ADJ] = value.coerceIn(-64, 0) }
-    }
-
-    val enableFractionalFramerate: Flow<Boolean> = context.dataStore.data.map { prefs ->
-        prefs[ENABLE_FRACTIONAL_FRAMERATE] ?: false
-    }
-    suspend fun setEnableFractionalFramerate(enabled: Boolean) {
-        context.dataStore.edit { it[ENABLE_FRACTIONAL_FRAMERATE] = enabled }
-    }
-
-    val altFlipMode: Flow<Int> = context.dataStore.data.map { prefs ->
-        (prefs[ALT_FLIP_MODE] ?: 0).coerceIn(0, 2)
-    }
-    suspend fun setAltFlipMode(value: Int) {
-        context.dataStore.edit { it[ALT_FLIP_MODE] = value.coerceIn(0, 2) }
-    }
-
-    val enableRgb32Output: Flow<Boolean> = context.dataStore.data.map { prefs ->
-        prefs[ENABLE_RGB32_OUTPUT] ?: false
-    }
-    suspend fun setEnableRgb32Output(enabled: Boolean) {
-        context.dataStore.edit { it[ENABLE_RGB32_OUTPUT] = enabled }
-    }
-
-    val enableScaleHires: Flow<Boolean> = context.dataStore.data.map { prefs ->
-        prefs[ENABLE_SCALE_HIRES] ?: false
-    }
-    suspend fun setEnableScaleHires(enabled: Boolean) {
-        context.dataStore.edit { it[ENABLE_SCALE_HIRES] = enabled }
-    }
-
     // === Input settings ===
-
-    val multitapMode: Flow<Int> = context.dataStore.data.map { prefs ->
-        (prefs[MULTITAP_MODE] ?: 0).coerceIn(0, 3)
-    }
-    suspend fun setMultitapMode(value: Int) {
-        context.dataStore.edit { it[MULTITAP_MODE] = value.coerceIn(0, 3) }
-    }
-
-    val analogAxisModifier: Flow<Int> = context.dataStore.data.map { prefs ->
-        (prefs[ANALOG_AXIS_MODIFIER] ?: 0).coerceIn(0, 1)
-    }
-    suspend fun setAnalogAxisModifier(value: Int) {
-        context.dataStore.edit { it[ANALOG_AXIS_MODIFIER] = value.coerceIn(0, 1) }
-    }
-
-    val dualshockToggleCombo: Flow<Int> = context.dataStore.data.map { prefs ->
-        (prefs[DUALSHOCK_TOGGLE_COMBO] ?: 0).coerceIn(0, 5)
-    }
-    suspend fun setDualshockToggleCombo(value: Int) {
-        context.dataStore.edit { it[DUALSHOCK_TOGGLE_COMBO] = value.coerceIn(0, 5) }
-    }
-
-    val cdReadAhead: Flow<Int> = context.dataStore.data.map { prefs ->
-        (prefs[CD_READ_AHEAD] ?: 0).coerceIn(0, 333000)
-    }
-    suspend fun setCdReadAhead(value: Int) {
-        context.dataStore.edit { it[CD_READ_AHEAD] = value.coerceIn(0, 333000) }
-    }
-
-    val performancePreset: Flow<Int> = context.dataStore.data.map { prefs ->
-        prefs[PERFORMANCE_PRESET] ?: PerformancePresets.CUSTOM
-    }
-
-    suspend fun setPerformancePreset(value: Int) {
-        context.dataStore.edit { it[PERFORMANCE_PRESET] = value }
-    }
 
     // Gamepad auto-detect
     val enableAutoGamepad: Flow<Boolean> = context.dataStore.data.map { prefs ->
@@ -4021,7 +2595,6 @@ class AppPreferences(private val context: Context) {
                 "emulationSideArtworkDim",
                 prefs[EMULATION_SIDE_ARTWORK_DIM] ?: DEFAULT_EMULATION_SIDE_ARTWORK_DIM
             )
-            put("localMultiplayerMode", normalizeLocalMultiplayerMode(prefs[LOCAL_MULTIPLAYER_MODE]))
             put("homeBackgroundType", prefs[HOME_BACKGROUND_TYPE] ?: HomeBackgroundType.NONE.preferenceValue)
             put("homeBackgroundPreset", prefs[HOME_BACKGROUND_PRESET] ?: HomeBackgroundPreset.OLYMPUS.preferenceValue)
             put("touchControlVisualStyle", prefs[TOUCH_CONTROL_VISUAL_STYLE] ?: TouchControlVisualStyle.CLASSIC.preferenceValue)
@@ -4058,14 +2631,8 @@ class AppPreferences(private val context: Context) {
             put("audioVolume", AudioDefaults.coerceVolume(prefs[AUDIO_VOLUME] ?: AudioDefaults.VOLUME_DEFAULT))
             put("audioFastForwardVolume", AudioDefaults.coerceVolume(prefs[AUDIO_FAST_FORWARD_VOLUME] ?: AudioDefaults.VOLUME_DEFAULT))
             put("audioMuted", prefs[AUDIO_MUTED] ?: false)
-            put("audioInterpolation", AudioDefaults.coerceInterpolation(prefs[AUDIO_INTERPOLATION] ?: AudioDefaults.INTERPOLATION_DEFAULT))
-            put("audioSyncMode", AudioDefaults.coerceSyncMode(prefs[AUDIO_SYNC_MODE] ?: AudioDefaults.SYNC_DEFAULT))
-            put("audioLightweightSpu2", prefs[AUDIO_LIGHTWEIGHT_SPU2] ?: AudioDefaults.LIGHTWEIGHT_SPU2_DEFAULT)
-            put("audioBackend", AudioDefaults.coerceBackend(prefs[AUDIO_BACKEND] ?: AudioDefaults.BACKEND_DEFAULT))
-            put("audioBufferMs", AudioDefaults.coerceBufferMs(prefs[AUDIO_BUFFER_MS] ?: AudioDefaults.BUFFER_MS_DEFAULT))
             put("audioOutputLatencyMs", AudioDefaults.coerceOutputLatencyMs(prefs[AUDIO_OUTPUT_LATENCY_MS] ?: AudioDefaults.OUTPUT_LATENCY_MS_DEFAULT))
             put("audioMinimalOutputLatency", prefs[AUDIO_MINIMAL_OUTPUT_LATENCY] ?: AudioDefaults.MINIMAL_OUTPUT_LATENCY_DEFAULT)
-            put("autoProgressiveScan", prefs[AUTO_PROGRESSIVE_SCAN] ?: false)
             put("padVibration", prefs[PAD_VIBRATION] ?: true)
             put("padVibrationStrength", (prefs[PAD_VIBRATION_STRENGTH] ?: DEFAULT_PAD_VIBRATION_STRENGTH).coerceIn(0, 150))
             put("padVibrationFallback", prefs[PAD_VIBRATION_FALLBACK] ?: true)
@@ -4120,133 +2687,9 @@ class AppPreferences(private val context: Context) {
             put("gamepadRightStickUpToR2", prefs[GAMEPAD_RIGHT_STICK_UP_TO_R2] ?: false)
             put("gamepadRightStickDownToL2", prefs[GAMEPAD_RIGHT_STICK_DOWN_TO_L2] ?: false)
             put("gamepadButtonHaptics", prefs[GAMEPAD_BUTTON_HAPTICS] ?: false)
-            put("pressureModifierAmount", (prefs[PRESSURE_MODIFIER_AMOUNT] ?: DEFAULT_PRESSURE_MODIFIER_AMOUNT).coerceIn(1, 100))
-            put("enableFastBoot", prefs[ENABLE_FAST_BOOT] ?: true)
-            put("eeCycleRate", prefs[EE_CYCLE_RATE] ?: 0)
-            put("eeCycleSkip", prefs[EE_CYCLE_SKIP] ?: 0)
-            put("enableEeRecompiler", prefs[ENABLE_EE_RECOMPILER] ?: true)
-            put("enableIopRecompiler", prefs[ENABLE_IOP_RECOMPILER] ?: true)
-            put("enableVu0Recompiler", prefs[ENABLE_VU0_RECOMPILER] ?: true)
-            put("enableVu1Recompiler", prefs[ENABLE_VU1_RECOMPILER] ?: true)
-            put("enableFastmem", prefs[ENABLE_FASTMEM] ?: true)
-            put("eeFpuRoundMode", sanitizeFloatRoundMode(prefs[EE_FPU_ROUND_MODE], DEFAULT_EE_FPU_ROUND_MODE))
-            put("vu0RoundMode", sanitizeFloatRoundMode(prefs[VU0_ROUND_MODE], DEFAULT_VU_ROUND_MODE))
-            put("vu1RoundMode", sanitizeFloatRoundMode(prefs[VU1_ROUND_MODE], DEFAULT_VU_ROUND_MODE))
-            put("eeFpuClampingMode", sanitizeClampingMode(prefs[EE_FPU_CLAMPING_MODE], DEFAULT_EE_FPU_CLAMPING_MODE))
-            put("vu0ClampingMode", sanitizeClampingMode(prefs[VU0_CLAMPING_MODE], DEFAULT_VU0_CLAMPING_MODE))
-            put("vu1ClampingMode", sanitizeClampingMode(prefs[VU1_CLAMPING_MODE], DEFAULT_VU1_CLAMPING_MODE))
-            put("enableGameFixes", prefs[ENABLE_GAME_FIXES] ?: true)
-            put("enableEeTimingHack", prefs[ENABLE_EE_TIMING_HACK] ?: false)
-            put("enableWaitLoopSpeedhack", prefs[ENABLE_WAIT_LOOP_SPEEDHACK] ?: true)
-            put("enableIntcStatSpeedhack", prefs[ENABLE_INTC_STAT_SPEEDHACK] ?: true)
-            put("enableVuFlagHack", prefs[ENABLE_VU_FLAG_HACK] ?: true)
-            put("enableInstantVu1", prefs[ENABLE_INSTANT_VU1] ?: true)
-            put("enableMtvu", prefs[ENABLE_MTVU] ?: true)
-            put("enableThreadPinning", prefs[ENABLE_THREAD_PINNING] ?: DEFAULT_THREAD_PINNING)
-            put("enableFastCdvd", prefs[ENABLE_FAST_CDVD] ?: false)
             put("enableCheats", prefs[ENABLE_CHEATS] ?: false)
-            put("enableIcacheEmulation", prefs[ENABLE_ICACHE_EMULATION] ?: false)
-            put("enableDisableStalls", prefs[ENABLE_DISABLE_STALLS] ?: false)
-            put("enablePreciseExceptions", prefs[ENABLE_PRECISE_EXCEPTIONS] ?: false)
-            put("enableTurboCd", prefs[ENABLE_TURBO_CD] ?: false)
-            put("enableCddaAudio", prefs[ENABLE_CDDA_AUDIO] ?: true)
-            put("enableXaDecoding", prefs[ENABLE_XA_DECODING] ?: true)
-            put("enableSpuReverb", prefs[ENABLE_SPU_REVERB] ?: true)
-            put("enableSpuThread", prefs[ENABLE_SPU_THREAD] ?: false)
-            put("spuTempo", (prefs[SPU_TEMPO] ?: 0).coerceIn(0, 5))
-            put("neonEnhancement", prefs[NEON_ENHANCEMENT] ?: false)
-            put("neonEnhancementSpeedHack", prefs[NEON_ENHANCEMENT_SPEED_HACK] ?: false)
-            put("neonEnhancementTexAdj", prefs[NEON_ENHANCEMENT_TEX_ADJ] ?: true)
-            put("neonInterlace", (prefs[NEON_INTERLACE] ?: -1).coerceIn(-1, 1))
-            put("gpuThreadRendering", (prefs[GPU_THREAD_RENDERING] ?: -1).coerceIn(-1, 1))
-            put("showOverscan", prefs[SHOW_OVERSCAN] ?: false)
-            put("screenCentering", (prefs[SCREEN_CENTERING] ?: 0).coerceIn(0, 3))
-            put("screenCenteringX", (prefs[SCREEN_CENTERING_X] ?: 0).coerceIn(-16, 16))
-            put("screenCenteringY", (prefs[SCREEN_CENTERING_Y] ?: 0).coerceIn(-16, 16))
-            put("screenCenteringHAdj", (prefs[SCREEN_CENTERING_H_ADJ] ?: 0).coerceIn(-64, 0))
-            put("enableFractionalFramerate", prefs[ENABLE_FRACTIONAL_FRAMERATE] ?: false)
-            put("altFlipMode", (prefs[ALT_FLIP_MODE] ?: 0).coerceIn(0, 2))
-            put("enableRgb32Output", prefs[ENABLE_RGB32_OUTPUT] ?: false)
-            put("enableScaleHires", prefs[ENABLE_SCALE_HIRES] ?: false)
-            put("multitapMode", (prefs[MULTITAP_MODE] ?: 0).coerceIn(0, 3))
-            put("analogAxisModifier", (prefs[ANALOG_AXIS_MODIFIER] ?: 0).coerceIn(0, 1))
-            put("dualshockToggleCombo", (prefs[DUALSHOCK_TOGGLE_COMBO] ?: 0).coerceIn(0, 5))
-            put("cdReadAhead", (prefs[CD_READ_AHEAD] ?: 0).coerceIn(0, 333000))
-            put("hwDownloadMode", GsHackDefaults.coerceHardwareDownloadMode(
-                prefs[HW_DOWNLOAD_MODE] ?: GsHackDefaults.HW_DOWNLOAD_MODE_DEFAULT
-            ))
-            put("frameSkip", GsHackDefaults.coerceFrameSkip(
-                prefs[FRAME_SKIP] ?: GsHackDefaults.FRAME_SKIP_DEFAULT
-            ))
-            put("skipDuplicateFrames", prefs[SKIP_DUPLICATE_FRAMES] ?: true)
-            put("textureFiltering", GsHackDefaults.coerceBilinearFiltering(
-                prefs[TEXTURE_FILTERING] ?: GsHackDefaults.BILINEAR_FILTERING_DEFAULT
-            ))
-            put(
-                "trilinearFiltering",
-                prefs[TRILINEAR_FILTERING]?.let(GsHackDefaults::coerceTrilinearFiltering)
-                    ?: GsHackDefaults.TRILINEAR_FILTERING_DEFAULT
-            )
-            put("blendingAccuracy", GsHackDefaults.coerceBlendingAccuracy(
-                prefs[BLENDING_ACCURACY] ?: GsHackDefaults.BLENDING_ACCURACY_DEFAULT
-            ))
-            put("texturePreloading", GsHackDefaults.coerceTexturePreloading(
-                prefs[TEXTURE_PRELOADING] ?: GsHackDefaults.TEXTURE_PRELOADING_DEFAULT
-            ))
+            put("frameSkip", (prefs[FRAME_SKIP] ?: 0).coerceIn(0, 4))
             put("textureReplacementsEnabled", prefs[TEXTURE_REPLACEMENTS_ENABLED] ?: true)
-            put("textureReplacementsAsync", prefs[TEXTURE_REPLACEMENTS_ASYNC] ?: true)
-            put("textureReplacementsPrecache", prefs[TEXTURE_REPLACEMENTS_PRECACHE] ?: false)
-            put("textureDumpingEnabled", prefs[TEXTURE_DUMPING_ENABLED] ?: false)
-            put("enableFxaa", prefs[ENABLE_FXAA] ?: false)
-            put("sgsrMode", (prefs[SGSR_MODE] ?: 0).coerceIn(0, 3))
-            put("casMode", prefs[CAS_MODE] ?: 0)
-            put("casSharpness", prefs[CAS_SHARPNESS] ?: 50)
-            put("tvShader", prefs[TV_SHADER]?.let(GsHackDefaults::coerceTvShader) ?: GsHackDefaults.TV_SHADER_DEFAULT)
-            put("enableWidescreenPatches", prefs[ENABLE_WIDESCREEN_PATCHES] ?: false)
-            put("enableNoInterlacingPatches", prefs[ENABLE_NO_INTERLACING_PATCHES] ?: false)
-            put("patchDatabaseUseOfficial", prefs[PATCH_DATABASE_USE_OFFICIAL] ?: true)
-            put("patchDatabaseCustomUrl", prefs[PATCH_DATABASE_CUSTOM_URL])
-            put("deinterlaceMode", GsHackDefaults.coerceDeinterlaceMode(
-                prefs[DEINTERLACE_MODE] ?: GsHackDefaults.DEINTERLACE_MODE_DEFAULT
-            ))
-            put("dithering", GsHackDefaults.coerceDithering(
-                prefs[DITHERING] ?: GsHackDefaults.DITHERING_DEFAULT
-            ))
-            put("antiBlur", prefs[ANTI_BLUR] ?: GsHackDefaults.ANTI_BLUR_DEFAULT)
-            put("anisotropicFiltering", GsHackDefaults.coerceAnisotropicFiltering(
-                prefs[ANISOTROPIC_FILTERING] ?: GsHackDefaults.ANISOTROPIC_FILTERING_DEFAULT
-            ))
-            put("enableHwMipmapping", prefs[ENABLE_HW_MIPMAPPING] ?: GsHackDefaults.HW_MIPMAPPING_DEFAULT)
-            put("cpuSpriteRenderSize", prefs[CPU_SPRITE_RENDER_SIZE] ?: GsHackDefaults.CPU_SPRITE_RENDER_SIZE_DEFAULT)
-            put("cpuSpriteRenderLevel", prefs[CPU_SPRITE_RENDER_LEVEL] ?: GsHackDefaults.CPU_SPRITE_RENDER_LEVEL_DEFAULT)
-            put("softwareClutRender", prefs[SOFTWARE_CLUT_RENDER] ?: GsHackDefaults.SOFTWARE_CLUT_RENDER_DEFAULT)
-            put("gpuTargetClutMode", prefs[GPU_TARGET_CLUT_MODE] ?: GsHackDefaults.GPU_TARGET_CLUT_DEFAULT)
-            put("skipDrawStart", prefs[SKIP_DRAW_START] ?: 0)
-            put("skipDrawEnd", prefs[SKIP_DRAW_END] ?: 0)
-            put("autoFlushHardware", prefs[AUTO_FLUSH_HARDWARE] ?: GsHackDefaults.AUTO_FLUSH_DEFAULT)
-            put("cpuFramebufferConversion", prefs[CPU_FRAMEBUFFER_CONVERSION] ?: false)
-            put("disableDepthConversion", prefs[DISABLE_DEPTH_CONVERSION] ?: false)
-            put("disableSafeFeatures", prefs[DISABLE_SAFE_FEATURES] ?: false)
-            put("disableRenderFixes", prefs[DISABLE_RENDER_FIXES] ?: false)
-            put("preloadFrameData", prefs[PRELOAD_FRAME_DATA] ?: false)
-            put("disablePartialInvalidation", prefs[DISABLE_PARTIAL_INVALIDATION] ?: false)
-            put("textureInsideRt", prefs[TEXTURE_INSIDE_RT] ?: GsHackDefaults.TEXTURE_INSIDE_RT_DEFAULT)
-            put("readTargetsOnClose", prefs[READ_TARGETS_ON_CLOSE] ?: false)
-            put("estimateTextureRegion", prefs[ESTIMATE_TEXTURE_REGION] ?: false)
-            put("gpuPaletteConversion", prefs[GPU_PALETTE_CONVERSION] ?: false)
-            put("halfPixelOffset", prefs[HALF_PIXEL_OFFSET] ?: GsHackDefaults.HALF_PIXEL_OFFSET_DEFAULT)
-            put("nativeScaling", GsHackDefaults.coerceNativeScaling(
-                prefs[NATIVE_SCALING] ?: GsHackDefaults.NATIVE_SCALING_DEFAULT
-            ))
-            put("roundSprite", prefs[ROUND_SPRITE] ?: GsHackDefaults.ROUND_SPRITE_DEFAULT)
-            put("bilinearUpscale", prefs[BILINEAR_UPSCALE] ?: GsHackDefaults.BILINEAR_UPSCALE_DEFAULT)
-            put("textureOffsetX", prefs[TEXTURE_OFFSET_X] ?: 0)
-            put("textureOffsetY", prefs[TEXTURE_OFFSET_Y] ?: 0)
-            put("alignSprite", prefs[ALIGN_SPRITE] ?: false)
-            put("mergeSprite", prefs[MERGE_SPRITE] ?: false)
-            put("forceEvenSpritePosition", prefs[FORCE_EVEN_SPRITE_POSITION] ?: false)
-            put("nativePaletteDraw", prefs[NATIVE_PALETTE_DRAW] ?: false)
-            put("performancePreset", PerformancePresets.CUSTOM)
             put("enableAutoGamepad", prefs[ENABLE_AUTO_GAMEPAD] ?: true)
             put("hideOverlayOnGamepad", prefs[HIDE_OVERLAY_ON_GAMEPAD] ?: true)
             put("floatingQuickActionsEnabled", prefs[FLOATING_QUICK_ACTIONS_ENABLED] ?: false)
@@ -4263,15 +2706,11 @@ class AppPreferences(private val context: Context) {
             put("gamepadBindings", prefs[GAMEPAD_BINDINGS])
             put("gamepadDeviceAssignments", prefs[GAMEPAD_DEVICE_ASSIGNMENTS])
             put("gamepadIgnoredDevices", prefs[GAMEPAD_IGNORED_DEVICES])
-            put("gpuDriverType", prefs[GPU_DRIVER_TYPE] ?: 0)
-            put("customDriverPath", prefs[CUSTOM_DRIVER_PATH])
             put("frameLimitEnabled", prefs[FRAME_LIMIT_ENABLED] ?: true)
             put("rewindEnabled", prefs[REWIND_ENABLED] ?: false)
             put("vSyncEnabled", prefs[VSYNC_ENABLED] ?: true)
             put("fastForwardSpeed", sanitizeFastForwardSpeed(prefs[FAST_FORWARD_SPEED]).toDouble())
             put("targetFps", prefs[TARGET_FPS] ?: 0)
-            put("ntscFramerate", sanitizeRegionFramerate(prefs[NTSC_FRAMERATE], DEFAULT_NTSC_FRAMERATE).toDouble())
-            put("palFramerate", sanitizeRegionFramerate(prefs[PAL_FRAMERATE], DEFAULT_PAL_FRAMERATE).toDouble())
             put("autoSaveEnabled", prefs[AUTO_SAVE_ENABLED] ?: false)
             put("autoSaveIntervalMinutes", (prefs[AUTO_SAVE_INTERVAL_MINUTES] ?: 1).coerceIn(1, 999))
             put("overlayLayoutVersion", prefs[OVERLAY_LAYOUT_VERSION] ?: 0)
@@ -4295,8 +2734,6 @@ class AppPreferences(private val context: Context) {
             put("invertRightStickHorizontal", prefs[INVERT_RIGHT_STICK_HORIZONTAL] ?: false)
             put("stickSurfaceMode", prefs[STICK_SURFACE_MODE] ?: false)
             put("controlLayouts", prefs[CONTROL_LAYOUTS])
-            put("memoryCardSlot1", prefs[MEMORY_CARD_SLOT1])
-            put("memoryCardSlot2", prefs[MEMORY_CARD_SLOT2])
         }
     }
 
@@ -4351,9 +2788,6 @@ class AppPreferences(private val context: Context) {
                 "emulationSideArtworkDim",
                 DEFAULT_EMULATION_SIDE_ARTWORK_DIM
             ).coerceIn(0, 85)
-            prefs[LOCAL_MULTIPLAYER_MODE] = normalizeLocalMultiplayerMode(
-                json.optInt("localMultiplayerMode", LOCAL_MULTIPLAYER_OFF)
-            )
             prefs[HOME_BACKGROUND_TYPE] = HomeBackgroundType.fromPreference(
                 json.optInt("homeBackgroundType", HomeBackgroundType.NONE.preferenceValue)
             ).preferenceValue
@@ -4447,22 +2881,6 @@ class AppPreferences(private val context: Context) {
                 json.optInt("audioFastForwardVolume", AudioDefaults.VOLUME_DEFAULT)
             )
             prefs[AUDIO_MUTED] = json.optBoolean("audioMuted", false)
-            prefs[AUDIO_INTERPOLATION] = AudioDefaults.coerceInterpolation(
-                json.optInt("audioInterpolation", AudioDefaults.INTERPOLATION_DEFAULT)
-            )
-            prefs[AUDIO_SYNC_MODE] = AudioDefaults.coerceSyncMode(
-                json.optInt("audioSyncMode", AudioDefaults.SYNC_DEFAULT)
-            )
-            prefs[AUDIO_LIGHTWEIGHT_SPU2] = json.optBoolean(
-                "audioLightweightSpu2",
-                AudioDefaults.LIGHTWEIGHT_SPU2_DEFAULT
-            )
-            prefs[AUDIO_BACKEND] = AudioDefaults.coerceBackend(
-                json.optInt("audioBackend", AudioDefaults.BACKEND_DEFAULT)
-            )
-            prefs[AUDIO_BUFFER_MS] = AudioDefaults.coerceBufferMs(
-                json.optInt("audioBufferMs", AudioDefaults.BUFFER_MS_DEFAULT)
-            )
             prefs[AUDIO_OUTPUT_LATENCY_MS] = AudioDefaults.coerceOutputLatencyMs(
                 json.optInt("audioOutputLatencyMs", AudioDefaults.OUTPUT_LATENCY_MS_DEFAULT)
             )
@@ -4470,7 +2888,6 @@ class AppPreferences(private val context: Context) {
                 "audioMinimalOutputLatency",
                 AudioDefaults.MINIMAL_OUTPUT_LATENCY_DEFAULT
             )
-            prefs[AUTO_PROGRESSIVE_SCAN] = json.optBoolean("autoProgressiveScan", false)
             prefs[PAD_VIBRATION] = json.optBoolean("padVibration", true)
             prefs[PAD_VIBRATION_STRENGTH] = json.optInt("padVibrationStrength", DEFAULT_PAD_VIBRATION_STRENGTH).coerceIn(0, 150)
             prefs[PAD_VIBRATION_FALLBACK] = json.optBoolean("padVibrationFallback", true)
@@ -4529,141 +2946,9 @@ class AppPreferences(private val context: Context) {
             prefs[GAMEPAD_RIGHT_STICK_UP_TO_R2] = json.optBoolean("gamepadRightStickUpToR2", false)
             prefs[GAMEPAD_RIGHT_STICK_DOWN_TO_L2] = json.optBoolean("gamepadRightStickDownToL2", false)
             prefs[GAMEPAD_BUTTON_HAPTICS] = json.optBoolean("gamepadButtonHaptics", false)
-            prefs[PRESSURE_MODIFIER_AMOUNT] = json.optInt("pressureModifierAmount", DEFAULT_PRESSURE_MODIFIER_AMOUNT).coerceIn(1, 100)
-            prefs[ENABLE_FAST_BOOT] = json.optBoolean("enableFastBoot", true)
-            prefs[EE_CYCLE_RATE] = json.optInt("eeCycleRate", 0)
-            prefs[EE_CYCLE_SKIP] = json.optInt("eeCycleSkip", 0)
-            prefs[ENABLE_EE_RECOMPILER] = json.optBoolean("enableEeRecompiler", true)
-            prefs[ENABLE_IOP_RECOMPILER] = json.optBoolean("enableIopRecompiler", true)
-            prefs[ENABLE_VU0_RECOMPILER] = json.optBoolean("enableVu0Recompiler", true)
-            prefs[ENABLE_VU1_RECOMPILER] = json.optBoolean("enableVu1Recompiler", true)
-            prefs[ENABLE_FASTMEM] = json.optBoolean("enableFastmem", true)
-            prefs[EE_FPU_ROUND_MODE] = sanitizeFloatRoundMode(json.optInt("eeFpuRoundMode", DEFAULT_EE_FPU_ROUND_MODE), DEFAULT_EE_FPU_ROUND_MODE)
-            prefs[VU0_ROUND_MODE] = sanitizeFloatRoundMode(json.optInt("vu0RoundMode", DEFAULT_VU_ROUND_MODE), DEFAULT_VU_ROUND_MODE)
-            prefs[VU1_ROUND_MODE] = sanitizeFloatRoundMode(json.optInt("vu1RoundMode", DEFAULT_VU_ROUND_MODE), DEFAULT_VU_ROUND_MODE)
-            prefs[EE_FPU_CLAMPING_MODE] = sanitizeClampingMode(json.optInt("eeFpuClampingMode", DEFAULT_EE_FPU_CLAMPING_MODE), DEFAULT_EE_FPU_CLAMPING_MODE)
-            val legacyVuClampingMode = json.optInt("vuClampingMode", DEFAULT_VU0_CLAMPING_MODE)
-            prefs[VU0_CLAMPING_MODE] = sanitizeClampingMode(json.optInt("vu0ClampingMode", legacyVuClampingMode), DEFAULT_VU0_CLAMPING_MODE)
-            prefs[VU1_CLAMPING_MODE] = sanitizeClampingMode(json.optInt("vu1ClampingMode", DEFAULT_VU1_CLAMPING_MODE), DEFAULT_VU1_CLAMPING_MODE)
-            prefs[ENABLE_GAME_FIXES] = json.optBoolean("enableGameFixes", true)
-            prefs[ENABLE_EE_TIMING_HACK] = json.optBoolean("enableEeTimingHack", false)
-            prefs[ENABLE_WAIT_LOOP_SPEEDHACK] = json.optBoolean("enableWaitLoopSpeedhack", true)
-            prefs[ENABLE_INTC_STAT_SPEEDHACK] = json.optBoolean("enableIntcStatSpeedhack", true)
-            prefs[ENABLE_VU_FLAG_HACK] = json.optBoolean("enableVuFlagHack", true)
-            prefs[ENABLE_INSTANT_VU1] = json.optBoolean("enableInstantVu1", true)
-            prefs[ENABLE_MTVU] = json.optBoolean("enableMtvu", true)
-            prefs[ENABLE_THREAD_PINNING] = json.optBoolean("enableThreadPinning", DEFAULT_THREAD_PINNING)
-            prefs[ENABLE_FAST_CDVD] = json.optBoolean("enableFastCdvd", false)
             prefs[ENABLE_CHEATS] = json.optBoolean("enableCheats", false)
-            prefs[ENABLE_ICACHE_EMULATION] = json.optBoolean("enableIcacheEmulation", false)
-            prefs[ENABLE_DISABLE_STALLS] = json.optBoolean("enableDisableStalls", false)
-            prefs[ENABLE_PRECISE_EXCEPTIONS] = json.optBoolean("enablePreciseExceptions", false)
-            prefs[ENABLE_TURBO_CD] = json.optBoolean("enableTurboCd", false)
-            prefs[ENABLE_CDDA_AUDIO] = json.optBoolean("enableCddaAudio", true)
-            prefs[ENABLE_XA_DECODING] = json.optBoolean("enableXaDecoding", true)
-            prefs[ENABLE_SPU_REVERB] = json.optBoolean("enableSpuReverb", true)
-            prefs[ENABLE_SPU_THREAD] = json.optBoolean("enableSpuThread", false)
-            prefs[SPU_TEMPO] = json.optInt("spuTempo", 0).coerceIn(0, 5)
-            prefs[NEON_ENHANCEMENT] = json.optBoolean("neonEnhancement", false)
-            prefs[NEON_ENHANCEMENT_SPEED_HACK] = json.optBoolean("neonEnhancementSpeedHack", false)
-            prefs[NEON_ENHANCEMENT_TEX_ADJ] = json.optBoolean("neonEnhancementTexAdj", true)
-            prefs[NEON_INTERLACE] = json.optInt("neonInterlace", -1).coerceIn(-1, 1)
-            prefs[GPU_THREAD_RENDERING] = json.optInt("gpuThreadRendering", -1).coerceIn(-1, 1)
-            prefs[SHOW_OVERSCAN] = json.optBoolean("showOverscan", false)
-            prefs[SCREEN_CENTERING] = json.optInt("screenCentering", 0).coerceIn(0, 3)
-            prefs[SCREEN_CENTERING_X] = json.optInt("screenCenteringX", 0).coerceIn(-16, 16)
-            prefs[SCREEN_CENTERING_Y] = json.optInt("screenCenteringY", 0).coerceIn(-16, 16)
-            prefs[SCREEN_CENTERING_H_ADJ] = json.optInt("screenCenteringHAdj", 0).coerceIn(-64, 0)
-            prefs[ENABLE_FRACTIONAL_FRAMERATE] = json.optBoolean("enableFractionalFramerate", false)
-            prefs[ALT_FLIP_MODE] = json.optInt("altFlipMode", 0).coerceIn(0, 2)
-            prefs[ENABLE_RGB32_OUTPUT] = json.optBoolean("enableRgb32Output", false)
-            prefs[ENABLE_SCALE_HIRES] = json.optBoolean("enableScaleHires", false)
-            prefs[MULTITAP_MODE] = json.optInt("multitapMode", 0).coerceIn(0, 3)
-            prefs[ANALOG_AXIS_MODIFIER] = json.optInt("analogAxisModifier", 0).coerceIn(0, 1)
-            prefs[DUALSHOCK_TOGGLE_COMBO] = json.optInt("dualshockToggleCombo", 0).coerceIn(0, 5)
-            prefs[CD_READ_AHEAD] = json.optInt("cdReadAhead", 0).coerceIn(0, 333000)
-            prefs[HW_DOWNLOAD_MODE] = GsHackDefaults.coerceHardwareDownloadMode(
-                json.optInt("hwDownloadMode", GsHackDefaults.HW_DOWNLOAD_MODE_DEFAULT)
-            )
-            prefs[FRAME_SKIP] = GsHackDefaults.coerceFrameSkip(
-                json.optInt("frameSkip", GsHackDefaults.FRAME_SKIP_DEFAULT)
-            )
-            prefs[SKIP_DUPLICATE_FRAMES] = json.optBoolean("skipDuplicateFrames", true)
-            prefs[TEXTURE_FILTERING] = GsHackDefaults.coerceBilinearFiltering(
-                json.optInt("textureFiltering", GsHackDefaults.BILINEAR_FILTERING_DEFAULT)
-            )
-            prefs[TRILINEAR_FILTERING] = GsHackDefaults.coerceTrilinearFiltering(
-                json.optInt("trilinearFiltering", GsHackDefaults.TRILINEAR_FILTERING_DEFAULT)
-            )
-            val importedBlendingAccuracy = if (json.has("blendingAccuracy")) {
-                json.optInt("blendingAccuracy")
-            } else {
-                GsHackDefaults.BLENDING_ACCURACY_DEFAULT
-            }
-            prefs[BLENDING_ACCURACY] = GsHackDefaults.coerceBlendingAccuracy(importedBlendingAccuracy)
-            prefs[TEXTURE_PRELOADING] = GsHackDefaults.coerceTexturePreloading(
-                json.optInt("texturePreloading", GsHackDefaults.TEXTURE_PRELOADING_DEFAULT)
-            )
+            prefs[FRAME_SKIP] = json.optInt("frameSkip", 0).coerceIn(0, 4)
             prefs[TEXTURE_REPLACEMENTS_ENABLED] = json.optBoolean("textureReplacementsEnabled", true)
-            prefs[TEXTURE_REPLACEMENTS_ASYNC] = json.optBoolean("textureReplacementsAsync", true)
-            prefs[TEXTURE_REPLACEMENTS_PRECACHE] = json.optBoolean("textureReplacementsPrecache", false)
-            prefs[TEXTURE_DUMPING_ENABLED] = json.optBoolean("textureDumpingEnabled", false)
-            prefs[ENABLE_FXAA] = json.optBoolean("enableFxaa", false)
-            prefs[SGSR_MODE] = json.optInt("sgsrMode", 0).coerceIn(0, 3)
-            prefs[CAS_MODE] = json.optInt("casMode", 0).coerceIn(0, 2)
-            prefs[CAS_SHARPNESS] = json.optInt("casSharpness", 50).coerceIn(0, 100)
-            prefs[TV_SHADER] = GsHackDefaults.coerceTvShader(
-                json.optInt("tvShader", GsHackDefaults.TV_SHADER_DEFAULT)
-            )
-            prefs[ENABLE_WIDESCREEN_PATCHES] = json.optBoolean("enableWidescreenPatches", false)
-            prefs[ENABLE_NO_INTERLACING_PATCHES] = json.optBoolean("enableNoInterlacingPatches", false)
-            prefs[PATCH_DATABASE_USE_OFFICIAL] = json.optBoolean("patchDatabaseUseOfficial", true)
-            val restoredPatchUrl = json.optString("patchDatabaseCustomUrl").takeIf { it.isNotBlank() }
-            if (restoredPatchUrl != null) {
-                prefs[PATCH_DATABASE_CUSTOM_URL] = restoredPatchUrl
-            } else {
-                prefs.remove(PATCH_DATABASE_CUSTOM_URL)
-            }
-            prefs[DEINTERLACE_MODE] = GsHackDefaults.coerceDeinterlaceMode(
-                json.optInt("deinterlaceMode", GsHackDefaults.DEINTERLACE_MODE_DEFAULT)
-            )
-            prefs[DITHERING] = GsHackDefaults.coerceDithering(
-                json.optInt("dithering", GsHackDefaults.DITHERING_DEFAULT)
-            )
-            prefs[ANTI_BLUR] = json.optBoolean("antiBlur", GsHackDefaults.ANTI_BLUR_DEFAULT)
-            prefs[ANISOTROPIC_FILTERING] = GsHackDefaults.coerceAnisotropicFiltering(
-                json.optInt("anisotropicFiltering", GsHackDefaults.ANISOTROPIC_FILTERING_DEFAULT)
-            )
-            prefs[ENABLE_HW_MIPMAPPING] = json.optBoolean("enableHwMipmapping", GsHackDefaults.HW_MIPMAPPING_DEFAULT)
-            prefs[CPU_SPRITE_RENDER_SIZE] = json.optInt("cpuSpriteRenderSize", GsHackDefaults.CPU_SPRITE_RENDER_SIZE_DEFAULT).coerceIn(0, 10)
-            prefs[CPU_SPRITE_RENDER_LEVEL] = json.optInt("cpuSpriteRenderLevel", GsHackDefaults.CPU_SPRITE_RENDER_LEVEL_DEFAULT).coerceIn(0, 2)
-            prefs[SOFTWARE_CLUT_RENDER] = json.optInt("softwareClutRender", GsHackDefaults.SOFTWARE_CLUT_RENDER_DEFAULT).coerceIn(0, 2)
-            prefs[GPU_TARGET_CLUT_MODE] = json.optInt("gpuTargetClutMode", GsHackDefaults.GPU_TARGET_CLUT_DEFAULT).coerceIn(0, 2)
-            prefs[SKIP_DRAW_START] = json.optInt("skipDrawStart", 0).coerceIn(0, 5000)
-            prefs[SKIP_DRAW_END] = json.optInt("skipDrawEnd", json.optInt("skipDraw", 0)).coerceIn(0, 5000)
-            prefs[AUTO_FLUSH_HARDWARE] = json.optInt("autoFlushHardware", GsHackDefaults.AUTO_FLUSH_DEFAULT).coerceIn(0, 2)
-            prefs[CPU_FRAMEBUFFER_CONVERSION] = json.optBoolean("cpuFramebufferConversion", false)
-            prefs[DISABLE_DEPTH_CONVERSION] = json.optBoolean("disableDepthConversion", false)
-            prefs[DISABLE_SAFE_FEATURES] = json.optBoolean("disableSafeFeatures", false)
-            prefs[DISABLE_RENDER_FIXES] = json.optBoolean("disableRenderFixes", false)
-            prefs[PRELOAD_FRAME_DATA] = json.optBoolean("preloadFrameData", false)
-            prefs[DISABLE_PARTIAL_INVALIDATION] = json.optBoolean("disablePartialInvalidation", false)
-            prefs[TEXTURE_INSIDE_RT] = json.optInt("textureInsideRt", GsHackDefaults.TEXTURE_INSIDE_RT_DEFAULT).coerceIn(0, 2)
-            prefs[READ_TARGETS_ON_CLOSE] = json.optBoolean("readTargetsOnClose", false)
-            prefs[ESTIMATE_TEXTURE_REGION] = json.optBoolean("estimateTextureRegion", false)
-            prefs[GPU_PALETTE_CONVERSION] = json.optBoolean("gpuPaletteConversion", false)
-            prefs[HALF_PIXEL_OFFSET] = json.optInt("halfPixelOffset", GsHackDefaults.HALF_PIXEL_OFFSET_DEFAULT).coerceIn(0, 5)
-            prefs[NATIVE_SCALING] = GsHackDefaults.coerceNativeScaling(
-                json.optInt("nativeScaling", GsHackDefaults.NATIVE_SCALING_DEFAULT)
-            )
-            prefs[ROUND_SPRITE] = json.optInt("roundSprite", GsHackDefaults.ROUND_SPRITE_DEFAULT).coerceIn(0, 2)
-            prefs[BILINEAR_UPSCALE] = json.optInt("bilinearUpscale", GsHackDefaults.BILINEAR_UPSCALE_DEFAULT).coerceIn(0, 2)
-            prefs[TEXTURE_OFFSET_X] = json.optInt("textureOffsetX", 0).coerceIn(-4096, 4096)
-            prefs[TEXTURE_OFFSET_Y] = json.optInt("textureOffsetY", 0).coerceIn(-4096, 4096)
-            prefs[ALIGN_SPRITE] = json.optBoolean("alignSprite", false)
-            prefs[MERGE_SPRITE] = json.optBoolean("mergeSprite", false)
-            prefs[FORCE_EVEN_SPRITE_POSITION] = json.optBoolean("forceEvenSpritePosition", false)
-            prefs[NATIVE_PALETTE_DRAW] = json.optBoolean("nativePaletteDraw", false)
             prefs[ENABLE_AUTO_GAMEPAD] = json.optBoolean("enableAutoGamepad", true)
             prefs[HIDE_OVERLAY_ON_GAMEPAD] = json.optBoolean("hideOverlayOnGamepad", true)
             prefs[FLOATING_QUICK_ACTIONS_ENABLED] = json.optBoolean("floatingQuickActionsEnabled", false)
@@ -4694,15 +2979,11 @@ class AppPreferences(private val context: Context) {
             json.optString("gamepadBindings").takeIf { it.isNotBlank() }?.let { prefs[GAMEPAD_BINDINGS] = it } ?: prefs.remove(GAMEPAD_BINDINGS)
             json.optString("gamepadDeviceAssignments").takeIf { it.isNotBlank() }?.let { prefs[GAMEPAD_DEVICE_ASSIGNMENTS] = it } ?: prefs.remove(GAMEPAD_DEVICE_ASSIGNMENTS)
             json.optString("gamepadIgnoredDevices").takeIf { it.isNotBlank() }?.let { prefs[GAMEPAD_IGNORED_DEVICES] = it } ?: prefs.remove(GAMEPAD_IGNORED_DEVICES)
-            prefs[GPU_DRIVER_TYPE] = json.optInt("gpuDriverType", 0)
-            json.optString("customDriverPath").takeIf { it.isNotBlank() }?.let { prefs[CUSTOM_DRIVER_PATH] = it } ?: prefs.remove(CUSTOM_DRIVER_PATH)
             prefs[FRAME_LIMIT_ENABLED] = json.optBoolean("frameLimitEnabled", true)
             prefs[REWIND_ENABLED] = json.optBoolean("rewindEnabled", false)
             prefs[VSYNC_ENABLED] = json.optBoolean("vSyncEnabled", true)
             prefs[FAST_FORWARD_SPEED] = sanitizeFastForwardSpeed(json.optDouble("fastForwardSpeed", DEFAULT_FAST_FORWARD_SPEED.toDouble()).toFloat())
             prefs[TARGET_FPS] = json.optInt("targetFps", 0).let { if (it <= 0) 0 else it.coerceIn(20, 120) }
-            prefs[NTSC_FRAMERATE] = sanitizeRegionFramerate(json.optDouble("ntscFramerate", DEFAULT_NTSC_FRAMERATE.toDouble()).toFloat(), DEFAULT_NTSC_FRAMERATE)
-            prefs[PAL_FRAMERATE] = sanitizeRegionFramerate(json.optDouble("palFramerate", DEFAULT_PAL_FRAMERATE.toDouble()).toFloat(), DEFAULT_PAL_FRAMERATE)
             prefs[AUTO_SAVE_ENABLED] = json.optBoolean("autoSaveEnabled", false)
             prefs[AUTO_SAVE_INTERVAL_MINUTES] = json.optInt("autoSaveIntervalMinutes", 1).coerceIn(1, 999)
             val importedOverlayVersion = json.optInt("overlayLayoutVersion", 0)
@@ -4738,8 +3019,6 @@ class AppPreferences(private val context: Context) {
             prefs[STICK_SURFACE_MODE] = json.optBoolean("stickSurfaceMode", false)
             json.optString("controlLayouts").takeIf { it.isNotBlank() }?.let { prefs[CONTROL_LAYOUTS] = it } ?: prefs.remove(CONTROL_LAYOUTS)
             migrateGlobalStickSurfaceMode(prefs)
-            json.optString("memoryCardSlot1").takeIf { it.isNotBlank() }?.let { prefs[MEMORY_CARD_SLOT1] = it } ?: prefs.remove(MEMORY_CARD_SLOT1)
-            json.optString("memoryCardSlot2").takeIf { it.isNotBlank() }?.let { prefs[MEMORY_CARD_SLOT2] = it } ?: prefs.remove(MEMORY_CARD_SLOT2)
         }
     }
 
@@ -4749,30 +3028,6 @@ class AppPreferences(private val context: Context) {
             ?: defaultUpscaleMultiplier(context)).let(::normalizeUpscale)
     }
 
-    private fun sanitizeRegionFramerate(value: Float?, fallback: Float): Float {
-        val raw = value ?: fallback
-        return if (raw.isFinite()) raw.coerceIn(20f, 120f) else fallback
-    }
-
-    private fun sanitizeFloatRoundMode(value: Int?, fallback: Int): Int {
-        return when (value) {
-            FLOAT_ROUND_NEAREST,
-            FLOAT_ROUND_NEGATIVE,
-            FLOAT_ROUND_POSITIVE,
-            FLOAT_ROUND_CHOP -> value
-            else -> fallback
-        }
-    }
-
-    private fun sanitizeClampingMode(value: Int?, fallback: Int): Int {
-        return when (value) {
-            CLAMPING_NONE,
-            CLAMPING_NORMAL,
-            CLAMPING_EXTRA,
-            CLAMPING_FULL -> value
-            else -> fallback
-        }
-    }
 
     private fun sanitizeFastForwardSpeed(value: Float?): Float {
         val raw = value ?: DEFAULT_FAST_FORWARD_SPEED
@@ -4788,27 +3043,5 @@ class AppPreferences(private val context: Context) {
         }.let(::normalizeUpscale)
     }
 
-    private fun resolveShadeBoostEnabled(
-        explicitValue: Boolean?,
-        brightness: Int,
-        contrast: Int,
-        saturation: Int,
-        gamma: Int
-    ): Boolean {
-        return explicitValue == true || isShadeBoostActive(
-            brightness = brightness,
-            contrast = contrast,
-            saturation = saturation,
-            gamma = gamma
-        )
-    }
 
-    private fun isShadeBoostActive(
-        brightness: Int,
-        contrast: Int,
-        saturation: Int,
-        gamma: Int
-    ): Boolean {
-        return brightness != 50 || contrast != 50 || saturation != 50 || gamma != 50
-    }
 }

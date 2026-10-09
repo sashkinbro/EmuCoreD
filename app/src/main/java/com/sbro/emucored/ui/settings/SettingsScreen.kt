@@ -223,8 +223,6 @@ import com.sbro.emucored.data.HomeBackgroundPreset
 import com.sbro.emucored.data.HomeBackgroundRepository
 import com.sbro.emucored.data.HomeBackgroundType
 import com.sbro.emucored.data.OverlayLayoutSnapshot
-import com.sbro.emucored.data.PatchDatabaseDownloader
-import com.sbro.emucored.data.PatchDatabaseInstallStage
 import com.sbro.emucored.data.PerGameSettingsRepository
 import com.sbro.emucored.data.PerformanceOverlayMetrics
 import com.sbro.emucored.data.RetroArchShaderPreset
@@ -233,7 +231,6 @@ import com.sbro.emucored.data.SettingsSnapshot
 import com.sbro.emucored.data.ShaderPackInstallStage
 import com.sbro.emucored.data.TouchControlPressEffect
 import com.sbro.emucored.data.TouchControlVisualStyle
-import com.sbro.emucored.data.formatDownloadBytes
 import com.sbro.emucored.ui.common.EmulationSideArtworkOverlay
 import com.sbro.emucored.ui.common.EmulationSideArtworkThumbnail
 import com.sbro.emucored.ui.common.EmulatorDataLocationDialog
@@ -291,7 +288,6 @@ fun SettingsScreen(
     onBackClick: (() -> Unit)? = null,
     onOpenLanguageScreen: (() -> Unit)? = null,
     onOpenMemoryCardManager: (() -> Unit)? = null,
-    onOpenGameDbBrowser: (() -> Unit)? = null,
     onOpenControlsLayoutEditor: (() -> Unit)? = null,
     onOpenThemeManager: (() -> Unit)? = null,
     onOpenTouchControlCreator: (() -> Unit)? = null,
@@ -592,7 +588,6 @@ fun SettingsScreen(
                     searchQuery = ""
                 },
                 onOpenMemoryCardManager = onOpenMemoryCardManager,
-                onOpenGameDbBrowser = onOpenGameDbBrowser,
                 onOpenControlsLayoutEditor = onOpenControlsLayoutEditor,
                 onOpenThemeManager = onOpenThemeManager,
                 onOpenTouchControlCreator = onOpenTouchControlCreator,

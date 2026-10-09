@@ -128,23 +128,14 @@ class OnboardingViewModel(application: Application) : AndroidViewModel(applicati
             }
             val audioSettings = preferences.settingsSnapshot.first()
             EmulatorBridge.applyRuntimeConfig(
-                biosPath = uri.toString(),
                 emulatorDataPath = _uiState.value.emulatorDataPath,
                 renderer = audioSettings.renderer,
                 gpuHardwareProfile = GpuHardwareProfiles.detectHardwareProfile(),
                 audioVolume = audioSettings.audioVolume,
                 audioFastForwardVolume = audioSettings.audioFastForwardVolume,
                 audioMuted = audioSettings.audioMuted,
-                audioInterpolation = audioSettings.audioInterpolation,
-                audioSyncMode = audioSettings.audioSyncMode,
-                audioLightweightSpu2 = audioSettings.audioLightweightSpu2,
-                audioBackend = audioSettings.audioBackend,
-                audioBufferMs = audioSettings.audioBufferMs,
                 audioOutputLatencyMs = audioSettings.audioOutputLatencyMs,
                 audioMinimalOutputLatency = audioSettings.audioMinimalOutputLatency,
-                enableFastmem = audioSettings.enableFastmem,
-                deinterlaceMode = audioSettings.deinterlaceMode,
-                dithering = audioSettings.dithering,
                 upscaleMultiplier = EmulatorBridge.getSetting("EmuCoreD", "UpscaleMultiplier", "float")?.toFloatOrNull()
                     ?: EmulatorBridge.getSetting("EmuCoreD", "UpscaleMultiplier", "int")?.toIntOrNull()?.toFloat()
                     ?: UPSCALE_DEFAULT

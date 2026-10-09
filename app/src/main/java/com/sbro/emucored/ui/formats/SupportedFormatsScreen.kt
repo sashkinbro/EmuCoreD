@@ -1,8 +1,5 @@
 package com.sbro.emucored.ui.formats
 
-import android.net.Uri
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -18,134 +15,40 @@ import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.Compress
 import androidx.compose.material.icons.rounded.Description
 import androidx.compose.material.icons.rounded.FolderZip
 import androidx.compose.material.icons.rounded.Memory
-import com.sbro.emucored.ui.common.AppAlertDialog as AlertDialog
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.sbro.emucored.R
-import com.sbro.emucored.core.ImageConversionManager
+import com.sbro.emucored.core.N3dsGameFormats
 import com.sbro.emucored.ui.common.ScreenTopBar
 import com.sbro.emucored.ui.common.appScreenTopPadding
 import com.sbro.emucored.ui.common.navigationBarsHorizontalPaddingValues
 import com.sbro.emucored.ui.common.rememberDebouncedClick
 import com.sbro.emucored.ui.theme.ScreenHorizontalPadding
-import kotlinx.coroutines.launch
-import java.io.File
 import com.sbro.emucored.ui.theme.neon.neonShape
 
-private enum class ConversionUiState {
-    Idle,
-    Preparing,
-    ReadyToSave,
-    Saving,
-    Success,
-    Error
-}
-
-// These state and launcher initializers are read across Compose recompositions and callbacks;
-// the IDE's local data-flow inspection cannot model that lifecycle correctly.
-@Suppress("VARIABLE_WITH_REDUNDANT_INITIALIZER", "RedundantInitializer")
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun SupportedFormatsScreen(
     onBackClick: (() -> Unit)? = null
 ) {
-    val context = androidx.compose.ui.platform.LocalContext.current
     val topInset = appScreenTopPadding()
     val bottomInset = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
     val horizontalSystemBarPadding = navigationBarsHorizontalPaddingValues()
-    val scope = rememberCoroutineScope()
-    val isConverterAvailable = ImageConversionManager.isIsoToChdAvailable()
-
-    var conversionState by remember { mutableStateOf(ConversionUiState.Idle) }
-    var pendingOutputFile by remember { mutableStateOf<File?>(null) }
-    var pendingOutputName by remember { mutableStateOf("game.chd") }
-    var dialogMessage by remember { mutableStateOf<Int?>(null) }
-
-    DisposableEffect(Unit) {
-        onDispose {
-            ImageConversionManager.cleanupTempFile(pendingOutputFile)
-        }
-    }
-
-    val saveChdLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.CreateDocument("application/octet-stream")
-    ) { destination: Uri? ->
-        if (destination == null) {
-            conversionState = if (pendingOutputFile != null) ConversionUiState.ReadyToSave else ConversionUiState.Idle
-            return@rememberLauncherForActivityResult
-        }
-
-        val outputFile = pendingOutputFile ?: return@rememberLauncherForActivityResult
-        scope.launch {
-            conversionState = ConversionUiState.Saving
-            val saved = ImageConversionManager.saveConvertedFile(context, outputFile, destination)
-            ImageConversionManager.cleanupTempFile(outputFile)
-            pendingOutputFile = null
-            conversionState = if (saved) ConversionUiState.Success else ConversionUiState.Error
-            dialogMessage = if (saved) R.string.formats_converter_save_success else R.string.formats_converter_save_failed
-        }
-    }
-
-    val pickIsoLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.OpenDocument()
-    ) { uri: Uri? ->
-        if (uri == null) return@rememberLauncherForActivityResult
-
-        scope.launch {
-            conversionState = ConversionUiState.Preparing
-            val result = ImageConversionManager.convertIsoToChd(context, uri)
-            if (result.success) {
-                pendingOutputFile = result.outputFile
-                pendingOutputName = result.suggestedFileName ?: "game.chd"
-                conversionState = ConversionUiState.ReadyToSave
-                saveChdLauncher.launch(pendingOutputName)
-            } else {
-                conversionState = ConversionUiState.Error
-                dialogMessage = when (result.message) {
-                    "not_iso" -> R.string.formats_converter_invalid_iso_body
-                    "native_tools_unavailable" -> R.string.formats_converter_unavailable
-                    else -> R.string.formats_converter_failed_body
-                }
-            }
-        }
-    }
-
-    val launchConversion = rememberDebouncedClick {
-        if (!isConverterAvailable ||
-            conversionState == ConversionUiState.Preparing ||
-            conversionState == ConversionUiState.Saving
-        ) {
-            return@rememberDebouncedClick
-        }
-        if (pendingOutputFile != null) {
-            saveChdLauncher.launch(pendingOutputName)
-        } else {
-            pickIsoLauncher.launch(ImageConversionManager.isoMimeTypes)
-        }
-    }
 
     Box(
         modifier = Modifier
@@ -171,62 +74,30 @@ fun SupportedFormatsScreen(
                     icon = Icons.Rounded.Description,
                     title = stringResource(R.string.formats_psp_supported_title),
                     body = stringResource(R.string.formats_psp_supported_body),
-                    formats = ImageConversionManager.libraryFormats
+                    formats = N3dsGameFormats.libraryFormats
                 )
 
                 FormatGroupCard(
                     icon = Icons.Rounded.Memory,
                     title = stringResource(R.string.formats_psp_recommended_title),
                     body = stringResource(R.string.formats_psp_recommended_body),
-                    formats = ImageConversionManager.recommendedFormats
+                    formats = N3dsGameFormats.libraryFormats + N3dsGameFormats.homebrewFormats
                 )
 
                 FormatGroupCard(
                     icon = Icons.Rounded.FolderZip,
                     title = stringResource(R.string.formats_psp_homebrew_title),
                     body = stringResource(R.string.formats_psp_homebrew_body),
-                    formats = listOf("PBP", "ELF", "PRX")
+                    formats = N3dsGameFormats.homebrewFormats
                 )
             }
-        }
-
-        dialogMessage?.let { messageRes ->
-            AlertDialog(
-                onDismissRequest = { dialogMessage = null },
-                confirmButton = {
-                    Surface(
-                        shape = neonShape(14.dp),
-                        color = MaterialTheme.colorScheme.primary,
-                        onClick = { dialogMessage = null }
-                    ) {
-                        Text(
-                            text = stringResource(R.string.ok),
-                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
-                            color = MaterialTheme.colorScheme.onPrimary,
-                            style = MaterialTheme.typography.labelLarge
-                        )
-                    }
-                },
-                title = {
-                    Text(
-                        text = stringResource(
-                            if (conversionState == ConversionUiState.Success) {
-                                R.string.formats_converter_success_title
-                            } else {
-                                R.string.formats_converter_failed_title
-                            }
-                        )
-                    )
-                },
-                text = { Text(text = stringResource(messageRes)) }
-            )
         }
     }
 }
 
 @Composable
 private fun FormatsTopBar(
-    topInset: androidx.compose.ui.unit.Dp,
+    topInset: Dp,
     onBackClick: (() -> Unit)?
 ) {
     val handleBackClick = onBackClick?.let { rememberDebouncedClick(onClick = it) }
@@ -266,119 +137,6 @@ private fun FormatsTopBar(
                 )
             }
         }
-    }
-}
-
-@Composable
-private fun HeroFormatsCard(
-    status: ConversionUiState,
-    isConverterAvailable: Boolean,
-    actionLabel: String,
-    onActionClick: () -> Unit
-) {
-    val isBusy = status == ConversionUiState.Preparing || status == ConversionUiState.Saving
-
-    Surface(
-        modifier = Modifier.fillMaxWidth(),
-        shape = neonShape(30.dp),
-        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
-        tonalElevation = 2.dp
-    ) {
-        Column(
-            modifier = Modifier.padding(20.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp)
-        ) {
-            Text(
-                text = stringResource(R.string.formats_overview_title),
-                style = MaterialTheme.typography.headlineSmall,
-                color = MaterialTheme.colorScheme.onSurface
-            )
-            Text(
-                text = stringResource(R.string.formats_overview_body),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            StatusPill(status = status, isConverterAvailable = isConverterAvailable)
-            Surface(
-                shape = neonShape(18.dp),
-                color = if (isConverterAvailable) {
-                    MaterialTheme.colorScheme.primary
-                } else {
-                    MaterialTheme.colorScheme.surfaceVariant
-                },
-                onClick = onActionClick,
-                enabled = isConverterAvailable && !isBusy
-            ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 18.dp, vertical = 16.dp),
-                    horizontalArrangement = Arrangement.Center,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    if (isBusy) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(18.dp),
-                            strokeWidth = 2.2.dp,
-                            color = if (isConverterAvailable) {
-                                MaterialTheme.colorScheme.onPrimary
-                            } else {
-                                MaterialTheme.colorScheme.onSurfaceVariant
-                            }
-                        )
-                    } else {
-                        Icon(
-                            imageVector = Icons.Rounded.Compress,
-                            contentDescription = null,
-                            tint = if (isConverterAvailable) {
-                                MaterialTheme.colorScheme.onPrimary
-                            } else {
-                                MaterialTheme.colorScheme.onSurfaceVariant
-                            },
-                            modifier = Modifier.size(18.dp)
-                        )
-                    }
-                    Text(
-                        text = actionLabel,
-                        style = MaterialTheme.typography.titleMedium,
-                        color = if (isConverterAvailable) {
-                            MaterialTheme.colorScheme.onPrimary
-                        } else {
-                            MaterialTheme.colorScheme.onSurfaceVariant
-                        },
-                        modifier = Modifier.padding(start = 10.dp)
-                    )
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun StatusPill(
-    status: ConversionUiState,
-    isConverterAvailable: Boolean
-) {
-    val label = when {
-        !isConverterAvailable -> stringResource(R.string.formats_converter_unavailable)
-        status == ConversionUiState.Preparing -> stringResource(R.string.formats_converter_status_preparing)
-        status == ConversionUiState.ReadyToSave -> stringResource(R.string.formats_converter_status_ready)
-        status == ConversionUiState.Saving -> stringResource(R.string.formats_converter_status_saving)
-        status == ConversionUiState.Success -> stringResource(R.string.formats_converter_status_done)
-        status == ConversionUiState.Error -> stringResource(R.string.formats_converter_status_failed)
-        else -> stringResource(R.string.formats_converter_status_idle)
-    }
-
-    Surface(
-        shape = neonShape(14.dp),
-        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.72f)
-    ) {
-        Text(
-            text = label,
-            modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
-            style = MaterialTheme.typography.labelLarge,
-            color = MaterialTheme.colorScheme.onSurface
-        )
     }
 }
 

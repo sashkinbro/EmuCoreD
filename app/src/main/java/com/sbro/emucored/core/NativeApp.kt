@@ -155,7 +155,6 @@ object NativeApp {
     }
     @JvmStatic fun setRewindEnabled(enabled: Boolean) =
         CoreRuntime.updateSetting("EmuCoreD/GS", "RewindEnabled", enabled.toString())
-    @JvmStatic fun queueGsDump(frames: Int) = Unit
     @JvmStatic @Synchronized fun setPadButton(padIndex: Int, index: Int, range: Int, pressed: Boolean) {
         if (padIndex !in 0..1) return
         if (index == PAD_START || index == PAD_SELECT || index == PAD_FAST_FORWARD || index == PAD_REWIND) {
@@ -188,11 +187,6 @@ object NativeApp {
     }
     @JvmStatic fun setTouchState(x: Int, y: Int, pressed: Boolean) =
         CoreRuntime.setTouchState(x, y, pressed)
-    @JvmStatic fun setInternetLinkTransportReady(ready: Boolean) = Unit
-    @JvmStatic fun resetInternetLinkTransport() = Unit
-    @JvmStatic fun pushInternetLinkFrame(frame: ByteArray): Boolean = false
-    @JvmStatic fun pollInternetLinkFrame(): ByteArray? = null
-    @JvmStatic fun setPadPressureModifierAmount(amountPercent: Int) = Unit
     @JvmStatic fun onHostKeyEvent(keyCode: Int, pressed: Boolean) {
         setPadButton(0, keyCode, 0, pressed)
     }
@@ -228,15 +222,7 @@ object NativeApp {
     @JvmStatic fun renderUpscalemultiplier(value: Float) { setSetting("EmuCoreD/Display", "Upscale", "float", value.toString()) }
     // The software renderer is a CPU rasterizer: the only real internal
     // resolution increase is the 2x "enhanced resolution" buffer.
-    @JvmStatic fun getMaxUpscaleMultiplier(renderer: Int): Int =
-        if (RendererDefaults.toCoreRenderer(renderer) == RendererDefaults.CORE_SOFTWARE) 1 else UPSCALE_MAX.toInt()
-    @JvmStatic fun renderGpu(value: Int) = Unit
-    @JvmStatic fun setCustomDriverPath(path: String) {
-        CoreRuntime.updateSetting("EmuCoreD/GPU", "CustomDriverPath", path)
-    }
-    @JvmStatic fun setNativeLibraryDir(path: String) = Unit
-    @JvmStatic fun beginSettingsBatch() = Unit
-    @JvmStatic fun endSettingsBatch() = Unit
+    @JvmStatic fun getMaxUpscaleMultiplier(renderer: Int): Int = UPSCALE_MAX.toInt()
     @JvmStatic fun setSetting(section: String, key: String, type: String, value: String): Boolean =
         CoreRuntime.updateSetting(section, key, value)
     @JvmStatic fun getSetting(section: String, key: String, type: String): String? = CoreRuntime.settings["$section:$key"]
@@ -267,9 +253,8 @@ object NativeApp {
     @JvmStatic fun reloadPatches() = CoreRuntime.reloadCheats()
     @JvmStatic fun loadCheats(path: String) = CoreRuntime.loadCheats(path)
     @JvmStatic fun clearCheats() = CoreRuntime.clearCheats()
-    @JvmStatic fun setMemoryCardPath(slot: Int, path: String?) = CoreRuntime.setMemoryCardPath(slot, path)
-    @JvmStatic fun setTextureReplacementsPathOverride(path: String?) =
-        CoreRuntime.setTextureReplacementsPathOverride(path)
+    @JvmStatic fun setCoreUserDirectory(path: String?) =
+        CoreRuntime.setCoreUserDirectory(path)
     @JvmStatic fun hasDiscMedia(): Boolean = CoreRuntime.hasDiscMedia()
 
     // RetroAchievements: every call degrades to a no-op when the bundled core
@@ -311,17 +296,9 @@ object NativeApp {
     }
     @JvmStatic fun restartRenderer(renderer: Int): Boolean = CoreRuntime.restartWithRenderer(renderer)
     @JvmStatic fun changeDisc(path: String): Boolean = CoreRuntime.changeDisc(path)
-    @JvmStatic fun runBootSmokeProbe(path: String, steps: Int): Int = 0
-    @JvmStatic fun runJitExecutableMemorySmokeTest(): Boolean = runCatching {
-        CoreRuntime.bridge.getDiagnostics().contains("\"jit_w_x_ok\": 1")
-    }.getOrDefault(false)
-    @JvmStatic fun runEeFpuDivRoundingSelfTest(): String = "not applicable to R3000A"
-    @JvmStatic fun bootElf(path: String): Boolean = false
-    @JvmStatic fun bootIrx(path: String): Boolean = false
     @JvmStatic fun pause() = CoreRuntime.pause()
     @JvmStatic fun resume() = CoreRuntime.resume()
     @JvmStatic fun shutdown() = CoreRuntime.shutdown()
-    @JvmStatic fun refreshBIOS() = Unit
     @JvmStatic fun hasValidVm(): Boolean = CoreRuntime.isRunning()
     /** Ownership remains after a worker failure until explicit shutdown completes. */
     @JvmStatic fun hasOwnedVm(): Boolean = CoreRuntime.hasSession()
@@ -358,65 +335,12 @@ object NativeApp {
     }
     @JvmStatic fun getCurrentSaveStatePath(slot: Int): String? =
         getSaveStatePathForFile(saveStatePathSource(), slot)
-    @JvmStatic fun getSaveStateScreenshot(path: String): ByteArray? = null
-    @JvmStatic fun listMemoryCards(): String? {
-        val context = getContext() ?: return "[]"
-        val directory = EmulatorStorage.memoryCardsDir(context, dataRootOverride).apply { mkdirs() }
-        return JSONArray().apply {
-            directory.listFiles().orEmpty().filter(File::isFile).forEach { file ->
-                put(JSONObject()
-                    .put("name", file.name)
-                    .put("path", file.absolutePath)
-                    .put("modifiedTime", file.lastModified())
-                    .put("type", 1)
-                    .put("fileType", if (file.length() == PS1_MEMORY_CARD_SIZE_BYTES) 1 else 0)
-                    .put("sizeBytes", file.length())
-                    .put("formatted", file.length() == PS1_MEMORY_CARD_SIZE_BYTES))
-            }
-        }.toString()
-    }
-    @JvmStatic fun createMemoryCard(name: String, type: Int, fileType: Int): Boolean {
-        if (type != 1) return false
-        val context = getContext() ?: return false
-        val file = File(EmulatorStorage.memoryCardsDir(context, dataRootOverride), name)
-        if (file.exists()) return false
-        return runCatching {
-            file.parentFile?.mkdirs()
-            CoreRuntime.bridge.createMemoryCard(file.absolutePath) == 0
-        }.getOrDefault(false)
-    }
-    @JvmStatic fun convertIsoToChd(inputIsoPath: String): Int = -1
     @JvmStatic fun startJitProfiler() { profilerActive = true }
     @JvmStatic fun stopJitProfiler() { profilerActive = false }
     @JvmStatic fun isJitProfilerActive(): Boolean = profilerActive
     @JvmStatic fun startHangTrace() { hangTraceActive = true }
     @JvmStatic fun stopHangTrace() { hangTraceActive = false }
     @JvmStatic fun isHangTraceActive(): Boolean = hangTraceActive
-    @JvmStatic fun setNativeCrashLogFilePath(path: String) = Unit
-
-    @JvmStatic
-    fun parseMemoryCardList(raw: String?): List<NativeMemoryCardInfo> {
-        if (raw.isNullOrBlank()) return emptyList()
-        return runCatching {
-            val array = JSONArray(raw)
-            buildList {
-                for (index in 0 until array.length()) {
-                    val item = array.optJSONObject(index) ?: continue
-                    add(
-                        NativeMemoryCardInfo(
-                            name = item.optString("name"),
-                            path = item.optString("path"),
-                            modifiedTime = item.optLong("modifiedTime"),
-                            type = item.optInt("type"),
-                            fileType = item.optInt("fileType"),
-                            sizeBytes = item.optLong("sizeBytes"),
-                            formatted = item.optBoolean("formatted")
-                        )
-                    )
-                }
-            }
-        }.getOrDefault(emptyList())
-    }
 
     @JvmStatic
     fun initializeOnce(context: Context) {

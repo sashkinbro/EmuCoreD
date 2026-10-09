@@ -1,12 +1,14 @@
 package com.sbro.emucored.core
 
+/**
+ * App performance profiles. Both entries map onto real Azahar core options:
+ * the CPU clock percentage and the JIT, so a profile never invents settings
+ * the core does not understand.
+ */
 data class PerformanceProfileConfig(
     val id: Int,
-    val renderer: Int = RendererDefaults.defaultForHardware(),
-    val eeCycleRate: Int,
-    val eeCycleSkip: Int,
-    val hwDownloadMode: Int,
-    val fpuCorrectAddSub: Boolean
+    val cpuClockPercentage: Int,
+    val useCpuJit: Boolean
 )
 
 object PerformanceProfiles {
@@ -15,18 +17,14 @@ object PerformanceProfiles {
 
     val safeConfig = PerformanceProfileConfig(
         id = SAFE,
-        eeCycleRate = 0,
-        eeCycleSkip = 0,
-        hwDownloadMode = GsHackDefaults.HW_DOWNLOAD_MODE_DEFAULT,
-        fpuCorrectAddSub = true
+        cpuClockPercentage = 100,
+        useCpuJit = true
     )
 
     val fastConfig = PerformanceProfileConfig(
         id = FAST,
-        eeCycleRate = -1,
-        eeCycleSkip = 2,
-        hwDownloadMode = GsHackDefaults.HW_DOWNLOAD_MODE_DEFAULT,
-        fpuCorrectAddSub = false
+        cpuClockPercentage = 200,
+        useCpuJit = true
     )
 
     fun normalize(profileId: Int): Int {

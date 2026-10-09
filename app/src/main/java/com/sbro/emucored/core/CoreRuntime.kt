@@ -349,7 +349,6 @@ internal object CoreRuntime {
     private fun graphicsApiValue(coreRenderer: Int): String = when (coreRenderer) {
         RendererDefaults.CORE_VULKAN -> "Vulkan"
         RendererDefaults.CORE_OPENGL -> "OpenGL"
-        RendererDefaults.CORE_SOFTWARE -> "Software"
         else -> "Auto"
     }
 
@@ -399,23 +398,6 @@ internal object CoreRuntime {
     private fun pushAspectRatio(type: Int) {
         val normalized = if (type in ASPECT_RATIO_STRETCH..ASPECT_RATIO_CUSTOM) type else ASPECT_RATIO_AUTO
         bridge.setDisplayAspectRatio(normalized)
-    }
-
-    private fun swanStationTextureFilter(): String {
-        val filter = settings["EmuCoreD/GS:filter"]?.toIntOrNull() ?: 0
-        val enabled = settings["EmuCoreD/GS:ShaderChainEnabled"]?.toBooleanStrictOrNull() == true
-        val preset = settings["EmuCoreD/GS:ShaderChainPreset"].orEmpty().lowercase()
-        return when {
-            enabled && preset.contains("xbr") -> "xBR"
-            enabled && preset.contains("jinc") -> "JINC2"
-            enabled && (preset.contains("nearest") || preset.contains("pixel")) -> "Nearest"
-            enabled && (preset.contains("smooth") || preset.contains("bilinear") || preset.contains("linear")) ->
-                "Bilinear"
-            filter <= 0 -> "Nearest"
-            filter == 1 -> "Bilinear"
-            filter == 2 -> "BilinearBinAlpha"
-            else -> "xBR"
-        }
     }
 
     private fun rendererOptionName(coreRenderer: Int): String = when (coreRenderer) {
@@ -609,14 +591,13 @@ internal object CoreRuntime {
         sessionLock.withLock { runCatching { bridge.loadCheats(path) } }
     }
 
-    fun setMemoryCardPath(slot: Int, path: String?) {
-        if (slot !in 0..1) return
-        runCatching { bridge.setMemoryCardPath(slot, path) }
-    }
-
-    fun setTextureReplacementsPathOverride(path: String?) {
-        runCatching { bridge.setTextureReplacementsPathOverride(path?.takeIf(String::isNotBlank)) }
-            .onFailure { Log.w(TAG, "Unable to set texture replacements path", it) }
+    /**
+     * Points the Azahar user directory (NAND/SDMC/sysdata) at [path]; blank
+     * restores the libretro save-directory default.
+     */
+    fun setCoreUserDirectory(path: String?) {
+        runCatching { bridge.setCoreUserDirectory(path?.takeIf(String::isNotBlank)) }
+            .onFailure { Log.w(TAG, "Unable to set the core user directory", it) }
     }
 
     fun setPadButtons(port: Int, buttons: Int): Boolean {
@@ -777,7 +758,6 @@ internal object CoreRuntime {
                                           audioStats: LongArray?, cpuLoadPercent: Double,
                                           speed: Double, targetFps: Double) {
         if (frames <= 0 || !performanceMetricsEnabled) return
-        val softwareRenderer = activeCoreRenderer == RendererDefaults.CORE_SOFTWARE
         val renderer = RendererDefaults.coreRendererName(activeCoreRenderer)
         val frameMs = frameNanos / frames / 1_000_000.0
         val gpuLoad = if (detailedPerformanceMetrics) GpuLoadReader.loadPercent() else null
@@ -787,7 +767,7 @@ internal object CoreRuntime {
                 // The renderer line must end with " HW |" / " SW |" so the
                 // overlay recognises it as the active backend and keeps it on
                 // its own bottom line instead of duplicating it inline.
-                append('\n').append(renderer).append(if (softwareRenderer) " SW |" else " HW |")
+                append('\n').append(renderer).append(" HW |")
                 append('\n').append("CPU:Host | ").append(String.format(Locale.US, "%.1f%%", cpuLoadPercent))
                 append('\n').append("GPU:Host")
                 if (gpuLoad != null) append(String.format(Locale.US, " | %.1f%%", gpuLoad))

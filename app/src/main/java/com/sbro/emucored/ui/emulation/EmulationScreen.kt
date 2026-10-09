@@ -456,9 +456,6 @@ fun EmulationScreen(
             achievementUnlockBanner = null
         }
     }
-    LaunchedEffect(uiState.localMultiplayerMode) {
-        EmulatorBridge.setLocalMultiplayerMode(uiState.localMultiplayerMode)
-    }
     val swapDiscPicker = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocument()
     ) { uri ->
@@ -1398,8 +1395,7 @@ fun EmulationScreen(
             // keeping the visual overlay LTR guarantees that visible and logical buttons
             // stay aligned in Arabic, Persian, and every other RTL language.
             CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
-                if (uiState.localMultiplayerMode == AppPreferences.LOCAL_MULTIPLAYER_OFF) {
-                    OnScreenControls(
+                OnScreenControls(
                     modifier = Modifier
                         .fillMaxSize()
                         .zIndex(20f)
@@ -1436,20 +1432,7 @@ fun EmulationScreen(
                     onPadInput = { keyCode, range, pressed ->
                         viewModel.onPadInput(overlayPadIndex, keyCode, range, pressed)
                     }
-                    )
-                } else {
-                    LocalMultiplayerTouchControls(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .zIndex(20f),
-                        mode = uiState.localMultiplayerMode,
-                        uiState = uiState,
-                        scaleFactor = scaleFactor,
-                        alpha = alpha,
-                        onToggleLeftInputMode = viewModel::toggleLeftInputMode,
-                        onPadInput = viewModel::onPadInput
-                    )
-                }
+                )
             }
         }
         }
@@ -1558,10 +1541,7 @@ fun EmulationScreen(
                     onPrevSlot = { viewModel.setSlot(uiState.currentSlot - 1) },
                     onToggleFps = { viewModel.toggleFpsVisibility() },
                     onSetFrameLimit = { viewModel.toggleFrameLimit() },
-                    onSetTargetFps = { viewModel.setTargetFps(it) },
                     onSetFrameSkip = { viewModel.setFrameSkip(it) },
-                    onSetNtscFramerate = { viewModel.setNtscFramerate(it) },
-                    onSetPalFramerate = { viewModel.setPalFramerate(it) },
                     onSetFpsOverlayMode = { viewModel.setFpsOverlayMode(it) },
                     onSetFpsOverlayCorner = { viewModel.setFpsOverlayCorner(it) },
                     onSetFpsOverlayScale = { viewModel.setFpsOverlayScale(it) },
@@ -1596,40 +1576,12 @@ fun EmulationScreen(
                         }
                     },
                     onSetDisplayCrop = { viewModel.setDisplayCrop(it) },
-                    onSetLocalMultiplayerMode = viewModel::setLocalMultiplayerMode,
-                    onSetMtvu = { viewModel.setMtvu(it) },
-                    onSetThreadPinning = { viewModel.setThreadPinning(it) },
-                    onSetFastCdvd = { viewModel.setFastCdvd(it) },
                     onSetEnableCheats = { viewModel.setEnableCheats(it) },
-                    onSetWidescreenPatches = { viewModel.setEnableWidescreenPatches(it) },
-                    onSetNoInterlacingPatches = { viewModel.setEnableNoInterlacingPatches(it) },
                     onToggleCheat = { id, enabled -> viewModel.setCheatEnabled(id, enabled) },
                     onSetCheatGroupEnabled = { ids, enabled -> viewModel.setCheatGroupEnabled(ids, enabled) },
                     onRefreshCheats = { viewModel.refreshAvailableCheats() },
-                    onSetEeCycleRate = { viewModel.setEeCycleRate(it) },
-                    onSetEeCycleSkip = { viewModel.setEeCycleSkip(it) },
-                    onSetEnableDisableStalls = { viewModel.setEnableDisableStalls(it) },
-                    onSetEnablePreciseExceptions = { viewModel.setEnablePreciseExceptions(it) },
-                    onSetEnableTurboCd = { viewModel.setEnableTurboCd(it) },
-                    onSetEnableXaDecoding = { viewModel.setEnableXaDecoding(it) },
-                    onSetEnableSpuReverb = { viewModel.setEnableSpuReverb(it) },
-                    onSetEnableSpuThread = { viewModel.setEnableSpuThread(it) },
                     onSetAudioVolume = { viewModel.setAudioVolume(it) },
                     onSetAudioMuted = { viewModel.setAudioMuted(it) },
-                    onSetNeonEnhancement = { viewModel.setNeonEnhancement(it) },
-                    onSetNeonEnhancementSpeedHack = { viewModel.setNeonEnhancementSpeedHack(it) },
-                    onSetNeonEnhancementTexAdj = { viewModel.setNeonEnhancementTexAdj(it) },
-                    onSetNeonInterlace = { viewModel.setNeonInterlace(it) },
-                    onSetGpuThreadRendering = { viewModel.setGpuThreadRendering(it) },
-                    onSetShowOverscan = { viewModel.setShowOverscan(it) },
-                    onSetScreenCentering = { viewModel.setScreenCentering(it) },
-                    onSetScreenCenteringX = { viewModel.setScreenCenteringX(it) },
-                    onSetScreenCenteringY = { viewModel.setScreenCenteringY(it) },
-                    onSetScreenCenteringHAdj = { viewModel.setScreenCenteringHAdj(it) },
-                    onSetEnableFractionalFramerate = { viewModel.setEnableFractionalFramerate(it) },
-                    onSetAltFlipMode = { viewModel.setAltFlipMode(it) },
-                    onSetEnableRgb32Output = { viewModel.setEnableRgb32Output(it) },
-                    onSetEnableScaleHires = { viewModel.setEnableScaleHires(it) },
                     onExit = requestExitClick,
                     modifier = Modifier
                         .fillMaxHeight()
@@ -1965,149 +1917,6 @@ private fun GameMenuTabId.toEmulationMenuTab(): EmulationMenuTab = when (this) {
     GameMenuTabId.ACHIEVEMENTS -> EmulationMenuTab.Achievements
 }
 
-@Composable
-private fun LocalMultiplayerTouchControls(
-    modifier: Modifier,
-    mode: Int,
-    uiState: EmulationUiState,
-    scaleFactor: Float,
-    alpha: Float,
-    onToggleLeftInputMode: () -> Unit,
-    onPadInput: (Int, Int, Int, Boolean) -> Unit
-) {
-    val sideBySide = mode == AppPreferences.LOCAL_MULTIPLAYER_SIDE_BY_SIDE
-    val (firstPad, secondPad) = localMultiplayerPadOrder(mode)
-
-    if (sideBySide) {
-        Row(modifier = modifier) {
-            LocalMultiplayerTouchZone(
-                modifier = Modifier.weight(1f).fillMaxHeight(),
-                padIndex = firstPad,
-                uiState = uiState,
-                scaleFactor = scaleFactor * 0.58f,
-                alpha = alpha,
-                onToggleLeftInputMode = onToggleLeftInputMode,
-                onPadInput = onPadInput
-            )
-            Box(
-                modifier = Modifier
-                    .width(1.dp)
-                    .fillMaxHeight()
-                    .background(Color.White.copy(alpha = 0.16f))
-            )
-            LocalMultiplayerTouchZone(
-                modifier = Modifier.weight(1f).fillMaxHeight(),
-                padIndex = secondPad,
-                uiState = uiState,
-                scaleFactor = scaleFactor * 0.58f,
-                alpha = alpha,
-                onToggleLeftInputMode = onToggleLeftInputMode,
-                onPadInput = onPadInput
-            )
-        }
-    } else {
-        Column(modifier = modifier) {
-            LocalMultiplayerTouchZone(
-                modifier = Modifier.weight(1f).fillMaxWidth(),
-                padIndex = firstPad,
-                uiState = uiState,
-                scaleFactor = scaleFactor * 0.50f,
-                alpha = alpha,
-                onToggleLeftInputMode = onToggleLeftInputMode,
-                onPadInput = onPadInput
-            )
-            HorizontalDivider(color = Color.White.copy(alpha = 0.16f))
-            LocalMultiplayerTouchZone(
-                modifier = Modifier.weight(1f).fillMaxWidth(),
-                padIndex = secondPad,
-                uiState = uiState,
-                scaleFactor = scaleFactor * 0.50f,
-                alpha = alpha,
-                onToggleLeftInputMode = onToggleLeftInputMode,
-                onPadInput = onPadInput
-            )
-        }
-    }
-}
-
-internal fun localMultiplayerPadOrder(mode: Int): Pair<Int, Int> {
-    return if (mode == AppPreferences.LOCAL_MULTIPLAYER_HORIZONTAL_CROP_SWAPPED) {
-        1 to 0
-    } else {
-        0 to 1
-    }
-}
-
-@Composable
-private fun LocalMultiplayerTouchZone(
-    modifier: Modifier,
-    padIndex: Int,
-    uiState: EmulationUiState,
-    scaleFactor: Float,
-    alpha: Float,
-    onToggleLeftInputMode: () -> Unit,
-    onPadInput: (Int, Int, Int, Boolean) -> Unit
-) {
-    Box(modifier = modifier) {
-        OnScreenControls(
-            modifier = Modifier
-                .fillMaxSize()
-                .graphicsLayer(alpha = alpha),
-            scaleFactor = scaleFactor,
-            stickScaleFactor = uiState.stickScale / 100f,
-            leftStickSensitivity = uiState.leftStickSensitivity / 100f,
-            rightStickSensitivity = uiState.rightStickSensitivity / 100f,
-            invertLeftStick = uiState.invertLeftStick,
-            invertRightStick = uiState.invertRightStick,
-            invertLeftStickHorizontal = uiState.invertLeftStickHorizontal,
-            invertRightStickHorizontal = uiState.invertRightStickHorizontal,
-            rightStickUpToR2 = uiState.gamepadRightStickUpToR2,
-            rightStickDownToL2 = uiState.gamepadRightStickDownToL2,
-            touchscreenRightStick = uiState.touchscreenRightStick,
-            touchscreenRightStickSensitivity = uiState.touchscreenRightStickSensitivity / 100f,
-            touchHaptics = uiState.touchHaptics,
-            touchHapticsPreset = uiState.touchHapticsPreset,
-            touchHapticsStrength = uiState.touchHapticsStrength,
-            visualStyle = uiState.touchControlVisualStyle,
-            pressEffect = uiState.touchControlPressEffect,
-            customControls = uiState.customTouchControls.controls,
-            dpadOffset = uiState.dpadOffset,
-            lstickOffset = uiState.lstickOffset,
-            rstickOffset = uiState.rstickOffset,
-            actionOffset = uiState.actionOffset,
-            lbtnOffset = uiState.lbtnOffset,
-            rbtnOffset = uiState.rbtnOffset,
-            centerOffset = uiState.centerOffset,
-            controlLayouts = uiState.controlLayouts,
-            racingMode = uiState.racingMode,
-            stickToggleTarget = uiState.stickToggleTarget,
-            onToggleLeftInputMode = onToggleLeftInputMode,
-            onPadInput = { key, range, pressed -> onPadInput(padIndex, key, range, pressed) },
-            respectSystemInsets = false
-        )
-        Surface(
-            modifier = Modifier
-                .align(Alignment.TopStart)
-                .padding(8.dp)
-                .zIndex(30f),
-            shape = RoundedCornerShape(999.dp),
-            color = Color.Black.copy(alpha = 0.56f),
-            border = BorderStroke(1.dp, Color.White.copy(alpha = 0.20f))
-        ) {
-            Text(
-                text = stringResource(
-                    if (padIndex == 0) R.string.settings_gamepad_player_1
-                    else R.string.settings_gamepad_player_2
-                ),
-                modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
-                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-                color = Color.White
-            )
-        }
-    }
-}
-
-@SuppressLint("ConfigurationScreenWidthHeight")
 @Composable
 private fun OnScreenControls(
     modifier: Modifier = Modifier,
@@ -2882,10 +2691,7 @@ private fun EmulationSidebarMenu(
     onPrevSlot: () -> Unit,
     onToggleFps: () -> Unit,
     onSetFrameLimit: () -> Unit,
-    onSetTargetFps: (Int) -> Unit,
     onSetFrameSkip: (Int) -> Unit,
-    onSetNtscFramerate: (Float) -> Unit,
-    onSetPalFramerate: (Float) -> Unit,
     onSetFpsOverlayMode: (Int) -> Unit,
     onSetFpsOverlayCorner: (Int) -> Unit,
     onSetFpsOverlayScale: (Int) -> Unit,
@@ -2914,40 +2720,12 @@ private fun EmulationSidebarMenu(
     onSetAspectRatio: (Int) -> Unit,
     onSwapScreens: () -> Unit,
     onSetDisplayCrop: (DisplayCrop) -> Unit,
-    onSetLocalMultiplayerMode: (Int) -> Unit,
-    onSetMtvu: (Boolean) -> Unit,
-    onSetThreadPinning: (Boolean) -> Unit,
-    onSetFastCdvd: (Boolean) -> Unit,
     onSetEnableCheats: (Boolean) -> Unit,
-    onSetWidescreenPatches: (Boolean) -> Unit,
-    onSetNoInterlacingPatches: (Boolean) -> Unit,
     onToggleCheat: (String, Boolean) -> Unit,
     onSetCheatGroupEnabled: (List<String>, Boolean) -> Unit,
     onRefreshCheats: () -> Unit,
-    onSetEeCycleRate: (Int) -> Unit,
-    onSetEeCycleSkip: (Int) -> Unit,
-    onSetEnableDisableStalls: (Boolean) -> Unit,
-    onSetEnablePreciseExceptions: (Boolean) -> Unit,
-    onSetEnableTurboCd: (Boolean) -> Unit,
-    onSetEnableXaDecoding: (Boolean) -> Unit,
-    onSetEnableSpuReverb: (Boolean) -> Unit,
-    onSetEnableSpuThread: (Boolean) -> Unit,
     onSetAudioVolume: (Int) -> Unit,
     onSetAudioMuted: (Boolean) -> Unit,
-    onSetNeonEnhancement: (Boolean) -> Unit,
-    onSetNeonEnhancementSpeedHack: (Boolean) -> Unit,
-    onSetNeonEnhancementTexAdj: (Boolean) -> Unit,
-    onSetNeonInterlace: (Int) -> Unit,
-    onSetGpuThreadRendering: (Int) -> Unit,
-    onSetShowOverscan: (Boolean) -> Unit,
-    onSetScreenCentering: (Int) -> Unit,
-    onSetScreenCenteringX: (Int) -> Unit,
-    onSetScreenCenteringY: (Int) -> Unit,
-    onSetScreenCenteringHAdj: (Int) -> Unit,
-    onSetEnableFractionalFramerate: (Boolean) -> Unit,
-    onSetAltFlipMode: (Int) -> Unit,
-    onSetEnableRgb32Output: (Boolean) -> Unit,
-    onSetEnableScaleHires: (Boolean) -> Unit,
     onExit: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -3707,19 +3485,6 @@ private fun EmulationSidebarMenu(
                                     onSetFrameLimit()
                                 }
                             }
-                        )
-
-                        LiveSelectionRow(
-                            title = stringResource(R.string.settings_target_fps),
-                            options = listOf(
-                                LiveSelectionOption(0, stringResource(R.string.settings_aspect_ratio_auto)),
-                                LiveSelectionOption(50, "50 Hz"),
-                                LiveSelectionOption(60, "60 Hz")
-                            ),
-                            currentValue = uiState.targetFps,
-                            onValueChange = onSetTargetFps,
-                            helpText = stringResource(R.string.settings_target_fps_desc),
-                            onResetToDefault = { onSetTargetFps(globalDefaults.targetFps) }
                         )
 
                         LiveSelectionRow(

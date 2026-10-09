@@ -37,7 +37,7 @@ class NativeCoreBridge {
     // Content.
     // ---------------------------------------------------------------------
     external fun loadBios(handle: Long, path: String): Int
-    /** Boots the core with no content into the PlayStation BIOS. */
+    /** Boots the core with no content, landing on the 3DS HOME menu. */
     external fun loadBiosOnly(handle: Long): Int
     external fun loadDisc(handle: Long, path: String): Int
     external fun reset(handle: Long): Int
@@ -111,11 +111,10 @@ class NativeCoreBridge {
     external fun getPadState(handle: Long, port: Int): Int
 
     // ---------------------------------------------------------------------
-    // Save states / memory cards.
+    // Save states.
     // ---------------------------------------------------------------------
     external fun saveState(handle: Long, path: String): Int
     external fun loadState(handle: Long, path: String): Int
-    external fun createMemoryCard(path: String): Int
 
     // ---------------------------------------------------------------------
     // Diagnostics.
@@ -157,19 +156,18 @@ class NativeCoreBridge {
      */
     external fun extractCiaContent(fd: Int, outPath: String, contentIndex: Int): Int
 
-    /** Loads active GameShark-style codes from a PCSX `.cht` container. */
+    /**
+     * Reloads the Gateway cheat files the core reads from its own cheats
+     * directory; the native bridge re-scans them on the next frame.
+     */
     external fun loadCheats(path: String)
     external fun clearCheats()
 
-    /** Binds an explicit memory-card image to a slot (null or blank disables it). */
-    external fun setMemoryCardPath(slot: Int, path: String?)
-
     /**
-     * Sets the Azahar texture directory. The native bridge maps its
-     * `<data-root>/PSP/TEXTURES` value back to the core memstick root (null or
-     * blank restores the core default).
+     * Points the core user directory (NAND/SDMC/sysdata) at an explicit root.
+     * Blank restores the libretro save directory default.
      */
-    external fun setTextureReplacementsPathOverride(path: String?)
+    external fun setCoreUserDirectory(path: String?)
 
     // ---------------------------------------------------------------------
     // RetroAchievements (rcheevos). The client lives in native code; Kotlin
@@ -233,31 +231,4 @@ class NativeCoreBridge {
     external fun getDiscMetadata(path: String): String?
 
     external fun getDiscMetadataFd(fd: Int, offset: Long, size: Long): String?
-
-    // ---------------------------------------------------------------------
-    // Legacy self-test surface retained for the frontend diagnostics screen.
-    // ---------------------------------------------------------------------
-    fun getHostInfo(): String = getSystemInfo()
-    private fun unavailable(@Suppress("UNUSED_PARAMETER") name: String): String =
-        "Azahar core: '$name' self-test is not available for the libretro core"
-
-    fun runSmoke(): String = unavailable("smoke")
-    fun runCpuTests(): String = unavailable("cpu")
-    fun runIrqTimerTests(): String = unavailable("irq-timer")
-    fun runDmaTests(): String = unavailable("dma")
-    fun runGteTests(): String = unavailable("gte")
-    fun runGpuTests(): String = unavailable("gpu")
-    fun runSpuMdecTests(): String = unavailable("spu-mdec")
-    fun runCdromSioTests(): String = unavailable("cdrom-sio")
-    fun runJitTests(): String = unavailable("jit")
-    fun runBiosTests(): String = unavailable("bios")
-    fun runOptimizedTests(): String = unavailable("optimized")
-    fun runRegressionTests(): String = unavailable("regression")
-    fun runFinalTests(): String = unavailable("final")
-    fun runDiscLoaderTests(): String = unavailable("disc-loader")
-    fun runAsyncDiscTests(): String = unavailable("async-disc")
-    fun runSavestateFileTests(): String = unavailable("savestate")
-    fun runBootTests(): String = unavailable("boot")
-    fun runGamesBootTests(): String = unavailable("games-boot")
-    fun runHostThreadTests(): String = unavailable("host-thread")
 }

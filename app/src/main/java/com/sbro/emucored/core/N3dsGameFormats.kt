@@ -18,6 +18,12 @@ object N3dsGameFormats {
         "zcxi",
     )
 
+    /** Cartridge and installed-title images accepted by the core. */
+    val libraryFormats = listOf("3DS", "CCI", "CXI", "APP", "CIA")
+
+    /** Homebrew and executable formats. */
+    val homebrewFormats = listOf("3DSX", "Z3DSX", "ELF", "AXF")
+
     fun isSupportedName(name: String): Boolean {
         val fileName = name.substringAfterLast('/').lowercase(Locale.ROOT)
         return fileName.substringAfterLast('.', "") in extensions
