@@ -23,9 +23,8 @@ import java.util.zip.ZipOutputStream
 
 private const val AUTO_SAVE_SLOT = 0
 private val SAVE_STATE_SLOTS = 0..10
-private val SAVE_STATE_FILE_REGEX = Regex("""^(.+?)\.(\d{2})\.rstate$""", RegexOption.IGNORE_CASE)
-private const val SAVE_STATE_MAGIC = 0x54534345
-private const val CURRENT_SAVE_STATE_VERSION = 1
+/** Core save-state files: `<16 hex title id>.<slot>.cst`. */
+private val SAVE_STATE_FILE_REGEX = Regex("""^([0-9A-F]{16})\.(\d{2})\.cst$""", RegexOption.IGNORE_CASE)
 private const val MAX_IMPORT_FILE_BYTES = 1_073_741_824L
 private const val MAX_IMPORT_ARCHIVE_BYTES = 4_294_967_296L
 private const val MAX_IMPORT_CANDIDATES = 500

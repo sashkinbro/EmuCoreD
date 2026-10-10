@@ -24,6 +24,7 @@ import com.sbro.emucored.core.MobileSocNameMapper
 import com.sbro.emucored.core.NativeApp
 import com.sbro.emucored.core.RuntimeFailure
 import com.sbro.emucored.core.AzaharCoreOptions
+import com.sbro.emucored.core.CoreOptionStore
 import com.sbro.emucored.core.PerformanceProfiles
 import com.sbro.emucored.core.resolveAndroidGamePhase
 import com.sbro.emucored.core.normalizeUpscale
@@ -1873,7 +1874,7 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
             persistRuntimeState(_uiState.value.copy(enableCheats = enabled)) {
                 preferences.setEnableCheats(enabled)
             }
-            EmulatorBridge.setSetting("EmuCoreD", "EnableCheats", "bool", enabled.toString())
+            CoreOptionStore.set("cheats_enabled", enabled.toString())
             withContext(Dispatchers.IO) {
                 syncCheatsForCurrentGame()
             }
@@ -1898,7 +1899,7 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
                 preferences.setEnableCheats(true)
             }
             syncCheatsForCurrentGame(gameKey)
-            EmulatorBridge.setSetting("EmuCoreD", "EnableCheats", "bool", "true")
+            CoreOptionStore.set("cheats_enabled", "true")
         }
     }
 
@@ -1920,7 +1921,7 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
                 preferences.setEnableCheats(true)
             }
             syncCheatsForCurrentGame(gameKey)
-            EmulatorBridge.setSetting("EmuCoreD", "EnableCheats", "bool", "true")
+            CoreOptionStore.set("cheats_enabled", "true")
         }
     }
 
@@ -1996,7 +1997,7 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
             persistRuntimeState(newState) {
                 preferences.setAudioVolume(clamped)
             }
-            EmulatorBridge.setSetting("EmuCoreD/Audio", "Volume", "int", clamped.toString())
+            CoreOptionStore.set("volume", clamped.toString())
             updateCrashContext()
         }
     }
@@ -2007,7 +2008,7 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
             persistRuntimeState(newState) {
                 preferences.setAudioMuted(muted)
             }
-            EmulatorBridge.setSetting("EmuCoreD/Audio", "Mute", "bool", muted.toString())
+            CoreOptionStore.set("audio_muted", muted.toString())
             updateCrashContext()
         }
     }

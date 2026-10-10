@@ -53,6 +53,10 @@ object EmulatorStorage {
     fun sdmcDir(context: Context, customRootPath: String? = null): File =
         File(azaharUserDir(context, customRootPath), "sdmc").apply { mkdirs() }
 
+    /** Directory the core writes its own save states into (`<TITLEID>.<slot>.cst`). */
+    fun coreStatesDir(context: Context): File =
+        File(azaharUserDir(context), "states").apply { mkdirs() }
+
     /** The emulated NAND (installed titles, settings and system saves). */
     fun nandDir(context: Context, customRootPath: String? = null): File =
         File(azaharUserDir(context, customRootPath), "nand").apply { mkdirs() }

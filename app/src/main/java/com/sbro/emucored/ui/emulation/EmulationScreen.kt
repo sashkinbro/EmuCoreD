@@ -2435,8 +2435,8 @@ private fun TouchButtonGroup(
     }
 
     /**
-     * Converts a touch inside the emulator surface into the libretro pointer
-     * convention and forwards it to the core, which decides whether the point
+     * Converts a touch inside the emulator surface into emulated 3DS framebuffer
+     * coordinates and forwards it to the core, which decides whether the point
      * lands on the emulated bottom screen.
      */
     fun forwardTouchscreenPointer(x: Float, y: Float, pressed: Boolean) {
@@ -2447,8 +2447,8 @@ private fun TouchButtonGroup(
         val fractionX = ((x - rect[0]) / width).coerceIn(0f, 1f)
         val fractionY = ((y - rect[1]) / height).coerceIn(0f, 1f)
         NativeApp.setTouchState(
-            x = (fractionX * 65535f - 32768f).roundToInt(),
-            y = (fractionY * 65535f - 32768f).roundToInt(),
+            x = (fractionX * FRAMEBUFFER_TOUCH_WIDTH).roundToInt(),
+            y = (fractionY * FRAMEBUFFER_TOUCH_HEIGHT).roundToInt(),
             pressed = pressed
         )
     }
@@ -5584,6 +5584,10 @@ private fun QuickIconActionButton(
 }
 
 private const val FLOATING_QUICK_ACTION_SIZE_DP = 54
+
+/** Emulated 3DS framebuffer the core expects touch coordinates in. */
+private const val FRAMEBUFFER_TOUCH_WIDTH = 400f
+private const val FRAMEBUFFER_TOUCH_HEIGHT = 240f
 
 @Composable
 private fun FloatingQuickActionsLayer(

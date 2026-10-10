@@ -249,10 +249,13 @@ object NativeApp {
 
     @JvmStatic fun getSaveStatePathForFile(path: String, slot: Int): String? {
         if (path.isBlank()) return null
-        val context = getContext() ?: return null
-        val directory = EmulatorStorage.saveStatesDir(context, dataRootOverride)
-        val identity = extractTitleIdentity(path) ?: path.sha256().take(16).uppercase()
-        return File(directory, "$identity.${slot.coerceIn(0, 99).toString().padStart(2, '0')}.rstate").absolutePath
+        val titleId = runCatching { EmuCoreNative.getTitleId(path) }.getOrNull() ?: return null
+        if (titleId == 0L) return null
+        val directory = EmulatorStorage.coreStatesDir(getContext() ?: return null)
+        return File(
+            directory,
+            "%016X.%02d.cst".format(java.util.Locale.US, titleId, slot.coerceIn(0, 10))
+        ).absolutePath
     }
 
     @JvmStatic fun getCurrentSaveStatePath(slot: Int): String? =
