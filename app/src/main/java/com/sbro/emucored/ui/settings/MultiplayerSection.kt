@@ -31,7 +31,8 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import com.sbro.emucored.R
-import com.sbro.emucored.core.MultiplayerController
+import com.sbro.emucored.core.CoreRuntime
+import com.sbro.emucored.core.NetPlayManager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
@@ -46,7 +47,7 @@ fun MultiplayerSettingsSection() {
     var hosting by remember { mutableStateOf(false) }
     var roomName by remember { mutableStateOf("") }
     var members by remember { mutableStateOf(listOf<String>()) }
-    var publicRooms by remember { mutableStateOf(listOf<MultiplayerController.PublicRoom>()) }
+    var publicRooms by remember { mutableStateOf(listOf<NetPlayManager.PublicRoom>()) }
     var errorText by remember { mutableStateOf<String?>(null) }
     var showHostDialog by remember { mutableStateOf(false) }
     var showJoinDialog by remember { mutableStateOf(false) }
@@ -57,9 +58,9 @@ fun MultiplayerSettingsSection() {
         scope.launch {
             val status = withContext(Dispatchers.IO) {
                 Triple(
-                    MultiplayerController.isJoined(),
-                    MultiplayerController.isHosting(),
-                    MultiplayerController.roomInfo()
+                    NetPlayManager.isJoined(),
+                    NetPlayManager.isHosting(),
+                    NetPlayManager.roomInfo()
                 )
             }
             joined = status.first
@@ -70,15 +71,14 @@ fun MultiplayerSettingsSection() {
     }
 
     LaunchedEffect(Unit) {
-        withContext(Dispatchers.IO) { MultiplayerController.init() }
+        withContext(Dispatchers.IO) { NetPlayManager.init() }
         refreshStatus()
         while (isActive) {
-            val event = withContext(Dispatchers.IO) { MultiplayerController.pollEvent() }
-            if (event != null) {
-                if (event.message.isNotBlank()) chat.add(event.message)
-                if (event.status == 1 || event.status >= 5 && event.status <= 15) {
-                    errorText = event.message.ifBlank { errorLabel }
-                }
+            val message = withContext(Dispatchers.IO) { NetPlayManager.roomInfo() }
+            val event = CoreRuntime.netPlayEvents.receiveCatching()
+            if (event.isSuccess) {
+                val text = event.getOrNull().orEmpty()
+                if (text.isNotBlank()) chat.add(text)
                 refreshStatus()
             }
             delay(500)
@@ -125,7 +125,7 @@ fun MultiplayerSettingsSection() {
                 value = roomName,
                 onClick = {
                     scope.launch {
-                        withContext(Dispatchers.IO) { MultiplayerController.leaveRoom() }
+                        withContext(Dispatchers.IO) { NetPlayManager.leaveRoom() }
                         chat.clear()
                         refreshStatus()
                     }
@@ -147,7 +147,7 @@ fun MultiplayerSettingsSection() {
             value = stringResource(R.string.settings_multiplayer_public_rooms),
             onClick = {
                 scope.launch {
-                    publicRooms = withContext(Dispatchers.IO) { MultiplayerController.publicRooms() }
+                    publicRooms = withContext(Dispatchers.IO) { NetPlayManager.publicRooms() }
                 }
             }
         )
@@ -167,7 +167,7 @@ fun MultiplayerSettingsSection() {
                     onClick = {
                         scope.launch {
                             withContext(Dispatchers.IO) {
-                                MultiplayerController.joinRoom(
+                                NetPlayManager.joinRoom(
                                     room.ip,
                                     room.port,
                                     "EmuCoreD",
@@ -206,7 +206,7 @@ fun MultiplayerSettingsSection() {
                     val outgoing = message.trim()
                     if (outgoing.isNotEmpty()) {
                         scope.launch {
-                            withContext(Dispatchers.IO) { MultiplayerController.sendChat(outgoing) }
+                            withContext(Dispatchers.IO) { NetPlayManager.sendChat(outgoing) }
                         }
                         chat.add(outgoing)
                         message = ""
@@ -227,7 +227,7 @@ fun MultiplayerSettingsSection() {
                 showHostDialog = false
                 scope.launch {
                     val result = withContext(Dispatchers.IO) {
-                        MultiplayerController.createRoom(
+                        NetPlayManager.createRoom(
                             "0.0.0.0",
                             port,
                             "EmuCoreD",
@@ -256,7 +256,7 @@ fun MultiplayerSettingsSection() {
                 showJoinDialog = false
                 scope.launch {
                     val result = withContext(Dispatchers.IO) {
-                        MultiplayerController.joinRoom(address, port, "EmuCoreD", password)
+                        NetPlayManager.joinRoom(address, port, "EmuCoreD", password)
                     }
                     if (result != 0) {
                         errorText = errorLabel

@@ -49,17 +49,17 @@ object CameraSettingsStore {
     }
 
     /** Pushes the configured cameras (image pixels and enable state) to the core. */
-    fun applyToCore(context: Context, bridge: NativeCoreBridge) {
+    fun applyToCore(context: Context) {
         for (slot in SLOT_OUTER_RIGHT..SLOT_OUTER_LEFT) {
             val config = config(context, slot)
             val bitmap = config.imagePath
                 ?.takeIf(String::isNotBlank)
                 ?.let { decode(context, it) }
             if (config.enabled && bitmap != null) {
-                bridge.nativeSetCameraFrame(slot, FRAME_WIDTH, FRAME_HEIGHT, toRgb565(bitmap))
-                bridge.nativeSetCameraConfig(slot, true, config.flip)
+                EmuCoreNative.nativeSetCameraFrame(slot, FRAME_WIDTH, FRAME_HEIGHT, toRgb565(bitmap))
+                EmuCoreNative.nativeSetCameraConfig(slot, true, config.flip)
             } else {
-                bridge.nativeSetCameraConfig(slot, false, FLIP_NONE)
+                EmuCoreNative.nativeSetCameraConfig(slot, false, FLIP_NONE)
             }
         }
     }

@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: LicenseRef-EmuCoreD-Proprietary
 package com.sbro.emucored.core
 
+import android.util.Log
 import com.sbro.emucored.data.DisplayCrop
 import java.io.File
 
@@ -13,6 +14,7 @@ import java.io.File
  * the core's ini section names; unknown keys are skipped.
  */
 internal object CoreConfig {
+    private const val TAG = "CoreConfig"
     private const val CONFIG_FILE_NAME = "config.ini"
 
     data class Values(
@@ -113,12 +115,15 @@ internal object CoreConfig {
     }
 
     /**
-     * Stores the RetroArch shader chain choice. The frontend's shader library
-     * reads these values to build its filter chain for the next present.
+     * Stores the RetroArch shader chain choice and pushes it into the frontend
+     * shader library, which builds its filter chain for the next present.
      */
     fun setShaderChain(enabled: Boolean, presetPath: String) {
         enabledFlag = enabled && presetPath.isNotBlank()
         presetPathValue = presetPath.trim()
+        runCatching {
+            shaderBridge.nativeSetShaderPreset(presetPathValue, enabledFlag)
+        }.onFailure { Log.w(TAG, "Unable to apply the shader chain", it) }
     }
 
     fun shaderChainEnabled(): Boolean = enabledFlag
@@ -130,6 +135,8 @@ internal object CoreConfig {
 
     @Volatile
     private var presetPathValue: String = ""
+
+    private val shaderBridge: NativeCoreBridge by lazy { NativeCoreBridge() }
 
     /**
      * Rewrites the values of [overrides] inside [existing], keeping every other

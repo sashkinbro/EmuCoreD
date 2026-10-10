@@ -12,6 +12,7 @@ import java.util.concurrent.locks.ReentrantLock
 import kotlin.concurrent.withLock
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.channels.Channel
 
 /**
  * Process-wide owner of the emulation session.
@@ -29,6 +30,9 @@ internal object CoreRuntime {
 
     private val _failure = MutableStateFlow<RuntimeFailure?>(null)
     val failure = _failure.asStateFlow()
+
+    /** Room/chat messages pushed by the core (see [onNetPlayMessage]). */
+    val netPlayEvents = Channel<String>(Channel.UNLIMITED)
 
     private val lifecycleLock = ReentrantLock()
     private var context: Context? = null
@@ -206,7 +210,9 @@ internal object CoreRuntime {
 
     fun requestMicPermission(): Boolean = true
 
-    fun onNetPlayMessage(type: Int, message: String) = Unit
+    fun onNetPlayMessage(type: Int, message: String) {
+        netPlayEvents.trySend(message)
+    }
 
     // ---------------------------------------------------------------------
     // Presentation

@@ -122,6 +122,9 @@ object EmuCoreNative {
     // Camera, amiibo, artic console.
     // ---------------------------------------------------------------------
     external fun reloadCameraDevices()
+    external fun nativeSetCameraConfig(slot: Int, enabled: Boolean, flip: Int)
+    /** Supplies RGB565 pixels for one 3DS camera slot (width * height shorts). */
+    external fun nativeSetCameraFrame(slot: Int, width: Int, height: Int, pixels: ShortArray)
     external fun loadAmiibo(path: String?): Boolean
     external fun removeAmiibo()
     external fun isFullConsoleLinked(): Boolean
