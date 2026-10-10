@@ -113,6 +113,25 @@ internal object CoreConfig {
     }
 
     /**
+     * Stores the RetroArch shader chain choice. The frontend's shader library
+     * reads these values to build its filter chain for the next present.
+     */
+    fun setShaderChain(enabled: Boolean, presetPath: String) {
+        enabledFlag = enabled && presetPath.isNotBlank()
+        presetPathValue = presetPath.trim()
+    }
+
+    fun shaderChainEnabled(): Boolean = enabledFlag
+
+    fun shaderChainPresetPath(): String = presetPathValue
+
+    @Volatile
+    private var enabledFlag: Boolean = false
+
+    @Volatile
+    private var presetPathValue: String = ""
+
+    /**
      * Rewrites the values of [overrides] inside [existing], keeping every other
      * key and comment untouched, and appends sections that are missing.
      */

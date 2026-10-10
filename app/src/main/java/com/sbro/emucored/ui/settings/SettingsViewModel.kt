@@ -11,6 +11,7 @@ import com.sbro.emucored.core.AudioDefaults
 import com.sbro.emucored.core.AppUpdateRelease
 import com.sbro.emucored.core.AppUpdateRepository
 import com.sbro.emucored.core.BiosValidator
+import com.sbro.emucored.core.CoreConfig
 import com.sbro.emucored.core.DocumentPathResolver
 import com.sbro.emucored.core.EmulatorBridge
 import com.sbro.emucored.core.EmulatorDataLocation
@@ -647,15 +648,13 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
     fun setShaderChainEnabled(enabled: Boolean) = viewModelScope.launch {
         val preset = _uiState.value.shaderChainPreset
         preferences.setShaderChain(enabled, preset)
-        EmulatorBridge.setSetting("EmuCoreD/GS", "ShaderChainEnabled", "bool", enabled.toString())
-        EmulatorBridge.setSetting("EmuCoreD/GS", "ShaderChainPreset", "string", preset)
+        CoreConfig.setShaderChain(enabled, preset)
     }
 
     fun setShaderChainPreset(path: String) = viewModelScope.launch {
         val enabled = path.isNotBlank() && _uiState.value.shaderChainEnabled
         preferences.setShaderChain(enabled, path)
-        EmulatorBridge.setSetting("EmuCoreD/GS", "ShaderChainEnabled", "bool", enabled.toString())
-        EmulatorBridge.setSetting("EmuCoreD/GS", "ShaderChainPreset", "string", path)
+        CoreConfig.setShaderChain(enabled, path)
     }
 
     fun downloadOfficialShaderPack() {
