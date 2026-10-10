@@ -25,6 +25,9 @@ private const val AUTO_SAVE_SLOT = 0
 private val SAVE_STATE_SLOTS = 0..10
 /** Core save-state files: `<16 hex title id>.<slot>.cst`. */
 private val SAVE_STATE_FILE_REGEX = Regex("""^([0-9A-F]{16})\.(\d{2})\.cst$""", RegexOption.IGNORE_CASE)
+/** Core save-state header magic ("CST" + 0x1B); the core writes a 256 byte header. */
+private val SAVE_STATE_HEADER_MAGIC = byteArrayOf('C'.code.toByte(), 'S'.code.toByte(), 'T'.code.toByte(), 0x1B)
+private const val SAVE_STATE_HEADER_BYTES = 256
 private const val MAX_IMPORT_FILE_BYTES = 1_073_741_824L
 private const val MAX_IMPORT_ARCHIVE_BYTES = 4_294_967_296L
 private const val MAX_IMPORT_CANDIDATES = 500
@@ -78,7 +81,7 @@ internal fun parseExternalSaveStateName(fileName: String): ParsedExternalSaveSta
 }
 
 internal fun saveStateFormatForVersion(version: Int?): SaveStateImportFormat {
-    return if (version == CURRENT_SAVE_STATE_VERSION) SaveStateImportFormat.CURRENT
+    return if (version != null) SaveStateImportFormat.CURRENT
     else SaveStateImportFormat.UNKNOWN
 }
 
@@ -296,14 +299,14 @@ class SaveStateRepository(private val context: Context) {
                 }
             } ?: error("Unable to open the selected file")
 
-            val directVersion = readEmuCoreDSaveStateVersion(stagedFile.inputStream())
-            val rawCandidates = if (directVersion != null) {
+            val detectedVersion = readCoreSaveStateHeader(stagedFile.inputStream())
+            val rawCandidates = if (detectedVersion != null) {
                 listOf(
                     RawImportCandidate(
                         entryName = null,
                         fileName = displayName,
                         sizeBytes = stagedFile.length(),
-                        version = directVersion
+                        version = detectedVersion
                     )
                 )
             } else {
@@ -351,8 +354,8 @@ class SaveStateRepository(private val context: Context) {
                                     source.copyBoundedTo(output, MAX_IMPORT_FILE_BYTES)
                                 }
                             }
-                            check(readEmuCoreDSaveStateVersion(temporary.inputStream()) == CURRENT_SAVE_STATE_VERSION) {
-                                "Invalid EmuCoreD save state"
+                            check(readCoreSaveStateHeader(temporary.inputStream()) != null) {
+                                "Invalid core save state"
                             }
                             check(!target.exists()) { "Target slot is no longer empty" }
                             check(temporary.renameTo(target)) { "Unable to finalize imported save state" }
@@ -473,12 +476,12 @@ class SaveStateRepository(private val context: Context) {
             .filterNot(ZipEntry::isDirectory)
             .filter { entry ->
                 val normalized = entry.name.replace('\\', '/').trimStart('/')
-                normalized.startsWith("slots/", ignoreCase = true) &&
-                    normalized.endsWith(".rstate", ignoreCase = true)
-            }
-            .take(MAX_IMPORT_CANDIDATES + 1)
-            .map { entry ->
-                val version = zip.getInputStream(entry).use(::readEmuCoreDSaveStateVersion)
+                 normalized.startsWith("slots/", ignoreCase = true) &&
+                     normalized.endsWith(".cst", ignoreCase = true)
+             }
+             .take(MAX_IMPORT_CANDIDATES + 1)
+             .map { entry ->
+                val version = zip.getInputStream(entry).use(::readCoreSaveStateHeader)
                 RawImportCandidate(
                     entryName = entry.name,
                     fileName = entry.name.substringAfterLast('/').substringAfterLast('\\'),
@@ -738,23 +741,18 @@ private fun String.sha1(): String {
     return digest.digest(toByteArray()).joinToString("") { "%02x".format(it) }
 }
 
-private fun readEmuCoreDSaveStateVersion(input: InputStream): Int? {
-    val bytes = ByteArray(8)
+private fun readCoreSaveStateHeader(input: InputStream): Int? {
+    val bytes = ByteArray(SAVE_STATE_HEADER_BYTES)
     var offset = 0
     while (offset < bytes.size) {
         val read = input.read(bytes, offset, bytes.size - offset)
         if (read <= 0) return null
         offset += read
     }
-    val magic = (bytes[0].toInt() and 0xff) or
-        ((bytes[1].toInt() and 0xff) shl 8) or
-        ((bytes[2].toInt() and 0xff) shl 16) or
-        ((bytes[3].toInt() and 0xff) shl 24)
-    if (magic != SAVE_STATE_MAGIC) return null
-    return (bytes[4].toInt() and 0xff) or
-        ((bytes[5].toInt() and 0xff) shl 8) or
-        ((bytes[6].toInt() and 0xff) shl 16) or
-        ((bytes[7].toInt() and 0xff) shl 24)
+    if (!bytes.copyOfRange(0, SAVE_STATE_HEADER_MAGIC.size).contentEquals(SAVE_STATE_HEADER_MAGIC)) {
+        return null
+    }
+    return SAVE_STATE_HEADER_MAGIC.size
 }
 
 private fun InputStream.copyBoundedTo(output: java.io.OutputStream, maxBytes: Long): Long {
