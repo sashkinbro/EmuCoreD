@@ -16,6 +16,9 @@
 # Local configuration
 local.properties
 
+# Local debugging logs and scratch files - never commit
+/logs/
+
 # IDE
 /.idea/
 *.iml
