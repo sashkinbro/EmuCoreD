@@ -89,10 +89,16 @@ internal object CoreRuntime {
         }
         val root = userDirectory()
         runCatching {
-            EmuCoreNative.createConfigFile()
+            // The user directory must exist before the logging backend resolves
+            // its log dir, and the logging backend must be initialized before
+            // the config is built: Config::ReadValues applies the persisted log
+            // filter through Common::Log::SetGlobalFilter, which throws
+            // std::runtime_error (and aborts the process through the JNI
+            // boundary) when the backend instance does not exist yet.
+            EmuCoreNative.setUserDirectory(root)
             EmuCoreNative.createLogFile()
             EmuCoreNative.logUserDirectory(root)
-            EmuCoreNative.setUserDirectory(root)
+            EmuCoreNative.createConfigFile()
             EmuCoreNative.playTimeManagerInit()
         }.onFailure { Log.e(TAG, "Unable to initialise the core", it) }
     }
@@ -461,8 +467,11 @@ internal object CoreRuntime {
     }
 
     fun diagnostics(): String = buildString {
-        append("{\"core\":\"emucored\",\"running\":").append(EmuCoreNative.isRunning())
-        append(",\"titleId\":").append(EmuCoreNative.getRunningTitleId())
+        // The title id is only meaningful while a session is running; asking
+        // the core before boot would touch its (absent) app loader.
+        val running = EmuCoreNative.isRunning()
+        append("{\"core\":\"emucored\",\"running\":").append(running)
+        append(",\"titleId\":").append(if (running) EmuCoreNative.getRunningTitleId() else 0L)
         append(",\"renderer\":").append(RendererDefaults.coreRendererName(requestedRenderer))
         append('}')
     }
