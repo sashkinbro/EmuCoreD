@@ -23,52 +23,43 @@ object AzaharCoreOptionLocalization {
 
     @StringRes
     private fun labelRes(key: String): Int? = when (key) {
-        "citra_use_cpu_jit" -> R.string.settings_core_label_use_cpu_jit
-        "citra_cpu_clock_percentage" -> R.string.settings_core_label_cpu_clock_percentage
-        "citra_is_new_3ds" -> R.string.settings_core_label_is_new_3ds
-        "citra_region_value" -> R.string.settings_core_label_region_value
-        "citra_language_value" -> R.string.settings_core_label_language_value
-        "citra_audio_emulation" -> R.string.settings_core_label_audio_emulation
-        "citra_input_type" -> R.string.settings_core_label_input_type
-        "citra_graphics_api" -> R.string.settings_core_label_graphics_api
-        "citra_use_hw_shader" -> R.string.settings_core_label_use_hw_shader
-        "citra_use_shader_jit" -> R.string.settings_core_label_use_shader_jit
-        "citra_shaders_accurate_mul" -> R.string.settings_core_label_shaders_accurate_mul
-        "citra_use_disk_shader_cache" -> R.string.settings_core_label_use_disk_shader_cache
-        "citra_resolution_factor" -> R.string.settings_core_label_resolution_factor
-        "citra_texture_filter" -> R.string.settings_core_label_texture_filter
-        "citra_texture_sampling" -> R.string.settings_core_label_texture_sampling
-        "citra_custom_textures" -> R.string.settings_core_label_custom_textures
-        "citra_dump_textures" -> R.string.settings_core_label_dump_textures
-        "citra_layout_option" -> R.string.settings_core_label_layout_option
-        "citra_swap_screen" -> R.string.settings_core_label_swap_screen
-        "citra_swap_screen_mode" -> R.string.settings_core_label_swap_screen_mode
-        "citra_large_screen_proportion" -> R.string.settings_core_label_large_screen_proportion
-        "citra_render_3d" -> R.string.settings_core_label_render_3d
-        "citra_factor_3d" -> R.string.settings_core_label_factor_3d
-        "citra_use_virtual_sd" -> R.string.settings_core_label_use_virtual_sd
-        "citra_use_libretro_save_path" -> R.string.settings_core_label_use_libretro_save_path
-        "citra_analog_function" -> R.string.settings_core_label_analog_function
-        "citra_analog_deadzone" -> R.string.settings_core_label_analog_deadzone
-        "citra_enable_mouse_touchscreen" -> R.string.settings_core_label_enable_mouse_touchscreen
-        "citra_enable_touch_touchscreen" -> R.string.settings_core_label_enable_touch_touchscreen
-        "citra_enable_touch_pointer_timeout" -> R.string.settings_core_label_enable_touch_pointer_timeout
-        "citra_enable_motion" -> R.string.settings_core_label_enable_motion
-        "citra_motion_sensitivity" -> R.string.settings_core_label_motion_sensitivity
+        "use_cpu_jit" -> R.string.settings_core_label_use_cpu_jit
+        "cpu_clock_percentage" -> R.string.settings_core_label_cpu_clock_percentage
+        "is_new_3ds" -> R.string.settings_core_label_is_new_3ds
+        "region_value" -> R.string.settings_core_label_region_value
+        "language" -> R.string.settings_core_label_language_value
+        "apply_region_free_patch" -> R.string.settings_core_label_region_free_patch
+        "audio_emulation" -> R.string.settings_core_label_audio_emulation
+        "enable_audio_stretching" -> R.string.settings_core_label_audio_stretching
+        "enable_realtime_audio" -> R.string.settings_core_label_realtime_audio
+        "volume" -> R.string.settings_core_label_volume
+        "input_type" -> R.string.settings_core_label_input_type
+        "graphics_api" -> R.string.settings_core_label_graphics_api
+        "use_hw_shader" -> R.string.settings_core_label_use_hw_shader
+        "use_shader_jit" -> R.string.settings_core_label_use_shader_jit
+        "shaders_accurate_mul" -> R.string.settings_core_label_shaders_accurate_mul
+        "use_disk_shader_cache" -> R.string.settings_core_label_use_disk_shader_cache
+        "use_vsync" -> R.string.settings_core_label_use_vsync
+        "use_skip_duplicate_frames" -> R.string.settings_core_label_skip_duplicate_frames
+        "resolution_factor" -> R.string.settings_core_label_resolution_factor
+        "texture_filter" -> R.string.settings_core_label_texture_filter
+        "texture_sampling" -> R.string.settings_core_label_texture_sampling
+        "custom_textures" -> R.string.settings_core_label_custom_textures
+        "dump_textures" -> R.string.settings_core_label_dump_textures
+        "layout_option" -> R.string.settings_core_label_layout_option
+        "swap_screen" -> R.string.settings_core_label_swap_screen
+        "aspect_ratio" -> R.string.settings_core_label_aspect_ratio
+        "use_virtual_sd" -> R.string.settings_core_label_use_virtual_sd
+        "motion_device" -> R.string.settings_core_label_motion_device
+        "touch_device" -> R.string.settings_core_label_touch_device
+        "udp_pad_index" -> R.string.settings_core_label_udp_pad_index
         else -> null
     }
 
     @StringRes
     private fun choiceRes(value: String): Int? = when (value) {
-        "enabled" -> R.string.settings_core_choice_enabled
-        "disabled" -> R.string.settings_core_choice_disabled
-        "Auto" -> R.string.settings_core_choice_auto
-        "auto" -> R.string.settings_core_choice_auto
-        "none" -> R.string.settings_core_choice_none
-        "Top" -> R.string.settings_core_choice_top_screen
-        "Bottom" -> R.string.settings_core_choice_bottom_screen
-        "Toggle" -> R.string.settings_core_choice_toggle
-        "Hold" -> R.string.settings_core_choice_hold
+        "true" -> R.string.settings_core_choice_enabled
+        "false" -> R.string.settings_core_choice_disabled
         else -> null
     }
 

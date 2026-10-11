@@ -1,10 +1,11 @@
 // SPDX-FileCopyrightText: 2026 SBRO
 // SPDX-License-Identifier: LicenseRef-EmuCoreD-Proprietary
 //
-// Generated from the vendored Azahar libretro core:
-//   core/src/citra_libretro/core_settings.cpp (option_definitions)
-// Keep this table in sync with that file; keys and persisted values must
-// never change, only labels are allowed to be localized elsewhere.
+// Generated from the vendored Azahar core's own configuration:
+//   core/src/common/setting_keys.h.in, core/src/android/app/src/main/jni/default_ini.h,
+//   core/src/android/app/src/main/jni/config.cpp (ReadSetting table)
+// Keys and values match what the core writes into config.ini, so the app
+// settings and the core never disagree.
 package com.sbro.emucored.core
 
 @Suppress("MagicNumber")
@@ -18,57 +19,45 @@ object AzaharCoreOptions {
         val choices: List<Choice>,
         val defaultValue: String,
     ) {
-        /** The option's short key without the `citra_` prefix. */
-        val shortKey: String get() = key.removePrefix("citra_")
-
-        /** True for plain on/off options whose only values are enabled/disabled. */
+        /** True for plain on/off options whose only values are true/false. */
         val isBooleanToggle: Boolean
-            get() = choices.map { it.value.lowercase() }.toSet() == setOf("enabled", "disabled")
+            get() = choices.map { it.value.lowercase() }.toSet() == setOf("true", "false")
 
-        private val enabledValue: String?
-            get() = choices.firstOrNull { it.value.equals("enabled", ignoreCase = true) }?.value
-
-        private val disabledValue: String?
-            get() = choices.firstOrNull { it.value.equals("disabled", ignoreCase = true) }?.value
-
-        /** Reads a persisted value with the enabled/disabled and true/false conventions. */
-        fun isEnabled(current: String?): Boolean = current != null &&
-            (current.equals(enabledValue, ignoreCase = true) || current.equals("true", ignoreCase = true))
+        /** Reads a persisted value with the true/false convention. */
+        fun isEnabled(current: String?): Boolean =
+            current.equals("true", ignoreCase = true) ||
+                (current == null && defaultValue.equals("true", ignoreCase = true))
 
         /** Value to persist for a toggle interaction. */
-        fun valueForEnabled(enabled: Boolean): String = if (enabled) {
-            enabledValue ?: "true"
-        } else {
-            disabledValue ?: "false"
-        }
+        fun valueForEnabled(enabled: Boolean): String = if (enabled) "true" else "false"
     }
 
     data class Category(val key: String, val label: String, val description: String)
 
     private val categoryList: List<Category> = listOf(
-        Category("cpu", "CPU", "Settings related to CPU emulation performance and accuracy."),
-        Category("system", "System", "Nintendo 3DS system configuration and region settings."),
-        Category("audio", "Audio", "Audio emulation and microphone settings."),
-        Category("graphics", "Graphics", "Graphics API, rendering, and visual enhancement settings."),
-        Category("layout", "Layout", "Screen layout and display positioning options."),
+        Category("cpu", "CPU", "CPU emulation performance and accuracy."),
+        Category("system", "System", "Nintendo 3DS system, region and language settings."),
+        Category("audio", "Audio", "Audio output, stretching and microphone settings."),
+        Category("graphics", "Graphics", "Rendering and visual enhancement settings."),
+        Category("layout", "Layout", "Screen layout and positioning options."),
         Category("storage", "Storage", "Save data and virtual SD card settings."),
-        Category("input", "Input", "Controller and touchscreen input configuration."),
+        Category("input", "Input", "Controller, touchscreen and motion input."),
     )
+
+    private fun toggleChoices(): List<Choice> =
+        listOf(Choice("true", "Enabled"), Choice("false", "Disabled"))
 
     private val optionList: List<Option> = listOf(
         // CPU
         Option(
-            key = "citra_use_cpu_jit",
+            key = "use_cpu_jit",
             label = "CPU JIT",
             category = "cpu",
-            choices = listOf(
-                Choice("enabled", "Enabled"),
-                Choice("disabled", "Disabled"),
-            ),
-            defaultValue = "enabled",
+            choices = toggleChoices(),
+            defaultValue = "true",
         ),
         Option(
-            key = "citra_cpu_clock_percentage",
+            key = "cpu_clock_percentage",
             label = "CPU Clock Speed",
             category = "cpu",
             choices = listOf(
@@ -78,15 +67,8 @@ object AzaharCoreOptions {
                 Choice("100", "100% (Default)"),
                 Choice("125", "125%"),
                 Choice("150", "150%"),
-                Choice("175", "175%"),
                 Choice("200", "200%"),
-                Choice("225", "225%"),
-                Choice("250", "250%"),
-                Choice("275", "275%"),
                 Choice("300", "300%"),
-                Choice("325", "325%"),
-                Choice("350", "350%"),
-                Choice("375", "375%"),
                 Choice("400", "400%"),
             ),
             defaultValue = "100",
@@ -94,396 +76,260 @@ object AzaharCoreOptions {
 
         // System
         Option(
-            key = "citra_is_new_3ds",
+            key = "is_new_3ds",
             label = "System Model",
             category = "system",
-            choices = listOf(
-                Choice("New 3DS", "New 3DS"),
-                Choice("Old 3DS", "Original 3DS"),
-            ),
-            defaultValue = "New 3DS",
+            choices = toggleChoices(),
+            defaultValue = "true",
         ),
         Option(
-            key = "citra_region_value",
+            key = "region_value",
             label = "System Region",
             category = "system",
             choices = listOf(
-                Choice("Auto", "Auto"),
-                Choice("Japan", "Japan"),
-                Choice("USA", "USA"),
-                Choice("Europe", "Europe"),
-                Choice("Australia", "Australia"),
-                Choice("China", "China"),
-                Choice("Korea", "Korea"),
-                Choice("Taiwan", "Taiwan"),
+                Choice("-1", "Auto"),
+                Choice("0", "Japan"),
+                Choice("1", "USA"),
+                Choice("2", "Europe"),
+                Choice("3", "Australia"),
+                Choice("4", "China"),
+                Choice("5", "Korea"),
+                Choice("6", "Taiwan"),
             ),
-            defaultValue = "Auto",
+            defaultValue = "-1",
         ),
         Option(
-            key = "citra_language_value",
+            key = "language",
             label = "System Language",
             category = "system",
             choices = listOf(
-                Choice("English", "English"),
-                Choice("Japanese", "Japanese"),
-                Choice("French", "French"),
-                Choice("Spanish", "Spanish"),
-                Choice("German", "German"),
-                Choice("Italian", "Italian"),
-                Choice("Dutch", "Dutch"),
-                Choice("Portuguese", "Portuguese"),
-                Choice("Russian", "Russian"),
-                Choice("Korean", "Korean"),
-                Choice("Traditional Chinese", "Traditional Chinese"),
-                Choice("Simplified Chinese", "Simplified Chinese"),
+                Choice("0", "English"),
+                Choice("1", "Japanese"),
+                Choice("2", "French"),
+                Choice("3", "Spanish"),
+                Choice("4", "German"),
+                Choice("5", "Italian"),
+                Choice("6", "Dutch"),
+                Choice("7", "Portuguese"),
+                Choice("8", "Russian"),
+                Choice("9", "Korean"),
+                Choice("10", "Traditional Chinese"),
+                Choice("11", "Simplified Chinese"),
             ),
-            defaultValue = "English",
+            defaultValue = "0",
+        ),
+        Option(
+            key = "apply_region_free_patch",
+            label = "Region Free Patch",
+            category = "system",
+            choices = toggleChoices(),
+            defaultValue = "false",
         ),
 
         // Audio
         Option(
-            key = "citra_audio_emulation",
+            key = "audio_emulation",
             label = "Audio Emulation",
             category = "audio",
             choices = listOf(
-                Choice("hle", "HLE (Fast)"),
-                Choice("lle", "LLE (Accurate)"),
-                Choice("lle_multithread", "LLE Multithreaded"),
+                Choice("0", "HLE (Fast)"),
+                Choice("1", "LLE (Accurate)"),
+                Choice("2", "LLE Multithreaded"),
             ),
-            defaultValue = "hle",
+            defaultValue = "0",
         ),
         Option(
-            key = "citra_input_type",
+            key = "enable_audio_stretching",
+            label = "Audio Stretching",
+            category = "audio",
+            choices = toggleChoices(),
+            defaultValue = "true",
+        ),
+        Option(
+            key = "enable_realtime_audio",
+            label = "Realtime Audio",
+            category = "audio",
+            choices = toggleChoices(),
+            defaultValue = "false",
+        ),
+        Option(
+            key = "volume",
+            label = "Output Volume",
+            category = "audio",
+            choices = (0..100 step 5).map { Choice(it.toString(), "$it%") },
+            defaultValue = "100",
+        ),
+        Option(
+            key = "input_type",
             label = "Microphone Input",
             category = "audio",
             choices = listOf(
-                Choice("auto", "Auto"),
-                Choice("none", "None"),
-                Choice("static_noise", "Static Noise"),
-                Choice("frontend", "Frontend"),
-            ),
-            defaultValue = "auto",
-        ),
-
-        // Graphics
-        Option(
-            key = "citra_graphics_api",
-            label = "Graphics API",
-            category = "graphics",
-            choices = listOf(
-                Choice("Auto", "Auto"),
-                Choice("Vulkan", "Vulkan"),
-                Choice("OpenGL", "OpenGL"),
-                Choice("Software", "Software"),
-            ),
-            defaultValue = "auto",
-        ),
-        Option(
-            key = "citra_use_hw_shader",
-            label = "Hardware Shaders",
-            category = "graphics",
-            choices = listOf(
-                Choice("enabled", "Enabled"),
-                Choice("disabled", "Disabled"),
-            ),
-            defaultValue = "enabled",
-        ),
-        Option(
-            key = "citra_use_shader_jit",
-            label = "Shader JIT",
-            category = "graphics",
-            choices = listOf(
-                Choice("enabled", "Enabled"),
-                Choice("disabled", "Disabled"),
-            ),
-            defaultValue = "enabled",
-        ),
-        Option(
-            key = "citra_shaders_accurate_mul",
-            label = "Accurate Multiplication",
-            category = "graphics",
-            choices = listOf(
-                Choice("enabled", "Enabled"),
-                Choice("disabled", "Disabled"),
-            ),
-            defaultValue = "enabled",
-        ),
-        Option(
-            key = "citra_use_disk_shader_cache",
-            label = "Shader Cache",
-            category = "graphics",
-            choices = listOf(
-                Choice("enabled", "Enabled"),
-                Choice("disabled", "Disabled"),
-            ),
-            defaultValue = "enabled",
-        ),
-        Option(
-            key = "citra_resolution_factor",
-            label = "Internal Resolution",
-            category = "graphics",
-            choices = listOf(
-                Choice("1", "1x (Native 400x240)"),
-                Choice("2", "2x (800x480)"),
-                Choice("3", "3x (1200x720)"),
-                Choice("4", "4x (1600x960)"),
-                Choice("5", "5x (2000x1200)"),
-                Choice("6", "6x (2400x1440)"),
-                Choice("7", "7x (2800x1680)"),
-                Choice("8", "8x (3200x1920)"),
-                Choice("9", "9x (3600x2160)"),
-                Choice("10", "10x (4000x2400)"),
-            ),
-            defaultValue = "1",
-        ),
-        Option(
-            key = "citra_texture_filter",
-            label = "Texture Filter",
-            category = "graphics",
-            choices = listOf(
-                Choice("none", "None"),
-                Choice("Anime4K Ultrafast", "Anime4K Ultrafast"),
-                Choice("Bicubic", "Bicubic"),
-                Choice("ScaleForce", "ScaleForce"),
-                Choice("xBRZ", "xBRZ"),
-                Choice("MMPX", "MMPX"),
-            ),
-            defaultValue = "none",
-        ),
-        Option(
-            key = "citra_texture_sampling",
-            label = "Texture Sampling",
-            category = "graphics",
-            choices = listOf(
-                Choice("GameControlled", "Game Controlled"),
-                Choice("NearestNeighbor", "Nearest Neighbor"),
-                Choice("Linear", "Linear"),
-            ),
-            defaultValue = "GameControlled",
-        ),
-        Option(
-            key = "citra_custom_textures",
-            label = "Custom Textures",
-            category = "graphics",
-            choices = listOf(
-                Choice("enabled", "Enabled"),
-                Choice("disabled", "Disabled"),
-            ),
-            defaultValue = "disabled",
-        ),
-        Option(
-            key = "citra_dump_textures",
-            label = "Dump Textures",
-            category = "graphics",
-            choices = listOf(
-                Choice("enabled", "Enabled"),
-                Choice("disabled", "Disabled"),
-            ),
-            defaultValue = "disabled",
-        ),
-
-        // Layout
-        Option(
-            key = "citra_layout_option",
-            label = "Screen Layout",
-            category = "layout",
-            choices = listOf(
-                Choice("default", "Default Top-Bottom"),
-                Choice("single_screen", "Single Screen Only"),
-                Choice("large_screen", "Large Screen, Small Screen"),
-                Choice("side_by_side", "Side by Side"),
-            ),
-            defaultValue = "default",
-        ),
-        Option(
-            key = "citra_swap_screen",
-            label = "Prominent Screen",
-            category = "layout",
-            choices = listOf(
-                Choice("Top", "Top Screen"),
-                Choice("Bottom", "Bottom Screen"),
-            ),
-            defaultValue = "Top",
-        ),
-        Option(
-            key = "citra_swap_screen_mode",
-            label = "Swap Mode",
-            category = "layout",
-            choices = listOf(
-                Choice("Toggle", "Toggle"),
-                Choice("Hold", "Hold"),
-            ),
-            defaultValue = "Toggle",
-        ),
-        Option(
-            key = "citra_large_screen_proportion",
-            label = "Large Screen Proportion",
-            category = "layout",
-            choices = listOf(
-                Choice("1.00", "1.00x (Equal Size)"),
-                Choice("1.25", "1.25x"),
-                Choice("1.50", "1.50x"),
-                Choice("1.75", "1.75x"),
-                Choice("2.00", "2.00x"),
-                Choice("2.25", "2.25x"),
-                Choice("2.50", "2.50x"),
-                Choice("2.75", "2.75x"),
-                Choice("3.00", "3.00x"),
-                Choice("3.25", "3.25x"),
-                Choice("3.50", "3.50x"),
-                Choice("3.75", "3.75x"),
-                Choice("4.00", "4.00x (Default)"),
-                Choice("4.25", "4.25x"),
-                Choice("4.50", "4.50x"),
-                Choice("4.75", "4.75x"),
-                Choice("5.00", "5.00x"),
-                Choice("5.25", "5.25x"),
-                Choice("5.50", "5.50x"),
-                Choice("5.75", "5.75x"),
-                Choice("6.00", "6.00x"),
-            ),
-            defaultValue = "4.00",
-        ),
-        Option(
-            key = "citra_render_3d",
-            label = "Stereo 3D Mode",
-            category = "layout",
-            choices = listOf(
-                Choice("off", "Off (2D)"),
-                Choice("side-by-side", "Side by Side"),
-                Choice("side-by-side-full", "Side by Side (Full)"),
-                Choice("anaglyph", "Anaglyph (Red/Cyan)"),
-                Choice("interlaced", "Interlaced"),
-                Choice("reverse-interlaced", "Reverse Interlaced"),
-                Choice("cardboard", "Cardboard VR"),
-            ),
-            defaultValue = "off",
-        ),
-        Option(
-            key = "citra_factor_3d",
-            label = "Stereo 3D Depth",
-            category = "layout",
-            choices = listOf(
-                Choice("0", "0%"),
-                Choice("10", "10%"),
-                Choice("20", "20%"),
-                Choice("30", "30%"),
-                Choice("40", "40%"),
-                Choice("50", "50%"),
-                Choice("60", "60%"),
-                Choice("70", "70%"),
-                Choice("80", "80%"),
-                Choice("90", "90%"),
-                Choice("100", "100%"),
+                Choice("0", "Auto"),
+                Choice("1", "None"),
+                Choice("2", "Static Noise"),
             ),
             defaultValue = "0",
         ),
 
-        // Storage
+        // Graphics
         Option(
-            key = "citra_use_virtual_sd",
-            label = "Virtual SD Card",
-            category = "storage",
+            key = "graphics_api",
+            label = "Graphics API",
+            category = "graphics",
             choices = listOf(
-                Choice("enabled", "Enabled"),
-                Choice("disabled", "Disabled"),
+                Choice("1", "OpenGL"),
+                Choice("2", "Vulkan"),
             ),
-            defaultValue = "enabled",
+            defaultValue = "2",
         ),
         Option(
-            key = "citra_use_libretro_save_path",
-            label = "Save Location",
-            category = "storage",
+            key = "use_hw_shader",
+            label = "Hardware Shaders",
+            category = "graphics",
+            choices = toggleChoices(),
+            defaultValue = "true",
+        ),
+        Option(
+            key = "use_shader_jit",
+            label = "Shader JIT",
+            category = "graphics",
+            choices = toggleChoices(),
+            defaultValue = "true",
+        ),
+        Option(
+            key = "shaders_accurate_mul",
+            label = "Accurate Multiplication",
+            category = "graphics",
+            choices = toggleChoices(),
+            defaultValue = "false",
+        ),
+        Option(
+            key = "use_disk_shader_cache",
+            label = "Shader Cache",
+            category = "graphics",
+            choices = toggleChoices(),
+            defaultValue = "true",
+        ),
+        Option(
+            key = "use_vsync",
+            label = "VSync",
+            category = "graphics",
+            choices = toggleChoices(),
+            defaultValue = "true",
+        ),
+        Option(
+            key = "use_skip_duplicate_frames",
+            label = "Skip Duplicate Frames",
+            category = "graphics",
+            choices = toggleChoices(),
+            defaultValue = "false",
+        ),
+        Option(
+            key = "texture_filter",
+            label = "Texture Filter",
+            category = "graphics",
             choices = listOf(
-                Choice("LibRetro Default", "LibRetro Default"),
-                Choice("Azahar Default", "Azahar Default"),
+                Choice("0", "None"),
+                Choice("1", "Anime4K Ultrafast"),
+                Choice("2", "Bicubic"),
+                Choice("3", "ScaleForce"),
+                Choice("4", "xBRZ"),
+                Choice("5", "MMPX"),
             ),
-            defaultValue = "LibRetro Default",
+            defaultValue = "0",
+        ),
+        Option(
+            key = "texture_sampling",
+            label = "Texture Sampling",
+            category = "graphics",
+            choices = listOf(
+                Choice("0", "Game Controlled"),
+                Choice("1", "Nearest Neighbor"),
+                Choice("2", "Linear"),
+            ),
+            defaultValue = "0",
+        ),
+
+        // Layout
+        Option(
+            key = "layout_option",
+            label = "Screen Layout",
+            category = "layout",
+            choices = listOf(
+                Choice("0", "Default Top-Bottom"),
+                Choice("1", "Single Screen Only"),
+                Choice("2", "Large Screen, Small Screen"),
+                Choice("3", "Side by Side"),
+                Choice("4", "Side by Side (Full)"),
+                Choice("5", "Hybrid (Custom)"),
+                Choice("6", "Hybrid (Custom, Large)"),
+            ),
+            defaultValue = "0",
+        ),
+        Option(
+            key = "swap_screen",
+            label = "Prominent Screen",
+            category = "layout",
+            choices = toggleChoices(),
+            defaultValue = "false",
+        ),
+        Option(
+            key = "aspect_ratio",
+            label = "Aspect Ratio",
+            category = "layout",
+            choices = listOf(
+                Choice("0", "Stretch"),
+                Choice("1", "Auto 4:3/3:2"),
+                Choice("2", "4:3"),
+                Choice("3", "16:9"),
+                Choice("4", "10:7"),
+            ),
+            defaultValue = "1",
+        ),
+        Option(
+            key = "resolution_factor",
+            label = "Internal Resolution",
+            category = "graphics",
+            choices = (1..10).map { Choice(it.toString(), "${it}x") },
+            defaultValue = "1",
+        ),
+
+        // Storage
+        Option(
+            key = "use_virtual_sd",
+            label = "Virtual SD Card",
+            category = "storage",
+            choices = toggleChoices(),
+            defaultValue = "true",
         ),
 
         // Input
         Option(
-            key = "citra_analog_function",
-            label = "Right Analog Function",
+            key = "motion_device",
+            label = "Motion Source",
             category = "input",
             choices = listOf(
-                Choice("c_stick_and_touchscreen", "C-Stick and Touchscreen Pointer"),
-                Choice("touchscreen_pointer", "Touchscreen Pointer"),
-                Choice("c_stick", "C-Stick"),
+                Choice("motion_emu", "Emulated"),
+                Choice("cemuhookudp", "CemuHook UDP"),
             ),
-            defaultValue = "c_stick_and_touchscreen",
+            defaultValue = "motion_emu",
         ),
         Option(
-            key = "citra_analog_deadzone",
-            label = "Analog Deadzone",
+            key = "touch_device",
+            label = "Touch Source",
             category = "input",
             choices = listOf(
-                Choice("0", "0%"),
-                Choice("5", "5%"),
-                Choice("10", "10%"),
-                Choice("15", "15%"),
-                Choice("20", "20%"),
-                Choice("25", "25%"),
-                Choice("30", "30%"),
-                Choice("35", "35%"),
+                Choice("emu_window", "Emulation Window"),
+                Choice("cemuhookudp", "CemuHook UDP"),
             ),
-            defaultValue = "15",
+            defaultValue = "emu_window",
         ),
         Option(
-            key = "citra_enable_mouse_touchscreen",
-            label = "Mouse Touchscreen",
+            key = "udp_pad_index",
+            label = "CemuHook Pad",
             category = "input",
-            choices = listOf(
-                Choice("enabled", "Enabled"),
-                Choice("disabled", "Disabled"),
-            ),
-            defaultValue = "enabled",
-        ),
-        Option(
-            key = "citra_enable_touch_touchscreen",
-            label = "Touch Support",
-            category = "input",
-            choices = listOf(
-                Choice("enabled", "Enabled"),
-                Choice("disabled", "Disabled"),
-            ),
-            defaultValue = "enabled",
-        ),
-        Option(
-            key = "citra_enable_touch_pointer_timeout",
-            label = "Touch Pointer Timeout",
-            category = "input",
-            choices = listOf(
-                Choice("enabled", "Enabled"),
-                Choice("disabled", "Disabled"),
-            ),
-            defaultValue = "enabled",
-        ),
-        Option(
-            key = "citra_enable_motion",
-            label = "Motion Support",
-            category = "input",
-            choices = listOf(
-                Choice("enabled", "Enabled"),
-                Choice("disabled", "Disabled"),
-            ),
-            defaultValue = "enabled",
-        ),
-        Option(
-            key = "citra_motion_sensitivity",
-            label = "Motion Sensitivity",
-            category = "input",
-            choices = listOf(
-                Choice("0.1", "10%"),
-                Choice("0.25", "25%"),
-                Choice("0.5", "50%"),
-                Choice("0.75", "75%"),
-                Choice("1.0", "100%"),
-                Choice("1.25", "125%"),
-                Choice("1.5", "150%"),
-                Choice("2.0", "200%"),
-            ),
-            defaultValue = "1.0",
+            choices = (0..3).map { Choice(it.toString(), "Pad ${it + 1}") },
+            defaultValue = "0",
         ),
     )
 
@@ -491,8 +337,8 @@ object AzaharCoreOptions {
 
     /** Keys driven by dedicated app-level controls (renderer and upscale). */
     private val managedKeys = setOf(
-        "citra_graphics_api",
-        "citra_resolution_factor",
+        "graphics_api",
+        "resolution_factor",
     )
 
     fun all(): List<Option> = optionList
@@ -523,8 +369,9 @@ object AzaharCoreOptions {
 
     /** Small set of system switches useful during play; detailed tuning stays in settings. */
     fun gameMenuEmulationOptions(): List<Option> = listOfNotNull(
-        option("citra_cpu_clock_percentage"),
-        option("citra_use_cpu_jit"),
+        option("cpu_clock_percentage"),
+        option("use_cpu_jit"),
+        option("region_value"),
     )
 
     /** Azahar has no network emulation options. */
@@ -540,28 +387,21 @@ object AzaharCoreOptions {
 
     /** Graphics section of the in-game menu. */
     fun gameMenuGraphicsOptions(): List<Option> = listOfNotNull(
-        option("citra_resolution_factor"),
-        option("citra_texture_filter"),
-        option("citra_texture_sampling"),
-        option("citra_use_hw_shader"),
-        option("citra_use_shader_jit"),
-        option("citra_shaders_accurate_mul"),
-        option("citra_use_disk_shader_cache"),
-        option("citra_custom_textures"),
-        option("citra_layout_option"),
-        option("citra_swap_screen"),
-        option("citra_swap_screen_mode"),
-        option("citra_large_screen_proportion"),
-        option("citra_render_3d"),
-        option("citra_factor_3d"),
+        option("texture_filter"),
+        option("texture_sampling"),
+        option("use_hw_shader"),
+        option("use_shader_jit"),
+        option("shaders_accurate_mul"),
+        option("use_disk_shader_cache"),
+        option("use_vsync"),
+        option("layout_option"),
+        option("swap_screen"),
+        option("aspect_ratio"),
     )
 
     /** Controls section of the in-game menu. */
     fun gameMenuControlsOptions(): List<Option> = listOfNotNull(
-        option("citra_analog_function"),
-        option("citra_analog_deadzone"),
-        option("citra_enable_touch_touchscreen"),
-        option("citra_enable_motion"),
-        option("citra_motion_sensitivity"),
+        option("touch_device"),
+        option("udp_pad_index"),
     )
 }
