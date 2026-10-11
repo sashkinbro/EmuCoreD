@@ -411,6 +411,15 @@
     <string name="home_sort_recent_desc">Actualizado recientemente</string>
     <string name="home_sort_recent_asc">Actualizado hace más tiempo</string>
     <string name="home_game_menu_start">Iniciar juego</string>
+    <string name="home_game_menu_install_cia">Instalar juego</string>
+    <string name="cia_install_title">Instalando paquete</string>
+    <string name="cia_install_body">%1$s se está instalando en el sistema emulado. Mantén la app abierta.</string>
+    <string name="cia_install_success">Paquete instalado. El juego está listo para jugar.</string>
+    <string name="cia_install_cancelled">Se canceló la instalación.</string>
+    <string name="cia_install_error_invalid">El paquete no es un título de 3DS válido.</string>
+    <string name="cia_install_error_encrypted">El paquete está cifrado. Se necesitan imágenes descifradas o claves del sistema.</string>
+    <string name="cia_install_error_not_found">No se pudo abrir el paquete. Concede a la app acceso a su carpeta e inténtalo de nuevo.</string>
+    <string name="cia_install_error_generic">No se pudo instalar el paquete.</string>
     <string name="home_game_menu_continue">Continuar juego</string>
     <string name="home_game_menu_continue_unavailable">No se han encontrado estados guardados para este juego.</string>
     <string name="home_game_menu_load_save">Cargar estado guardado</string>

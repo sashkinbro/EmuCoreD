@@ -3,11 +3,17 @@ package com.sbro.emucored.ui.home
 import android.app.Activity
 import android.app.Application
 import android.net.Uri
+import androidx.annotation.StringRes
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.sbro.emucored.R
 import com.sbro.emucored.core.BiosValidator
+import com.sbro.emucored.core.CiaInstallWorker
 import com.sbro.emucored.core.CoreBinaryFingerprint
+import com.sbro.emucored.core.DocumentPathResolver
+import com.sbro.emucored.core.EmuCoreNative
 import com.sbro.emucored.core.EmulatorBridge
+import com.sbro.emucored.core.N3dsGameFormats
 import com.sbro.emucored.core.ProProductOffer
 import com.sbro.emucored.core.ProPurchaseManager
 import com.sbro.emucored.core.ProPurchaseTier
@@ -101,6 +107,22 @@ private data class DeferredLibraryScan(
     val showRefreshIndicator: Boolean
 )
 
+/**
+ * Tracks a CIA install started from the library: the package being installed,
+ * the progress reported by the core, and the final [InstallStatus]-derived
+ * outcome. A successful install also carries the NAND path of the installed
+ * title so the UI can boot it right away.
+ */
+data class CiaInstallUiState(
+    val game: GameItem? = null,
+    val total: Int = 0,
+    val current: Int = 0,
+    val isFinished: Boolean = false,
+    val success: Boolean = false,
+    @StringRes val messageResId: Int? = null,
+    val installedLaunchPath: String? = null
+)
+
 class HomeViewModel(application: Application) : AndroidViewModel(application) {
 
     companion object {
@@ -136,6 +158,10 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
 
     private val _uiState = MutableStateFlow(HomeUiState())
     val uiState: StateFlow<HomeUiState> = _uiState.asStateFlow()
+
+    private val _ciaInstallState = MutableStateFlow(CiaInstallUiState())
+    val ciaInstallState: StateFlow<CiaInstallUiState> = _ciaInstallState.asStateFlow()
+    private var ciaInstallJob: Job? = null
 
     init {
         viewModelScope.launch {
@@ -391,6 +417,84 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
             if (paths.isEmpty()) return@launch
             requestLibraryScan(paths, showRefreshIndicator = true)
         }
+    }
+
+    /**
+     * Looks up the NAND copy of an installed title whose id matches [game]'s
+     * CIA image. Returns null when the image has not been installed (yet).
+     */
+    suspend fun findInstalledCiaPath(game: GameItem): String? = withContext(Dispatchers.IO) {
+        val context = getApplication<Application>()
+        if (!EmuCoreNative.isLoaded) return@withContext null
+        val ciaPath = runCatching {
+            DocumentPathResolver.prepareGameLaunchPath(context, game.path)
+        }.getOrNull() ?: return@withContext null
+        val ciaTitleId = runCatching { EmuCoreNative.getTitleId(ciaPath) }.getOrNull() ?: 0L
+        if (ciaTitleId == 0L) return@withContext null
+
+        runCatching { EmuCoreNative.getInstalledGamePathsImpl() }.getOrNull()
+            ?.mapNotNull { entry -> entry?.substringBeforeLast('|') }
+            ?.firstOrNull { installedPath ->
+                runCatching { EmuCoreNative.getTitleId(installedPath) }
+                    .getOrNull() == ciaTitleId
+            }
+    }
+
+    /**
+     * Installs [game]'s CIA image into the emulated NAND through the core's
+     * install bridge. Progress is surfaced through [ciaInstallState]; when the
+     * install succeeds the resulting NAND path is included so the UI can boot
+     * the title without a second scan.
+     */
+    fun installCia(game: GameItem) {
+        if (ciaInstallJob?.isActive == true) return
+        ciaInstallJob = viewModelScope.launch {
+            val context = getApplication<Application>()
+            _ciaInstallState.value = CiaInstallUiState(game = game)
+
+            val status = withContext(Dispatchers.IO) {
+                val ciaPath = runCatching {
+                    DocumentPathResolver.prepareGameLaunchPath(context, game.path)
+                }.getOrNull() ?: return@withContext null
+
+                val worker = CiaInstallWorker()
+                worker.setOnProgressListener { total, current ->
+                    _ciaInstallState.value = _ciaInstallState.value.copy(
+                        total = total,
+                        current = current
+                    )
+                }
+                runCatching { worker.install(ciaPath) }.getOrNull()
+            }
+
+            val success = status == EmuCoreNative.InstallStatus.Success
+            var installedLaunchPath: String? = null
+            if (success) {
+                installedLaunchPath = findInstalledCiaPath(game)
+                refreshGames()
+            }
+            _ciaInstallState.value = _ciaInstallState.value.copy(
+                isFinished = true,
+                success = success,
+                installedLaunchPath = installedLaunchPath,
+                messageResId = when (status) {
+                    EmuCoreNative.InstallStatus.Success -> R.string.cia_install_success
+                    EmuCoreNative.InstallStatus.ErrorEncrypted -> R.string.cia_install_error_encrypted
+                    EmuCoreNative.InstallStatus.ErrorInvalid -> R.string.cia_install_error_invalid
+                    EmuCoreNative.InstallStatus.ErrorAborted,
+                    EmuCoreNative.InstallStatus.Cancelled -> R.string.cia_install_cancelled
+                    EmuCoreNative.InstallStatus.ErrorFileNotFound,
+                    EmuCoreNative.InstallStatus.ErrorFailedToOpenFile -> R.string.cia_install_error_not_found
+                    null -> R.string.cia_install_error_not_found
+                }
+            )
+        }
+    }
+
+    /** Clears the install dialog state once the user acknowledged the result. */
+    fun dismissCiaInstall() {
+        if (ciaInstallJob?.isActive == true) return
+        _ciaInstallState.value = CiaInstallUiState()
     }
 
     suspend fun setCustomCover(game: GameItem, sourceUri: Uri): Boolean {

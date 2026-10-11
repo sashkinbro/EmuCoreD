@@ -28,4 +28,14 @@ object N3dsGameFormats {
         val fileName = name.substringAfterLast('/').lowercase(Locale.ROOT)
         return fileName.substringAfterLast('.', "") in extensions
     }
+
+    /**
+     * CIA images cannot be booted like cartridge dumps: the loader only opens
+     * NCCH/NCSD containers, so a CIA must be installed into the emulated NAND
+     * before its title can run.
+     */
+    fun isCiaFile(name: String): Boolean {
+        val fileName = name.substringAfterLast('/')
+        return fileName.substringAfterLast('.', "").equals("cia", ignoreCase = true)
+    }
 }

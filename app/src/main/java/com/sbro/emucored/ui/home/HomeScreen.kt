@@ -57,6 +57,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.Sort
 import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.material.icons.rounded.Close
+import androidx.compose.material.icons.rounded.Download
 import androidx.compose.material.icons.rounded.FolderOpen
 import androidx.compose.material.icons.rounded.Image
 import androidx.compose.material.icons.rounded.KeyboardArrowUp
@@ -83,6 +84,7 @@ import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
@@ -132,6 +134,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.sbro.emucored.R
 import com.sbro.emucored.core.GamepadManager
 import com.sbro.emucored.core.LocalTvUiEnvironment
+import com.sbro.emucored.core.N3dsGameFormats
 import com.sbro.emucored.core.TvUiMetrics
 import com.sbro.emucored.core.availableProSupportOffers
 import com.sbro.emucored.data.CustomGameCoverRepository
@@ -163,6 +166,9 @@ import androidx.compose.foundation.lazy.itemsIndexed as rowItemsIndexed
 import com.sbro.emucored.ui.theme.neon.LocalNeonTheme
 import com.sbro.emucored.ui.theme.neon.neonButtonShape
 import com.sbro.emucored.ui.theme.neon.neonShape
+
+private fun GameItem.isCiaImage(): Boolean =
+    N3dsGameFormats.isCiaFile(fileName) || N3dsGameFormats.isCiaFile(path)
 
 @OptIn(ExperimentalLayoutApi::class)
 @SuppressLint("ConfigurationScreenWidthHeight", "FrequentlyChangingValue")
@@ -306,6 +312,34 @@ fun HomeScreen(
         Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
         viewModel.clearProPurchaseMessage()
     }
+
+    val ciaInstallState by viewModel.ciaInstallState.collectAsState()
+
+    // CIA images cannot boot directly: tapping one installs it first (or boots
+    // the already installed copy), everything else launches normally.
+    val launchGame: (GameItem) -> Unit = { game ->
+        if (N3dsGameFormats.isCiaFile(game.fileName) || N3dsGameFormats.isCiaFile(game.path)) {
+            scope.launch {
+                val installedPath = viewModel.findInstalledCiaPath(game)
+                if (installedPath != null) {
+                    onGameClick(game.copy(path = installedPath))
+                } else {
+                    viewModel.installCia(game)
+                }
+            }
+        } else {
+            onGameClick(game)
+        }
+    }
+
+    CiaInstallDialog(
+        state = ciaInstallState,
+        onBoot = { game, installedPath ->
+            viewModel.dismissCiaInstall()
+            onGameClick(game.copy(path = installedPath))
+        },
+        onDismiss = viewModel::dismissCiaInstall
+    )
 
     val folderPicker = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocumentTree()
@@ -465,8 +499,8 @@ fun HomeScreen(
                         modifier = Modifier.fillMaxSize(),
                         onExitShelfMode = viewModel::toggleShelfMode,
                         onEnable3dCoverArt = viewModel::enable3dCoverArt,
-                        onGameClick = onGameClick,
-                        onLongClickStart = onGameClick,
+                        onGameClick = launchGame,
+                        onLongClickStart = launchGame,
                         onLongClickContinue = onContinueGame,
                         onLongClickLoadSave = onLoadSaveClick,
                         onLongClickManage = onManageGameClick,
@@ -575,8 +609,8 @@ fun HomeScreen(
                                                         focusModifier = if (index == 0) Modifier.focusRequester(initialGamepadFocusRequester) else Modifier,
                                                         game = game,
                                                         showCenteredTitlePlaceholder = showCoverPlaceholder,
-                                                        onClick = { onGameClick(game) },
-                                                        onLongClickStart = { onGameClick(game) },
+                                                        onClick = { launchGame(game) },
+                                                        onLongClickStart = { launchGame(game) },
                                                         onLongClickContinue = { onContinueGame(game) },
                                                         onLongClickLoadSave = { onLoadSaveClick(game) },
                                                         onLongClickManage = { onManageGameClick(game) },
@@ -584,6 +618,9 @@ fun HomeScreen(
                                                         onLongClickCustomCover = {
                                                             gameAwaitingPickerLaunch = game
                                                         },
+                                                        onInstallCia = {
+                                                            viewModel.installCia(game)
+                                                        }.takeIf { game.isCiaImage() },
                                                         compact = isLandscape,
                                                         coverScale = uiState.homeGridScale
                                                     )
@@ -624,30 +661,36 @@ fun HomeScreen(
                                                                 focusModifier = itemFocusModifier,
                                                                 game = game,
                                                                 showCoverArt = !showCoverPlaceholder,
-                                                                onClick = { onGameClick(game) },
-                                                                onLongClickStart = { onGameClick(game) },
+                                                                onClick = { launchGame(game) },
+                                                                onLongClickStart = { launchGame(game) },
                                                                 onLongClickContinue = { onContinueGame(game) },
                                                                 onLongClickLoadSave = { onLoadSaveClick(game) },
                                                                 onLongClickManage = { onManageGameClick(game) },
                                                                 onLongClickCreateShortcut = { onCreateShortcutClick(game) },
                                                                 onLongClickCustomCover = {
                                                                     gameAwaitingPickerLaunch = game
-                                                                }
+                                                                },
+                                                                onInstallCia = {
+                                                                    viewModel.installCia(game)
+                                                                }.takeIf { game.isCiaImage() }
                                                             )
                                                         } else {
                                                             GameCard(
                                                                 focusModifier = itemFocusModifier,
                                                                 game = game,
                                                                 showCenteredTitlePlaceholder = showCoverPlaceholder,
-                                                                onClick = { onGameClick(game) },
-                                                                onLongClickStart = { onGameClick(game) },
+                                                                onClick = { launchGame(game) },
+                                                                onLongClickStart = { launchGame(game) },
                                                                 onLongClickContinue = { onContinueGame(game) },
                                                                 onLongClickLoadSave = { onLoadSaveClick(game) },
                                                                 onLongClickManage = { onManageGameClick(game) },
                                                                 onLongClickCreateShortcut = { onCreateShortcutClick(game) },
                                                                 onLongClickCustomCover = {
                                                                     gameAwaitingPickerLaunch = game
-                                                                }
+                                                                },
+                                                                onInstallCia = {
+                                                                    viewModel.installCia(game)
+                                                                }.takeIf { game.isCiaImage() }
                                                             )
                                                         }
                                                     }
@@ -1461,6 +1504,7 @@ private fun RecentGameCard(
     onLongClickManage: () -> Unit,
     onLongClickCreateShortcut: () -> Unit,
     onLongClickCustomCover: () -> Unit,
+    onInstallCia: (() -> Unit)? = null,
     compact: Boolean,
     coverScale: Float
 ) {
@@ -1550,7 +1594,8 @@ private fun RecentGameCard(
                 onCustomCover = {
                     showMenu = false
                     onLongClickCustomCover()
-                }
+                },
+                onInstallCia = onInstallCia
             )
         }
     }
@@ -1568,7 +1613,8 @@ private fun GameCard(
     onLongClickLoadSave: () -> Unit,
     onLongClickManage: () -> Unit,
     onLongClickCreateShortcut: () -> Unit,
-    onLongClickCustomCover: () -> Unit
+    onLongClickCustomCover: () -> Unit,
+    onInstallCia: (() -> Unit)? = null
 ) {
     val debouncedClick = rememberDebouncedClick(onClick = onClick)
     val interactionSource = remember { MutableInteractionSource() }
@@ -1661,7 +1707,8 @@ private fun GameCard(
                 onCustomCover = {
                     showMenu = false
                     onLongClickCustomCover()
-                }
+                },
+                onInstallCia = onInstallCia
             )
         }
     }
@@ -1679,7 +1726,8 @@ private fun GameListCard(
     onLongClickLoadSave: () -> Unit,
     onLongClickManage: () -> Unit,
     onLongClickCreateShortcut: () -> Unit,
-    onLongClickCustomCover: () -> Unit
+    onLongClickCustomCover: () -> Unit,
+    onInstallCia: (() -> Unit)? = null
 ) {
     val debouncedClick = rememberDebouncedClick(onClick = onClick)
     val interactionSource = remember { MutableInteractionSource() }
@@ -1796,7 +1844,8 @@ private fun GameListCard(
                 onCustomCover = {
                     showMenu = false
                     onLongClickCustomCover()
-                }
+                },
+                onInstallCia = onInstallCia
             )
         }
     }
@@ -1855,7 +1904,8 @@ internal fun GameCardContextMenu(
     onLoadSave: () -> Unit,
     onManage: () -> Unit,
     onCreateShortcut: () -> Unit,
-    onCustomCover: () -> Unit
+    onCustomCover: () -> Unit,
+    onInstallCia: (() -> Unit)? = null
 ) {
     DropdownMenu(
         expanded = expanded,
@@ -1868,23 +1918,35 @@ internal fun GameCardContextMenu(
         shadowElevation = 12.dp,
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.7f))
     ) {
-        GameContextMenuItem(
-            text = stringResource(R.string.home_game_menu_start),
-            icon = Icons.Rounded.PlayArrow,
-            emphasized = true,
-            onClick = onStart
-        )
-        GameContextMenuItem(
-            text = stringResource(R.string.home_game_menu_continue),
-            icon = Icons.Rounded.Restore,
-            onClick = onContinue
-        )
-        GameContextMenuItem(
-            text = stringResource(R.string.home_game_menu_load_save),
-            icon = Icons.Rounded.Save,
-            onClick = onLoadSave
-        )
-        GameContextMenuDivider()
+        if (onInstallCia != null) {
+            // A CIA image has to be installed into the emulated NAND before it
+            // can run, so Start/Continue/Load-save make no sense yet.
+            GameContextMenuItem(
+                text = stringResource(R.string.home_game_menu_install_cia),
+                icon = Icons.Rounded.Download,
+                emphasized = true,
+                onClick = onInstallCia
+            )
+            GameContextMenuDivider()
+        } else {
+            GameContextMenuItem(
+                text = stringResource(R.string.home_game_menu_start),
+                icon = Icons.Rounded.PlayArrow,
+                emphasized = true,
+                onClick = onStart
+            )
+            GameContextMenuItem(
+                text = stringResource(R.string.home_game_menu_continue),
+                icon = Icons.Rounded.Restore,
+                onClick = onContinue
+            )
+            GameContextMenuItem(
+                text = stringResource(R.string.home_game_menu_load_save),
+                icon = Icons.Rounded.Save,
+                onClick = onLoadSave
+            )
+            GameContextMenuDivider()
+        }
         GameContextMenuItem(
             text = stringResource(R.string.home_game_menu_manager),
             icon = Icons.Rounded.Tune,
@@ -1984,4 +2046,79 @@ internal fun formatCompactFileSize(bytes: Long): String {
         bytes >= 1024L -> String.format(Locale.US, "%.0f KB", bytes / 1024.0)
         else -> "$bytes B"
     }
+}
+
+@Composable
+private fun CiaInstallDialog(
+    state: CiaInstallUiState,
+    onBoot: (GameItem, String) -> Unit,
+    onDismiss: () -> Unit
+) {
+    val game = state.game ?: return
+
+    // A successful install boots the title right away; there is nothing to
+    // acknowledge, so skip the result dialog entirely.
+    if (state.isFinished && state.success && state.installedLaunchPath != null) {
+        LaunchedEffect(state.installedLaunchPath) {
+            onBoot(game, state.installedLaunchPath)
+        }
+        return
+    }
+
+    AlertDialog(
+        onDismissRequest = { if (state.isFinished) onDismiss() },
+        showIconContainer = false,
+        icon = {
+            Icon(
+                imageVector = Icons.Rounded.Download,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary
+            )
+        },
+        title = { Text(text = stringResource(R.string.cia_install_title)) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                if (!state.isFinished) {
+                    Text(
+                        text = stringResource(R.string.cia_install_body, game.title),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    LinearProgressIndicator(
+                        progress = {
+                            if (state.total > 0) {
+                                (state.current.toFloat() / state.total.toFloat()).coerceIn(0f, 1f)
+                            } else {
+                                0f
+                            }
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    if (state.total > 0) {
+                        Text(
+                            text = "${formatCompactFileSize(state.current.toLong())} / " +
+                                formatCompactFileSize(state.total.toLong()),
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                } else {
+                    Text(
+                        text = stringResource(
+                            state.messageResId ?: R.string.cia_install_error_generic
+                        ),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                }
+            }
+        },
+        confirmButton = {
+            if (state.isFinished) {
+                TextButton(onClick = onDismiss) {
+                    Text(text = stringResource(android.R.string.ok))
+                }
+            }
+        }
+    )
 }

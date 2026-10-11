@@ -615,6 +615,15 @@
     <string name="game_settings_overlay_save">Profili kaydet</string>
     <string name="game_settings_overlay_reset">Küresele sıfırla</string>
     <string name="home_game_menu_start">Oyunu başlat</string>
+    <string name="home_game_menu_install_cia">Oyunu yükle</string>
+    <string name="cia_install_title">Paket yükleniyor</string>
+    <string name="cia_install_body">%1$s emüle edilen sisteme yükleniyor. Lütfen uygulamayı açık tutun.</string>
+    <string name="cia_install_success">Paket yüklendi. Oyun oynamaya hazır.</string>
+    <string name="cia_install_cancelled">Yükleme iptal edildi.</string>
+    <string name="cia_install_error_invalid">Paket geçerli bir 3DS başlığı değil.</string>
+    <string name="cia_install_error_encrypted">Paket şifreli. Şifresi çözülmüş imajlar veya sistem anahtarları gerekli.</string>
+    <string name="cia_install_error_not_found">Paket açılamadı. Uygulamaya klasörüne erişim izni verin ve tekrar deneyin.</string>
+    <string name="cia_install_error_generic">Paket yüklenemedi.</string>
     <string name="home_game_menu_continue">Oyuna devam et</string>
     <string name="home_game_menu_continue_unavailable">Bu oyun için kayıt durumu bulunamadı.</string>
     <string name="home_game_menu_load_save">Kayıt durumunu yükle</string>

@@ -571,6 +571,15 @@
     <string name="game_settings_overlay_save">Salva profilo</string>
     <string name="game_settings_overlay_reset">Ripristina al globale</string>
     <string name="home_game_menu_start">Avvia gioco</string>
+    <string name="home_game_menu_install_cia">Installa gioco</string>
+    <string name="cia_install_title">Installazione del pacchetto</string>
+    <string name="cia_install_body">%1$s è in fase di installazione nel sistema emulato. Tieni l\'app aperta.</string>
+    <string name="cia_install_success">Pacchetto installato. Il gioco è pronto per essere avviato.</string>
+    <string name="cia_install_cancelled">Installazione annullata.</string>
+    <string name="cia_install_error_invalid">Il pacchetto non è un titolo 3DS valido.</string>
+    <string name="cia_install_error_encrypted">Il pacchetto è cifrato. Servono immagini decifrate o chiavi di sistema.</string>
+    <string name="cia_install_error_not_found">Impossibile aprire il pacchetto. Concedi all\'app l\'accesso alla sua cartella e riprova.</string>
+    <string name="cia_install_error_generic">Impossibile installare il pacchetto.</string>
     <string name="home_game_menu_continue">Continua gioco</string>
     <string name="home_game_menu_continue_unavailable">Nessuno stato di salvataggio trovato per questo gioco.</string>
     <string name="home_game_menu_load_save">Carica stato di salvataggio</string>

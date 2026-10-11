@@ -615,6 +615,15 @@
     <string name="game_settings_overlay_save">プロファイルを保存</string>
     <string name="game_settings_overlay_reset">グローバルにリセット</string>
     <string name="home_game_menu_start">ゲームを開始</string>
+    <string name="home_game_menu_install_cia">ゲームをインストール</string>
+    <string name="cia_install_title">パッケージをインストール中</string>
+    <string name="cia_install_body">%1$s をエミュレートされたシステムにインストールしています。アプリを開いたままにしてください。</string>
+    <string name="cia_install_success">パッケージをインストールしました。ゲームで遊べる状態です。</string>
+    <string name="cia_install_cancelled">インストールはキャンセルされました。</string>
+    <string name="cia_install_error_invalid">このパッケージは有効な3DSタイトルではありません。</string>
+    <string name="cia_install_error_encrypted">パッケージは暗号化されています。復号済みのイメージまたはシステムキーが必要です。</string>
+    <string name="cia_install_error_not_found">パッケージを開けませんでした。アプリにフォルダへのアクセスを許可して、もう一度お試しください。</string>
+    <string name="cia_install_error_generic">パッケージをインストールできませんでした。</string>
     <string name="home_game_menu_continue">ゲームを再開</string>
     <string name="home_game_menu_continue_unavailable">このゲームのセーブ状態が見つかりません。</string>
     <string name="home_game_menu_load_save">セーブ状態をロード</string>

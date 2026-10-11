@@ -21,7 +21,8 @@ class CiaInstallWorker {
     }
 
     /** Installs the CIA at [path] and returns the resulting install status. */
-    fun install(path: String): EmuCoreNative.InstallStatus = installCia(path)
+    fun install(path: String): EmuCoreNative.InstallStatus = installCIA(path)
 
-    private external fun installCia(path: String): EmuCoreNative.InstallStatus
+    /** The JNI symbol is Java_..._CiaInstallWorker_installCIA, so the name is case-sensitive. */
+    private external fun installCIA(path: String): EmuCoreNative.InstallStatus
 }

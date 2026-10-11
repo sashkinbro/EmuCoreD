@@ -835,6 +835,15 @@
     <string name="game_settings_overlay_save">Simpan profil</string>
     <string name="game_settings_overlay_reset">Reset ke global</string>
     <string name="home_game_menu_start">Mulai game</string>
+    <string name="home_game_menu_install_cia">Instal game</string>
+    <string name="cia_install_title">Memasang paket</string>
+    <string name="cia_install_body">%1$s sedang dipasang ke sistem emulasi. Jangan tutup aplikasi.</string>
+    <string name="cia_install_success">Paket terpasang. Game siap dimainkan.</string>
+    <string name="cia_install_cancelled">Pemasangan dibatalkan.</string>
+    <string name="cia_install_error_invalid">Paket bukan judul 3DS yang valid.</string>
+    <string name="cia_install_error_encrypted">Paket terenkripsi. Diperlukan image terdekripsi atau kunci sistem.</string>
+    <string name="cia_install_error_not_found">Paket tidak dapat dibuka. Beri aplikasi akses ke foldernya lalu coba lagi.</string>
+    <string name="cia_install_error_generic">Paket tidak dapat dipasang.</string>
     <string name="home_game_menu_continue">Lanjutkan game</string>
     <string name="home_game_menu_continue_unavailable">Tidak ada status simpanan (save states) ditemukan untuk game ini.</string>
     <string name="home_game_menu_load_save">Muat status simpanan</string>

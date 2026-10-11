@@ -438,6 +438,15 @@
     <string name="home_sort_recent_desc">Нещодавно оновлені</string>
     <string name="home_sort_recent_asc">Найстаріші оновлені</string>
     <string name="home_game_menu_start">Почати гру</string>
+    <string name="home_game_menu_install_cia">Встановити гру</string>
+    <string name="cia_install_title">Встановлення пакунка</string>
+    <string name="cia_install_body">%1$s встановлюється в емульовану систему. Не закривайте додаток.</string>
+    <string name="cia_install_success">Пакунки встановлено. Гра готова до запуску.</string>
+    <string name="cia_install_cancelled">Встановлення скасовано.</string>
+    <string name="cia_install_error_invalid">Пакунок не є коректним тайтлом 3DS.</string>
+    <string name="cia_install_error_encrypted">Пакунок зашифрований. Потрібні дешифровані образи або системні ключі.</string>
+    <string name="cia_install_error_not_found">Пакунок неможливо відкрити. Надайте доступ до його папки та спробуйте ще раз.</string>
+    <string name="cia_install_error_generic">Пакунок не вдалося встановити.</string>
     <string name="home_game_menu_continue">Продовжити гру</string>
     <string name="home_game_menu_continue_unavailable">Для цієї гри не знайдено збережень.</string>
     <string name="home_game_menu_load_save">Завантажити збереження</string>

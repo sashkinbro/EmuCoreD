@@ -571,6 +571,15 @@
     <string name="game_settings_overlay_save">प्रोफ़ाइल सेव करें</string>
     <string name="game_settings_overlay_reset">वैश्विक पर रीसेट करें</string>
     <string name="home_game_menu_start">गेम शुरू करें</string>
+    <string name="home_game_menu_install_cia">गेम इंस्टॉल करें</string>
+    <string name="cia_install_title">पैकेज इंस्टॉल हो रहा है</string>
+    <string name="cia_install_body">%1$s एमुलेटेड सिस्टम में इंस्टॉल हो रहा है। कृपया ऐप खुला रखें।</string>
+    <string name="cia_install_success">पैकेज इंस्टॉल हो गया। गेम खेलने के लिए तैयार है।</string>
+    <string name="cia_install_cancelled">इंस्टॉलेशन रद्द कर दिया गया।</string>
+    <string name="cia_install_error_invalid">पैकेज मान्य 3DS टाइटल नहीं है।</string>
+    <string name="cia_install_error_encrypted">पैकेज एन्क्रिप्टेड है। डिक्रिप्टेड इमेज या सिस्टम कीज़ आवश्यक हैं।</string>
+    <string name="cia_install_error_not_found">पैकेज नहीं खोला जा सका। ऐप को उसके फ़ोल्डर तक पहुँच दें और फिर से प्रयास करें।</string>
+    <string name="cia_install_error_generic">पैकेज इंस्टॉल नहीं किया जा सका।</string>
     <string name="home_game_menu_continue">गेम जारी रखें</string>
     <string name="home_game_menu_continue_unavailable">इस गेम के लिए कोई सेव स्थिति (save states) नहीं मिली।</string>
     <string name="home_game_menu_load_save">सेव स्थिति लोड करें</string>
