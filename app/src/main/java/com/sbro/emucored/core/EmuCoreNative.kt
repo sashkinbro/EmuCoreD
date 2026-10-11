@@ -34,9 +34,13 @@ object EmuCoreNative {
         private set
 
     init {
-        isLoaded = runCatching { System.loadLibrary("emucore_core") }
-            .onFailure { Log.e(TAG, "Unable to load libemucore_core.so", it) }
-            .isSuccess
+        try {
+            System.loadLibrary("emucore_core")
+            isLoaded = true
+        } catch (e: UnsatisfiedLinkError) {
+            Log.e(TAG, "Unable to load libemucore_core.so", e)
+            isLoaded = false
+        }
     }
 
     // ---------------------------------------------------------------------

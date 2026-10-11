@@ -12,7 +12,11 @@ package com.sbro.emucored.core
 class NativeCoreBridge {
     companion object {
         init {
-            System.loadLibrary("emucore_shaders")
+            try {
+                System.loadLibrary("emucore_shaders")
+            } catch (e: UnsatisfiedLinkError) {
+                android.util.Log.e("NativeCoreBridge", "Unable to load libemucore_shaders.so", e)
+            }
         }
     }
 

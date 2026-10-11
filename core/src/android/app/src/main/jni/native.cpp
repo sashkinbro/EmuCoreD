@@ -880,8 +880,16 @@ jboolean Java_com_sbro_emucored_core_EmuCoreNative_isRunning([[maybe_unused]] JN
 
 jlong Java_com_sbro_emucored_core_EmuCoreNative_getRunningTitleId([[maybe_unused]] JNIEnv* env,
                                                                 [[maybe_unused]] jobject obj) {
+    // The app loader only exists between boot and shutdown; upstream never
+    // calls this outside an emulation session, but the frontend may ask for
+    // diagnostics at any time. Return 0 instead of dereferencing a null
+    // unique_ptr while no title is loaded.
     u64 title_id{};
-    Core::System::GetInstance().GetAppLoader().ReadProgramId(title_id);
+    Core::System& system{Core::System::GetInstance()};
+    if (stop_run || !system.IsPoweredOn()) {
+        return 0;
+    }
+    system.GetAppLoader().ReadProgramId(title_id);
     return static_cast<jlong>(title_id);
 }
 
