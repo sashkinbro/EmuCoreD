@@ -182,8 +182,7 @@ class GameRepository {
                     val canReuseCachedMetadata = cachedGame != null &&
                         cachedGame.fileSize == entrySize &&
                         cachedGame.lastModified == file.lastModified() &&
-                        cachedGame.fileName == file.name &&
-                        !cachedGame.serial.isNullOrBlank()
+                        cachedGame.fileName == file.name
                     val metadata = if (canReuseCachedMetadata) {
                         com.sbro.emucored.core.GameMetadata(cachedGame.title, cachedGame.serial)
                     } else {
@@ -281,8 +280,7 @@ class GameRepository {
                     val canReuseCachedMetadata = cachedGame != null &&
                         cachedGame.fileSize == entrySize &&
                         cachedGame.lastModified == lastModified &&
-                        cachedGame.fileName == name &&
-                        !cachedGame.serial.isNullOrBlank()
+                        cachedGame.fileName == name
                     val metadata = if (canReuseCachedMetadata) {
                         com.sbro.emucored.core.GameMetadata(cachedGame.title, cachedGame.serial)
                     } else {
