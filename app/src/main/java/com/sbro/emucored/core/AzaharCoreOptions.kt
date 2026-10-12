@@ -395,8 +395,7 @@ object AzaharCoreOptions {
         option("use_disk_shader_cache"),
         option("use_vsync"),
         option("layout_option"),
-        option("swap_screen"),
-        option("aspect_ratio"),
+        option("swap_screen")
     )
 
     /** Controls section of the in-game menu. */
