@@ -101,14 +101,11 @@ private fun buildPerformanceOverlayHeader(application: Application): String {
         application.packageManager.getPackageInfo(application.packageName, 0)
     }.getOrNull()
     val appVersion = packageInfo?.versionName?.takeIf(String::isNotBlank) ?: "?"
-    val buildNumber = packageInfo?.longVersionCode?.toString() ?: "?"
-    val coreName = runCatching { NativeApp.getCoreName().orEmpty() }
-        .getOrDefault("")
-        .ifBlank { "?" }
     val coreVersion = runCatching { NativeApp.getCoreVersion().orEmpty() }
         .getOrDefault("")
-    return "EmuCoreD-$appVersion | $buildNumber | $coreName" +
-        coreVersion.takeIf(String::isNotBlank)?.let { " $it" }.orEmpty()
+        .takeIf(String::isNotBlank)
+    return "EmuCoreD $appVersion" +
+        coreVersion?.let { " | $it" }.orEmpty()
 }
 
 internal fun replacePerformanceCpuName(text: String, cpuName: String): String {

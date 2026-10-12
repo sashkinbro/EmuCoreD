@@ -65,6 +65,8 @@ object EmuCoreNative {
     external fun logUserDirectory(directory: String)
     external fun reloadSettings()
     external fun logDeviceInfo()
+    /** Human readable core build, e.g. "Azahar 2120.1 (master-abc1234)". */
+    external fun getCoreVersionString(): String
     external fun updateFramebuffer(isPortrait: Boolean)
     external fun notifyOrientationChange(layoutOption: Int, rotation: Int, portrait: Boolean)
     external fun swapScreens(swapScreens: Boolean, rotation: Int)

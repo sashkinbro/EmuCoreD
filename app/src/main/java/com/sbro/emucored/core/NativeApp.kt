@@ -88,7 +88,8 @@ object NativeApp {
 
     @JvmStatic fun getCoreName(): String? = "Azahar"
 
-    @JvmStatic fun getCoreVersion(): String? = CoreRuntime.diagnostics()
+    @JvmStatic fun getCoreVersion(): String? =
+        CoreRuntime.coreVersionString().takeIf { it.isNotBlank() }
 
     @JvmStatic fun setAudioOutputGain(volume: Int, muted: Boolean) =
         CoreRuntime.setAudioGain(volume, muted)

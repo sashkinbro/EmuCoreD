@@ -540,30 +540,28 @@ internal object CoreRuntime {
         if (!performanceMetricsEnabled || !running) return null
         val stats = runCatching { EmuCoreNative.getPerfStats() }.getOrNull() ?: return null
         if (stats.size < 9) return null
-        val fps = stats[0]
-        val speed = stats[3]
-        val frameTime = stats[2]
+        val systemFps = stats[0]
+        val gameFps = stats[1]
+        val speed = stats[2]
+        val frameTime = if (gameFps > 0.5) 1000.0 / gameFps else 0.0
         val overlay = buildString {
-            append(String.format(Locale.US, "FPS:%.1f | Speed:%.1f%%", fps, speed))
+            append(String.format(Locale.US, "FPS: %.1f | Speed: %.1f%%", gameFps, speed))
             if (detailedPerformanceMetrics) {
-                append('\n').append("Frame:").append(
-                    String.format(Locale.US, "%.1f ms", frameTime)
-                )
+                append('\n')
+                append(String.format(Locale.US, "Frame: %.1f ms", frameTime))
+                if (systemFps > 0.0) {
+                    append('\n')
+                    append(String.format(Locale.US, "System: %.1f FPS", systemFps))
+                }
             }
         }
-        performanceMetricsSnapshot = String.format(Locale.US, "%.3f\n%.3f\n%s", fps, speed, overlay)
+        performanceMetricsSnapshot = String.format(Locale.US, "%.3f\n%.3f\n%s", gameFps, speed, overlay)
         return performanceMetricsSnapshot
     }
 
-    fun diagnostics(): String = buildString {
-        // The title id is only meaningful while a session is running; asking
-        // the core before boot would touch its (absent) app loader.
-        val running = EmuCoreNative.isRunning()
-        append("{\"core\":\"emucored\",\"running\":").append(running)
-        append(",\"titleId\":").append(if (running) EmuCoreNative.getRunningTitleId() else 0L)
-        append(",\"renderer\":").append(RendererDefaults.coreRendererName(requestedRenderer))
-        append('}')
-    }
+    fun coreVersionString(): String = runCatching {
+        EmuCoreNative.getCoreVersionString()
+    }.getOrDefault("")
 
     fun gpuBackendSubmissions(): Long = 0L
 

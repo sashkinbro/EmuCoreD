@@ -1009,6 +1009,13 @@ jlong Java_com_sbro_emucored_core_EmuCoreNative_getCiaTitleId(JNIEnv* env,
     return static_cast<jlong>(info.Unwrap().first.tid);
 }
 
+jstring Java_com_sbro_emucored_core_EmuCoreNative_getCoreVersionString(
+    JNIEnv* env, [[maybe_unused]] jobject obj) {
+    const std::string version =
+        fmt::format("{} ({}-{})", Common::g_build_fullname, Common::g_scm_branch, Common::g_scm_desc);
+    return ToJString(env, version);
+}
+
 jbyteArray Java_com_sbro_emucored_core_EmuCoreNative_getGameSmdh(JNIEnv* env,
                                                                [[maybe_unused]] jobject obj,
                                                                jstring j_filename) {
