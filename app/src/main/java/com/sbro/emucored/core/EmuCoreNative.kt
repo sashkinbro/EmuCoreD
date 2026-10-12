@@ -3,10 +3,15 @@
 package com.sbro.emucored.core
 
 import android.content.res.Configuration
+import android.database.Cursor
+import android.net.Uri
 import android.os.ParcelFileDescriptor
+import android.provider.DocumentsContract
 import android.util.Log
 import android.view.Surface
 import androidx.annotation.Keep
+import androidx.core.net.toUri
+import androidx.documentfile.provider.DocumentFile
 import com.sbro.emucored.EmuCoreDApp
 import java.io.File
 import java.util.Date
@@ -100,6 +105,7 @@ object EmuCoreNative {
     // Metadata, cartridges and system files.
     // ---------------------------------------------------------------------
     external fun getTitleId(filename: String): Long
+    external fun getCiaTitleId(filename: String): Long
     external fun getIsSystemTitle(path: String): Boolean
     external fun getInstalledGamePathsImpl(): Array<String?>
     external fun getHomeMenuPath(region: Int): String
@@ -364,13 +370,37 @@ object EmuCoreNative {
 internal object EmuCoreStorage {
     private const val TAG = "EmuCoreStorage"
 
-    fun exists(path: String): Boolean = resolve(path)?.exists() ?: false
+    fun exists(path: String): Boolean {
+        contentDocument(path)?.let { return queryDocument(it, arrayOf(DocumentsContract.Document.COLUMN_DOCUMENT_ID)) { cursor -> cursor.count > 0 } ?: false }
+        return resolve(path)?.exists() ?: false
+    }
 
-    fun isDirectory(path: String): Boolean = resolve(path)?.isDirectory ?: false
+    fun isDirectory(path: String): Boolean {
+        contentDocument(path)?.let { uri ->
+            return queryDocument(uri, arrayOf(DocumentsContract.Document.COLUMN_MIME_TYPE)) { cursor ->
+                cursor.moveToFirst() && cursor.getString(0) == DocumentsContract.Document.MIME_TYPE_DIR
+            } ?: false
+        }
+        return resolve(path)?.isDirectory ?: false
+    }
 
-    fun size(path: String): Long = resolve(path)?.length() ?: -1L
+    fun size(path: String): Long {
+        contentDocument(path)?.let { uri ->
+            return queryDocument(uri, arrayOf(DocumentsContract.Document.COLUMN_SIZE)) { cursor ->
+                if (cursor.moveToFirst()) cursor.getLong(0) else null
+            } ?: -1L
+        }
+        return resolve(path)?.length() ?: -1L
+    }
 
-    fun delete(path: String): Boolean = resolve(path)?.delete() ?: false
+    fun delete(path: String): Boolean {
+        contentDocument(path)?.let { uri ->
+            val context = NativeApp.getContext() ?: return false
+            return runCatching { DocumentsContract.deleteDocument(context.contentResolver, uri) }
+                .getOrDefault(false)
+        }
+        return resolve(path)?.delete() ?: false
+    }
 
     fun createFile(directory: String, filename: String): Boolean {
         val dir = resolve(directory) ?: return false
@@ -384,6 +414,12 @@ internal object EmuCoreStorage {
     }
 
     fun openContentUri(path: String, openMode: String): Int {
+        val context = NativeApp.getContext() ?: return -1
+        if (path.startsWith("content://")) {
+            return runCatching {
+                context.contentResolver.openFileDescriptor(path.toUri(), openMode)?.detachFd() ?: -1
+            }.getOrDefault(-1)
+        }
         val file = resolve(path) ?: return -1
         val mode = translateOpenMode(openMode)
         return runCatching {
@@ -392,6 +428,15 @@ internal object EmuCoreStorage {
     }
 
     fun listFiles(path: String): Array<String?> {
+        contentDocument(path)?.let { uri ->
+            val context = NativeApp.getContext() ?: return emptyArray()
+            return runCatching {
+                DocumentFile.fromTreeUri(context, uri)?.listFiles()
+                    ?.map { it.name }
+                    ?.toTypedArray()
+                    ?: emptyArray()
+            }.getOrDefault(emptyArray())
+        }
         val dir = resolve(path) ?: return emptyArray()
         return dir.listFiles()?.map { it.name }?.toTypedArray() ?: emptyArray()
     }
@@ -431,6 +476,18 @@ internal object EmuCoreStorage {
     private fun resolve(path: String): File? {
         if (path.isBlank()) return null
         return runCatching { File(path) }.getOrNull()
+    }
+
+    private fun contentDocument(path: String): Uri? {
+        if (!path.startsWith("content://")) return null
+        return runCatching { path.toUri() }.getOrNull()
+    }
+
+    private fun <T> queryDocument(uri: Uri, columns: Array<String>, read: (Cursor) -> T): T? {
+        val context = NativeApp.getContext() ?: return null
+        return runCatching {
+            context.contentResolver.query(uri, columns, null, null, null)?.use(read)
+        }.getOrNull()
     }
 
     private fun translateOpenMode(mode: String): Int {

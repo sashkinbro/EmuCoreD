@@ -142,7 +142,9 @@ object SetupValidator {
         }
 
         val preparedPath = DocumentPathResolver.prepareGameLaunchPath(context, rawGamePath) ?: return false
-        val file = File(preparedPath)
+        val localPath = preparedPath.removePrefix("!")
+        if (localPath.startsWith("content://")) return false
+        val file = File(localPath)
         return file.isFile && file.canRead() && file.length() > 0L
     }
 

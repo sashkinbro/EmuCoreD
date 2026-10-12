@@ -4,6 +4,7 @@ package com.sbro.emucored.core
 
 import android.content.Context
 import android.graphics.Bitmap
+import android.os.SystemClock
 import android.util.Log
 import android.view.Surface
 import com.sbro.emucored.data.AppPreferences
@@ -12,6 +13,7 @@ import com.sbro.emucored.ui.common.invalidateCoverImage
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -202,6 +204,13 @@ object EmulatorBridge {
             Log.e(TAG, "startEmulation rejected blank game path")
             return false
         }
+        if (!awaitPresentationSurface()) {
+            // The core blocks in System::Init without a window, so a session
+            // started before the SurfaceView is ready would never boot.
+            NativeApp.logCrashBreadcrumb("startEmulation aborted: no presentation surface")
+            Log.e(TAG, "startEmulation aborted: no presentation surface")
+            return false
+        }
         // Save-state files are named after the path the user launched, not the
         // core's prepared/materialized path, so writes and listings agree.
         NativeApp.setSaveStateIdentityPath(saveStateIdentityPath ?: path)
@@ -244,6 +253,26 @@ object EmulatorBridge {
                 result
             }
         }
+    }
+
+    /**
+     * Waits until the emulation screen has produced a usable presentation
+     * surface. The native core blocks during System::Init until a window is
+     * available, so the session must not be started before then.
+     */
+    private suspend fun awaitPresentationSurface(
+        timeoutMs: Long = 8_000L,
+        pollMs: Long = 50L
+    ): Boolean {
+        val deadline = SystemClock.elapsedRealtime() + timeoutMs
+        while (SystemClock.elapsedRealtime() < deadline) {
+            val surface = lastSurface
+            if (surface != null && surface.isValid && lastSurfaceWidth > 0 && lastSurfaceHeight > 0) {
+                return true
+            }
+            delay(pollMs)
+        }
+        return false
     }
 
     suspend fun pause() {
@@ -572,6 +601,9 @@ object EmulatorBridge {
         lastSurface = surface
         lastSurfaceWidth = width
         lastSurfaceHeight = height
+        // Publish the window synchronously so a session that is already
+        // booting can hand it to the core before System::Init blocks.
+        runCatching { NativeApp.rememberSurface(surface, width, height) }
         NativeApp.setCrashContextString("emu_surface_state", "changed")
         NativeApp.setCrashContextInt("emu_surface_width", width)
         NativeApp.setCrashContextInt("emu_surface_height", height)

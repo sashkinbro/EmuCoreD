@@ -248,7 +248,12 @@ object DocumentPathResolver {
 
     fun prepareElfLaunchPath(context: Context, rawPath: String): String? {
         if (rawPath.isBlank()) return null
-        if (!rawPath.startsWith("content://")) return File(rawPath).takeIf { it.isFile && it.canRead() }?.absolutePath ?: rawPath
+        if (!rawPath.startsWith("content://")) {
+            val direct = File(rawPath)
+            return direct.takeIf { it.isFile && it.canRead() }
+                ?.let { nativeAbsolutePath(it) }
+                ?: rawPath
+        }
 
         val uri = rawPath.toUri()
         val single = DocumentFile.fromSingleUri(context, uri)
@@ -260,17 +265,23 @@ object DocumentPathResolver {
         val directPath = resolveFilePath(context, rawPath)
             ?.let(::File)
             ?.takeIf { it.isFile && it.canRead() }
-            ?.absolutePath
+            ?.let { nativeAbsolutePath(it) }
         if (!directPath.isNullOrBlank()) return directPath
 
         return uri.toString()
     }
 
+    /**
+     * Produces the path the bundled core must receive. The core treats any
+     * path without a leading "!" as relative to its user directory, so real
+     * files are prefixed and content URIs are passed through for the core's
+     * ContentResolver file backend.
+     */
     fun prepareGameLaunchPath(context: Context, rawPath: String): String? {
         if (rawPath.isBlank()) return null
         if (!rawPath.startsWith("content://")) {
             val direct = File(rawPath)
-            if (direct.isFile && direct.canRead()) return direct.absolutePath
+            if (direct.isFile && direct.canRead()) return nativeAbsolutePath(direct)
 
             val uri = findAccessibleTreeUriForRawPath(context, rawPath)
                 ?: return if (isScopedStorageExternalPath(rawPath)) null else rawPath
@@ -281,11 +292,12 @@ object DocumentPathResolver {
         val directPath = resolveFilePath(context, rawPath)
             ?.let(::File)
             ?.takeIf { it.isFile && it.canRead() }
-            ?.absolutePath
-        if (!directPath.isNullOrBlank()) return directPath
+        if (directPath != null) return nativeAbsolutePath(directPath)
 
         return prepareUriGameLaunchPath(context, uri)
     }
+
+    private fun nativeAbsolutePath(file: File): String = "!${file.absolutePath}"
 
     fun releasePreparedLaunchHandles() {
         val resources = synchronized(preparedDiscLock) {
@@ -311,10 +323,9 @@ object DocumentPathResolver {
         val resolvedDirect = resolveFilePath(context, uri.toString())
             ?.let(::File)
             ?.takeIf { it.isFile && it.canRead() }
-            ?.absolutePath
-        if (!resolvedDirect.isNullOrBlank()) {
+        if (resolvedDirect != null) {
             Log.i(TAG, "Resolved content URI to direct filesystem game path: $resolvedDirect")
-            return resolvedDirect
+            return nativeAbsolutePath(resolvedDirect)
         }
 
         val displayName = getDisplayName(context, uri.toString())

@@ -97,6 +97,7 @@ std::unique_ptr<PlayTime::PlayTimeManager> play_time_manager;
 jlong ptm_current_title_id = std::numeric_limits<jlong>::max(); // Arbitrary default value
 
 std::atomic<bool> stop_run{true};
+std::atomic<bool> stop_requested{false};
 std::atomic<bool> pause_emulation{false};
 
 std::mutex paused_mutex;
@@ -253,15 +254,22 @@ static Core::System::ResultStatus RunCitra(const std::string& filepath) {
     case Settings::GraphicsAPI::OpenGL:
         window = std::make_unique<EmuWindow_Android_OpenGL>(system, s_surface, false);
         shared_context = window->GetEGLContext();
-        secondary_window = std::make_unique<EmuWindow_Android_OpenGL>(system, s_secondary_surface,
-                                                                      true, shared_context);
+        // The secondary window only exists when the frontend provides a
+        // second surface; creating it with a null window makes the Vulkan
+        // renderer abort while creating its presentation surface.
+        if (s_secondary_surface) {
+            secondary_window = std::make_unique<EmuWindow_Android_OpenGL>(
+                system, s_secondary_surface, true, shared_context);
+        }
         break;
 #endif
 #ifdef ENABLE_VULKAN
     case Settings::GraphicsAPI::Vulkan:
         window = std::make_unique<EmuWindow_Android_Vulkan>(s_surface, vulkan_library, false);
-        secondary_window =
-            std::make_unique<EmuWindow_Android_Vulkan>(s_secondary_surface, vulkan_library, true);
+        if (s_secondary_surface) {
+            secondary_window =
+                std::make_unique<EmuWindow_Android_Vulkan>(s_secondary_surface, vulkan_library, true);
+        }
         break;
 #endif
     default:
@@ -271,13 +279,17 @@ static Core::System::ResultStatus RunCitra(const std::string& filepath) {
 #ifdef ENABLE_OPENGL
         window = std::make_unique<EmuWindow_Android_OpenGL>(system, s_surface, false);
         shared_context = window->GetEGLContext();
-        secondary_window = std::make_unique<EmuWindow_Android_OpenGL>(system, s_secondary_surface,
-                                                                      true, shared_context);
+        if (s_secondary_surface) {
+            secondary_window = std::make_unique<EmuWindow_Android_OpenGL>(
+                system, s_secondary_surface, true, shared_context);
+        }
 
 #elif ENABLE_VULKAN
         window = std::make_unique<EmuWindow_Android_Vulkan>(s_surface, vulkan_library, false);
-        secondary_window =
-            std::make_unique<EmuWindow_Android_Vulkan>(s_secondary_surface, vulkan_library, true);
+        if (s_secondary_surface) {
+            secondary_window =
+                std::make_unique<EmuWindow_Android_Vulkan>(s_secondary_surface, vulkan_library, true);
+        }
 #else
         // TODO: Add a null renderer backend for this, perhaps.
 #error "At least one renderer must be enabled."
@@ -331,6 +343,13 @@ static Core::System::ResultStatus RunCitra(const std::string& filepath) {
 
     if (load_result != Core::System::ResultStatus::Success) {
         return load_result;
+    }
+
+    // The frontend may have requested a stop while the game was still loading
+    // (for example the user left the emulation screen). Honour it instead of
+    // clearing the request and running anyway.
+    if (stop_requested.load()) {
+        return Core::System::ResultStatus::ShutdownRequested;
     }
 
     stop_run = false;
@@ -859,6 +878,7 @@ void Java_com_sbro_emucored_core_EmuCoreNative_pauseEmulation([[maybe_unused]] J
 
 void Java_com_sbro_emucored_core_EmuCoreNative_stopEmulation([[maybe_unused]] JNIEnv* env,
                                                            [[maybe_unused]] jobject obj) {
+    stop_requested = true;
     if (stop_run.exchange(true)) {
         // stop_run was already true
         return;
@@ -978,6 +998,19 @@ jlong Java_com_sbro_emucored_core_EmuCoreNative_getTitleId(JNIEnv* env, [[maybe_
     return static_cast<jlong>(title_id);
 }
 
+jlong Java_com_sbro_emucored_core_EmuCoreNative_getCiaTitleId(JNIEnv* env,
+                                                            [[maybe_unused]] jobject obj,
+                                                            jstring j_filename) {
+    // A CIA is not loadable through Loader::GetLoader, so its title id comes
+    // from the CIA container metadata instead.
+    const std::string filepath = GetJString(env, j_filename);
+    const auto info = Service::AM::GetCIAInfos(filepath);
+    if (info.Failed()) {
+        return 0;
+    }
+    return static_cast<jlong>(info.Unwrap().first.tid);
+}
+
 jboolean Java_com_sbro_emucored_core_EmuCoreNative_getIsSystemTitle(JNIEnv* env,
                                                                   [[maybe_unused]] jobject obj,
                                                                   jstring path) {
@@ -1058,6 +1091,7 @@ void Java_com_sbro_emucored_core_EmuCoreNative_run__Ljava_lang_String_2(JNIEnv* 
                                                                       jstring j_path) {
     const std::string path = GetJString(env, j_path);
 
+    stop_requested = false;
     if (!stop_run) {
         stop_run = true;
         running_cv.notify_all();

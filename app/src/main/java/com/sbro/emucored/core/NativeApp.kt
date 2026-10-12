@@ -198,6 +198,9 @@ object NativeApp {
 
     @JvmStatic fun onNativeSurfaceCreated() = Unit
 
+    @JvmStatic fun rememberSurface(surface: Surface, width: Int, height: Int) =
+        CoreRuntime.rememberSurface(surface, width, height)
+
     @JvmStatic fun onNativeSurfaceChanged(surface: Surface, width: Int, height: Int) =
         CoreRuntime.attachSurface(surface, width, height)
 

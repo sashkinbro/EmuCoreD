@@ -139,6 +139,17 @@ typedef struct stat file_stat_t;
 // REMEMBER: strdup considered harmful!
 namespace FileUtil {
 
+#if defined(ANDROID) && !defined(HAVE_LIBRETRO_VFS)
+// SAF documents are handed to the core as "content://" URIs and must go
+// through the frontend's ContentResolver callbacks instead of the raw
+// filesystem, even when the rest of the user directory uses raw FS.
+static bool IsContentUri(const std::string& path) {
+    constexpr std::string_view scheme = "content://";
+    return path.size() >= scheme.size() && path.compare(0, scheme.size(), scheme) == 0;
+}
+#endif
+
+
 using Common::GetLastErrorMsg;
 
 // Remove any ending forward slashes from directory paths
@@ -168,7 +179,9 @@ bool Exists(const std::string& filename) {
     int result = _wstat64(Common::UTF8ToUTF16W(copy).c_str(), &file_info);
 #elif defined(ANDROID) && !defined(HAVE_LIBRETRO_VFS)
     int result;
-    if (AndroidUtils::CanUseRawFS()) {
+    if (IsContentUri(copy)) {
+        result = AndroidUtils::FileExists(copy) ? 0 : -1;
+    } else if (AndroidUtils::CanUseRawFS()) {
         struct stat file_info;
         result = stat(AndroidUtils::TranslateFilePath(copy).c_str(), &file_info);
     } else {
@@ -197,7 +210,9 @@ bool IsDirectory(const std::string& filename) {
 #elif defined(ANDROID) && !defined(HAVE_LIBRETRO_VFS)
     struct stat file_info;
     int result;
-    if (AndroidUtils::CanUseRawFS()) {
+    if (IsContentUri(copy)) {
+        return AndroidUtils::IsDirectory(copy);
+    } else if (AndroidUtils::CanUseRawFS()) {
         result = stat(AndroidUtils::TranslateFilePath(copy).c_str(), &file_info);
     } else {
         return AndroidUtils::IsDirectory(filename);
@@ -526,7 +541,11 @@ u64 GetSize(const std::string& filename) {
     struct _stat64 buf;
     if (_wstat64(Common::UTF8ToUTF16W(filename).c_str(), &buf) == 0)
 #elif defined(ANDROID) && !defined(HAVE_LIBRETRO_VFS)
-    if (AndroidUtils::CanUseRawFS()) {
+    if (IsContentUri(filename)) {
+        const u64 result = AndroidUtils::GetSize(filename);
+        LOG_TRACE(Common_Filesystem, "{}: {}", filename, result);
+        return result;
+    } else if (AndroidUtils::CanUseRawFS()) {
         if (stat(AndroidUtils::TranslateFilePath(filename).c_str(), &buf) == 0) {
             return buf.st_size;
         }
@@ -1371,7 +1390,25 @@ bool IOFile::Open() {
     m_good = m_file != nullptr;
 
 #elif defined(ANDROID) && !defined(HAVE_LIBRETRO_VFS)
-    if (AndroidUtils::CanUseRawFS()) {
+    if (IsContentUri(filename)) {
+        // SAF documents are opened through the frontend's ContentResolver and
+        // then wrapped in a stdio stream, matching the googlePlay file
+        // backend upstream uses.
+        const AndroidUtils::AndroidOpenMode android_open_mode =
+            AndroidUtils::ParseOpenmode(openmode);
+        if (android_open_mode != AndroidUtils::AndroidOpenMode::READ &&
+            android_open_mode != AndroidUtils::AndroidOpenMode::READ_WRITE) {
+            m_good = false;
+            return m_good;
+        }
+        m_fd = AndroidUtils::OpenContentUri(filename, android_open_mode);
+        if (m_fd != -1) {
+            m_file = fdopen(m_fd, openmode.c_str());
+            if (m_file == nullptr) {
+                LOG_ERROR(Common_Filesystem, "Error opening content URI: {}", filename);
+            }
+        }
+    } else if (AndroidUtils::CanUseRawFS()) {
         m_file = FOPEN(AndroidUtils::TranslateFilePath(filename).c_str(), openmode.c_str());
     } else {
         // Check whether filepath is startsWith content

@@ -2,12 +2,17 @@
 // Licensed under GPLv2 or any later version
 // Refer to the license.txt file included.
 
+#include <algorithm>
+#include <array>
 #include <cstring>
 #include <memory>
+#include <optional>
 #include <span>
+#include <vector>
 #include <cryptopp/aes.h>
 #include <cryptopp/modes.h>
 #include <cryptopp/sha.h>
+#include "common/alignment.h"
 #include "common/common_types.h"
 #include "common/file_derived.h"
 #include "common/logging/log.h"
@@ -32,6 +37,349 @@ u64 GetModId(u64 program_id) {
     }
     return program_id;
 }
+
+namespace {
+
+struct NCCHCryptoRegion {
+    enum class Key : u8 {
+        Primary,
+        Secondary,
+    };
+    enum class Counter : u8 {
+        ExHeader,
+        ExeFs,
+        RomFs,
+    };
+
+    u64 offset = 0;
+    u64 size = 0;
+    u64 seek_from = 0;
+    Key key = Key::Primary;
+    Counter counter = Counter::ExHeader;
+};
+
+struct NCCHCryptoContext {
+    std::array<u8, 16> primary_key{};
+    std::array<u8, 16> secondary_key{};
+    std::array<u8, 16> exheader_ctr{};
+    std::array<u8, 16> exefs_ctr{};
+    std::array<u8, 16> romfs_ctr{};
+    std::vector<NCCHCryptoRegion> regions;
+};
+
+const std::array<u8, 16>& RegionKey(const NCCHCryptoContext& context, NCCHCryptoRegion::Key key) {
+    return key == NCCHCryptoRegion::Key::Primary ? context.primary_key : context.secondary_key;
+}
+
+const std::array<u8, 16>& RegionCounter(const NCCHCryptoContext& context,
+                                        NCCHCryptoRegion::Counter counter) {
+    switch (counter) {
+    case NCCHCryptoRegion::Counter::ExHeader:
+        return context.exheader_ctr;
+    case NCCHCryptoRegion::Counter::ExeFs:
+        return context.exefs_ctr;
+    case NCCHCryptoRegion::Counter::RomFs:
+        return context.romfs_ctr;
+    }
+    return context.exheader_ctr;
+}
+
+void DecryptRange(u8* data, std::size_t size, u64 offset, u64 seek_from,
+                  const std::array<u8, 16>& key, const std::array<u8, 16>& ctr) {
+    if (size == 0) {
+        return;
+    }
+    CryptoPP::CTR_Mode<CryptoPP::AES>::Decryption decryption(key.data(), key.size(), ctr.data());
+    const u64 seek = offset - seek_from;
+    if (seek != 0) {
+        decryption.Seek(seek);
+    }
+    decryption.ProcessData(data, data, size);
+}
+
+/**
+ * Read-through AES-CTR decryption for retail (encrypted) NCCH images.
+ *
+ * The container code treats the image like a decrypted one: reads that fall
+ * inside the ExHeader, ExeFS or RomFS regions are decrypted with the same
+ * region rules the CIA installer uses. This keeps encrypted ROMs usable
+ * without ever writing a decrypted copy to storage.
+ */
+class NCCHCryptoFile final : public FileUtil::IOFileBase {
+public:
+    static std::unique_ptr<NCCHCryptoFile> Create(std::unique_ptr<FileUtil::IOFileBase> child,
+                                                  const NCCH_Header& header) {
+        if (!child) {
+            return nullptr;
+        }
+        auto context = BuildContext(*child, header);
+        if (!context) {
+            return nullptr;
+        }
+        return std::unique_ptr<NCCHCryptoFile>(
+            new NCCHCryptoFile(std::move(child), std::move(*context)));
+    }
+
+    ~NCCHCryptoFile() override = default;
+
+    bool Close() override {
+        return Child()->Close();
+    }
+    bool IsOpen() const override {
+        return Child()->IsOpen();
+    }
+    bool IsGood() const override {
+        return Child()->IsGood();
+    }
+    int GetFd() const override {
+        return Child()->GetFd();
+    }
+    u64 GetSize() const override {
+        return Child()->GetSize();
+    }
+    bool Resize(u64) override {
+        return false;
+    }
+    bool Flush() override {
+        return true;
+    }
+    void Clear() override {}
+    const std::string& Filename() const override {
+        return Child()->Filename();
+    }
+    bool Seek(s64 off, int origin) override {
+        switch (origin) {
+        case SEEK_SET:
+            if (off < 0) {
+                return false;
+            }
+            position = static_cast<u64>(off);
+            return true;
+        case SEEK_CUR:
+            if (off < 0 && static_cast<u64>(-off) > position) {
+                return false;
+            }
+            position = static_cast<u64>(static_cast<s64>(position) + off);
+            return true;
+        case SEEK_END: {
+            const s64 end = static_cast<s64>(GetSize()) + off;
+            if (end < 0) {
+                return false;
+            }
+            position = static_cast<u64>(end);
+            return true;
+        }
+        default:
+            return false;
+        }
+    }
+    u64 Tell() const override {
+        return position;
+    }
+    std::unique_ptr<FileUtil::IOFileBase> OpenCopy() const override {
+        auto copy = Child()->OpenCopy();
+        if (!copy) {
+            return nullptr;
+        }
+        return std::unique_ptr<NCCHCryptoFile>(
+            new NCCHCryptoFile(std::move(copy), NCCHCryptoContext(context)));
+    }
+
+protected:
+    bool Open() override {
+        return IsOpen();
+    }
+    std::size_t ReadImpl(void* data, std::size_t length, std::size_t elem_size) override {
+        const std::size_t bytes = length * elem_size;
+        if (bytes == 0 || elem_size == 0) {
+            return 0;
+        }
+        const std::size_t read = ReadAtImpl(data, bytes, position);
+        position += read;
+        return read / elem_size;
+    }
+    std::size_t ReadAtImpl(void* data, std::size_t byte_count, std::size_t offset) override {
+        const std::size_t read = Child()->ReadAtArray(static_cast<char*>(data), byte_count, offset);
+        if (read == 0) {
+            return 0;
+        }
+        auto* bytes = static_cast<u8*>(data);
+        const u64 start = offset;
+        const u64 end = offset + read;
+        for (const auto& region : context.regions) {
+            const u64 region_end = region.offset + region.size;
+            if (end <= region.offset || start >= region_end) {
+                continue;
+            }
+            const u64 first = std::max<u64>(start, region.offset);
+            const u64 last = std::min<u64>(end, region_end);
+            DecryptRange(bytes + (first - start), static_cast<std::size_t>(last - first), first,
+                         region.seek_from, RegionKey(context, region.key),
+                         RegionCounter(context, region.counter));
+        }
+        return read;
+    }
+    std::size_t WriteImpl(const void*, std::size_t, std::size_t) override {
+        return 0;
+    }
+    FileUtil::IOType::Type MyType() const override {
+        return FileUtil::IOType::Type::CryptoFile;
+    }
+
+private:
+    NCCHCryptoFile(std::unique_ptr<FileUtil::IOFileBase> child, NCCHCryptoContext context)
+        : context(std::move(context)) {
+        Child() = std::move(child);
+    }
+
+    static std::optional<NCCHCryptoContext> BuildContext(FileUtil::IOFileBase& file,
+                                                         const NCCH_Header& header) {
+        using namespace HW::AES;
+        NCCHCryptoContext context;
+        InitKeys();
+
+        if (header.fixed_key) {
+            context.primary_key.fill(0);
+            context.secondary_key.fill(0);
+        } else {
+            AESKey key_y_primary{};
+            std::copy(header.signature, header.signature + key_y_primary.size(),
+                      key_y_primary.begin());
+            AESKey key_y_secondary = key_y_primary;
+            if (header.seed_crypto) {
+                const auto seed = FileSys::GetSeed(header.program_id);
+                if (!seed.has_value()) {
+                    LOG_ERROR(Service_FS, "Seed for program {:016X} not found",
+                              static_cast<u64>(header.program_id));
+                    return std::nullopt;
+                }
+                std::array<u8, 32> input{};
+                std::memcpy(input.data(), key_y_primary.data(), key_y_primary.size());
+                std::memcpy(input.data() + key_y_primary.size(), seed->data(), seed->size());
+                CryptoPP::SHA256 sha;
+                std::array<u8, CryptoPP::SHA256::DIGESTSIZE> hash{};
+                sha.CalculateDigest(hash.data(), input.data(), input.size());
+                std::memcpy(key_y_secondary.data(), hash.data(), key_y_secondary.size());
+            }
+
+            SetKeyY(KeySlotID::NCCHSecure1, key_y_primary);
+            if (!IsNormalKeyAvailable(KeySlotID::NCCHSecure1)) {
+                LOG_ERROR(Service_FS, "Secure1 KeyX missing while opening an encrypted NCCH");
+                return std::nullopt;
+            }
+            context.primary_key = GetNormalKey(KeySlotID::NCCHSecure1);
+
+            const auto load_secondary = [&](KeySlotID slot) -> bool {
+                SetKeyY(slot, key_y_secondary);
+                if (!IsNormalKeyAvailable(slot)) {
+                    LOG_ERROR(Service_FS, "Secure KeyX missing while opening an encrypted NCCH");
+                    return false;
+                }
+                context.secondary_key = GetNormalKey(slot);
+                return true;
+            };
+            switch (header.secondary_key_slot) {
+            case 0:
+                if (!load_secondary(KeySlotID::NCCHSecure1)) {
+                    return std::nullopt;
+                }
+                break;
+            case 1:
+                if (!load_secondary(KeySlotID::NCCHSecure2)) {
+                    return std::nullopt;
+                }
+                break;
+            case 10:
+                if (!load_secondary(KeySlotID::NCCHSecure3)) {
+                    return std::nullopt;
+                }
+                break;
+            case 11:
+                if (!load_secondary(KeySlotID::NCCHSecure4)) {
+                    return std::nullopt;
+                }
+                break;
+            default:
+                LOG_ERROR(Service_FS, "Unknown secondary key slot {}", header.secondary_key_slot);
+                return std::nullopt;
+            }
+        }
+
+        if (header.version == 0 || header.version == 2) {
+            std::reverse_copy(header.partition_id, header.partition_id + 8,
+                              context.exheader_ctr.begin());
+            context.exefs_ctr = context.romfs_ctr = context.exheader_ctr;
+            context.exheader_ctr[8] = 1;
+            context.exefs_ctr[8] = 2;
+            context.romfs_ctr[8] = 3;
+        } else if (header.version == 1) {
+            std::copy(header.partition_id, header.partition_id + 8, context.exheader_ctr.begin());
+            context.exefs_ctr = context.romfs_ctr = context.exheader_ctr;
+            const auto write_be32 = [](std::array<u8, 16>& ctr, u32 value) {
+                ctr[12] = static_cast<u8>(value >> 24);
+                ctr[13] = static_cast<u8>((value >> 16) & 0xFF);
+                ctr[14] = static_cast<u8>((value >> 8) & 0xFF);
+                ctr[15] = static_cast<u8>(value & 0xFF);
+            };
+            write_be32(context.exheader_ctr, sizeof(NCCH_Header));
+            write_be32(context.exefs_ctr, header.exefs_offset * kBlockSize);
+            write_be32(context.romfs_ctr, header.romfs_offset * kBlockSize);
+        } else {
+            LOG_ERROR(Service_FS, "Unknown NCCH version {}", header.version);
+            return std::nullopt;
+        }
+
+        using Region = NCCHCryptoRegion;
+        if (header.extended_header_size != 0) {
+            context.regions.push_back(Region{sizeof(NCCH_Header), 0x400, sizeof(NCCH_Header),
+                                             Region::Key::Primary, Region::Counter::ExHeader});
+        }
+
+        if (header.exefs_size != 0) {
+            const u64 exefs_offset = static_cast<u64>(header.exefs_offset) * kBlockSize;
+            if (exefs_offset + sizeof(ExeFs_Header) > file.GetSize()) {
+                LOG_ERROR(Service_FS, "Encrypted NCCH ExeFS is out of bounds");
+                return std::nullopt;
+            }
+            ExeFs_Header exefs{};
+            if (file.ReadAtBytes(&exefs, sizeof(exefs), exefs_offset) != sizeof(exefs)) {
+                return std::nullopt;
+            }
+            DecryptRange(reinterpret_cast<u8*>(&exefs), sizeof(exefs), exefs_offset, exefs_offset,
+                         context.primary_key, context.exefs_ctr);
+            context.regions.push_back(Region{exefs_offset, sizeof(ExeFs_Header), exefs_offset,
+                                             Region::Key::Primary, Region::Counter::ExeFs});
+            for (const auto& section : exefs.section) {
+                if (section.size == 0) {
+                    continue;
+                }
+                const bool primary = std::memcmp(section.name, "icon", 4) == 0 ||
+                                     std::memcmp(section.name, "banner", 6) == 0;
+                const u64 offset = exefs_offset + sizeof(ExeFs_Header) + section.offset;
+                const u64 size = Common::AlignUp(static_cast<u64>(section.size), kBlockSize);
+                context.regions.push_back(
+                    Region{offset, size, exefs_offset,
+                           primary ? Region::Key::Primary : Region::Key::Secondary,
+                           Region::Counter::ExeFs});
+            }
+        }
+
+        if (header.romfs_size != 0) {
+            const u64 romfs_offset = static_cast<u64>(header.romfs_offset) * kBlockSize;
+            context.regions.push_back(Region{romfs_offset,
+                                             static_cast<u64>(header.romfs_size) * kBlockSize,
+                                             romfs_offset, Region::Key::Secondary,
+                                             Region::Counter::RomFs});
+        }
+
+        return context;
+    }
+
+    NCCHCryptoContext context;
+    u64 position = 0;
+};
+
+} // namespace
 
 /**
  * Get the decompressed size of an LZSS compressed ExeFS file
@@ -223,11 +571,6 @@ Loader::ResultStatus NCCHContainer::LoadHeader() {
 
     LOG_DEBUG(Service_FS, "NCCH type: {}", file->GetType().to_string());
 
-    if (!ncch_header.no_crypto) {
-        // Encrypted NCCH are not supported
-        return Loader::ResultStatus::ErrorEncrypted;
-    }
-
     has_header = true;
     return Loader::ResultStatus::Success;
 }
@@ -255,8 +598,15 @@ Loader::ResultStatus NCCHContainer::Load() {
         }
 
         if (!ncch_header.no_crypto) {
-            // Encrypted NCCH are not supported
-            return Loader::ResultStatus::ErrorEncrypted;
+            // Retail images keep their secure crypto layer; decrypt reads
+            // through the container instead of rejecting the game.
+            auto crypto_file = NCCHCryptoFile::Create(file->OpenCopy(), ncch_header);
+            if (!crypto_file) {
+                // Keys are missing or the crypto layout is unsupported.
+                return Loader::ResultStatus::ErrorEncrypted;
+            }
+            file = std::move(crypto_file);
+            LOG_INFO(Service_FS, "Reading encrypted NCCH through the crypto layer");
         }
 
         // System archives and DLC don't have an extended header but have RomFS

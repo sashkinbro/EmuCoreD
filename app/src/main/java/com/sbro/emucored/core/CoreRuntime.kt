@@ -3,6 +3,7 @@
 package com.sbro.emucored.core
 
 import android.content.Context
+import android.os.SystemClock
 import android.util.Log
 import android.view.Surface
 import java.io.File
@@ -28,6 +29,10 @@ internal object CoreRuntime {
     private const val FRAMEBUFFER_WIDTH = 400
     private const val FRAMEBUFFER_HEIGHT = 240
 
+    /** How long a fresh session may take to boot before it is abandoned. */
+    private const val BOOT_TIMEOUT_MS = 120_000L
+    private const val SESSION_JOIN_TIMEOUT_MS = 5_000L
+
     private val _failure = MutableStateFlow<RuntimeFailure?>(null)
     val failure = _failure.asStateFlow()
 
@@ -35,9 +40,16 @@ internal object CoreRuntime {
     val netPlayEvents = Channel<String>(Channel.UNLIMITED)
 
     private val lifecycleLock = ReentrantLock()
+    private val sessionLock = Any()
     private var context: Context? = null
 
+    /** The core accepted the game and its run loop owns the session. */
     @Volatile private var running = false
+
+    /** A session thread is booting the core; [running] is not true yet. */
+    @Volatile private var starting = false
+
+    @Volatile private var sessionThread: Thread? = null
     @Volatile private var paused = false
     @Volatile private var stopping = false
     @Volatile private var currentGamePath: String? = null
@@ -111,32 +123,94 @@ internal object CoreRuntime {
 
     fun isRunning(): Boolean = running && failure.value == null && EmuCoreNative.isRunning()
 
-    fun hasSession(): Boolean = running || EmuCoreNative.isRunning()
+    fun hasSession(): Boolean =
+        running || starting || sessionThread?.isAlive == true || EmuCoreNative.isRunning()
 
+    /**
+     * Boots a game on a dedicated emulation thread and returns once the core
+     * has accepted it (or failed). The native [EmuCoreNative.run] call blocks
+     * for the whole session, so it must not occupy the frontend's serial
+     * control lane; otherwise surface and shutdown callbacks could never run.
+     */
     fun start(gamePath: String, biosOnly: Boolean): Boolean = lifecycleLock.withLock {
         val active = context ?: return@withLock false
         if (!EmuCoreNative.isLoaded) {
             _failure.value = RuntimeFailure("core_library_missing")
             return@withLock false
         }
-        if (running) {
+        if (running || starting || EmuCoreNative.isRunning() ||
+            sessionThread?.isAlive == true
+        ) {
             Log.w(TAG, "Refusing to start a second session")
             return@withLock false
         }
         _failure.value = null
         stopping = false
+        starting = true
         currentGamePath = gamePath
         pendingCheatTitleId = 0L
         runCatching {
             EmuCoreNative.createConfigFile()
             EmuCoreNative.setUserDirectory(userDirectory())
-            EmuCoreNative.run(if (biosOnly) "" else gamePath)
+            // Hand the presentation surface to the native side before the
+            // emulation thread starts: the core blocks in System::Init until
+            // a window exists and would otherwise wait forever.
+            val window = surface
+            if (window != null && window.isValid) {
+                EmuCoreNative.surfaceChanged(window)
+            }
         }.onFailure { error ->
             Log.e(TAG, "Unable to start emulation", error)
             _failure.value = RuntimeFailure(error.message ?: "core_start_failed")
-            running = false
+            starting = false
             return@withLock false
         }
+
+        val thread = Thread({
+            try {
+                EmuCoreNative.run(if (biosOnly) "" else gamePath)
+            } catch (error: Throwable) {
+                Log.e(TAG, "Emulation thread failed", error)
+                if (_failure.value == null) {
+                    _failure.value = RuntimeFailure(error.message ?: "core_start_failed")
+                }
+            } finally {
+                synchronized(sessionLock) {
+                    starting = false
+                    running = false
+                }
+                Log.i(TAG, "Emulation thread finished")
+            }
+        }, "NativeEmulation")
+        sessionThread = thread
+        thread.start()
+
+        val deadline = SystemClock.uptimeMillis() + BOOT_TIMEOUT_MS
+        var booted = false
+        while (!booted && SystemClock.uptimeMillis() < deadline) {
+            if (EmuCoreNative.isRunning()) {
+                booted = true
+                break
+            }
+            if (_failure.value != null || !thread.isAlive) {
+                starting = false
+                joinSessionThread(2_000L)
+                if (_failure.value == null) {
+                    _failure.value = RuntimeFailure("core_start_failed")
+                }
+                return@withLock false
+            }
+            Thread.sleep(10L)
+        }
+        if (!booted) {
+            Log.e(TAG, "Timed out waiting for the core to start")
+            _failure.value = RuntimeFailure("core_boot_timeout")
+            runCatching { EmuCoreNative.stopEmulation() }
+            starting = false
+            joinSessionThread(2_000L)
+            return@withLock false
+        }
+        starting = false
         running = true
         paused = false
         true
@@ -158,33 +232,25 @@ internal object CoreRuntime {
     }
 
     fun shutdown() {
-        if (!running && !EmuCoreNative.isRunning()) return
+        if (!running && !starting && !EmuCoreNative.isRunning()) return
         stopping = true
+        starting = false
         runCatching { EmuCoreNative.stopEmulation() }
             .onFailure { Log.e(TAG, "Unable to stop emulation", it) }
         running = false
         paused = false
         currentGamePath = null
         resetPadState()
+        joinSessionThread(SESSION_JOIN_TIMEOUT_MS)
     }
 
     /** Re-asserts the stored renderer for a fresh session. */
-    fun restartWithRenderer(renderer: Int): Boolean = lifecycleLock.withLock {
+    fun restartWithRenderer(renderer: Int): Boolean {
         val path = currentGamePath
         requestedRenderer = renderer
-        if (path.isNullOrBlank()) return@withLock false
-        restart(path)
-        true
-    }
-
-    private fun restart(path: String) {
-        runCatching {
-            EmuCoreNative.stopEmulation()
-            EmuCoreNative.run(path)
-        }.onFailure { error ->
-            Log.e(TAG, "Unable to restart emulation", error)
-            _failure.value = RuntimeFailure(error.message ?: "core_restart_failed")
-        }
+        if (path.isNullOrBlank()) return false
+        shutdown()
+        return start(path, biosOnly = false)
     }
 
     fun changeDisc(path: String): Boolean {
@@ -205,6 +271,7 @@ internal object CoreRuntime {
         Log.e(TAG, "Core exited with result $resultCode")
         _failure.value = RuntimeFailure("core_exit_$resultCode")
         running = false
+        starting = false
     }
 
     fun reportNativeError(name: String, details: String) {
@@ -224,12 +291,22 @@ internal object CoreRuntime {
     // Presentation
     // ---------------------------------------------------------------------
 
-    fun attachSurface(value: Surface?, width: Int, height: Int) {
+    /**
+     * Stores the surface without touching the core. UI callbacks use this so
+     * the fields are current synchronously; [attachSurface] then forwards the
+     * surface to the core on the control lane.
+     */
+    fun rememberSurface(value: Surface?, width: Int, height: Int) {
         surface = value
         surfaceWidth = width
         surfaceHeight = height
+    }
+
+    fun attachSurface(value: Surface?, width: Int, height: Int) {
+        rememberSurface(value, width, height)
         if (value == null || !value.isValid || width <= 0 || height <= 0) return
-        if (!running) return
+        // The native side accepts the window before a session exists: the
+        // emulation thread blocks in System::Init until a surface arrives.
         runCatching { EmuCoreNative.surfaceChanged(value) }
             .onFailure { Log.e(TAG, "Unable to attach the presentation surface", it) }
     }
@@ -504,6 +581,17 @@ internal object CoreRuntime {
     // ---------------------------------------------------------------------
     // Helpers
     // ---------------------------------------------------------------------
+
+    private fun joinSessionThread(timeoutMs: Long) {
+        val thread = sessionThread ?: return
+        if (thread === Thread.currentThread()) return
+        runCatching { thread.join(timeoutMs) }
+        if (!thread.isAlive) {
+            synchronized(sessionLock) {
+                if (sessionThread === thread) sessionThread = null
+            }
+        }
+    }
 
     private fun packedAnalog(lx: Int, ly: Int, rx: Int, ry: Int): Int =
         lx.coerceIn(0, 255) or
