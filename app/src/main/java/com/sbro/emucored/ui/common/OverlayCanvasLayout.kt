@@ -96,6 +96,9 @@ fun buildOverlayCanvasLayout(
     safeRightInset: Dp,
     safeTopInset: Dp,
     safeBottomInset: Dp,
+    /** Extra side inset (for example the bottom-screen panel) applied per side. */
+    extraLeftInset: Dp = 0.dp,
+    extraRightInset: Dp = 0.dp,
     previewMode: Boolean = false,
     stickToggleTarget: Int = AppPreferences.DEFAULT_STICK_TOGGLE_TARGET
 ): OverlayCanvasLayout {
@@ -165,8 +168,8 @@ fun buildOverlayCanvasLayout(
     // navigation inset exists on only one side. The larger inset is mirrored so the
     // physical left and right margins remain equal while both sides stay safe.
     val horizontalSafeInset = maxOf(safeLeftInset, safeRightInset)
-    val edgePadStart = horizontalSafeInset + edgePadding
-    val edgePadEnd = horizontalSafeInset + edgePadding
+    val edgePadStart = horizontalSafeInset + extraLeftInset + edgePadding
+    val edgePadEnd = horizontalSafeInset + extraRightInset + edgePadding
     val edgePadTop = safeTopInset + verticalPadding
     val contentBottom = canvasHeight - safeBottomInset - verticalPadding
     val sectionGap = 12.dp * responsiveScale

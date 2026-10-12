@@ -271,6 +271,46 @@ class AppPreferences(private val context: Context) {
         const val ORIENTATION_LOCK_PORTRAIT = 1
         const val ORIENTATION_LOCK_LANDSCAPE = 2
 
+        /** Both 3DS screens stay inside the main emulation view. */
+        const val SECOND_SCREEN_MODE_INTEGRATED = 0
+
+        /** Main view shows the top screen; the bottom screen lives in a pull-out panel. */
+        const val SECOND_SCREEN_MODE_PANEL = 1
+
+        const val SECOND_SCREEN_SIDE_RIGHT = 0
+        const val SECOND_SCREEN_SIDE_LEFT = 1
+        const val SECOND_SCREEN_SIDE_TOP = 2
+        const val SECOND_SCREEN_SIDE_BOTTOM = 3
+        const val SECOND_SCREEN_WIDTH_MIN = 22
+        const val SECOND_SCREEN_WIDTH_MAX = 70
+        const val SECOND_SCREEN_WIDTH_DEFAULT = 46
+
+        fun normalizeSecondScreenMode(value: Int?): Int =
+            // The pull-out bottom-screen panel is the default presentation.
+            if (value == SECOND_SCREEN_MODE_INTEGRATED) SECOND_SCREEN_MODE_INTEGRATED
+            else SECOND_SCREEN_MODE_PANEL
+
+        fun normalizeSecondScreenSide(value: Int?): Int = when (value) {
+            SECOND_SCREEN_SIDE_LEFT -> SECOND_SCREEN_SIDE_LEFT
+            SECOND_SCREEN_SIDE_TOP -> SECOND_SCREEN_SIDE_TOP
+            SECOND_SCREEN_SIDE_BOTTOM -> SECOND_SCREEN_SIDE_BOTTOM
+            else -> SECOND_SCREEN_SIDE_RIGHT
+        }
+
+        fun normalizeSecondScreenWidth(value: Int?): Int {
+            val clamped = (value ?: SECOND_SCREEN_WIDTH_DEFAULT)
+                .coerceIn(SECOND_SCREEN_WIDTH_MIN, SECOND_SCREEN_WIDTH_MAX)
+            return clamped - (clamped % 2)
+        }
+
+        const val SECOND_SCREEN_TAB_POSITION_DEFAULT = 0.5f
+
+        fun normalizeSecondScreenTabPosition(value: Float?): Float =
+            (value ?: SECOND_SCREEN_TAB_POSITION_DEFAULT).coerceIn(0f, 1f)
+
+        /** Core layout used while the pull-out panel owns the bottom screen. */
+        const val SECOND_SCREEN_PANEL_LAYOUT = 1
+
         /**
          * Process-wide memo for values read on hot paths (library publishing,
          * cover resolution). DataStore reads there are blocking and would
@@ -450,6 +490,12 @@ class AppPreferences(private val context: Context) {
         private val FLOATING_QUICK_SAVE_POSITION = stringPreferencesKey("floating_quick_save_position")
         private val FLOATING_QUICK_LOAD_POSITION = stringPreferencesKey("floating_quick_load_position")
         private val ORIENTATION_LOCK = intPreferencesKey("orientation_lock")
+        private val SECOND_SCREEN_MODE = intPreferencesKey("n3ds_second_screen_mode")
+        private val SECOND_SCREEN_SIDE = intPreferencesKey("n3ds_second_screen_side")
+        private val SECOND_SCREEN_WIDTH = intPreferencesKey("n3ds_second_screen_width")
+        private val SECOND_SCREEN_SWAP = booleanPreferencesKey("n3ds_second_screen_swap")
+        private val SECOND_SCREEN_OPEN = booleanPreferencesKey("n3ds_second_screen_open")
+        private val SECOND_SCREEN_TAB_POSITION = floatPreferencesKey("n3ds_second_screen_tab_position")
         private val EMULATION_ALLOWS_BOTH_ORIENTATIONS =
             booleanPreferencesKey("emulation_allows_both_orientations")
         private val RETRO_ACHIEVEMENTS_ENABLED = booleanPreferencesKey("retro_achievements_enabled")
@@ -2138,6 +2184,61 @@ class AppPreferences(private val context: Context) {
     suspend fun setOrientationLock(value: Int) {
         context.dataStore.edit { prefs ->
             prefs[ORIENTATION_LOCK] = normalizeOrientationLock(value)
+        }
+    }
+
+    // Second screen (bottom screen) presentation
+    val secondScreenMode: Flow<Int> = context.dataStore.data.map { prefs ->
+        normalizeSecondScreenMode(prefs[SECOND_SCREEN_MODE])
+    }
+
+    fun getSecondScreenModeSync(): Int = kotlinx.coroutines.runBlocking {
+        context.dataStore.data.map { normalizeSecondScreenMode(it[SECOND_SCREEN_MODE]) }.first()
+    }
+
+    suspend fun setSecondScreenMode(mode: Int) {
+        context.dataStore.edit { it[SECOND_SCREEN_MODE] = normalizeSecondScreenMode(mode) }
+    }
+
+    val secondScreenSide: Flow<Int> = context.dataStore.data.map { prefs ->
+        normalizeSecondScreenSide(prefs[SECOND_SCREEN_SIDE])
+    }
+
+    suspend fun setSecondScreenSide(side: Int) {
+        context.dataStore.edit { it[SECOND_SCREEN_SIDE] = normalizeSecondScreenSide(side) }
+    }
+
+    val secondScreenWidth: Flow<Int> = context.dataStore.data.map { prefs ->
+        normalizeSecondScreenWidth(prefs[SECOND_SCREEN_WIDTH])
+    }
+
+    suspend fun setSecondScreenWidth(width: Int) {
+        context.dataStore.edit { it[SECOND_SCREEN_WIDTH] = normalizeSecondScreenWidth(width) }
+    }
+
+    val secondScreenSwap: Flow<Boolean> = context.dataStore.data.map { prefs ->
+        prefs[SECOND_SCREEN_SWAP] ?: false
+    }
+
+    suspend fun setSecondScreenSwap(swap: Boolean) {
+        context.dataStore.edit { it[SECOND_SCREEN_SWAP] = swap }
+    }
+
+    val secondScreenOpen: Flow<Boolean> = context.dataStore.data.map { prefs ->
+        prefs[SECOND_SCREEN_OPEN] ?: false
+    }
+
+    suspend fun setSecondScreenOpen(open: Boolean) {
+        context.dataStore.edit { it[SECOND_SCREEN_OPEN] = open }
+    }
+
+    val secondScreenTabPosition: Flow<Float> = context.dataStore.data.map { prefs ->
+        normalizeSecondScreenTabPosition(prefs[SECOND_SCREEN_TAB_POSITION])
+    }
+
+    suspend fun setSecondScreenTabPosition(position: Float) {
+        context.dataStore.edit {
+            it[SECOND_SCREEN_TAB_POSITION] = normalizeSecondScreenTabPosition(position)
         }
     }
 

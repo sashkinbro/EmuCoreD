@@ -254,7 +254,9 @@ private data class EmulationLaunchConfig(
     val shaderChainEnabled: Boolean,
     val shaderChainPreset: String,
     val textureReplacementsEnabled: Boolean,
-    val enableCheats: Boolean
+    val enableCheats: Boolean,
+    val layoutOption: Int = -1,
+    val swapScreens: Boolean? = null
 )
 
 private data class LiveRuntimeSnapshot(
@@ -988,7 +990,9 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
                     shaderChainPreset = config.shaderChainPreset,
                     textureReplacementsEnabled = config.textureReplacementsEnabled,
                     enableCheats = config.enableCheats,
-                    autotestMode = autotestMode
+                    autotestMode = autotestMode,
+                    layoutOption = config.layoutOption,
+                    swapScreens = config.swapScreens
                 )
 
                 _uiState.value = _uiState.value.copy(
@@ -1066,12 +1070,12 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
                     val metadata = EmulatorBridge.getGameMetadata(safePath)
                     currentGameTitle = EmulatorBridge.cleanGameDisplayTitle(metadata.title, safePath)
                     currentGameSerial = metadata.serial?.takeIf { it.isNotBlank() }
-                        ?.let(::formatDiscSerial).orEmpty()
+                        ?.uppercase(java.util.Locale.ROOT).orEmpty()
                     currentGameRegionLabel = resolveRegionLabel(currentGameSerial, safePath)
                     currentGameCoverArtPath = gameRepository.findCoverForGame(
                         path = safePath,
                         context = getApplication(),
-                        serial = currentGameSerial.takeIf { it.isNotBlank() },
+                        serial = metadata.serial?.takeIf { it.isNotBlank() },
                         title = currentGameTitle
                     )
                     shouldTrackCurrentProfilePlayTime = !bootSmokeProbe
@@ -2076,11 +2080,6 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
         currentGameCrc.takeIf { it.isNotBlank() }?.let(::add)
     }.joinToString("  /  ")
 
-    private fun formatDiscSerial(serial: String): String {
-        val compact = serial.uppercase().replace(Regex("[^A-Z0-9]"), "")
-        return if (compact.length >= 8) "${compact.take(4)}-${compact.substring(4)}" else serial
-    }
-
     private fun resolveRegionLabel(serial: String, path: String): String {
         return serialRegionLabel(serial) ?: filenameRegionLabel(path).orEmpty()
     }
@@ -2321,6 +2320,9 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
     private suspend fun loadLaunchConfig(): EmulationLaunchConfig {
         val profile = activePerGameKey()?.let(perGameSettingsRepository::get)
         val settings = preferences.settingsSnapshot.first()
+        val secondScreenMode = preferences.secondScreenMode.first()
+        val secondScreenSwap = preferences.secondScreenSwap.first()
+        val panelMode = secondScreenMode == AppPreferences.SECOND_SCREEN_MODE_PANEL
         return EmulationLaunchConfig(
             emulatorDataPath = settings.emulatorDataPath,
             renderer = settings.renderer,
@@ -2342,7 +2344,9 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
             shaderChainEnabled = settings.shaderChainEnabled,
             shaderChainPreset = settings.shaderChainPreset,
             textureReplacementsEnabled = settings.textureReplacementsEnabled,
-            enableCheats = settings.enableCheats
+            enableCheats = settings.enableCheats,
+            layoutOption = if (panelMode) AppPreferences.SECOND_SCREEN_PANEL_LAYOUT else -1,
+            swapScreens = if (panelMode) secondScreenSwap else null
         ).applyProfile(profile)
     }
 

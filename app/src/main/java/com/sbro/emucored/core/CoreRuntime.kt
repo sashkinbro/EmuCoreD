@@ -314,6 +314,18 @@ internal object CoreRuntime {
     fun hasAttachedSurface(value: Surface?, width: Int, height: Int): Boolean =
         surface === value && surfaceWidth == width && surfaceHeight == height
 
+    /** Attaches the pull-out bottom-screen surface; may happen mid-session. */
+    fun attachSecondarySurface(value: Surface?) {
+        if (value == null || !value.isValid) return
+        runCatching { EmuCoreNative.secondarySurfaceChanged(value) }
+            .onFailure { Log.e(TAG, "Unable to attach the secondary surface", it) }
+    }
+
+    fun detachSecondarySurface() {
+        runCatching { EmuCoreNative.secondarySurfaceDestroyed() }
+            .onFailure { Log.e(TAG, "Unable to detach the secondary surface", it) }
+    }
+
     fun detachSurface() {
         runCatching { EmuCoreNative.surfaceDestroyed() }
             .onFailure { Log.e(TAG, "Unable to detach the presentation surface", it) }
@@ -561,10 +573,13 @@ internal object CoreRuntime {
 
     fun setCoreOption(key: String, value: String) {
         CoreOptionStore.set(key, value)
+        CoreConfig.reapply()
     }
 
     fun applyCoreOption(key: String, value: String) {
-        CoreOptionStore.set(key, value)
+        // Per-game options apply to the running session only.
+        CoreConfig.setTransientOverride(key, value)
+        CoreConfig.reapply()
     }
 
     fun coreOptionValue(key: String): String? = CoreOptionStore.value(key)

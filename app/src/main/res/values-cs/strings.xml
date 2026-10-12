@@ -2610,4 +2610,19 @@
     <string name="settings_multiplayer_no_rooms">Žádné veřejné místnosti</string>
     <string name="settings_multiplayer_error">Chyba sítě</string>
     <string name="settings_multiplayer_hosted_hint">Hráči ve stejné síti se mohou připojit přes vaši adresu.</string>
+    <string name="emulation_second_screen">Spodní obrazovka</string>
+    <string name="emulation_second_screen_swap">Prohodit horní a spodní obrazovku</string>
+    <string name="emulation_second_screen_side">Přesunout panel na druhou stranu</string>
+    <string name="emulation_second_screen_move">Tažením přesunete záložku</string>
+    <string name="settings_second_screen">Druhá obrazovka</string>
+    <string name="settings_second_screen_desc">Kde se má zobrazovat spodní obrazovka 3DS během hraní.</string>
+    <string name="settings_second_screen_integrated">Obě obrazovky v jednom zobrazení</string>
+    <string name="settings_second_screen_panel">Vysouvací spodní panel</string>
+    <string name="settings_second_screen_side">Strana panelu</string>
+    <string name="settings_second_screen_side_right">Vpravo</string>
+    <string name="settings_second_screen_side_left">Vlevo</string>
+    <string name="settings_second_screen_side_top">Nahoře</string>
+    <string name="settings_second_screen_side_bottom">Dole</string>
+    <string name="settings_second_screen_width">Šířka panelu</string>
+    <string name="settings_second_screen_swap_now">Prohodit obrazovky</string>
 </resources>

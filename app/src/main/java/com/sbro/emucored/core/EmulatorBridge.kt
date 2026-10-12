@@ -143,12 +143,15 @@ object EmulatorBridge {
         shaderChainPreset: String = "",
         textureReplacementsEnabled: Boolean = true,
         enableCheats: Boolean = false,
-        autotestMode: Boolean = false
+        autotestMode: Boolean = false,
+        layoutOption: Int = -1,
+        swapScreens: Boolean? = null
     ) = withContext(serialDispatcher) {
         if (!isNativeLoaded) return@withContext
         val context = getContext() ?: return@withContext
         val resolvedRenderer = normalizeRenderer(renderer)
 
+        CoreConfig.clearTransientOverrides()
         NativeApp.reloadDataRoot(emulatorDataPath ?: "")
         // Azahar stores its NAND, SD card and system data under its user
         // directory; point the core at the data root the user selected so the
@@ -185,7 +188,9 @@ object EmulatorBridge {
                 customTextures = textureReplacementsEnabled,
                 cheatsEnabled = enableCheats,
                 performanceOverlay = prefs.showFps.first(),
-                mediatekAngleOpenGl = mediatekAngleOpenGl
+                mediatekAngleOpenGl = mediatekAngleOpenGl,
+                layoutOption = layoutOption,
+                swapScreens = swapScreens
             )
         )
         NativeApp.setDisplayCrop(displayCrop.sanitized())
@@ -621,6 +626,84 @@ object EmulatorBridge {
                 Log.e(TAG, "onSurfaceChanged: native callback failed", e)
             }
         }
+    }
+
+    /** Attaches (or replaces) the second screen surface for the bottom screen panel. */
+    fun onSecondarySurfaceChanged(surface: Surface, width: Int, height: Int) {
+        if (!isNativeLoaded) return
+        Log.i(TAG, "onSecondarySurfaceChanged: width=$width height=$height valid=${surface.isValid}")
+        NativeApp.setCrashContextInt("emu_secondary_surface_width", width)
+        NativeApp.setCrashContextInt("emu_secondary_surface_height", height)
+        NativeApp.logCrashBreadcrumb("secondarySurfaceChanged width=$width height=$height")
+        launchSerial {
+            try {
+                NativeApp.onNativeSecondarySurfaceChanged(surface, width, height)
+            } catch (e: Exception) {
+                Log.e(TAG, "onSecondarySurfaceChanged: native callback failed", e)
+            }
+        }
+    }
+
+    /** Detaches the second screen surface; the panel was closed. */
+    fun onSecondarySurfaceDestroyed() {
+        if (!isNativeLoaded) return
+        Log.i(TAG, "onSecondarySurfaceDestroyed")
+        NativeApp.logCrashBreadcrumb("secondarySurfaceDestroyed")
+        launchSerial {
+            try {
+                NativeApp.onNativeSecondarySurfaceDestroyed()
+            } catch (e: Exception) {
+                Log.e(TAG, "onSecondarySurfaceDestroyed: native callback failed", e)
+            }
+        }
+    }
+
+    /**
+     * Switches the core layout live (for example to single-screen while the
+     * bottom-screen panel is open). The app preference store keeps the user's
+     * own layout choice; this only affects the running session.
+     */
+    fun setScreenLayout(option: Int) {
+        if (!isNativeLoaded) return
+        NativeApp.logCrashBreadcrumb("screen layout requested option=$option")
+        launchSerial {
+            try {
+                EmuCoreNative.notifyOrientationChange(
+                    option,
+                    currentDisplayRotation(),
+                    isPortraitDisplay()
+                )
+                EmuCoreNative.updateFramebuffer(isPortraitDisplay())
+            } catch (e: Exception) {
+                Log.e(TAG, "setScreenLayout failed", e)
+            }
+        }
+    }
+
+    /** Swaps which 3DS screen is counted as the prominent one. */
+    fun setSwapScreens(swap: Boolean) {
+        if (!isNativeLoaded) return
+        NativeApp.logCrashBreadcrumb("swap screens requested swap=$swap")
+        launchSerial {
+            try {
+                EmuCoreNative.swapScreens(swap, currentDisplayRotation())
+            } catch (e: Exception) {
+                Log.e(TAG, "setSwapScreens failed", e)
+            }
+        }
+    }
+
+    private fun currentDisplayRotation(): Int {
+        val context = getContext() ?: return 0
+        return runCatching {
+            context.display?.rotation ?: android.view.Surface.ROTATION_0
+        }.getOrDefault(0)
+    }
+
+    private fun isPortraitDisplay(): Boolean {
+        val context = getContext() ?: return false
+        return context.resources.configuration.orientation ==
+            android.content.res.Configuration.ORIENTATION_PORTRAIT
     }
 
     fun onSurfaceDestroyed(generation: Long) {

@@ -254,22 +254,17 @@ static Core::System::ResultStatus RunCitra(const std::string& filepath) {
     case Settings::GraphicsAPI::OpenGL:
         window = std::make_unique<EmuWindow_Android_OpenGL>(system, s_surface, false);
         shared_context = window->GetEGLContext();
-        // The secondary window only exists when the frontend provides a
-        // second surface; creating it with a null window makes the Vulkan
-        // renderer abort while creating its presentation surface.
-        if (s_secondary_surface) {
-            secondary_window = std::make_unique<EmuWindow_Android_OpenGL>(
-                system, s_secondary_surface, true, shared_context);
-        }
+        // The secondary window accepts a null surface: the frontend may
+        // attach a second SurfaceView later (pull-out second screen panel).
+        secondary_window = std::make_unique<EmuWindow_Android_OpenGL>(system, s_secondary_surface,
+                                                                      true, shared_context);
         break;
 #endif
 #ifdef ENABLE_VULKAN
     case Settings::GraphicsAPI::Vulkan:
         window = std::make_unique<EmuWindow_Android_Vulkan>(s_surface, vulkan_library, false);
-        if (s_secondary_surface) {
-            secondary_window =
-                std::make_unique<EmuWindow_Android_Vulkan>(s_secondary_surface, vulkan_library, true);
-        }
+        secondary_window =
+            std::make_unique<EmuWindow_Android_Vulkan>(s_secondary_surface, vulkan_library, true);
         break;
 #endif
     default:
@@ -279,17 +274,13 @@ static Core::System::ResultStatus RunCitra(const std::string& filepath) {
 #ifdef ENABLE_OPENGL
         window = std::make_unique<EmuWindow_Android_OpenGL>(system, s_surface, false);
         shared_context = window->GetEGLContext();
-        if (s_secondary_surface) {
-            secondary_window = std::make_unique<EmuWindow_Android_OpenGL>(
-                system, s_secondary_surface, true, shared_context);
-        }
+        secondary_window = std::make_unique<EmuWindow_Android_OpenGL>(system, s_secondary_surface,
+                                                                      true, shared_context);
 
 #elif ENABLE_VULKAN
         window = std::make_unique<EmuWindow_Android_Vulkan>(s_surface, vulkan_library, false);
-        if (s_secondary_surface) {
-            secondary_window =
-                std::make_unique<EmuWindow_Android_Vulkan>(s_secondary_surface, vulkan_library, true);
-        }
+        secondary_window =
+            std::make_unique<EmuWindow_Android_Vulkan>(s_secondary_surface, vulkan_library, true);
 #else
         // TODO: Add a null renderer backend for this, perhaps.
 #error "At least one renderer must be enabled."
@@ -515,6 +506,13 @@ void Java_com_sbro_emucored_core_EmuCoreNative_secondarySurfaceDestroyed(
     if (s_secondary_surface != nullptr) {
         ANativeWindow_release(s_secondary_surface);
         s_secondary_surface = nullptr;
+    }
+
+    // Clear the window's surface pointer but keep the presenter alive: the
+    // frontend can re-attach a surface later (panel closed and re-opened)
+    // and the renderer skips the secondary window while it has no surface.
+    if (secondary_window) {
+        secondary_window->OnSurfaceChanged(nullptr);
     }
 
     LOG_INFO(Frontend, "Secondary Surface Destroyed");

@@ -2593,4 +2593,19 @@
     <string name="settings_multiplayer_no_rooms">Публичные комнаты не найдены</string>
     <string name="settings_multiplayer_error">Ошибка сети</string>
     <string name="settings_multiplayer_hosted_hint">Игроки в той же сети могут присоединиться по вашему адресу.</string>
+    <string name="emulation_second_screen">Нижний экран</string>
+    <string name="emulation_second_screen_swap">Поменять верхний и нижний экраны</string>
+    <string name="emulation_second_screen_side">Переместить панель на другую сторону</string>
+    <string name="emulation_second_screen_move">Перетащите, чтобы переместить ярлык</string>
+    <string name="settings_second_screen">Второй экран</string>
+    <string name="settings_second_screen_desc">Где показывать нижний экран 3DS во время игры.</string>
+    <string name="settings_second_screen_integrated">Оба экрана в одном окне</string>
+    <string name="settings_second_screen_panel">Выдвижная нижняя панель</string>
+    <string name="settings_second_screen_side">Сторона панели</string>
+    <string name="settings_second_screen_side_right">Справа</string>
+    <string name="settings_second_screen_side_left">Слева</string>
+    <string name="settings_second_screen_side_top">Сверху</string>
+    <string name="settings_second_screen_side_bottom">Снизу</string>
+    <string name="settings_second_screen_width">Ширина панели</string>
+    <string name="settings_second_screen_swap_now">Поменять экраны местами</string>
 </resources>

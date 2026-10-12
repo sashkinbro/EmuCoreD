@@ -166,6 +166,7 @@ import com.sbro.emucored.core.AudioDefaults
 import com.sbro.emucored.core.AndroidTouchHaptics
 import com.sbro.emucored.core.AndroidGyroscopeInput
 import com.sbro.emucored.core.AndroidTouchHaptics.ButtonPhase
+import com.sbro.emucored.core.CoreOptionStore
 import com.sbro.emucored.core.EmulatorBridge
 import com.sbro.emucored.core.NativeApp
 import com.sbro.emucored.core.GamepadManager
@@ -430,6 +431,20 @@ fun EmulationScreen(
     val emulationAllowsBothOrientations by preferences.emulationAllowsBothOrientations.collectAsState(
         initial = null
     )
+    val secondScreenMode by preferences.secondScreenMode.collectAsState(
+        initial = AppPreferences.SECOND_SCREEN_MODE_PANEL
+    )
+    val secondScreenSide by preferences.secondScreenSide.collectAsState(
+        initial = AppPreferences.SECOND_SCREEN_SIDE_RIGHT
+    )
+    val secondScreenWidth by preferences.secondScreenWidth.collectAsState(
+        initial = AppPreferences.SECOND_SCREEN_WIDTH_DEFAULT
+    )
+    val secondScreenSwap by preferences.secondScreenSwap.collectAsState(initial = false)
+    val secondScreenOpen by preferences.secondScreenOpen.collectAsState(initial = false)
+    val secondScreenTabPosition by preferences.secondScreenTabPosition.collectAsState(
+        initial = AppPreferences.SECOND_SCREEN_TAB_POSITION_DEFAULT
+    )
     val effectiveGamepadBindingsByPad = if (uiState.gameSettingsProfileActive && uiState.gamepadBindingsByPad.isNotEmpty()) {
         uiState.gamepadBindingsByPad
     } else {
@@ -481,12 +496,13 @@ fun EmulationScreen(
         rootNavPadding.calculateBottomPadding()
     )
 
-    LocalConfiguration.current
+    val configuration = LocalConfiguration.current
     val view = LocalView.current
     var showExitDialog by remember { mutableStateOf(false) }
     var exitDispatched by remember { mutableStateOf(false) }
     var showQuickSaveDialog by remember { mutableStateOf(false) }
     var showQuickLoadDialog by remember { mutableStateOf(false) }
+    var secondScreenTabRevealSignal by remember { mutableIntStateOf(0) }
     var floatingQuickSavePosition by remember { mutableStateOf<Offset?>(null) }
     var floatingQuickLoadPosition by remember { mutableStateOf<Offset?>(null) }
     var showAutoSaveLoadDialog by remember { mutableStateOf(false) }
@@ -780,6 +796,22 @@ fun EmulationScreen(
         )
     }
 
+    // Keep the running core in sync with the second-screen presentation mode:
+    // panel mode shows only the top screen in the main view and lets the
+    // secondary window render the bottom screen.
+    LaunchedEffect(secondScreenMode, secondScreenSwap, uiState.isRunning) {
+        if (!uiState.isRunning) return@LaunchedEffect
+        if (secondScreenMode == AppPreferences.SECOND_SCREEN_MODE_PANEL) {
+            EmulatorBridge.setScreenLayout(AppPreferences.SECOND_SCREEN_PANEL_LAYOUT)
+            EmulatorBridge.setSwapScreens(secondScreenSwap)
+        } else {
+            val storedLayout = CoreOptionStore.value("layout_option")?.toIntOrNull() ?: 0
+            val storedSwap = CoreOptionStore.value("swap_screen")?.toBooleanStrictOrNull() ?: false
+            EmulatorBridge.setScreenLayout(storedLayout)
+            EmulatorBridge.setSwapScreens(storedSwap)
+        }
+    }
+
     LaunchedEffect(gamepadConnected, uiState.showMenu) {
         if (gamepadConnected && !uiState.showMenu) {
             showGamepadIndicator = true
@@ -848,6 +880,12 @@ fun EmulationScreen(
                     } else {
                         viewModel.quickLoad()
                     }
+                }
+                GamepadManager.ACTION_TOGGLE_SECOND_SCREEN -> {
+                    scope.launch { preferences.setSecondScreenOpen(!secondScreenOpen) }
+                }
+                GamepadManager.ACTION_SWAP_SCREENS -> {
+                    scope.launch { preferences.setSecondScreenSwap(!secondScreenSwap) }
                 }
             }
         }
@@ -977,6 +1015,7 @@ fun EmulationScreen(
                             val isDoubleTap = timestamp - lastTapTimestamp in 40L..300L && distanceSquared <= 14400f
                             if (isDoubleTap) {
                                 showOverlayShortcut = true
+                                secondScreenTabRevealSignal++
                                 lastTapTimestamp = 0L
                             } else {
                                 lastTapTimestamp = timestamp
@@ -1390,6 +1429,20 @@ fun EmulationScreen(
         if (shouldShowOverlay && !uiState.showMenu && !showControlsEditor) {
             val scaleFactor = uiState.overlayScale / 100f
             val alpha = uiState.overlayOpacity / 100f
+            // While the second-screen panel is open on a side, keep the
+            // controls on that side clear of it by insetting that side.
+            val panelShiftDp = if (
+                secondScreenMode == AppPreferences.SECOND_SCREEN_MODE_PANEL &&
+                secondScreenOpen &&
+                (secondScreenSide == AppPreferences.SECOND_SCREEN_SIDE_LEFT ||
+                    secondScreenSide == AppPreferences.SECOND_SCREEN_SIDE_RIGHT)
+            ) {
+                (configuration.screenHeightDp * secondScreenWidth / 100f).dp
+            } else {
+                0.dp
+            }
+            val extraLeftInset = if (secondScreenSide == AppPreferences.SECOND_SCREEN_SIDE_LEFT) panelShiftDp else 0.dp
+            val extraRightInset = if (secondScreenSide == AppPreferences.SECOND_SCREEN_SIDE_RIGHT) panelShiftDp else 0.dp
             // A gamepad is a physical control surface, so its layout must not mirror with
             // the app's RTL locale. The touch hit boxes use absolute screen coordinates;
             // keeping the visual overlay LTR guarantees that visible and logical buttons
@@ -1431,7 +1484,10 @@ fun EmulationScreen(
                     onToggleLeftInputMode = viewModel::toggleLeftInputMode,
                     onPadInput = { keyCode, range, pressed ->
                         viewModel.onPadInput(overlayPadIndex, keyCode, range, pressed)
-                    }
+                    },
+                    onScreenDoubleTap = { secondScreenTabRevealSignal++ },
+                    extraLeftInset = extraLeftInset,
+                    extraRightInset = extraRightInset
                 )
             }
         }
@@ -1498,12 +1554,45 @@ fun EmulationScreen(
             )
         }
 
+        // Pull-out second screen panel (bottom 3DS screen). Its z-index sits
+        // above the full-screen touch controls layer so the docked tab stays
+        // clickable, while the sidebar menu stays above the panel.
+        if (secondScreenMode == AppPreferences.SECOND_SCREEN_MODE_PANEL && !showControlsEditor) {
+            SecondScreenPanel(
+                side = secondScreenSide,
+                widthPercent = secondScreenWidth,
+                open = secondScreenOpen,
+                tabPosition = secondScreenTabPosition,
+                revealSignal = secondScreenTabRevealSignal,
+                onOpenChange = { open ->
+                    scope.launch { preferences.setSecondScreenOpen(open) }
+                },
+                onWidthPercentChange = { width ->
+                    scope.launch { preferences.setSecondScreenWidth(width) }
+                },
+                onSideChange = { side ->
+                    scope.launch { preferences.setSecondScreenSide(side) }
+                },
+                onSwapScreens = {
+                    scope.launch { preferences.setSecondScreenSwap(!secondScreenSwap) }
+                },
+                onTabPositionChange = { position ->
+                    scope.launch { preferences.setSecondScreenTabPosition(position) }
+                },
+                modifier = Modifier
+                    .fillMaxSize()
+                    .zIndex(22f)
+            )
+        }
+
         // Sidebar Menu
         AnimatedVisibility(
             visible = uiState.showMenu && !showControlsEditor,
             enter = androidx.compose.animation.slideInHorizontally(initialOffsetX = { fullWidth -> fullWidth }) + fadeIn(tween(300)),
             exit = androidx.compose.animation.slideOutHorizontally(targetOffsetX = { fullWidth -> fullWidth }) + fadeOut(tween(250)),
-            modifier = Modifier.fillMaxHeight()
+            modifier = Modifier
+                .fillMaxHeight()
+                .zIndex(50f)
         ) {
             Box(
                 modifier = Modifier.fillMaxSize()
@@ -1950,6 +2039,9 @@ private fun OnScreenControls(
     stickToggleTarget: Int = AppPreferences.DEFAULT_STICK_TOGGLE_TARGET,
     onToggleLeftInputMode: () -> Unit,
     onPadInput: (Int, Int, Boolean) -> Unit,
+    onScreenDoubleTap: () -> Unit = {},
+    extraLeftInset: Dp = 0.dp,
+    extraRightInset: Dp = 0.dp,
     respectSystemInsets: Boolean = true
 ) {
     val density = LocalDensity.current
@@ -2071,6 +2163,8 @@ private fun OnScreenControls(
             safeRightInset = safeRight,
             safeTopInset = safeTop,
             safeBottomInset = safeBottom,
+            extraLeftInset = extraLeftInset,
+            extraRightInset = extraRightInset,
             stickToggleTarget = stickToggleTarget
         )
         var extraDpadDirections by remember { mutableStateOf(emptySet<OverlayDpadDirection>()) }
@@ -2205,6 +2299,7 @@ private fun OnScreenControls(
                 invertRightStick = invertRightStick,
                 invertRightStickHorizontal = invertRightStickHorizontal,
                 onPadInput = onPadInput,
+                onScreenDoubleTap = onScreenDoubleTap,
                 visualStyle = visualStyle,
                 pressEffect = pressEffect,
                 onTouchHaptic = ::performTouchHaptic
@@ -2314,6 +2409,7 @@ private fun TouchButtonGroup(
     invertRightStick: Boolean,
     invertRightStickHorizontal: Boolean,
     onPadInput: (Int, Int, Boolean) -> Unit,
+    onScreenDoubleTap: () -> Unit,
     visualStyle: TouchControlVisualStyle,
     pressEffect: TouchControlPressEffect,
     onTouchHaptic: (ButtonPhase) -> Unit,
@@ -2326,6 +2422,9 @@ private fun TouchButtonGroup(
     val specById = specs.associateBy { it.id }
     val currentSpecById by rememberUpdatedState(specById)
     val currentOnPadInput by rememberUpdatedState(onPadInput)
+    val currentOnScreenDoubleTap by rememberUpdatedState(onScreenDoubleTap)
+    var lastTouchscreenDownTime by remember { mutableStateOf(0L) }
+    var lastTouchscreenDownPosition by remember { mutableStateOf(Offset.Zero) }
     val currentTouchscreenRightStickSensitivity by rememberUpdatedState(touchscreenRightStickSensitivity)
     val currentInvertRightStick by rememberUpdatedState(invertRightStick)
     val currentInvertRightStickHorizontal by rememberUpdatedState(invertRightStickHorizontal)
@@ -2514,6 +2613,16 @@ private fun TouchButtonGroup(
                                             !change.isConsumed
                                         ) {
                                             touchPointerId = pointerId
+                                            val now = change.uptimeMillis
+                                            val distance = (change.position - lastTouchscreenDownPosition)
+                                                .getDistance()
+                                            if (now - lastTouchscreenDownTime in 1..350L && distance < 140f) {
+                                                lastTouchscreenDownTime = 0L
+                                                currentOnScreenDoubleTap()
+                                            } else {
+                                                lastTouchscreenDownTime = now
+                                                lastTouchscreenDownPosition = change.position
+                                            }
                                             forwardTouchscreenPointer(x, y, pressed = true)
                                             change.consume()
                                         }
@@ -3691,6 +3800,8 @@ private fun EmulationSidebarMenu(
                             onClick = onSwapScreens
                         )
 
+                        SecondScreenSettingsRows()
+
                         LiveSelectionRow(
                             title = stringResource(R.string.settings_display_crop),
                             options = DisplayCrop.PRESET_PIXELS.map {
@@ -4353,6 +4464,8 @@ private fun gamepadActionLabelRes(actionId: String): Int = when (actionId) {
     "left_input_toggle" -> R.string.settings_gamepad_action_left_input_toggle
     GamepadManager.ACTION_QUICK_SAVE -> R.string.emulation_quick_save
     GamepadManager.ACTION_QUICK_LOAD -> R.string.emulation_quick_load
+    GamepadManager.ACTION_TOGGLE_SECOND_SCREEN -> R.string.emulation_second_screen
+    GamepadManager.ACTION_SWAP_SCREENS -> R.string.settings_second_screen_swap_now
     GamepadManager.ACTION_FAST_FORWARD -> R.string.emulation_fast_forward
     GamepadManager.ACTION_REWIND -> R.string.emulation_rewind
     "dpad_up" -> R.string.settings_gamepad_action_dpad_up
@@ -4466,6 +4579,85 @@ private fun SidebarSectionTitle(
         color = color,
         modifier = Modifier.padding(top = topPadding, start = horizontalInset, end = horizontalInset)
     )
+}
+
+@Composable
+private fun SecondScreenSettingsRows() {
+    val context = LocalContext.current
+    val preferences = remember(context) { AppPreferences(context) }
+    val scope = rememberCoroutineScope()
+    val mode by preferences.secondScreenMode.collectAsState(
+        initial = AppPreferences.SECOND_SCREEN_MODE_PANEL
+    )
+    val side by preferences.secondScreenSide.collectAsState(
+        initial = AppPreferences.SECOND_SCREEN_SIDE_RIGHT
+    )
+    val width by preferences.secondScreenWidth.collectAsState(
+        initial = AppPreferences.SECOND_SCREEN_WIDTH_DEFAULT
+    )
+    val swap by preferences.secondScreenSwap.collectAsState(initial = false)
+
+    LiveSelectionRow(
+        title = stringResource(R.string.settings_second_screen),
+        options = listOf(
+            LiveSelectionOption(
+                AppPreferences.SECOND_SCREEN_MODE_INTEGRATED,
+                stringResource(R.string.settings_second_screen_integrated)
+            ),
+            LiveSelectionOption(
+                AppPreferences.SECOND_SCREEN_MODE_PANEL,
+                stringResource(R.string.settings_second_screen_panel)
+            )
+        ),
+        currentValue = mode,
+        onValueChange = { scope.launch { preferences.setSecondScreenMode(it) } },
+        allowWrap = false,
+        helpText = stringResource(R.string.settings_second_screen_desc),
+        onResetToDefault = {
+            scope.launch { preferences.setSecondScreenMode(AppPreferences.SECOND_SCREEN_MODE_INTEGRATED) }
+        }
+    )
+
+    if (mode == AppPreferences.SECOND_SCREEN_MODE_PANEL) {
+        LiveSelectionRow(
+            title = stringResource(R.string.settings_second_screen_side),
+            options = listOf(
+                LiveSelectionOption(
+                    AppPreferences.SECOND_SCREEN_SIDE_RIGHT,
+                    stringResource(R.string.settings_second_screen_side_right)
+                ),
+                LiveSelectionOption(
+                    AppPreferences.SECOND_SCREEN_SIDE_LEFT,
+                    stringResource(R.string.settings_second_screen_side_left)
+                ),
+                LiveSelectionOption(
+                    AppPreferences.SECOND_SCREEN_SIDE_TOP,
+                    stringResource(R.string.settings_second_screen_side_top)
+                ),
+                LiveSelectionOption(
+                    AppPreferences.SECOND_SCREEN_SIDE_BOTTOM,
+                    stringResource(R.string.settings_second_screen_side_bottom)
+                )
+            ),
+            currentValue = side,
+            onValueChange = { scope.launch { preferences.setSecondScreenSide(it) } },
+            allowWrap = false
+        )
+        LiveSelectionRow(
+            title = stringResource(R.string.settings_second_screen_width),
+            options = (AppPreferences.SECOND_SCREEN_WIDTH_MIN..AppPreferences.SECOND_SCREEN_WIDTH_MAX step 2)
+                .map { LiveSelectionOption(it, "$it%") },
+            currentValue = width,
+            onValueChange = { scope.launch { preferences.setSecondScreenWidth(it) } },
+            allowWrap = false,
+            horizontalScrolling = true
+        )
+        MenuButton(
+            icon = Icons.Rounded.SwapVert,
+            text = stringResource(R.string.settings_second_screen_swap_now),
+            onClick = { scope.launch { preferences.setSecondScreenSwap(!swap) } }
+        )
+    }
 }
 
 @Composable

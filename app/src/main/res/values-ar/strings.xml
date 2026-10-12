@@ -2597,4 +2597,19 @@
     <string name="settings_multiplayer_no_rooms">لم يتم العثور على غرف عامة</string>
     <string name="settings_multiplayer_error">خطأ في الشبكة</string>
     <string name="settings_multiplayer_hosted_hint">يمكن للاعبين على نفس الشبكة الانضمام عبر عنوانك.</string>
+    <string name="emulation_second_screen">الشاشة السفلية</string>
+    <string name="emulation_second_screen_swap">تبديل الشاشة العلوية والسفلية</string>
+    <string name="emulation_second_screen_side">نقل اللوحة إلى الجانب الآخر</string>
+    <string name="emulation_second_screen_move">اسحب لنقل اللسان</string>
+    <string name="settings_second_screen">الشاشة الثانية</string>
+    <string name="settings_second_screen_desc">مكان عرض الشاشة السفلية أثناء اللعب.</string>
+    <string name="settings_second_screen_integrated">الشاشتان في عرض واحد</string>
+    <string name="settings_second_screen_panel">لوحة سفلية قابلة للسحب</string>
+    <string name="settings_second_screen_side">جانب اللوحة</string>
+    <string name="settings_second_screen_side_right">يمين</string>
+    <string name="settings_second_screen_side_left">يسار</string>
+    <string name="settings_second_screen_side_top">أعلى</string>
+    <string name="settings_second_screen_side_bottom">أسفل</string>
+    <string name="settings_second_screen_width">عرض اللوحة</string>
+    <string name="settings_second_screen_swap_now">تبديل الشاشة العلوية والسفلية</string>
 </resources>

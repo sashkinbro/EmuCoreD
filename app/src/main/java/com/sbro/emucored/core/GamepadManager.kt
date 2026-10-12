@@ -113,6 +113,8 @@ object GamepadManager {
     const val ACTION_QUICK_LOAD = "quick_load"
     const val ACTION_FAST_FORWARD = "fast_forward"
     const val ACTION_REWIND = "rewind"
+    const val ACTION_TOGGLE_SECOND_SCREEN = "toggle_second_screen"
+    const val ACTION_SWAP_SCREENS = "swap_screens"
     private val FINGERPRINT_UINPUT_DEVICE_TOKENS = setOf(
         "uinput-fpc",
         "uinput-goodix",
@@ -289,6 +291,8 @@ object GamepadManager {
         MappableButtonAction("left_input_toggle", PadKey.AnalogToggle, emptyList()),
         MappableButtonAction(ACTION_QUICK_SAVE, null, emptyList()),
         MappableButtonAction(ACTION_QUICK_LOAD, null, emptyList()),
+        MappableButtonAction(ACTION_TOGGLE_SECOND_SCREEN, null, emptyList()),
+        MappableButtonAction(ACTION_SWAP_SCREENS, null, emptyList()),
         MappableButtonAction(ACTION_FAST_FORWARD, PadKey.FastForward, listOf(KeyEvent.KEYCODE_BUTTON_START, KeyEvent.KEYCODE_BUTTON_10)),
         MappableButtonAction(ACTION_REWIND, PadKey.Rewind, listOf(KeyEvent.KEYCODE_BUTTON_SELECT, KeyEvent.KEYCODE_BUTTON_9)),
         MappableButtonAction("dpad_up", PadKey.Up, listOf(KeyEvent.KEYCODE_DPAD_UP)),
@@ -297,7 +301,8 @@ object GamepadManager {
         MappableButtonAction("dpad_right", PadKey.Right, listOf(KeyEvent.KEYCODE_DPAD_RIGHT))
     )
     private val actionsById = mappableActions.associateBy { it.id }
-    private val shortcutActionIds = setOf(ACTION_QUICK_SAVE, ACTION_QUICK_LOAD)
+    private val shortcutActionIds =
+        setOf(ACTION_QUICK_SAVE, ACTION_QUICK_LOAD, ACTION_TOGGLE_SECOND_SCREEN, ACTION_SWAP_SCREENS)
     private val _gamepadShortcutActions = MutableSharedFlow<GamepadShortcutAction>(extraBufferCapacity = 8)
     val gamepadShortcutActions: SharedFlow<GamepadShortcutAction> = _gamepadShortcutActions
     private val _connectedGamepadCountState = MutableStateFlow(0)

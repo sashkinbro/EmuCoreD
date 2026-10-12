@@ -204,6 +204,11 @@ object NativeApp {
     @JvmStatic fun onNativeSurfaceChanged(surface: Surface, width: Int, height: Int) =
         CoreRuntime.attachSurface(surface, width, height)
 
+    @JvmStatic fun onNativeSecondarySurfaceChanged(surface: Surface, width: Int, height: Int) =
+        CoreRuntime.attachSecondarySurface(surface)
+
+    @JvmStatic fun onNativeSecondarySurfaceDestroyed() = CoreRuntime.detachSecondarySurface()
+
     @JvmStatic fun hasAttachedSurface(surface: Surface, width: Int, height: Int): Boolean =
         CoreRuntime.hasAttachedSurface(surface, width, height)
 

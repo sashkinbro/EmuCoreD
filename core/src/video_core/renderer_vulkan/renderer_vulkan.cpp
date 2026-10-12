@@ -129,7 +129,10 @@ RendererVulkan::RendererVulkan(Core::System& system, Pica::PicaCore& pica_,
     CompileShaders();
     BuildLayouts();
     BuildPipelines();
-    if (secondary_window) {
+    // The secondary present window is created lazily: the frontend can attach
+    // the second surface at any point (pull-out second screen panel) and a
+    // swapchain cannot be created for a null window.
+    if (secondary_window && secondary_window->GetWindowInfo().render_surface) {
         secondary_present_window_ptr = std::make_unique<PresentWindow>(
             *secondary_window, instance, scheduler, IsLowRefreshRate());
     }
@@ -1163,7 +1166,7 @@ void RendererVulkan::SwapBuffers() {
 #endif
 
 #ifdef ANDROID
-    if (secondary_window) {
+    if (secondary_window && secondary_window->GetWindowInfo().render_surface) {
         const auto& secondary_layout = secondary_window->GetFramebufferLayout();
         if (!secondary_present_window_ptr) {
             secondary_present_window_ptr = std::make_unique<PresentWindow>(

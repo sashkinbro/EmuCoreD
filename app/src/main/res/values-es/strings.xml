@@ -2591,4 +2591,19 @@
     <string name="settings_multiplayer_no_rooms">No se encontraron salas públicas</string>
     <string name="settings_multiplayer_error">Error de red</string>
     <string name="settings_multiplayer_hosted_hint">Los jugadores en la misma red pueden unirse con tu dirección.</string>
+    <string name="emulation_second_screen">Pantalla inferior</string>
+    <string name="emulation_second_screen_swap">Intercambiar pantallas superior e inferior</string>
+    <string name="emulation_second_screen_side">Mover el panel al otro lado</string>
+    <string name="emulation_second_screen_move">Arrastra para mover la pestaña</string>
+    <string name="settings_second_screen">Segunda pantalla</string>
+    <string name="settings_second_screen_desc">Dónde se muestra la pantalla inferior de la 3DS durante el juego.</string>
+    <string name="settings_second_screen_integrated">Ambas pantallas en una vista</string>
+    <string name="settings_second_screen_panel">Panel inferior desplegable</string>
+    <string name="settings_second_screen_side">Lado del panel</string>
+    <string name="settings_second_screen_side_right">Derecha</string>
+    <string name="settings_second_screen_side_left">Izquierda</string>
+    <string name="settings_second_screen_side_top">Arriba</string>
+    <string name="settings_second_screen_side_bottom">Abajo</string>
+    <string name="settings_second_screen_width">Ancho del panel</string>
+    <string name="settings_second_screen_swap_now">Intercambiar pantallas</string>
 </resources>
