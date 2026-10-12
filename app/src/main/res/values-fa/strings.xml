@@ -842,7 +842,7 @@
     <string name="cia_install_cancelled">نصب لغو شد.</string>
     <string name="cia_install_error_invalid">بسته یک عنوان معتبر 3DS نیست.</string>
     <string name="cia_install_error_encrypted">بسته رمزنگاری شده است. به تصاویر رمزگشایی‌شده یا کلیدهای سیستم نیاز است.</string>
-    <string name="cia_install_error_not_found">باز کردن بسته ممکن نشد. به برنامه دسترسی پوشه آن را بدهید و دوباره تلاش کنید.</string>
+    <string name="cia_install_error_not_found">بسته باز نشد. ممکن است فایل جابه‌جا شده یا دیگر در دسترس نباشد.</string>
     <string name="cia_install_error_generic">نصب بسته ممکن نشد.</string>
     <string name="home_game_menu_continue">ادامه بازی</string>
     <string name="home_game_menu_continue_unavailable">هیچ وضعیت ذخیره‌ای برای این بازی یافت نشد.</string>

@@ -315,14 +315,6 @@ class CheatRepository(private val context: Context) {
 
     private fun normalizeGameKey(gameKey: String): String = sanitizeFileName(gameKey).ifBlank { "cheat" }
 
-    private fun isPpssppCheatFileContents(contents: String): Boolean =
-        contents.lineSequence().any { line ->
-            val trimmed = line.trimStart('\uFEFF', ' ', '\t')
-            trimmed.startsWith("_S ", ignoreCase = true) ||
-                trimmed.startsWith("_L ", ignoreCase = true) ||
-                trimmed.startsWith("_C", ignoreCase = true)
-        }
-
     private fun storedValues(state: JSONObject, normalizedKey: String, legacyKey: String): Set<String> {
         val caseInsensitiveKey = state.keys().asSequence().firstOrNull { key ->
             key.equals(normalizedKey, ignoreCase = true) || key.equals(legacyKey, ignoreCase = true)

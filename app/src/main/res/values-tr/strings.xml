@@ -622,7 +622,7 @@
     <string name="cia_install_cancelled">Yükleme iptal edildi.</string>
     <string name="cia_install_error_invalid">Paket geçerli bir 3DS başlığı değil.</string>
     <string name="cia_install_error_encrypted">Paket şifreli. Şifresi çözülmüş imajlar veya sistem anahtarları gerekli.</string>
-    <string name="cia_install_error_not_found">Paket açılamadı. Uygulamaya klasörüne erişim izni verin ve tekrar deneyin.</string>
+    <string name="cia_install_error_not_found">Paket açılamadı. Dosya taşınmış veya artık erişilebilir olmayabilir.</string>
     <string name="cia_install_error_generic">Paket yüklenemedi.</string>
     <string name="home_game_menu_continue">Oyuna devam et</string>
     <string name="home_game_menu_continue_unavailable">Bu oyun için kayıt durumu bulunamadı.</string>

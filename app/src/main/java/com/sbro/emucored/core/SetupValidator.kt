@@ -129,9 +129,6 @@ object SetupValidator {
         return if (mimeType == null) DocumentEntryKind.UNKNOWN else DocumentEntryKind.OTHER
     }
 
-    internal fun isSupportedDiscImageName(displayName: String?): Boolean =
-        N3dsGameFormats.isSupportedName(displayName.orEmpty())
-
     private fun isLaunchPathReadable(context: Context, rawGamePath: String): Boolean {
         if (rawGamePath.startsWith("content://")) {
             return runCatching {

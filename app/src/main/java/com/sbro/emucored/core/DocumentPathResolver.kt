@@ -11,41 +11,11 @@ import androidx.documentfile.provider.DocumentFile
 import java.io.File
 import java.io.FileOutputStream
 import java.io.IOException
-import java.io.Reader
 import androidx.core.net.toUri
 
 object DocumentPathResolver {
     private const val TAG = "DocumentPathResolver"
     private const val BIOS_SOURCE_MARKER = ".source-uri"
-    private const val MAX_CUE_TEXT_CHARS = 256 * 1024
-    private val cueFileDirective = Regex(
-        pattern = """^(\s*)FILE\s+(?:\"([^\"]+)\"|(\S+))\s+(\S+)\s*$""",
-        option = RegexOption.IGNORE_CASE
-    )
-
-    private data class PreparedDiscResources(
-        val launchPath: String,
-        val cueText: String,
-        val descriptors: List<ParcelFileDescriptor>
-    ) : AutoCloseable {
-        override fun close() {
-            descriptors.forEach { descriptor -> runCatching { descriptor.close() } }
-        }
-    }
-
-    class PreparedCueLaunch internal constructor(
-        val cueText: String,
-        val descriptors: IntArray,
-        val sizes: LongArray
-    )
-
-    private data class DocumentLocation(
-        val root: DocumentFile,
-        val parentSegments: List<String>
-    )
-
-    private val preparedDiscLock = Any()
-    private var preparedDiscResources: PreparedDiscResources? = null
 
     data class PreparedBiosSelection(
         val directoryPath: String,
@@ -66,11 +36,6 @@ object DocumentPathResolver {
 
         val fileName = DocumentFile.fromSingleUri(context, uri)?.name ?: return null
         return findFileInPersistedTree(context, uri, fileName)
-    }
-
-    fun resolveDirectoryPath(rawPath: String): String? {
-        if (!rawPath.startsWith("content://")) return rawPath
-        return resolveExternalStoragePath(rawPath.toUri())
     }
 
     fun findAccessibleTreeUriForRawPath(context: Context, rawPath: String): Uri? {
@@ -299,26 +264,6 @@ object DocumentPathResolver {
 
     private fun nativeAbsolutePath(file: File): String = "!${file.absolutePath}"
 
-    fun releasePreparedLaunchHandles() {
-        val resources = synchronized(preparedDiscLock) {
-            preparedDiscResources.also { preparedDiscResources = null }
-        }
-        resources?.close()
-    }
-
-    fun getPreparedCueLaunch(launchPath: String): PreparedCueLaunch? =
-        synchronized(preparedDiscLock) {
-            preparedDiscResources
-                ?.takeIf { resources -> resources.launchPath == launchPath }
-                ?.let { resources ->
-                    PreparedCueLaunch(
-                        cueText = resources.cueText,
-                        descriptors = resources.descriptors.map { it.fd }.toIntArray(),
-                        sizes = resources.descriptors.map { it.statSize.coerceAtLeast(0L) }.toLongArray()
-                    )
-                }
-        }
-
     private fun prepareUriGameLaunchPath(context: Context, uri: Uri): String? {
         val resolvedDirect = resolveFilePath(context, uri.toString())
             ?.let(::File)
@@ -328,169 +273,7 @@ object DocumentPathResolver {
             return nativeAbsolutePath(resolvedDirect)
         }
 
-        val displayName = getDisplayName(context, uri.toString())
-        if (displayName.substringAfterLast('.', "").equals("cue", ignoreCase = true)) {
-            return prepareSafCueLaunch(context, uri, displayName)
-        }
-
         return uri.toString()
-    }
-
-    private fun prepareSafCueLaunch(context: Context, cueUri: Uri, displayName: String): String? {
-        val cueText = runCatching {
-            context.contentResolver.openInputStream(cueUri)
-                ?.bufferedReader()
-                ?.use(::readLimitedCueText)
-                ?: throw IOException("DocumentsProvider returned no CUE stream")
-        }.onFailure { error ->
-            Log.e(TAG, "Unable to read CUE through SAF: $cueUri", error)
-        }.getOrNull() ?: return null
-
-        val references = cueReferences(cueText)
-        if (references.isEmpty()) {
-            Log.e(TAG, "CUE has no supported FILE ... BINARY directives: $cueUri")
-            return null
-        }
-
-        val location = findDocumentLocation(context, cueUri)
-        if (location == null) {
-            Log.e(TAG, "Unable to locate CUE parent inside a persisted SAF tree: $cueUri")
-            return null
-        }
-
-        val openedDescriptors = ArrayList<ParcelFileDescriptor>(references.size)
-        try {
-            for (reference in references) {
-                val document = resolveDocumentReference(location, reference, context)
-                    ?: throw IOException("CUE track is missing or outside the selected tree: $reference")
-                val descriptor = context.contentResolver.openFileDescriptor(document.uri, "r")
-                    ?: throw IOException("DocumentsProvider returned no descriptor for: $reference")
-                if (descriptor.statSize == 0L) {
-                    descriptor.close()
-                    throw IOException("CUE track is empty: $reference")
-                }
-                openedDescriptors += descriptor
-            }
-
-            val launchPath = cueUri.toString()
-            val replacement = PreparedDiscResources(launchPath, cueText, openedDescriptors.toList())
-            val previous = synchronized(preparedDiscLock) {
-                preparedDiscResources.also { preparedDiscResources = replacement }
-            }
-            previous?.close()
-            Log.i(TAG, "Prepared SAF CUE with ${openedDescriptors.size} track file(s): $displayName")
-            return launchPath
-        } catch (error: Exception) {
-            openedDescriptors.forEach { descriptor -> runCatching { descriptor.close() } }
-            Log.e(TAG, "Unable to prepare SAF CUE launch: $cueUri", error)
-            return null
-        }
-    }
-
-    internal fun cueReferences(cueText: String): List<String> {
-        val references = ArrayList<String>()
-        cueText.lineSequence().forEach { line ->
-            val match = cueFileDirective.matchEntire(line.removePrefix("\uFEFF"))
-                ?: return@forEach
-            if (!match.groupValues[4].equals("BINARY", ignoreCase = true)) return@forEach
-            val reference = (match.groups[2]?.value ?: match.groups[3]?.value)
-                ?.trim()
-                .orEmpty()
-            if (reference.isNotBlank()) references += reference
-        }
-        return references
-    }
-
-    private fun readLimitedCueText(reader: Reader): String {
-        val result = StringBuilder()
-        val buffer = CharArray(4096)
-        while (result.length <= MAX_CUE_TEXT_CHARS) {
-            val remaining = MAX_CUE_TEXT_CHARS + 1 - result.length
-            val count = reader.read(buffer, 0, minOf(buffer.size, remaining))
-            if (count < 0) break
-            if (count == 0) continue
-            result.append(buffer, 0, count)
-        }
-        if (result.length > MAX_CUE_TEXT_CHARS) {
-            throw IOException("CUE exceeds $MAX_CUE_TEXT_CHARS characters")
-        }
-        return result.toString()
-    }
-
-    private fun findDocumentLocation(context: Context, documentUri: Uri): DocumentLocation? {
-        val documentId = runCatching { DocumentsContract.getDocumentId(documentUri) }.getOrNull()
-            ?: return null
-        val parentId = parentDocumentId(documentId) ?: return null
-        val persistedTrees = context.contentResolver.persistedUriPermissions
-            .asSequence()
-            .filter { permission -> permission.isReadPermission && permission.uri.authority == documentUri.authority }
-            .mapNotNull { permission ->
-                val rootId = runCatching { DocumentsContract.getTreeDocumentId(permission.uri) }.getOrNull()
-                    ?: return@mapNotNull null
-                val segments = relativeDocumentSegments(rootId, parentId) ?: return@mapNotNull null
-                Triple(permission.uri, rootId, segments)
-            }
-            .sortedByDescending { (_, rootId, _) -> rootId.length }
-
-        for ((treeUri, _, segments) in persistedTrees) {
-            val root = DocumentFile.fromTreeUri(context, treeUri) ?: continue
-            return DocumentLocation(root, segments)
-        }
-        return null
-    }
-
-    private fun resolveDocumentReference(
-        location: DocumentLocation,
-        reference: String,
-        context: Context
-    ): DocumentFile? {
-        if (reference.startsWith('/') || Regex("^[A-Za-z]:").containsMatchIn(reference)) return null
-        val targetSegments = ArrayList(location.parentSegments)
-        for (segment in reference.replace('\\', '/').split('/')) {
-            when {
-                segment.isBlank() || segment == "." -> Unit
-                segment == ".." -> {
-                    if (targetSegments.isEmpty()) return null
-                    targetSegments.removeAt(targetSegments.lastIndex)
-                }
-                else -> targetSegments += segment
-            }
-        }
-        if (targetSegments.isEmpty()) return null
-
-        var current = location.root
-        for ((index, segment) in targetSegments.withIndex()) {
-            val child = runCatching { current.listFiles() }
-                .getOrDefault(emptyArray())
-                .firstOrNull { candidate ->
-                    val name = runCatching { candidate.name }.getOrNull().orEmpty().ifBlank {
-                        getDisplayName(context, candidate.uri.toString())
-                    }
-                    name.equals(segment, ignoreCase = true)
-                } ?: return null
-            if (index == targetSegments.lastIndex) return child.takeIf { it.isFile }
-            if (!child.isDirectory) return null
-            current = child
-        }
-        return null
-    }
-
-    private fun parentDocumentId(documentId: String): String? {
-        val separatorIndex = documentId.lastIndexOf('/')
-        if (separatorIndex >= 0) return documentId.substring(0, separatorIndex)
-        val volumeSeparatorIndex = documentId.indexOf(':')
-        return if (volumeSeparatorIndex >= 0 && volumeSeparatorIndex < documentId.lastIndex) {
-            documentId.substring(0, volumeSeparatorIndex + 1)
-        } else {
-            null
-        }
-    }
-
-    private fun relativeDocumentSegments(rootDocumentId: String, targetDocumentId: String): List<String>? {
-        if (targetDocumentId == rootDocumentId) return emptyList()
-        val prefix = if (rootDocumentId.endsWith(':')) rootDocumentId else "$rootDocumentId/"
-        if (!targetDocumentId.startsWith(prefix)) return null
-        return targetDocumentId.removePrefix(prefix).split('/').filter(String::isNotBlank)
     }
 
     private fun resolveExternalStoragePath(uri: Uri): String? {

@@ -874,7 +874,7 @@
     <string name="cia_install_cancelled">Instalace byla zrušena.</string>
     <string name="cia_install_error_invalid">Balíček není platným titulem 3DS.</string>
     <string name="cia_install_error_encrypted">Balíček je zašifrovaný. Jsou vyžadovány dešifrované obrazy nebo systémové klíče.</string>
-    <string name="cia_install_error_not_found">Balíček nelze otevřít. Udělte aplikaci přístup k jeho složce a zkuste to znovu.</string>
+    <string name="cia_install_error_not_found">Balíček se nepodařilo otevřít. Soubor byl možná přesunut nebo již není dostupný.</string>
     <string name="cia_install_error_generic">Balíček nelze nainstalovat.</string>
     <string name="home_game_menu_continue">Pokračovat ve hře</string>
     <string name="home_game_menu_continue_unavailable">Pro tuto hru nebyly nalezeny žádné uložené stavy.</string>

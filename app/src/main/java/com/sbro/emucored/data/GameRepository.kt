@@ -11,7 +11,6 @@ import com.sbro.emucored.core.DocumentPathResolver
 import com.sbro.emucored.core.EmulatorBridge
 import com.sbro.emucored.core.SetupValidator
 import com.sbro.emucored.core.N3dsGameMetadataReader
-import com.sbro.emucored.data.n3ds.N3dsTitleIndexRepository
 import java.io.File
 
 data class GameItem(
@@ -158,7 +157,6 @@ class GameRepository {
         val coverCandidates = buildLocalCoverCandidates(children)
         val coverRepository = CoverArtRepository(context)
         val customCoverRepository = CustomGameCoverRepository(context)
-        val titleIndex = N3dsTitleIndexRepository(context)
 
         children.forEach { file ->
             if (shouldAbort()) return items
@@ -203,11 +201,7 @@ class GameRepository {
 
                     val cleanTitle = EmulatorBridge.cleanGameDisplayTitle(metadata.title, file.name)
                     val serial = metadata.serial
-                    val title = if (preferEnglishTitles) {
-                        titleIndex.titleForSerial(serial) ?: cleanTitle
-                    } else {
-                        cleanTitle
-                    }
+                    val title = cleanTitle
                     items += GameItem(
                         title = title,
                         path = file.absolutePath,
@@ -246,7 +240,6 @@ class GameRepository {
         val coverCandidates = buildDocumentCoverCandidates(children)
         val coverRepository = CoverArtRepository(context)
         val customCoverRepository = CustomGameCoverRepository(context)
-        val titleIndex = N3dsTitleIndexRepository(context)
 
         for (file in children) {
             if (shouldAbort() || !budget.tryVisitEntry()) return items
@@ -302,11 +295,7 @@ class GameRepository {
 
                     val cleanTitle = cleanScannedTitle(metadata.title, name)
                     val serial = metadata.serial
-                    val title = if (preferEnglishTitles) {
-                        titleIndex.titleForSerial(serial) ?: cleanTitle
-                    } else {
-                        cleanTitle
-                    }
+                    val title = cleanTitle
                     items += GameItem(
                         title = title,
                         path = uriPath,

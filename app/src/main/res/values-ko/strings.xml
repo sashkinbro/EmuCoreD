@@ -622,7 +622,7 @@
     <string name="cia_install_cancelled">설치가 취소되었습니다.</string>
     <string name="cia_install_error_invalid">유효한 3DS 타이틀이 아닙니다.</string>
     <string name="cia_install_error_encrypted">패키지가 암호화되어 있습니다. 복호화된 이미지 또는 시스템 키가 필요합니다.</string>
-    <string name="cia_install_error_not_found">패키지를 열 수 없습니다. 앱에 폴더 접근 권한을 부여한 후 다시 시도하세요.</string>
+    <string name="cia_install_error_not_found">패키지를 열 수 없습니다. 파일이 이동되었거나 더 이상 접근할 수 없을 수 있습니다.</string>
     <string name="cia_install_error_generic">패키지를 설치할 수 없습니다.</string>
     <string name="home_game_menu_continue">이어서 하기</string>
     <string name="home_game_menu_continue_unavailable">이 게임에 대한 저장 데이터를 찾을 수 없습니다.</string>

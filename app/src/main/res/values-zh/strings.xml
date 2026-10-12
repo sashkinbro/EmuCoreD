@@ -418,7 +418,7 @@
     <string name="cia_install_cancelled">安装已取消。</string>
     <string name="cia_install_error_invalid">该软件包不是有效的 3DS 游戏标题。</string>
     <string name="cia_install_error_encrypted">该软件包已加密。需要解密的镜像或系统密钥。</string>
-    <string name="cia_install_error_not_found">无法打开软件包。请授予应用访问其文件夹的权限，然后重试。</string>
+    <string name="cia_install_error_not_found">无法打开安装包。文件可能已被移动或无法访问。</string>
     <string name="cia_install_error_generic">无法安装软件包。</string>
     <string name="home_game_menu_continue">继续游戏</string>
     <string name="home_game_menu_continue_unavailable">未找到此游戏的即时存档。</string>

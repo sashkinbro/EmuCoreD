@@ -420,7 +420,7 @@
     <string name="cia_install_cancelled">Установка отменена.</string>
     <string name="cia_install_error_invalid">Пакет не является корректным тайтлом 3DS.</string>
     <string name="cia_install_error_encrypted">Пакет зашифрован. Требуются расшифрованные образы или системные ключи.</string>
-    <string name="cia_install_error_not_found">Не удалось открыть пакет. Предоставьте приложению доступ к его папке и повторите попытку.</string>
+    <string name="cia_install_error_not_found">Не удалось открыть пакет. Файл перемещён или недоступен.</string>
     <string name="cia_install_error_generic">Не удалось установить пакет.</string>
     <string name="home_game_menu_continue">Продолжить игру</string>
     <string name="home_game_menu_continue_unavailable">Сохранения для этой игры не найдены.</string>

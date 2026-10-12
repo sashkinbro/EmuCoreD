@@ -919,7 +919,7 @@
     <string name="cia_install_cancelled">Installation was cancelled.</string>
     <string name="cia_install_error_invalid">The package is not a valid 3DS title.</string>
     <string name="cia_install_error_encrypted">The package is encrypted. Decrypted images or system keys are required.</string>
-    <string name="cia_install_error_not_found">The package could not be opened. Grant the app access to its folder and try again.</string>
+    <string name="cia_install_error_not_found">The package could not be opened. The file may have been moved or is no longer accessible.</string>
     <string name="cia_install_error_generic">The package could not be installed.</string>
     <string name="home_game_menu_continue">Continue game</string>
     <string name="home_game_menu_continue_unavailable">No save states found for this game.</string>

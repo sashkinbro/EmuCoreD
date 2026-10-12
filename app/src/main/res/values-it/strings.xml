@@ -578,7 +578,7 @@
     <string name="cia_install_cancelled">Installazione annullata.</string>
     <string name="cia_install_error_invalid">Il pacchetto non è un titolo 3DS valido.</string>
     <string name="cia_install_error_encrypted">Il pacchetto è cifrato. Servono immagini decifrate o chiavi di sistema.</string>
-    <string name="cia_install_error_not_found">Impossibile aprire il pacchetto. Concedi all\'app l\'accesso alla sua cartella e riprova.</string>
+    <string name="cia_install_error_not_found">Impossibile aprire il pacchetto. Il file potrebbe essere stato spostato o non è più accessibile.</string>
     <string name="cia_install_error_generic">Impossibile installare il pacchetto.</string>
     <string name="home_game_menu_continue">Continua gioco</string>
     <string name="home_game_menu_continue_unavailable">Nessuno stato di salvataggio trovato per questo gioco.</string>

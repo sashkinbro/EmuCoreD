@@ -418,7 +418,7 @@
     <string name="cia_install_cancelled">Die Installation wurde abgebrochen.</string>
     <string name="cia_install_error_invalid">Das Paket ist kein gültiger 3DS-Titel.</string>
     <string name="cia_install_error_encrypted">Das Paket ist verschlüsselt. Entschlüsselte Abbilder oder Systemschlüssel sind erforderlich.</string>
-    <string name="cia_install_error_not_found">Das Paket konnte nicht geöffnet werden. Gewähre der App Zugriff auf den Ordner und versuche es erneut.</string>
+    <string name="cia_install_error_not_found">Das Paket konnte nicht geöffnet werden. Die Datei wurde möglicherweise verschoben oder ist nicht mehr zugänglich.</string>
     <string name="cia_install_error_generic">Das Paket konnte nicht installiert werden.</string>
     <string name="home_game_menu_continue">Spiel fortsetzen</string>
     <string name="home_game_menu_continue_unavailable">Keine Speicherstände für dieses Spiel gefunden.</string>
