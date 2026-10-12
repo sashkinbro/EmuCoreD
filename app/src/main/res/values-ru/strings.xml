@@ -2608,4 +2608,5 @@
     <string name="settings_second_screen_side_bottom">Снизу</string>
     <string name="settings_second_screen_width">Ширина панели</string>
     <string name="settings_second_screen_swap_now">Поменять экраны местами</string>
+    <string name="settings_second_screen_floating">Плавающее окно</string>
 </resources>

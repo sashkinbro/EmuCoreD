@@ -39,6 +39,7 @@ import androidx.compose.material.icons.rounded.KeyboardArrowDown
 import androidx.compose.material.icons.rounded.ChevronLeft
 import androidx.compose.material.icons.rounded.ChevronRight
 import androidx.compose.material.icons.rounded.KeyboardArrowUp
+import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.DragIndicator
 import androidx.compose.material.icons.rounded.ScreenshotMonitor
 import androidx.compose.material.icons.rounded.SwapHoriz
@@ -280,6 +281,173 @@ internal fun nextSecondScreenSide(side: Int): Int = when (side) {
     AppPreferences.SECOND_SCREEN_SIDE_TOP -> AppPreferences.SECOND_SCREEN_SIDE_LEFT
     AppPreferences.SECOND_SCREEN_SIDE_LEFT -> AppPreferences.SECOND_SCREEN_SIDE_BOTTOM
     else -> AppPreferences.SECOND_SCREEN_SIDE_RIGHT
+}
+
+/**
+ * Bottom screen as a free-floating window. Drag its handle to park it in any
+ * corner, resize it from the corner grip, dock it back into the edge panel or
+ * close it entirely.
+ */
+@Composable
+internal fun FloatingSecondScreen(
+    position: Pair<Float, Float>,
+    sizePercent: Int,
+    onPositionChange: (Float, Float) -> Unit,
+    onSizePercentChange: (Int) -> Unit,
+    onSwapScreens: () -> Unit,
+    onDock: () -> Unit,
+    onClose: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val density = LocalDensity.current
+    BoxWithConstraints(modifier = modifier) {
+        val maxWidthPx = with(density) { maxWidth.toPx() }
+        val maxHeightPx = with(density) { maxHeight.toPx() }
+        val windowWidthPx = (maxHeightPx * sizePercent / 100f).coerceIn(220f, maxWidthPx * 0.8f)
+        val windowWidth = with(density) { windowWidthPx.toDp() }
+        val handleHeight = 30.dp
+        val screenHeight = windowWidth * 3f / 4f
+
+        var currentX by remember { mutableFloatStateOf(position.first.coerceIn(0f, 1f)) }
+        var currentY by remember { mutableFloatStateOf(position.second.coerceIn(0f, 1f)) }
+        LaunchedEffect(position) {
+            if (abs(currentX - position.first) > 0.01f) currentX = position.first.coerceIn(0f, 1f)
+            if (abs(currentY - position.second) > 0.01f) currentY = position.second.coerceIn(0f, 1f)
+        }
+
+        val windowWidthPxDp = with(density) { windowWidth.toPx() + 0f }
+        val windowHeightPx = with(density) { (screenHeight + handleHeight).toPx() }
+        val availableX = (maxWidthPx - windowWidthPxDp).coerceAtLeast(1f)
+        val availableY = (maxHeightPx - windowHeightPx).coerceAtLeast(1f)
+
+        Box(
+            modifier = Modifier
+                .offset {
+                    IntOffset(
+                        (currentX * availableX).roundToInt(),
+                        (currentY * availableY).roundToInt()
+                    )
+                }
+                .width(windowWidth)
+                .clip(RoundedCornerShape(14.dp))
+                .background(
+                    MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.88f),
+                    RoundedCornerShape(14.dp)
+                )
+                .border(
+                    BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.30f)),
+                    RoundedCornerShape(14.dp)
+                )
+        ) {
+            Column {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(handleHeight)
+                        .pointerInput(Unit) {
+                            detectDragGestures(
+                                onDragEnd = { onPositionChange(currentX, currentY) },
+                                onDragCancel = { onPositionChange(currentX, currentY) }
+                            ) { change, dragAmount ->
+                                change.consume()
+                                currentX = (currentX + dragAmount.x / availableX).coerceIn(0f, 1f)
+                                currentY = (currentY + dragAmount.y / availableY).coerceIn(0f, 1f)
+                            }
+                        },
+                    horizontalArrangement = Arrangement.spacedBy(2.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = Icons.Rounded.DragIndicator,
+                        contentDescription = stringResource(R.string.emulation_second_screen_move),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.75f),
+                        modifier = Modifier
+                            .padding(start = 8.dp)
+                            .size(18.dp)
+                    )
+                    Spacer(Modifier.weight(1f))
+                    FloatingWindowButton(
+                        icon = Icons.Rounded.SwapVert,
+                        description = R.string.emulation_second_screen_swap,
+                        onClick = onSwapScreens
+                    )
+                    FloatingWindowButton(
+                        icon = Icons.Rounded.ScreenshotMonitor,
+                        description = R.string.settings_second_screen_panel,
+                        onClick = onDock
+                    )
+                    FloatingWindowButton(
+                        icon = Icons.Rounded.Close,
+                        description = R.string.emulation_second_screen_hide,
+                        onClick = onClose
+                    )
+                    Spacer(Modifier.width(4.dp))
+                }
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(screenHeight)
+                ) {
+                    SecondaryScreenSurface(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .clip(RoundedCornerShape(bottomStart = 12.dp, bottomEnd = 12.dp))
+                    )
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.BottomEnd)
+                            .size(26.dp)
+                            .pointerInput(Unit) {
+                                detectDragGestures(
+                                    onDragEnd = { onSizePercentChange(sizePercent) },
+                                    onDragCancel = { onSizePercentChange(sizePercent) }
+                                ) { change, dragAmount ->
+                                    change.consume()
+                                    val next = sizePercent +
+                                        (dragAmount.x / maxHeightPx * 100f).roundToInt()
+                                    onSizePercentChange(
+                                        next.coerceIn(
+                                            AppPreferences.SECOND_SCREEN_FLOAT_SIZE_MIN,
+                                            AppPreferences.SECOND_SCREEN_FLOAT_SIZE_MAX
+                                        )
+                                    )
+                                }
+                            },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Rounded.DragIndicator,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.55f),
+                            modifier = Modifier.size(14.dp)
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun FloatingWindowButton(
+    icon: ImageVector,
+    description: Int,
+    onClick: () -> Unit
+) {
+    Box(
+        modifier = Modifier
+            .size(24.dp)
+            .clip(RoundedCornerShape(8.dp))
+            .clickable(onClick = onClick),
+        contentAlignment = Alignment.Center
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = stringResource(description),
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.size(16.dp)
+        )
+    }
 }
 
 @Composable

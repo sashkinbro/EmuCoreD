@@ -2322,7 +2322,8 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
         val settings = preferences.settingsSnapshot.first()
         val secondScreenMode = preferences.secondScreenMode.first()
         val secondScreenSwap = preferences.secondScreenSwap.first()
-        val panelMode = secondScreenMode == AppPreferences.SECOND_SCREEN_MODE_PANEL
+        val detachedSecondScreen = secondScreenMode == AppPreferences.SECOND_SCREEN_MODE_PANEL ||
+            secondScreenMode == AppPreferences.SECOND_SCREEN_MODE_FLOATING
         return EmulationLaunchConfig(
             emulatorDataPath = settings.emulatorDataPath,
             renderer = settings.renderer,
@@ -2345,8 +2346,8 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
             shaderChainPreset = settings.shaderChainPreset,
             textureReplacementsEnabled = settings.textureReplacementsEnabled,
             enableCheats = settings.enableCheats,
-            layoutOption = if (panelMode) AppPreferences.SECOND_SCREEN_PANEL_LAYOUT else -1,
-            swapScreens = if (panelMode) secondScreenSwap else null
+            layoutOption = if (detachedSecondScreen) AppPreferences.SECOND_SCREEN_PANEL_LAYOUT else -1,
+            swapScreens = if (detachedSecondScreen) secondScreenSwap else null
         ).applyProfile(profile)
     }
 

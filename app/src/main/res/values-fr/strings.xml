@@ -2606,4 +2606,5 @@
     <string name="settings_second_screen_side_bottom">Bas</string>
     <string name="settings_second_screen_width">Largeur du panneau</string>
     <string name="settings_second_screen_swap_now">Échanger les écrans</string>
+    <string name="settings_second_screen_floating">Fenêtre flottante</string>
 </resources>

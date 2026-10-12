@@ -2606,4 +2606,5 @@
     <string name="settings_second_screen_side_bottom">Abajo</string>
     <string name="settings_second_screen_width">Ancho del panel</string>
     <string name="settings_second_screen_swap_now">Intercambiar pantallas</string>
+    <string name="settings_second_screen_floating">Ventana flotante</string>
 </resources>

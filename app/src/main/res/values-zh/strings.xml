@@ -2605,4 +2605,5 @@
     <string name="settings_second_screen_side_bottom">下方</string>
     <string name="settings_second_screen_width">面板宽度</string>
     <string name="settings_second_screen_swap_now">交换屏幕</string>
+    <string name="settings_second_screen_floating">浮动窗口</string>
 </resources>

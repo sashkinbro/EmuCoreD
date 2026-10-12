@@ -2618,4 +2618,5 @@
     <string name="settings_second_screen_side_bottom">Bawah</string>
     <string name="settings_second_screen_width">Lebar panel</string>
     <string name="settings_second_screen_swap_now">Tukar layar</string>
+    <string name="settings_second_screen_floating">Jendela melayang</string>
 </resources>

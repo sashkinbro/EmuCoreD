@@ -2612,4 +2612,5 @@
     <string name="settings_second_screen_side_bottom">أسفل</string>
     <string name="settings_second_screen_width">عرض اللوحة</string>
     <string name="settings_second_screen_swap_now">تبديل الشاشة العلوية والسفلية</string>
+    <string name="settings_second_screen_floating">نافذة عائمة</string>
 </resources>

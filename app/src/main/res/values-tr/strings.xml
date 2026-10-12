@@ -2604,4 +2604,5 @@
     <string name="settings_second_screen_side_bottom">Alt</string>
     <string name="settings_second_screen_width">Panel genişliği</string>
     <string name="settings_second_screen_swap_now">Ekranları değiştir</string>
+    <string name="settings_second_screen_floating">Yüzen pencere</string>
 </resources>

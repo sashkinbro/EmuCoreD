@@ -2604,4 +2604,5 @@
     <string name="settings_second_screen_side_bottom">नीचे</string>
     <string name="settings_second_screen_width">पैनल की चौड़ाई</string>
     <string name="settings_second_screen_swap_now">स्क्रीन बदलें</string>
+    <string name="settings_second_screen_floating">फ्लोटिंग विंडो</string>
 </resources>

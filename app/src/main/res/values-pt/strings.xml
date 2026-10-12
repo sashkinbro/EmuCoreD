@@ -2606,4 +2606,5 @@
     <string name="settings_second_screen_side_bottom">Fundo</string>
     <string name="settings_second_screen_width">Largura do painel</string>
     <string name="settings_second_screen_swap_now">Trocar ecrãs</string>
+    <string name="settings_second_screen_floating">Janela flutuante</string>
 </resources>

@@ -2603,4 +2603,5 @@
     <string name="settings_second_screen_side_bottom">아래</string>
     <string name="settings_second_screen_width">패널 너비</string>
     <string name="settings_second_screen_swap_now">화면 교체</string>
+    <string name="settings_second_screen_floating">플로팅 창</string>
 </resources>

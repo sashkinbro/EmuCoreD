@@ -2606,4 +2606,5 @@
     <string name="settings_second_screen_side_bottom">Unten</string>
     <string name="settings_second_screen_width">Panelbreite</string>
     <string name="settings_second_screen_swap_now">Bildschirme tauschen</string>
+    <string name="settings_second_screen_floating">Schwebendes Fenster</string>
 </resources>

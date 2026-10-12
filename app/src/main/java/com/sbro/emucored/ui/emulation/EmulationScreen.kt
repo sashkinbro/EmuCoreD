@@ -445,6 +445,13 @@ fun EmulationScreen(
     val secondScreenTabPosition by preferences.secondScreenTabPosition.collectAsState(
         initial = AppPreferences.SECOND_SCREEN_TAB_POSITION_DEFAULT
     )
+    val secondScreenFloatPosition by preferences.secondScreenFloatPosition.collectAsState(
+        initial = AppPreferences.SECOND_SCREEN_FLOAT_X_DEFAULT to
+            AppPreferences.SECOND_SCREEN_FLOAT_Y_DEFAULT
+    )
+    val secondScreenFloatSize by preferences.secondScreenFloatSize.collectAsState(
+        initial = AppPreferences.SECOND_SCREEN_FLOAT_SIZE_DEFAULT
+    )
     val effectiveGamepadBindingsByPad = if (uiState.gameSettingsProfileActive && uiState.gamepadBindingsByPad.isNotEmpty()) {
         uiState.gamepadBindingsByPad
     } else {
@@ -801,7 +808,7 @@ fun EmulationScreen(
     // secondary window render the bottom screen.
     LaunchedEffect(secondScreenMode, secondScreenSwap, uiState.isRunning) {
         if (!uiState.isRunning) return@LaunchedEffect
-        if (secondScreenMode == AppPreferences.SECOND_SCREEN_MODE_PANEL) {
+        if (secondScreenMode != AppPreferences.SECOND_SCREEN_MODE_INTEGRATED) {
             EmulatorBridge.setScreenLayout(AppPreferences.SECOND_SCREEN_PANEL_LAYOUT)
             EmulatorBridge.setSwapScreens(secondScreenSwap)
         } else {
@@ -1557,8 +1564,7 @@ fun EmulationScreen(
         // Pull-out second screen panel (bottom 3DS screen). Its z-index sits
         // above the full-screen touch controls layer so the docked tab stays
         // clickable, while the sidebar menu stays above the panel.
-        if (secondScreenMode == AppPreferences.SECOND_SCREEN_MODE_PANEL && !showControlsEditor) {
-            SecondScreenPanel(
+        if (secondScreenMode == AppPreferences.SECOND_SCREEN_MODE_PANEL && !showControlsEditor) {            SecondScreenPanel(
                 side = secondScreenSide,
                 widthPercent = secondScreenWidth,
                 open = secondScreenOpen,
@@ -1578,6 +1584,32 @@ fun EmulationScreen(
                 },
                 onTabPositionChange = { position ->
                     scope.launch { preferences.setSecondScreenTabPosition(position) }
+                },
+                modifier = Modifier
+                    .fillMaxSize()
+                    .zIndex(22f)
+            )
+        }
+
+        // Free-floating bottom screen window.
+        if (secondScreenMode == AppPreferences.SECOND_SCREEN_MODE_FLOATING && !showControlsEditor) {
+            FloatingSecondScreen(
+                position = secondScreenFloatPosition,
+                sizePercent = secondScreenFloatSize,
+                onPositionChange = { x, y ->
+                    scope.launch { preferences.setSecondScreenFloatPosition(x, y) }
+                },
+                onSizePercentChange = { size ->
+                    scope.launch { preferences.setSecondScreenFloatSize(size) }
+                },
+                onSwapScreens = {
+                    scope.launch { preferences.setSecondScreenSwap(!secondScreenSwap) }
+                },
+                onDock = {
+                    scope.launch { preferences.setSecondScreenMode(AppPreferences.SECOND_SCREEN_MODE_PANEL) }
+                },
+                onClose = {
+                    scope.launch { preferences.setSecondScreenMode(AppPreferences.SECOND_SCREEN_MODE_INTEGRATED) }
                 },
                 modifier = Modifier
                     .fillMaxSize()
@@ -4607,6 +4639,10 @@ private fun SecondScreenSettingsRows() {
             LiveSelectionOption(
                 AppPreferences.SECOND_SCREEN_MODE_PANEL,
                 stringResource(R.string.settings_second_screen_panel)
+            ),
+            LiveSelectionOption(
+                AppPreferences.SECOND_SCREEN_MODE_FLOATING,
+                stringResource(R.string.settings_second_screen_floating)
             )
         ),
         currentValue = mode,

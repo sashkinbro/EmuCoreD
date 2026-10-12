@@ -2611,4 +2611,5 @@
     <string name="settings_multiplayer_no_rooms">Публічних кімнат не знайдено</string>
     <string name="settings_multiplayer_error">Помилка мережі</string>
     <string name="settings_multiplayer_hosted_hint">Гравці в тій самій мережі можуть приєднатися за вашою адресою.</string>
+    <string name="settings_second_screen_floating">Плаваюче вікно</string>
 </resources>

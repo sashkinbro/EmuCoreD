@@ -2625,4 +2625,5 @@
     <string name="settings_second_screen_side_bottom">Dole</string>
     <string name="settings_second_screen_width">Šířka panelu</string>
     <string name="settings_second_screen_swap_now">Prohodit obrazovky</string>
+    <string name="settings_second_screen_floating">Plovoucí okno</string>
 </resources>

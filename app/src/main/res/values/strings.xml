@@ -2650,4 +2650,5 @@
     <string name="settings_multiplayer_no_rooms">No public rooms found</string>
     <string name="settings_multiplayer_error">Network error</string>
     <string name="settings_multiplayer_hosted_hint">Players on the same network can join with your address.</string>
+    <string name="settings_second_screen_floating">Floating window</string>
 </resources>

@@ -2619,4 +2619,5 @@
     <string name="settings_second_screen_side_bottom">پایین</string>
     <string name="settings_second_screen_width">عرض پنل</string>
     <string name="settings_second_screen_swap_now">جابه‌جایی صفحه‌ها</string>
+    <string name="settings_second_screen_floating">پنجره شناور</string>
 </resources>
