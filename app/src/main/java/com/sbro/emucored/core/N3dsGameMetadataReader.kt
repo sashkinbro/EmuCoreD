@@ -42,7 +42,7 @@ object N3dsGameMetadataReader {
     private const val NCCH_MAGIC_OFFSET = 0x100
     private const val NCCH_PROGRAM_ID_OFFSET = 0x118
     private const val NCCH_PRODUCT_CODE_OFFSET = 0x150
-    private const val NCCH_EXEFS_OFFSET_OFFSET = 0x1B0
+    private const val NCCH_EXEFS_OFFSET_OFFSET = 0x1A0
     private const val MEDIA_UNIT = 0x200L
     private const val EXEFS_ENTRY_COUNT = 8
     private const val EXEFS_ENTRY_SIZE = 16
@@ -200,7 +200,18 @@ object N3dsGameMetadataReader {
     private fun nativeSmdh(identity: String, path: String): ByteArray? {
         smdhCache[identity]?.let { return it }
         if (!EmuCoreNative.isLoaded) return null
-        val smdh = runCatching { EmuCoreNative.getGameSmdh(path) }.getOrNull() ?: return null
+        // Local filesystem paths must reach the core with the "!" native-path
+        // marker; without it the core resolves them against its user directory
+        // and the icon read fails for installed titles.
+        val nativePath = when {
+            path.startsWith("content://") || path.startsWith("!") -> path
+            path.startsWith("file://") -> runCatching { Uri.parse(path).path }
+                .getOrNull()
+                ?.let { "!$it" }
+                ?: path
+            else -> "!$path"
+        }
+        val smdh = runCatching { EmuCoreNative.getGameSmdh(nativePath) }.getOrNull() ?: return null
         if (smdh.size < 0x2A00) return null
         if (smdhCache.size < CACHE_LIMIT) smdhCache[identity] = smdh
         return smdh

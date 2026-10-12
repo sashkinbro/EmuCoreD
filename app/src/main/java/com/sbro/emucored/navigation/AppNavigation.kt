@@ -100,6 +100,7 @@ data class GameDetailRoute(val catalogGameId: Long)
 @Serializable
 data class EmulationRoute(
     val gamePath: String? = null,
+    val installedPath: String? = null,
     val saveSlot: Int? = null,
     val bootBios: Boolean = false,
     val bootSmokeProbe: Boolean = false,
@@ -450,8 +451,10 @@ fun AppNavigation(
                     onLaunchBios = null
                 ) { openDrawer ->
                     HomeScreen(
-                        onGameClick = { game ->
-                            navController.navigate(EmulationRoute(gamePath = game.path)) {
+                        onGameClick = { game, installedPath ->
+                            navController.navigate(
+                                EmulationRoute(gamePath = game.path, installedPath = installedPath)
+                            ) {
                                 launchSingleTop = true
                             }
                         },
@@ -644,6 +647,7 @@ fun AppNavigation(
                 val route = backStackEntry.toRoute<EmulationRoute>()
                 EmulationScreen(
                     gamePath = route.gamePath,
+                    installedPath = route.installedPath,
                     bootToBios = route.bootBios,
                     bootSmokeProbe = route.bootSmokeProbe,
                     saveSlot = route.saveSlot,

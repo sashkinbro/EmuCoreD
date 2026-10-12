@@ -369,6 +369,7 @@ private fun Int.isRightOverlayCorner(): Boolean {
 @Composable
 fun EmulationScreen(
     gamePath: String? = null,
+    installedPath: String? = null,
     bootToBios: Boolean = false,
     bootSmokeProbe: Boolean = false,
     saveSlot: Int? = null,
@@ -749,6 +750,7 @@ fun EmulationScreen(
 
     LaunchedEffect(
         gamePath,
+        installedPath,
         bootToBios,
         bootSmokeProbe,
         autotestMode,
@@ -762,7 +764,8 @@ fun EmulationScreen(
             bootToBios = bootToBios,
             bootSmokeProbe = bootSmokeProbe,
             autotestMode = autotestMode,
-            rendererOverride = rendererOverride
+            rendererOverride = rendererOverride,
+            launchPathOverride = installedPath
         )
     }
 

@@ -33,6 +33,7 @@ import com.sbro.emucored.data.GameLibraryCacheSnapshot
 import com.sbro.emucored.data.GameRepository
 import com.sbro.emucored.data.RecentGameEntry
 import com.sbro.emucored.data.decideCoreUpdateResetAction
+import java.io.File
 import java.util.Locale
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlinx.coroutines.Dispatchers
@@ -445,6 +446,19 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
             ?.firstOrNull { installedPath ->
                 runCatching { EmuCoreNative.getTitleId(installedPath) }
                     .getOrNull() == ciaTitleId
+            }
+            // The core reports user-directory-relative paths with a leading
+            // slash (for example "/sdmc/Nintendo 3DS/.../00000000.app"); turn
+            // them into absolute paths so the metadata reader and cover lookup
+            // can open them.
+            ?.let { installedPath ->
+                val candidate = File(installedPath)
+                val relative = installedPath.trimStart('/')
+                if (candidate.isAbsolute && candidate.exists()) {
+                    installedPath
+                } else {
+                    File(File(context.filesDir, "azahar"), relative).absolutePath
+                }
             }
     }
 

@@ -174,7 +174,7 @@ private fun GameItem.isCiaImage(): Boolean =
 @SuppressLint("ConfigurationScreenWidthHeight", "FrequentlyChangingValue")
 @Composable
 fun HomeScreen(
-    onGameClick: (GameItem) -> Unit,
+    onGameClick: (GameItem, String?) -> Unit,
     onContinueGame: (GameItem) -> Unit,
     onLoadSaveClick: (GameItem) -> Unit,
     onManageGameClick: (GameItem) -> Unit,
@@ -316,19 +316,21 @@ fun HomeScreen(
     val ciaInstallState by viewModel.ciaInstallState.collectAsState()
 
     // CIA images cannot boot directly: tapping one installs it first (or boots
-    // the already installed copy), everything else launches normally.
+    // the already installed copy), everything else launches normally. The
+    // installed copy is passed separately so the game keeps its library
+    // identity (title, serial and cover) while booting from the NAND/SD file.
     val launchGame: (GameItem) -> Unit = { game ->
         if (N3dsGameFormats.isCiaFile(game.fileName) || N3dsGameFormats.isCiaFile(game.path)) {
             scope.launch {
                 val installedPath = viewModel.findInstalledCiaPath(game)
                 if (installedPath != null) {
-                    onGameClick(game.copy(path = installedPath))
+                    onGameClick(game, installedPath)
                 } else {
                     viewModel.installCia(game)
                 }
             }
         } else {
-            onGameClick(game)
+            onGameClick(game, null)
         }
     }
 
@@ -336,7 +338,7 @@ fun HomeScreen(
         state = ciaInstallState,
         onBoot = { game, installedPath ->
             viewModel.dismissCiaInstall()
-            onGameClick(game.copy(path = installedPath))
+            onGameClick(game, installedPath)
         },
         onDismiss = viewModel::dismissCiaInstall
     )

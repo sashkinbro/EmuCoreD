@@ -897,7 +897,8 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
         bootToBios: Boolean = false,
         bootSmokeProbe: Boolean = false,
         autotestMode: Boolean = false,
-        rendererOverride: Int? = null
+        rendererOverride: Int? = null,
+        launchPathOverride: String? = null
     ) {
         val analyticsLaunchType = when {
             bootSmokeProbe -> "smoke_test"
@@ -998,13 +999,14 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
                 )
                 delay(200.milliseconds)
 
+                val bootSourcePath = launchPathOverride?.takeIf { it.isNotBlank() } ?: path
                 val launchPath = when {
                     bootToBios -> ""
-                    path.isNullOrBlank() -> null
-                    path.startsWith("content://") && DocumentPathResolver.getDisplayName(getApplication(), path)
+                    bootSourcePath.isNullOrBlank() -> null
+                    bootSourcePath.startsWith("content://") && DocumentPathResolver.getDisplayName(getApplication(), bootSourcePath)
                         .substringAfterLast('.', "").equals("elf", ignoreCase = true) ->
-                            DocumentPathResolver.prepareElfLaunchPath(getApplication(), path)
-                    else -> DocumentPathResolver.prepareGameLaunchPath(getApplication(), path)
+                            DocumentPathResolver.prepareElfLaunchPath(getApplication(), bootSourcePath)
+                    else -> DocumentPathResolver.prepareGameLaunchPath(getApplication(), bootSourcePath)
                 }
 
                 if (!bootToBios && launchPath.isNullOrBlank()) {
