@@ -1011,8 +1011,12 @@ jlong Java_com_sbro_emucored_core_EmuCoreNative_getCiaTitleId(JNIEnv* env,
 
 jstring Java_com_sbro_emucored_core_EmuCoreNative_getCoreVersionString(
     JNIEnv* env, [[maybe_unused]] jobject obj) {
+    std::string build = Common::g_build_fullname;
+    if (build.empty() || build.find("UNKNOWN") != std::string::npos) {
+        build.clear();
+    }
     const std::string version =
-        fmt::format("{} ({}-{})", Common::g_build_fullname, Common::g_scm_branch, Common::g_scm_desc);
+        build.empty() ? std::string("Azahar") : fmt::format("Azahar {}", build);
     return ToJString(env, version);
 }
 

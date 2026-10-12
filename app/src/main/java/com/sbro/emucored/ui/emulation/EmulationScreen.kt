@@ -236,14 +236,6 @@ import com.sbro.emucored.ui.theme.neon.neonChipShape
 import com.sbro.emucored.ui.theme.neon.neonShape
 import com.sbro.emucored.ui.theme.neon.neonShapeCorners
 
-private val DISC_SWAP_MIME_TYPES = arrayOf(
-    "application/octet-stream",
-    "application/x-iso9660-image",
-    "application/x-cd-image",
-    "application/x-chd",
-    "application/gzip"
-)
-
 private object PadKey {
     const val UP = 19
     const val RIGHT = 22
@@ -381,15 +373,7 @@ fun EmulationScreen(
     bootSmokeProbe: Boolean = false,
     saveSlot: Int? = null,
     autotestMode: Boolean = false,
-    enableEeRecompilerOverride: Boolean? = null,
-    enableIopRecompilerOverride: Boolean? = null,
-    enableVu0RecompilerOverride: Boolean? = null,
-    enableVu1RecompilerOverride: Boolean? = null,
-    enableFastmemOverride: Boolean? = null,
-    enableMtvuOverride: Boolean? = null,
     rendererOverride: Int? = null,
-    gsDumpFrames: Int? = null,
-    gsDumpDelayMs: Int? = null,
     restoredAfterProcessDeath: Boolean = false,
     onExit: (activePlayTimeMs: Long) -> Unit,
     viewModel: EmulationViewModel = viewModel()
@@ -477,11 +461,6 @@ fun EmulationScreen(
             delay(5_000L)
             achievementUnlockBanner = null
         }
-    }
-    val swapDiscPicker = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.OpenDocument()
-    ) { uri ->
-        uri?.let(viewModel::swapDisc)
     }
     val rootCutoutPadding = WindowInsets.displayCutout.asPaddingValues()
     val rootNavPadding = WindowInsets.navigationBars.asPaddingValues()
@@ -773,15 +752,7 @@ fun EmulationScreen(
         bootToBios,
         bootSmokeProbe,
         autotestMode,
-        enableEeRecompilerOverride,
-        enableIopRecompilerOverride,
-        enableVu0RecompilerOverride,
-        enableVu1RecompilerOverride,
-        enableFastmemOverride,
-        enableMtvuOverride,
         rendererOverride,
-        gsDumpFrames,
-        gsDumpDelayMs,
         restoredAfterProcessDeath
     ) {
         if (restoredAfterProcessDeath) return@LaunchedEffect
@@ -791,15 +762,7 @@ fun EmulationScreen(
             bootToBios = bootToBios,
             bootSmokeProbe = bootSmokeProbe,
             autotestMode = autotestMode,
-            enableEeRecompilerOverride = enableEeRecompilerOverride,
-            enableIopRecompilerOverride = enableIopRecompilerOverride,
-            enableVu0RecompilerOverride = enableVu0RecompilerOverride,
-            enableVu1RecompilerOverride = enableVu1RecompilerOverride,
-            enableFastmemOverride = enableFastmemOverride,
-            enableMtvuOverride = enableMtvuOverride,
-            rendererOverride = rendererOverride,
-            gsDumpFrames = gsDumpFrames,
-            gsDumpDelayMs = gsDumpDelayMs
+            rendererOverride = rendererOverride
         )
     }
 
@@ -1144,9 +1107,6 @@ fun EmulationScreen(
                 "bios_missing" -> stringResource(R.string.emulation_bios_missing)
                 "launch_failed" -> stringResource(R.string.emulation_launch_failed)
                 "launch_path_error" -> stringResource(R.string.emulation_launch_path_error)
-                "disc_swap_success" -> stringResource(R.string.emulation_swap_disc_success)
-                "disc_swap_failed" -> stringResource(R.string.emulation_swap_disc_failed)
-                "disc_swap_invalid" -> stringResource(R.string.emulation_swap_disc_invalid)
                 else -> ""
             }
             Box(
@@ -1448,8 +1408,19 @@ fun EmulationScreen(
             } else {
                 0.dp
             }
-            val extraLeftInset = if (secondScreenSide == AppPreferences.SECOND_SCREEN_SIDE_LEFT) panelShiftDp else 0.dp
-            val extraRightInset = if (secondScreenSide == AppPreferences.SECOND_SCREEN_SIDE_RIGHT) panelShiftDp else 0.dp
+            val targetLeftInset = if (secondScreenSide == AppPreferences.SECOND_SCREEN_SIDE_LEFT) panelShiftDp else 0.dp
+            val targetRightInset = if (secondScreenSide == AppPreferences.SECOND_SCREEN_SIDE_RIGHT) panelShiftDp else 0.dp
+            // Glide the controls along with the panel slide instead of snapping.
+            val extraLeftInset by animateDpAsState(
+                targetValue = targetLeftInset,
+                animationSpec = tween(260),
+                label = "controlsLeftInset"
+            )
+            val extraRightInset by animateDpAsState(
+                targetValue = targetRightInset,
+                animationSpec = tween(260),
+                label = "controlsRightInset"
+            )
             // A gamepad is a physical control surface, so its layout must not mirror with
             // the app's RTL locale. The touch hit boxes use absolute screen coordinates;
             // keeping the visual overlay LTR guarantees that visible and logical buttons
@@ -1647,7 +1618,6 @@ fun EmulationScreen(
                     overlayDefaults = overlayDefaults,
                     onClose = toggleMenuClick,
                     onPauseToggle = togglePauseClick,
-                    onSwapDisc = { swapDiscPicker.launch(DISC_SWAP_MIME_TYPES) },
                     onQuickSave = requestQuickSaveClick,
                     onQuickLoad = requestQuickLoadClick,
                     onLoadAutoSave = requestAutoSaveLoadClick,
@@ -2817,7 +2787,6 @@ private fun EmulationSidebarMenu(
     overlayDefaults: OverlayLayoutSnapshot,
     onClose: () -> Unit,
     onPauseToggle: () -> Unit,
-    onSwapDisc: () -> Unit,
     onQuickSave: () -> Unit,
     onQuickLoad: () -> Unit,
     onLoadAutoSave: () -> Unit,

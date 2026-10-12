@@ -253,14 +253,6 @@ internal object CoreRuntime {
         return start(path, biosOnly = false)
     }
 
-    fun changeDisc(path: String): Boolean {
-        if (path.isBlank() || !running) return false
-        return runCatching {
-            EmuCoreNative.setInsertedCartridge(path)
-            true
-        }.getOrDefault(false)
-    }
-
     fun hasDiscMedia(): Boolean = currentGamePath?.isNotBlank() == true
 
     // ---------------------------------------------------------------------
@@ -542,20 +534,22 @@ internal object CoreRuntime {
         if (stats.size < 9) return null
         val systemFps = stats[0]
         val gameFps = stats[1]
-        val speed = stats[2]
+        val speedPercent = stats[2] * 100.0
         val frameTime = if (gameFps > 0.5) 1000.0 / gameFps else 0.0
         val overlay = buildString {
-            append(String.format(Locale.US, "FPS: %.1f | Speed: %.1f%%", gameFps, speed))
+            append(String.format(Locale.US, "FPS: %.1f | Speed: %.1f%%", gameFps, speedPercent))
             if (detailedPerformanceMetrics) {
                 append('\n')
                 append(String.format(Locale.US, "Frame: %.1f ms", frameTime))
-                if (systemFps > 0.0) {
-                    append('\n')
-                    append(String.format(Locale.US, "System: %.1f FPS", systemFps))
-                }
             }
         }
-        performanceMetricsSnapshot = String.format(Locale.US, "%.3f\n%.3f\n%s", gameFps, speed, overlay)
+        performanceMetricsSnapshot = String.format(
+            Locale.US,
+            "%.3f\n%.3f\n%s",
+            gameFps,
+            speedPercent,
+            overlay
+        )
         return performanceMetricsSnapshot
     }
 

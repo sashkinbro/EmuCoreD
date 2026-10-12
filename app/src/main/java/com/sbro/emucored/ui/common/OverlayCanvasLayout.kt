@@ -167,9 +167,11 @@ fun buildOverlayCanvasLayout(
     // Keep the controller visually centered even when a landscape camera cutout or
     // navigation inset exists on only one side. The larger inset is mirrored so the
     // physical left and right margins remain equal while both sides stay safe.
+    // A second-screen panel inset replaces the mirrored safe inset on its side: the
+    // panel already spans that edge, so adding both pushed the controls past the middle.
     val horizontalSafeInset = maxOf(safeLeftInset, safeRightInset)
-    val edgePadStart = horizontalSafeInset + extraLeftInset + edgePadding
-    val edgePadEnd = horizontalSafeInset + extraRightInset + edgePadding
+    val edgePadStart = maxOf(horizontalSafeInset, extraLeftInset) + edgePadding
+    val edgePadEnd = maxOf(horizontalSafeInset, extraRightInset) + edgePadding
     val edgePadTop = safeTopInset + verticalPadding
     val contentBottom = canvasHeight - safeBottomInset - verticalPadding
     val sectionGap = 12.dp * responsiveScale

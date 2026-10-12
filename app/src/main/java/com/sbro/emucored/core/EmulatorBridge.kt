@@ -250,9 +250,6 @@ object EmulatorBridge {
                     result = false
                 }
                 isVmActive = NativeApp.hasOwnedVm()
-                if (!isVmActive) {
-                    DocumentPathResolver.releasePreparedLaunchHandles()
-                }
                 NativeApp.logCrashBreadcrumb("startEmulation finished result=$result")
                 Log.i(TAG, "startEmulation finished result=$result")
                 result
@@ -307,7 +304,6 @@ object EmulatorBridge {
             try {
                 NativeApp.shutdown()
                 isVmActive = false
-                DocumentPathResolver.releasePreparedLaunchHandles()
             } finally {
                 // A failed teardown must retain ownership and its descriptors.
                 shutdownRequested = false
@@ -469,20 +465,6 @@ object EmulatorBridge {
                 }
                 success
             } catch (_: Exception) {
-                false
-            }
-        }
-    }
-
-    /** Swaps the mounted image for a 3DS title without restarting the session. */
-    suspend fun changeDisc(path: String): Boolean {
-        if (!isNativeLoaded || !isVmActive || path.isBlank()) return false
-        return runSerial {
-            try {
-                NativeApp.logCrashBreadcrumb("image swap requested pathType=${path.substringBefore(':', "file")}")
-                NativeApp.changeDisc(path)
-            } catch (error: Exception) {
-                Log.e(TAG, "Image swap failed", error)
                 false
             }
         }

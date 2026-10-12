@@ -28,6 +28,7 @@ import com.sbro.emucored.core.CoreOptionStore
 import com.sbro.emucored.core.PerformanceProfiles
 import com.sbro.emucored.core.resolveAndroidGamePhase
 import com.sbro.emucored.core.normalizeUpscale
+import com.sbro.emucored.core.normalizeUpscale
 import com.sbro.emucored.data.AppPreferences
 import com.sbro.emucored.data.SettingsSnapshot
 import com.sbro.emucored.data.AppPreferences.Companion.FPS_OVERLAY_MODE_SIMPLE
@@ -81,6 +82,7 @@ import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import java.io.File
 import java.util.Locale
+import kotlin.math.roundToInt
 import kotlin.time.Duration.Companion.milliseconds
 
 private val PER_GAME_GPU_DRIVER_KEYS = setOf(
@@ -106,25 +108,6 @@ private fun buildPerformanceOverlayHeader(application: Application): String {
         .takeIf(String::isNotBlank)
     return "EmuCoreD $appVersion" +
         coreVersion?.let { " | $it" }.orEmpty()
-}
-
-internal fun replacePerformanceCpuName(text: String, cpuName: String): String {
-    if (cpuName.isBlank() || cpuName == "Unknown") return text
-    return text.lineSequence().joinToString("\n") { line ->
-        if (!line.startsWith("CPU:")) return@joinToString line
-        val valuesStart = line.indexOf(" | ")
-        if (valuesStart < 0) "CPU:$cpuName" else "CPU:$cpuName${line.substring(valuesStart)}"
-    }
-}
-
-internal fun replacePerformanceGpuName(text: String, gpuName: String): String {
-    if (gpuName.isBlank() || gpuName == "Unknown") return text
-    return text.lineSequence().joinToString("\n") { line ->
-        if (!line.contains("GPU:")) return@joinToString line
-        line.split(" | ").joinToString(" | ") { segment ->
-            if (segment.startsWith("GPU:")) "GPU:$gpuName" else segment
-        }
-    }
 }
 
 enum class EmulationTransportMode { None, FastForward, Rewind }
@@ -871,15 +854,41 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
         if (parts.size < 3) return
         val fps = parts[0].toFloatOrNull() ?: return
         val speedPercent = parts[1].toFloatOrNull() ?: return
-        val overlayText = replacePerformanceGpuName(
-            replacePerformanceCpuName(parts[2], performanceCpuName),
-            performanceGpuName
-        )
+        val overlayText = buildPerformanceOverlayText(parts[2], state)
         _uiState.value = state.copy(
             performanceOverlayText = overlayText,
             fps = "%.1f".format(fps),
             speedPercent = speedPercent
         )
+    }
+
+    private fun buildPerformanceOverlayText(metrics: String, state: EmulationUiState): String {
+        val rendererName = RendererDefaults.coreRendererName(
+            RendererDefaults.toCoreRenderer(state.renderer)
+        )
+        val upscale = normalizeUpscale(state.upscale)
+        val upscaleLabel = if (upscale <= 1f) "Native" else "${upscale.roundToInt()}x"
+        val width = (400f * upscale).toInt()
+        val height = (240f * upscale).toInt()
+        return buildString {
+            append(metrics)
+            if (performanceCpuName.isNotBlank()) {
+                append('\n').append("CPU: ").append(performanceCpuName)
+            }
+            if (performanceGpuName.isNotBlank()) {
+                append('\n').append("GPU: ").append(performanceGpuName)
+            }
+            append('\n')
+                .append("Renderer: ")
+                .append(rendererName)
+                .append(" | ")
+                .append(upscaleLabel)
+            append('\n')
+                .append("Res: ")
+                .append(width)
+                .append('x')
+                .append(height)
+        }
     }
 
     fun startEmulation(
@@ -888,15 +897,7 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
         bootToBios: Boolean = false,
         bootSmokeProbe: Boolean = false,
         autotestMode: Boolean = false,
-        enableEeRecompilerOverride: Boolean? = null,
-        enableIopRecompilerOverride: Boolean? = null,
-        enableVu0RecompilerOverride: Boolean? = null,
-        enableVu1RecompilerOverride: Boolean? = null,
-        enableFastmemOverride: Boolean? = null,
-        enableMtvuOverride: Boolean? = null,
-        rendererOverride: Int? = null,
-        gsDumpFrames: Int? = null,
-        gsDumpDelayMs: Int? = null
+        rendererOverride: Int? = null
     ) {
         val analyticsLaunchType = when {
             bootSmokeProbe -> "smoke_test"
@@ -1068,7 +1069,7 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
                     currentGameTitle = EmulatorBridge.cleanGameDisplayTitle(metadata.title, safePath)
                     currentGameSerial = metadata.serial?.takeIf { it.isNotBlank() }
                         ?.uppercase(java.util.Locale.ROOT).orEmpty()
-                    currentGameRegionLabel = resolveRegionLabel(currentGameSerial, safePath)
+                    currentGameRegionLabel = resolveRegionLabel(safePath)
                     currentGameCoverArtPath = gameRepository.findCoverForGame(
                         path = safePath,
                         context = getApplication(),
@@ -1348,65 +1349,6 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
             }
         } else {
             closeMenu()
-        }
-    }
-
-    fun swapDisc(uri: Uri) {
-        viewModelScope.launch(Dispatchers.IO) {
-            val context = getApplication<Application>()
-            val displayName = DocumentPathResolver.getDisplayName(context, uri.toString())
-            val readable = runCatching {
-                context.contentResolver.openFileDescriptor(uri, "r")?.use { descriptor ->
-                    descriptor.statSize != 0L
-                } ?: false
-            }.getOrDefault(false)
-
-            if (!SetupValidator.isSupportedDiscImageName(displayName) || !readable) {
-                _uiState.value = _uiState.value.copy(toastMessage = "disc_swap_invalid")
-                delay(2500.milliseconds)
-                if (_uiState.value.toastMessage == "disc_swap_invalid") {
-                    _uiState.value = _uiState.value.copy(toastMessage = null)
-                }
-                return@launch
-            }
-
-            runCatching {
-                context.contentResolver.takePersistableUriPermission(
-                    uri,
-                    Intent.FLAG_GRANT_READ_URI_PERMISSION
-                )
-            }
-
-            _uiState.value = _uiState.value.copy(
-                isActionInProgress = true,
-                actionLabel = "swapping_disc"
-            )
-            val success = lifecycleMutex.withLock {
-                if (isShuttingDown || !_uiState.value.isRunning) {
-                    false
-                } else {
-                    EmulatorBridge.changeDisc(uri.toString())
-                }
-            }
-
-            // VMManager restores the old image when opening the selected image fails.
-            // Either way the tray cycle must continue, so close the menu and resume.
-            runCatching { EmulatorBridge.resume() }
-            pausedForBackground = false
-            _uiState.value = _uiState.value.copy(
-                isPaused = false,
-                showMenu = false,
-                isActionInProgress = false,
-                actionLabel = null,
-                toastMessage = if (success) "disc_swap_success" else "disc_swap_failed"
-            )
-            DiscordIntegration.setPaused(false)
-            updateCrashContext(launchState = "running")
-            delay(3000.milliseconds)
-            val expectedToast = if (success) "disc_swap_success" else "disc_swap_failed"
-            if (_uiState.value.toastMessage == expectedToast) {
-                _uiState.value = _uiState.value.copy(toastMessage = null)
-            }
         }
     }
 
@@ -2077,19 +2019,8 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
         currentGameCrc.takeIf { it.isNotBlank() }?.let(::add)
     }.joinToString("  /  ")
 
-    private fun resolveRegionLabel(serial: String, path: String): String {
-        return serialRegionLabel(serial) ?: filenameRegionLabel(path).orEmpty()
-    }
-
-    private fun serialRegionLabel(serial: String): String? {
-        val prefix = serial.uppercase().replace(Regex("[^A-Z0-9]"), "").take(4)
-        if (prefix.length < 4) return null
-        return when (prefix) {
-            "UCUS", "ULUS", "NPUH", "UCJS", "ULJS", "ULJM", "NPJH",
-            "UCAS", "ULAS", "NPUG" -> "NTSC"
-            "UCES", "ULES", "NPEH", "NPEG" -> "PAL"
-            else -> null
-        }
+    private fun resolveRegionLabel(path: String): String {
+        return filenameRegionLabel(path).orEmpty()
     }
 
     private fun filenameRegionLabel(path: String?): String? {
@@ -2966,7 +2897,6 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
                         delay(50.milliseconds)
                         waitTime += 50
                     }
-                    DocumentPathResolver.releasePreparedLaunchHandles()
                 } catch (_: Exception) { }
                 _uiState.value = _uiState.value.copy(
                     isRunning = false,

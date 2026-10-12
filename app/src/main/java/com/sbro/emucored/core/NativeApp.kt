@@ -223,8 +223,6 @@ object NativeApp {
     @JvmStatic fun restartRenderer(renderer: Int): Boolean =
         CoreRuntime.restartWithRenderer(renderer)
 
-    @JvmStatic fun changeDisc(path: String): Boolean = CoreRuntime.changeDisc(path)
-
     @JvmStatic fun pause() = CoreRuntime.pause()
 
     @JvmStatic fun resume() = CoreRuntime.resume()
