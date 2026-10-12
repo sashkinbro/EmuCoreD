@@ -1011,6 +1011,39 @@ jlong Java_com_sbro_emucored_core_EmuCoreNative_getCiaTitleId(JNIEnv* env,
     return static_cast<jlong>(info.Unwrap().first.tid);
 }
 
+jbyteArray Java_com_sbro_emucored_core_EmuCoreNative_getGameSmdh(JNIEnv* env,
+                                                               [[maybe_unused]] jobject obj,
+                                                               jstring j_filename) {
+    // Returns the raw SMDH block (titles, product code, icons) for the game.
+    // Encrypted images are decrypted by the container's crypto layer, so this
+    // works for retail dumps too.
+    const std::string filepath = GetJString(env, j_filename);
+    std::vector<u8> smdh;
+    const auto loader = Loader::GetLoader(filepath);
+    if (loader && loader->ReadIcon(smdh) != Loader::ResultStatus::Success) {
+        smdh.clear();
+    }
+    if (smdh.size() < sizeof(Loader::SMDH)) {
+        smdh.clear();
+        const auto info = Service::AM::GetCIAInfos(filepath);
+        if (info.Succeeded() && info.Unwrap().second) {
+            const auto* source = info.Unwrap().second.get();
+            smdh.assign(reinterpret_cast<const u8*>(source),
+                        reinterpret_cast<const u8*>(source) + sizeof(Loader::SMDH));
+        }
+    }
+    if (smdh.size() < 0x2A00) {
+        return nullptr;
+    }
+    jbyteArray result = env->NewByteArray(static_cast<jsize>(smdh.size()));
+    if (result == nullptr) {
+        return nullptr;
+    }
+    env->SetByteArrayRegion(result, 0, static_cast<jsize>(smdh.size()),
+                            reinterpret_cast<const jbyte*>(smdh.data()));
+    return result;
+}
+
 jboolean Java_com_sbro_emucored_core_EmuCoreNative_getIsSystemTitle(JNIEnv* env,
                                                                   [[maybe_unused]] jobject obj,
                                                                   jstring path) {

@@ -585,10 +585,14 @@ class N3dsCatalogRepository(private val context: Context) {
     }
 }
 
-private const val MIN_FUZZY_TITLE_SCORE = 0.68
+private const val MIN_FUZZY_TITLE_SCORE = 0.60
 
 internal fun normalizeIdentityTitle(value: String): String {
-    return Normalizer.normalize(value.lowercase(Locale.ROOT), Normalizer.Form.NFD)
+    return Normalizer.normalize(
+        value.lowercase(Locale.ROOT)
+            .replace(Regex("""['’]s\b"""), ""),
+        Normalizer.Form.NFD
+    )
         .replace(Regex("\\p{Mn}+"), "")
         .replace(Regex("""\[[^]]*]|\([^)]*\)"""), " ")
         .replace(Regex("""[^\p{L}\p{N}]+"""), " ")
@@ -605,11 +609,55 @@ internal fun catalogTitleSimilarity(left: String, right: String): Double {
 internal fun tokenSimilarity(leftTokens: Set<String>, rightTokens: Set<String>): Double {
     if (leftTokens.isEmpty() || rightTokens.isEmpty()) return 0.0
     if (leftTokens == rightTokens) return 1.0
-    val common = leftTokens.intersect(rightTokens).size
-    if (common == 0 || (common == 1 && minOf(leftTokens.size, rightTokens.size) > 1)) return 0.0
-    val candidateCoverage = common.toDouble() / leftTokens.size
-    val catalogCoverage = common.toDouble() / rightTokens.size
+    val remaining = rightTokens.toMutableSet()
+    var matched = 0
+    for (token in leftTokens) {
+        val exact = remaining.firstOrNull { it == token }
+        val match = exact ?: remaining.firstOrNull { catalogTokensLookAlike(token, it) }
+        if (match != null) {
+            matched++
+            remaining.remove(match)
+        }
+    }
+    if (matched == 0 || (matched == 1 && minOf(leftTokens.size, rightTokens.size) > 1)) return 0.0
+    val candidateCoverage = matched.toDouble() / leftTokens.size
+    val catalogCoverage = matched.toDouble() / rightTokens.size
     return candidateCoverage * 0.75 + catalogCoverage * 0.25
+}
+
+/**
+ * Tolerates the spelling differences dumps and catalogue names use: plurals
+ * ("Yoshis" vs "Yoshi"), possessives ("Luigis" vs "Luigi's") and single
+ * character typos.
+ */
+private fun catalogTokensLookAlike(left: String, right: String): Boolean {
+    if (left.length < 3 || right.length < 3) return false
+    if (left == right) return true
+    if (left.removeSuffix("s") == right.removeSuffix("s")) return true
+    if (kotlin.math.abs(left.length - right.length) > 1) return false
+    return isWithinOneEdit(left, right)
+}
+
+private fun isWithinOneEdit(left: String, right: String): Boolean {
+    if (left == right) return true
+    val shorter = if (left.length <= right.length) left else right
+    val longer = if (left.length <= right.length) right else left
+    if (longer.length - shorter.length > 1) return false
+    var i = 0
+    var j = 0
+    var edits = 0
+    while (i < shorter.length && j < longer.length) {
+        if (shorter[i] == longer[j]) {
+            i++
+            j++
+            continue
+        }
+        edits++
+        if (edits > 1) return false
+        if (shorter.length == longer.length) i++
+        j++
+    }
+    return true
 }
 
 private fun catalogMatchTokens(value: String): Set<String> {
@@ -617,6 +665,9 @@ private fun catalogMatchTokens(value: String): Set<String> {
         .split(' ')
         .asSequence()
         .filter { it.isNotBlank() && it !in CATALOG_TITLE_STOP_WORDS }
+        // Single letters left over from possessives ("luigi s mansion") are
+        // noise; single digits ("mansion 2") still matter.
+        .filter { it.length > 1 || it.all(Char::isDigit) }
         .map { CATALOG_ROMAN_NUMERALS[it] ?: it }
         .toCollection(LinkedHashSet())
 }

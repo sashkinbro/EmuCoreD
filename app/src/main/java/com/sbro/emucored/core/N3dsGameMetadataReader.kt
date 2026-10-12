@@ -4,6 +4,8 @@ import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.net.Uri
+import android.os.ParcelFileDescriptor
+import android.system.Os
 import androidx.documentfile.provider.DocumentFile
 import java.io.File
 import java.io.RandomAccessFile
@@ -58,19 +60,39 @@ object N3dsGameMetadataReader {
 
     private const val CACHE_LIMIT = 1024
     private val metadataCache = ConcurrentHashMap<String, N3dsGameMetadata>()
+    private val smdhCache = ConcurrentHashMap<String, ByteArray>()
 
+    /**
+     * Random access to a game image. SAF descriptors are read through
+     * [Os.pread] on the original file descriptor: reopening the provider
+     * through /proc is not permitted under scoped storage.
+     */
     private class ImageHandle(
-        private val file: RandomAccessFile,
         val length: Long,
-        private val descriptor: AutoCloseable?
+        private val file: RandomAccessFile?,
+        private val descriptor: ParcelFileDescriptor?
     ) : AutoCloseable {
         fun readAt(offset: Long, size: Int): ByteArray? {
             if (offset < 0 || size <= 0 || offset + size > length) return null
-            file.seek(offset)
+            val parcel = descriptor
+            if (parcel != null) {
+                val bytes = ByteArray(size)
+                var filled = 0
+                while (filled < size) {
+                    val read = runCatching {
+                        Os.pread(parcel.fileDescriptor, bytes, filled, size - filled, offset + filled)
+                    }.getOrDefault(-1)
+                    if (read <= 0) break
+                    filled += read
+                }
+                return if (filled == size) bytes else bytes.copyOf(filled)
+            }
+            val handle = file ?: return null
+            handle.seek(offset)
             val bytes = ByteArray(size)
             var filled = 0
             while (filled < size) {
-                val read = file.read(bytes, filled, size - filled)
+                val read = handle.read(bytes, filled, size - filled)
                 if (read <= 0) break
                 filled += read
             }
@@ -78,7 +100,7 @@ object N3dsGameMetadataReader {
         }
 
         override fun close() {
-            runCatching { file.close() }
+            runCatching { file?.close() }
             runCatching { descriptor?.close() }
         }
     }
@@ -94,7 +116,7 @@ object N3dsGameMetadataReader {
         metadataCache[identity]?.let { return@runCatching it }
         val metadata = openImage(context, path)?.use { image ->
             val structure = analyze(context, path, image)
-            val smdh = structure.smdh
+            val smdh = structure.smdh ?: nativeSmdh(identity, path)
             val title = smdh?.let { decodeTitle(slice(it, TITLE_ENGLISH_OFFSET, TITLE_LENGTH)) }
             val smdhProductCode =
                 smdh?.let { decodeProductCode(slice(it, PRODUCT_CODE_OFFSET, PRODUCT_CODE_LENGTH)) }
@@ -118,8 +140,11 @@ object N3dsGameMetadataReader {
         val target = File(directory, "$hash.png")
         if (isImage(target)) return@runCatching target.absolutePath
 
-        val smdh = openImage(context, path)?.use { image -> analyze(context, path, image).smdh }
-            ?: return@runCatching null
+        var smdh = openImage(context, path)?.use { image -> analyze(context, path, image).smdh }
+        if (smdh == null) {
+            smdh = nativeSmdh(identity, path)
+        }
+        if (smdh == null) return@runCatching null
         val raw = slice(smdh, LARGE_ICON_OFFSET, LARGE_ICON_SIZE * LARGE_ICON_SIZE * 2)
         if (raw.size < LARGE_ICON_SIZE * LARGE_ICON_SIZE * 2) return@runCatching null
 
@@ -167,6 +192,20 @@ object N3dsGameMetadataReader {
         return ImageStructure(scanForSmdh(image), 0L, null)
     }
 
+    /**
+     * Reads the SMDH block through the core when the pure-Kotlin container
+     * parse cannot: retail images keep the icon section encrypted and only
+     * the core owns the decryption keys.
+     */
+    private fun nativeSmdh(identity: String, path: String): ByteArray? {
+        smdhCache[identity]?.let { return it }
+        if (!EmuCoreNative.isLoaded) return null
+        val smdh = runCatching { EmuCoreNative.getGameSmdh(path) }.getOrNull() ?: return null
+        if (smdh.size < 0x2A00) return null
+        if (smdhCache.size < CACHE_LIMIT) smdhCache[identity] = smdh
+        return smdh
+    }
+
     private fun analyzeCia(image: ImageHandle): ImageStructure {
         val header = image.readAt(0L, CIA_HEADER_SIZE) ?: return ImageStructure(null, 0L, null)
         if (header.size < CIA_HEADER_SIZE) return ImageStructure(null, 0L, null)
@@ -177,15 +216,44 @@ object N3dsGameMetadataReader {
         val tmdSize = buffer.getInt(0x10).toLong() and 0xFFFFFFFFL
         val metaSize = buffer.getInt(0x14).toLong() and 0xFFFFFFFFL
         val contentSize = buffer.getLong(0x18)
-        if (metaSize < CIA_META_SMDH_OFFSET + SMDH_SIZE) return ImageStructure(null, 0L, null)
 
         val certificateOffset = alignUp(headerSize, CIA_SECTION_ALIGNMENT)
         val ticketOffset = alignUp(certificateOffset + certSize, CIA_SECTION_ALIGNMENT)
         val tmdOffset = alignUp(ticketOffset + ticketSize, CIA_SECTION_ALIGNMENT)
         val contentOffset = alignUp(tmdOffset + tmdSize, CIA_SECTION_ALIGNMENT)
+        val titleId = readCiaTitleId(image, tmdOffset, tmdSize) ?: 0L
+
+        if (metaSize < CIA_META_SMDH_OFFSET + SMDH_SIZE) {
+            return ImageStructure(null, titleId, null)
+        }
         val metadataOffset = alignUp(contentOffset + contentSize, CIA_SECTION_ALIGNMENT)
         val smdhOffset = metadataOffset + CIA_META_SMDH_OFFSET
-        return ImageStructure(readSmdhAt(image, smdhOffset), 0L, null)
+        return ImageStructure(readSmdhAt(image, smdhOffset), titleId, null)
+    }
+
+    /** The CIA title id lives in the TMD, after the variable-length signature. */
+    private fun readCiaTitleId(image: ImageHandle, tmdOffset: Long, tmdSize: Long): Long? {
+        if (tmdSize < 0xA4L) return null
+        val size = minOf(tmdSize, 0x4000L).toInt()
+        val tmd = image.readAt(tmdOffset, size) ?: return null
+        val issuer = "Root-CA".toByteArray(Charsets.US_ASCII)
+        var base = -1
+        val limit = minOf(tmd.size - issuer.size, 0x300)
+        for (index in 0..limit) {
+            var matches = true
+            for (offset in issuer.indices) {
+                if (tmd[index + offset] != issuer[offset]) {
+                    matches = false
+                    break
+                }
+            }
+            if (matches) {
+                base = index
+                break
+            }
+        }
+        if (base < 0 || base + 0x54 > tmd.size) return null
+        return ByteBuffer.wrap(tmd, base + 0x4C, 8).order(ByteOrder.BIG_ENDIAN).long
     }
 
     private fun analyzeNcsd(image: ImageHandle): ImageStructure? {
@@ -292,13 +360,12 @@ object N3dsGameMetadataReader {
         if (path.startsWith("content://")) {
             val descriptor = context.contentResolver.openFileDescriptor(Uri.parse(path), "r")
                 ?: return null
-            return try {
-                val file = RandomAccessFile("/proc/self/fd/${descriptor.fd}", "r")
-                ImageHandle(file, file.length(), descriptor)
-            } catch (error: Exception) {
+            val length = runCatching { descriptor.statSize }.getOrDefault(-1L)
+            if (length <= 0L) {
                 runCatching { descriptor.close() }
-                null
+                return null
             }
+            return ImageHandle(length, null, descriptor)
         }
         val localPath = if (path.startsWith("file://")) {
             runCatching { Uri.parse(path).path }.getOrNull() ?: path
@@ -309,7 +376,7 @@ object N3dsGameMetadataReader {
         if (!file.isFile) return null
         return try {
             val handle = RandomAccessFile(file, "r")
-            ImageHandle(handle, handle.length(), null)
+            ImageHandle(handle.length(), handle, null)
         } catch (_: Exception) {
             null
         }

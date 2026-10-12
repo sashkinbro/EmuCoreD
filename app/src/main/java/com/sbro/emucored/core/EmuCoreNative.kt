@@ -106,6 +106,8 @@ object EmuCoreNative {
     // ---------------------------------------------------------------------
     external fun getTitleId(filename: String): Long
     external fun getCiaTitleId(filename: String): Long
+    /** Raw SMDH block for a game image, decrypted by the core when necessary. */
+    external fun getGameSmdh(path: String): ByteArray?
     external fun getIsSystemTitle(path: String): Boolean
     external fun getInstalledGamePathsImpl(): Array<String?>
     external fun getHomeMenuPath(region: Int): String
