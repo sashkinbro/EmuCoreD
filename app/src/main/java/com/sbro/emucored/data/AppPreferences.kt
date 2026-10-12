@@ -271,6 +271,16 @@ class AppPreferences(private val context: Context) {
         const val ORIENTATION_LOCK_PORTRAIT = 1
         const val ORIENTATION_LOCK_LANDSCAPE = 2
 
+        /**
+         * Process-wide memo for values read on hot paths (library publishing,
+         * cover resolution). DataStore reads there are blocking and would
+         * otherwise run once per game and per recomposition.
+         */
+        private class SyncValueCache<T>(val value: T)
+
+        @Volatile private var coverArtStyleCache: SyncValueCache<Int>? = null
+        @Volatile private var coverDownloadBaseUrlCache: SyncValueCache<String?>? = null
+
         fun normalizeOrientationLock(value: Int?): Int = when (value) {
             ORIENTATION_LOCK_PORTRAIT, ORIENTATION_LOCK_LANDSCAPE -> value
             else -> ORIENTATION_LOCK_AUTO
@@ -1125,19 +1135,22 @@ class AppPreferences(private val context: Context) {
     }
 
     suspend fun setCoverDownloadBaseUrl(url: String?) {
+        val normalized = url?.trim()?.trimEnd('/')?.takeIf { it.isNotBlank() }
         context.dataStore.edit { prefs ->
-            if (url.isNullOrBlank()) {
+            if (normalized == null) {
                 prefs.remove(COVER_DOWNLOAD_BASE_URL)
             } else {
-                prefs[COVER_DOWNLOAD_BASE_URL] = url.trim().trimEnd('/')
+                prefs[COVER_DOWNLOAD_BASE_URL] = normalized
             }
         }
+        coverDownloadBaseUrlCache = SyncValueCache(normalized)
     }
 
     fun getCoverDownloadBaseUrlSync(): String? {
+        coverDownloadBaseUrlCache?.let { return it.value }
         return kotlinx.coroutines.runBlocking {
             context.dataStore.data.map { it[COVER_DOWNLOAD_BASE_URL] }.first()
-        }
+        }.also { coverDownloadBaseUrlCache = SyncValueCache(it) }
     }
 
     private fun readCoverArtStyle(prefs: Preferences): Int = when (prefs[COVER_ART_STYLE]) {
@@ -1154,21 +1167,24 @@ class AppPreferences(private val context: Context) {
     }
 
     suspend fun setCoverArtStyle(style: Int) {
-        context.dataStore.edit { prefs ->
-            prefs[COVER_ART_STYLE] = when (style) {
-                COVER_ART_STYLE_DISABLED -> COVER_ART_STYLE_DISABLED
-                COVER_ART_STYLE_3D -> COVER_ART_STYLE_3D
-                else -> COVER_ART_STYLE_DEFAULT
-            }
+        val normalized = when (style) {
+            COVER_ART_STYLE_DISABLED -> COVER_ART_STYLE_DISABLED
+            COVER_ART_STYLE_3D -> COVER_ART_STYLE_3D
+            else -> COVER_ART_STYLE_DEFAULT
         }
+        context.dataStore.edit { prefs ->
+            prefs[COVER_ART_STYLE] = normalized
+        }
+        coverArtStyleCache = SyncValueCache(normalized)
     }
 
     fun getCoverArtStyleSync(): Int {
+        coverArtStyleCache?.let { return it.value }
         return kotlinx.coroutines.runBlocking {
             context.dataStore.data.map { prefs ->
                 readCoverArtStyle(prefs)
             }.first()
-        }
+        }.also { coverArtStyleCache = SyncValueCache(it) }
     }
 
     val onboardingCompleted: Flow<Boolean> = context.dataStore.data.map { prefs ->
@@ -2857,11 +2873,15 @@ class AppPreferences(private val context: Context) {
             json.optString("coverDownloadBaseUrl").takeIf { it.isNotBlank() }?.let {
                 prefs[COVER_DOWNLOAD_BASE_URL] = it.trim().trimEnd('/')
             } ?: prefs.remove(COVER_DOWNLOAD_BASE_URL)
+            coverDownloadBaseUrlCache = SyncValueCache(
+                prefs[COVER_DOWNLOAD_BASE_URL]
+            )
             prefs[COVER_ART_STYLE] = when (json.optInt("coverArtStyle", COVER_ART_STYLE_3D)) {
                 COVER_ART_STYLE_DISABLED -> COVER_ART_STYLE_DISABLED
                 COVER_ART_STYLE_3D -> COVER_ART_STYLE_3D
                 else -> COVER_ART_STYLE_DEFAULT
             }
+            coverArtStyleCache = SyncValueCache(prefs[COVER_ART_STYLE] ?: COVER_ART_STYLE_3D)
             prefs[ONBOARDING_COMPLETED] = json.optBoolean("onboardingCompleted", false)
             languageTag?.let { prefs[LANGUAGE_TAG] = it } ?: prefs.remove(LANGUAGE_TAG)
             prefs[ASPECT_RATIO] = normalizeAspectRatioPreference(json.optInt("aspectRatio", 1))

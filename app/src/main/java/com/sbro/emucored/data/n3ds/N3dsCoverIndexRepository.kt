@@ -31,12 +31,12 @@ class N3dsCoverIndexRepository(private val context: Context) {
         }
         // No reviewed cover repository is bundled yet: fall back to the IGDB
         // catalogue so library entries still get their catalogue artwork.
-        val match = catalog.findCoverMatch(serial, title) ?: return null
+        val match = N3dsCatalogRepository.getInstance(context).findCoverMatch(serial, title) ?: return null
         val coverUrl = match.coverUrl ?: match.heroUrl ?: return null
         return Cover(coverUrl, match.heroUrl.orEmpty(), "")
     }
 
-    private val catalog by lazy { N3dsCatalogRepository(context) }
+    private val catalog get() = N3dsCatalogRepository.getInstance(context)
 
     private fun load(): JSONObject? = cached ?: synchronized(lock) {
         cached ?: runCatching {

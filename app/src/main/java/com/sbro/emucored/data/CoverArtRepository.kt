@@ -22,9 +22,10 @@ class CoverArtRepository(context: Context) {
 
     companion object {
         private const val TAG = "CoverArtRepository"
-        private const val CONNECT_TIMEOUT_MS = 10000
-        private const val READ_TIMEOUT_MS = 15000
+        private const val CONNECT_TIMEOUT_MS = 8000
+        private const val READ_TIMEOUT_MS = 12000
         private const val MISS_TTL_MS = 7L * 24L * 60L * 60L * 1000L // 7 days
+        private const val TRANSIENT_MISS_TTL_MS = 6L * 60L * 60L * 1000L // 6 hours
         private val downloadFlightsLock = Any()
         private val downloadFlights = HashMap<String, PendingCoverDownload>()
     }
@@ -189,7 +190,7 @@ class CoverArtRepository(context: Context) {
         if (coverFile.exists()) coverFile.delete()
 
         val missFile = File(cacheDirectory, cacheMissFileName(normalizedSerial, style))
-        if (missFile.exists() && System.currentTimeMillis() - missFile.lastModified() < MISS_TTL_MS) {
+        if (missFile.exists() && !isExpiredMiss(missFile)) {
             Log.d(TAG, "Recent miss marker found, skipping (age: ${System.currentTimeMillis() - missFile.lastModified()}ms)")
             Log.d(TAG, "========== COVER DOWNLOAD END (MISS CACHED) ==========")
             return null
@@ -263,9 +264,7 @@ class CoverArtRepository(context: Context) {
 
             if (responseCode != HttpURLConnection.HTTP_OK) {
                 Log.w(TAG, "$sourceName: Cover not found (HTTP $responseCode)")
-                if (responseCode == 404) {
-                    missFile.writeText("$responseCode at ${System.currentTimeMillis()}")
-                }
+                recordMiss(missFile, permanent = responseCode == 404)
                 return null
             }
 
@@ -275,6 +274,7 @@ class CoverArtRepository(context: Context) {
             // Chunked HTTP responses legitimately report -1. Only an explicitly empty body is invalid.
             if (contentLength == 0 || contentLength > 16 * 1024 * 1024) {
                 Log.w(TAG, "$sourceName: Invalid content length")
+                recordMiss(missFile, permanent = false)
                 return null
             }
 
@@ -310,6 +310,7 @@ class CoverArtRepository(context: Context) {
                 }
                 if (!isUsableCoverFile(tempFile)) {
                     Log.w(TAG, "$sourceName: Downloaded file is not a valid image")
+                    recordMiss(missFile, permanent = false)
                     return null
                 }
 
@@ -330,10 +331,31 @@ class CoverArtRepository(context: Context) {
             }
         } catch (e: Exception) {
             Log.e(TAG, "$sourceName: Error: ${e.message}", e)
+            recordMiss(missFile, permanent = false)
             null
         } finally {
             connection.disconnect()
         }
+    }
+
+    /**
+     * Remembers failed lookups so the next library publish does not retry a
+     * hopeless download every session. HTTP 404 stays cached for a week;
+     * transient network failures only for a few hours.
+     */
+    private fun recordMiss(missFile: File, permanent: Boolean) {
+        runCatching {
+            missFile.parentFile?.mkdirs()
+            missFile.writeText(
+                (if (permanent) "404" else "transient") + " at ${System.currentTimeMillis()}"
+            )
+        }
+    }
+
+    private fun isExpiredMiss(missFile: File): Boolean {
+        val age = System.currentTimeMillis() - missFile.lastModified()
+        val permanent = runCatching { missFile.readText().startsWith("404") }.getOrDefault(false)
+        return age >= if (permanent) MISS_TTL_MS else TRANSIENT_MISS_TTL_MS
     }
 
     private fun normalizeSerial(serial: String?): String? {

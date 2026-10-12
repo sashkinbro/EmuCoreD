@@ -16,6 +16,23 @@ class N3dsCatalogRepository(private val context: Context) {
         // cannot be mistaken for the bundled PSP database.
         private const val DB_NAME = "n3ds_games.db"
         private const val ASSET_PATH = "catalog/games.db"
+
+        private val sharedCoverMatchCache =
+            java.util.concurrent.ConcurrentHashMap<String, CatalogCover>()
+        private val sharedCoverMatchMisses = java.util.concurrent.ConcurrentHashMap.newKeySet<String>()
+
+        @Volatile private var sharedFuzzyCandidates: List<FuzzyCandidate>? = null
+
+        /** One catalog instance per process: the database is read-only and shared. */
+        @Volatile private var sharedInstance: N3dsCatalogRepository? = null
+
+        fun getInstance(context: Context): N3dsCatalogRepository {
+            sharedInstance?.let { return it }
+            return synchronized(this) {
+                sharedInstance ?: N3dsCatalogRepository(context.applicationContext)
+                    .also { sharedInstance = it }
+            }
+        }
     }
 
     private val dbFile: File by lazy { File(context.noBackupFilesDir, DB_NAME) }
@@ -136,14 +153,14 @@ class N3dsCatalogRepository(private val context: Context) {
 
     data class CatalogCover(val igdbId: Long, val coverUrl: String?, val heroUrl: String?)
 
-    private val coverMatchCache = java.util.concurrent.ConcurrentHashMap<String, CatalogCover>()
-    private val coverMatchMisses = java.util.concurrent.ConcurrentHashMap.newKeySet<String>()
+    private val coverMatchCache get() = sharedCoverMatchCache
+    private val coverMatchMisses get() = sharedCoverMatchMisses
 
     /** Cover art for the library, matched through the bundled IGDB catalog. */
     fun findCoverMatch(serial: String?, title: String?): CatalogCover? {
         val cacheKey = "${serial.orEmpty()}\u0000${title.orEmpty()}".lowercase(Locale.ROOT)
-        coverMatchCache[cacheKey]?.let { return it }
-        if (cacheKey in coverMatchMisses) return null
+        sharedCoverMatchCache[cacheKey]?.let { return it }
+        if (cacheKey in sharedCoverMatchMisses) return null
         val match = runCatching {
             val id = findBestMatchId(serial, title) ?: return@runCatching null
             val db = getDatabase() ?: return@runCatching null
@@ -156,7 +173,7 @@ class N3dsCatalogRepository(private val context: Context) {
             }
         }.getOrNull()
         // ConcurrentHashMap rejects null values, so misses get their own set.
-        if (match == null) coverMatchMisses.add(cacheKey) else coverMatchCache[cacheKey] = match
+        if (match == null) sharedCoverMatchMisses.add(cacheKey) else sharedCoverMatchCache[cacheKey] = match
         return match
     }
 
@@ -221,21 +238,37 @@ class N3dsCatalogRepository(private val context: Context) {
 
     private fun findFuzzyTitleId(db: SQLiteDatabase, titles: List<String>): Long? {
         if (titles.isEmpty()) return null
+        val candidateTokens = titles.map(::catalogMatchTokens).filter { it.isNotEmpty() }
+        if (candidateTokens.isEmpty()) return null
+        val candidates = fuzzyCandidates(db) ?: return null
         var bestId: Long? = null
         var bestScore = 0.0
-        db.rawQuery("SELECT igdb_id, normalized_name FROM games", null).use { cursor ->
-            while (cursor.moveToNext()) {
-                val catalogTitle = cursor.getString(1)
-                titles.forEach { candidateTitle ->
-                    val score = catalogTitleSimilarity(candidateTitle, catalogTitle)
-                    if (score > bestScore) {
-                        bestScore = score
-                        bestId = cursor.getLong(0)
-                    }
+        for (candidate in candidates) {
+            for (tokens in candidateTokens) {
+                val score = tokenSimilarity(tokens, candidate.tokens)
+                if (score > bestScore) {
+                    bestScore = score
+                    bestId = candidate.id
                 }
             }
         }
         return bestId?.takeIf { bestScore >= MIN_FUZZY_TITLE_SCORE }
+    }
+
+    private data class FuzzyCandidate(val id: Long, val tokens: Set<String>)
+
+    /** All catalog titles are tokenised once per process, not per lookup. */
+    private fun fuzzyCandidates(db: SQLiteDatabase): List<FuzzyCandidate>? {
+        sharedFuzzyCandidates?.let { return it }
+        return runCatching {
+            val candidates = ArrayList<FuzzyCandidate>(2400)
+            db.rawQuery("SELECT igdb_id, normalized_name FROM games", null).use { cursor ->
+                while (cursor.moveToNext()) {
+                    candidates += FuzzyCandidate(cursor.getLong(0), catalogMatchTokens(cursor.getString(1).orEmpty()))
+                }
+            }
+            candidates.also { sharedFuzzyCandidates = it }
+        }.getOrNull()
     }
 
     fun topRated(
@@ -566,6 +599,10 @@ internal fun normalizeIdentityTitle(value: String): String {
 internal fun catalogTitleSimilarity(left: String, right: String): Double {
     val leftTokens = catalogMatchTokens(left)
     val rightTokens = catalogMatchTokens(right)
+    return tokenSimilarity(leftTokens, rightTokens)
+}
+
+internal fun tokenSimilarity(leftTokens: Set<String>, rightTokens: Set<String>): Double {
     if (leftTokens.isEmpty() || rightTokens.isEmpty()) return 0.0
     if (leftTokens == rightTokens) return 1.0
     val common = leftTokens.intersect(rightTokens).size

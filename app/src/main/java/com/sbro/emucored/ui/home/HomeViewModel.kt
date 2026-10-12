@@ -155,6 +155,8 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     private var deferredWorkJob: Job? = null
     private var deferredCoverSync = false
     private var pendingCoreFingerprint: String? = null
+    private val publishPending = AtomicBoolean(false)
+    private var publishJob: Job? = null
 
     private val _uiState = MutableStateFlow(HomeUiState())
     val uiState: StateFlow<HomeUiState> = _uiState.asStateFlow()
@@ -429,7 +431,13 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         val ciaPath = runCatching {
             DocumentPathResolver.prepareGameLaunchPath(context, game.path)
         }.getOrNull() ?: return@withContext null
-        val ciaTitleId = runCatching { EmuCoreNative.getTitleId(ciaPath) }.getOrNull() ?: 0L
+        val ciaTitleId = runCatching {
+            if (N3dsGameFormats.isCiaFile(game.fileName)) {
+                EmuCoreNative.getCiaTitleId(ciaPath)
+            } else {
+                EmuCoreNative.getTitleId(ciaPath)
+            }
+        }.getOrNull() ?: 0L
         if (ciaTitleId == 0L) return@withContext null
 
         runCatching { EmuCoreNative.getInstalledGamePathsImpl() }.getOrNull()
@@ -765,15 +773,51 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         updateBootstrapState()
     }
 
+    /**
+     * Recomputes the visible game list off the main thread. Callers only
+     * request a refresh; concurrent requests collapse into a single pass so
+     * a cover sync does not trigger one full catalog lookup per finished
+     * download. A cheap synchronous pass runs first so the library never
+     * flashes an empty state while the cover pass resolves in the background.
+     */
     private fun publishVisibleGames() {
-        val covers = CoverArtRepository(getApplication())
-        allGames = allGames.map { game ->
-            val selected = covers.displayCoverPath(game.serial, game.title, game.coverArtPath)
-            if (selected == game.coverArtPath) game else game.copy(coverArtPath = selected)
+        publishVisibleGamesNow()
+        if (!publishPending.compareAndSet(false, true)) return
+        if (publishJob?.isActive == true) return
+        publishJob = viewModelScope.launch(Dispatchers.Default) {
+            do {
+                publishPending.set(false)
+                val (games, recent) = resolveVisibleGames()
+                _uiState.value = _uiState.value.copy(games = games, recentGames = recent)
+            } while (publishPending.get())
         }
-        val state = _uiState.value
+    }
+
+    private fun publishVisibleGamesNow() {
+        val snapshot = synchronized(this) { allGames }
+        val (games, recent) = filterAndSortGames(snapshot, _uiState.value)
+        _uiState.value = _uiState.value.copy(games = games, recentGames = recent)
+    }
+
+    private fun resolveVisibleGames(): Pair<List<GameItem>, List<GameItem>> {
+        val covers = CoverArtRepository(getApplication())
+        val snapshot: List<GameItem>
+        synchronized(this) {
+            allGames = allGames.map { game ->
+                val selected = covers.displayCoverPath(game.serial, game.title, game.coverArtPath)
+                if (selected == game.coverArtPath) game else game.copy(coverArtPath = selected)
+            }
+            snapshot = allGames
+        }
+        return filterAndSortGames(snapshot, _uiState.value)
+    }
+
+    private fun filterAndSortGames(
+        snapshot: List<GameItem>,
+        state: HomeUiState
+    ): Pair<List<GameItem>, List<GameItem>> {
         val query = normalizeSearchToken(state.searchQuery)
-        val filtered = allGames.filter { game ->
+        val filtered = snapshot.filter { game ->
             !BiosValidator.isLikelyBiosLibraryEntry(
                 fileName = game.fileName,
                 title = game.title,
@@ -812,7 +856,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                     .thenBy { normalizeSortToken(it.title) }
             )
         }
-        val gamesByPath = allGames.associateBy { it.path }
+        val gamesByPath = snapshot.associateBy { it.path }
         val recentGames = recentEntries.mapNotNull { entry ->
             gamesByPath[entry.path]
         }.filter { game ->
@@ -821,10 +865,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                 normalizeSearchToken(game.fileName).contains(query) ||
                 normalizeSearchToken(game.serial).contains(query)
         }.takeIf { state.showRecentGames }.orEmpty()
-        _uiState.value = _uiState.value.copy(
-            games = sorted,
-            recentGames = recentGames
-        )
+        return sorted to recentGames
     }
 
     private fun updateBootstrapState() {
@@ -878,7 +919,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                 }
                 return@launch
             }
-            val semaphore = kotlinx.coroutines.sync.Semaphore(3)
+            val semaphore = kotlinx.coroutines.sync.Semaphore(6)
 
             val shouldReschedule = AtomicBoolean(false)
             coroutineScope {
