@@ -48,13 +48,6 @@ val LocalGameCoverAspectRatio = androidx.compose.runtime.staticCompositionLocalO
 val GameCoverAspectRatio: Float
     @Composable get() = LocalGameCoverAspectRatio.current
 
-internal fun isGenerated3dCover(coverPath: String?): Boolean =
-    coverPath?.replace('\\', '/')?.let { path ->
-        path.contains("/game-covers/igdb-n3ds-v1/") && path.endsWith("_3d.webp") ||
-            path.startsWith("https://raw.githubusercontent.com/sashkinbro/EmuCoreA-Covers/") &&
-            path.contains("/covers/3d/") && path.endsWith(".webp")
-    } == true
-
 private val imageLoadingSemaphore = Semaphore(4)
 @Composable
 fun GameCoverArt(

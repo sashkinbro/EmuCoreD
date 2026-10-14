@@ -310,10 +310,8 @@ fun SettingsScreen(
     var showBackupExportDialog by rememberSaveable { mutableStateOf(false) }
     var showDriveBackupDialog by rememberSaveable { mutableStateOf(false) }
     var includeSaveStatesInBackup by rememberSaveable { mutableStateOf(false) }
-    val showCoverUrlDialog = remember { mutableStateOf(false) }
     var showClearCoverCacheDialog by rememberSaveable { mutableStateOf(false) }
     var showEmulatorDataLocationDialog by remember { mutableStateOf(false) }
-    val pendingCoverUrl = remember { mutableStateOf("") }
     var searchEnabled by remember { mutableStateOf(false) }
     var searchQuery by remember { mutableStateOf("") }
     val selectedTabFocusRequester = remember { FocusRequester() }
@@ -331,8 +329,6 @@ fun SettingsScreen(
     val backupExportFailureMessage = stringResource(R.string.settings_backup_export_failed)
     val backupRestoreSuccessMessage = stringResource(R.string.settings_backup_restore_success)
     val backupRestoreFailureMessage = stringResource(R.string.settings_backup_restore_failed)
-    val coverUrlCopiedMessage = stringResource(R.string.settings_cover_download_url_copied)
-    val coverUrlInvalidMessage = stringResource(R.string.settings_cover_download_url_invalid)
     val coverCacheClearedMessage = stringResource(R.string.settings_clear_cover_cache_success)
     val coverCachePartiallyClearedMessage = stringResource(R.string.settings_clear_cover_cache_partial)
     stringResource(R.string.settings_not_set)
@@ -563,10 +559,6 @@ fun SettingsScreen(
                 },
                 launchShaderPackPicker = {
                     shaderPackPicker.launch(arrayOf("application/zip", "application/octet-stream"))
-                },
-                onOpenCoverUrlEditor = {
-                    pendingCoverUrl.value = uiState.coverDownloadBaseUrl.orEmpty()
-                    showCoverUrlDialog.value = true
                 },
                 onClearCoverCache = { showClearCoverCacheDialog = true },
                 launchSettingsBackupExport = {
@@ -822,77 +814,6 @@ fun SettingsScreen(
         )
     }
 
-    if (showCoverUrlDialog.value) {
-        val coverUrlFocusRequester = remember { FocusRequester() }
-        LaunchedEffect(showCoverUrlDialog.value) {
-            if (showCoverUrlDialog.value) {
-                coverUrlFocusRequester.requestFocus()
-            }
-        }
-        AlertDialog(
-            onDismissRequest = { showCoverUrlDialog.value = false },
-            title = {
-                Text(stringResource(R.string.settings_cover_download_url_dialog_title))
-            },
-            text = {
-                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    OutlinedTextField(
-                        value = pendingCoverUrl.value,
-                        onValueChange = { pendingCoverUrl.value = it },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .focusRequester(coverUrlFocusRequester),
-                        minLines = 2,
-                        maxLines = 4,
-                        shape = neonShape(18.dp),
-                        label = { Text(stringResource(R.string.settings_cover_download_url)) },
-                        placeholder = { Text(stringResource(R.string.settings_cover_download_url_placeholder)) }
-                    )
-                    TextButton(
-                        onClick = {
-                            pendingCoverUrl.value = ""
-                            viewModel.setCoverDownloadBaseUrl(null)
-                            showCoverUrlDialog.value = false
-                        },
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text(stringResource(R.string.settings_cover_download_url_use_default))
-                    }
-                }
-            },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        val parts = pendingCoverUrl.value.trim()
-                            .split(Regex("\\s+"))
-                            .filter { it.isNotBlank() }
-                        val value = parts.joinToString(" ")
-                        val hasInvalidPart = parts.any {
-                            !it.startsWith("http://") && !it.startsWith("https://")
-                        }
-                        if (hasInvalidPart || parts.size > 2) {
-                            Toast.makeText(
-                                context,
-                                coverUrlInvalidMessage,
-                                Toast.LENGTH_SHORT
-                            ).show()
-                            return@TextButton
-                        }
-                        viewModel.setCoverDownloadBaseUrl(value.ifBlank { null })
-                        showCoverUrlDialog.value = false
-                    }
-                ) {
-                    Text(stringResource(R.string.save))
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showCoverUrlDialog.value = false }) {
-                    Text(stringResource(android.R.string.cancel))
-                }
-            }
-        )
-    }
-
 }
 
 @Composable
@@ -1033,7 +954,6 @@ private fun SettingsContent(
     launchSideArtworkPicker: () -> Unit,
     launchCustomFontPicker: () -> Unit,
     launchShaderPackPicker: () -> Unit,
-    onOpenCoverUrlEditor: () -> Unit,
     onClearCoverCache: () -> Unit,
     launchSettingsBackupExport: () -> Unit,
     launchSettingsBackupImport: () -> Unit,
@@ -1799,16 +1719,6 @@ private fun SettingsContent(
                         }
                         else -> DocumentPathResolver.getFallbackDisplayName(uiState.emulatorDataPath)
                     }
-                    val builtInCoverSourceLabel = stringResource(R.string.settings_cover_download_url_builtin)
-                    val coverDownloadDisabledLabel = stringResource(R.string.settings_cover_download_url_disabled)
-                    val customCoverSourceLabel = stringResource(R.string.settings_cover_download_url_custom)
-                    val coverUrlDisplay = if (!uiState.coverDownloadBaseUrl.isNullOrBlank()) {
-                        customCoverSourceLabel
-                    } else if (uiState.coverArtStyle == AppPreferences.COVER_ART_STYLE_DISABLED) {
-                        coverDownloadDisabledLabel
-                    } else {
-                        builtInCoverSourceLabel
-                    }
                     SettingsSection(title = stringResource(R.string.settings_paths)) {
                         SettingsItem(
                             icon = Icons.Rounded.FolderOpen,
@@ -1835,23 +1745,6 @@ private fun SettingsContent(
                     }
 
                     SettingsSection(title = stringResource(R.string.settings_covers_tab)) {
-                        ChoiceSection(
-                            title = stringResource(R.string.settings_cover_art_style),
-                            options = listOf(
-                                AppPreferences.COVER_ART_STYLE_3D to stringResource(R.string.settings_cover_art_style_3d),
-                                AppPreferences.COVER_ART_STYLE_DISABLED to stringResource(R.string.settings_cover_art_style_off),
-                                AppPreferences.COVER_ART_STYLE_DEFAULT to stringResource(R.string.settings_cover_art_style_flat)
-                            ),
-                            selectedValue = uiState.coverArtStyle,
-                            onSelect = viewModel::setCoverArtStyle,
-                              onResetToDefault = { viewModel.setCoverArtStyle(AppPreferences.COVER_ART_STYLE_3D) }
-                        )
-                        SettingsItem(
-                            icon = Icons.Rounded.Link,
-                            label = stringResource(R.string.settings_cover_download_url),
-                            value = coverUrlDisplay,
-                            onClick = onOpenCoverUrlEditor
-                        )
                         SettingsItem(
                             icon = Icons.Rounded.DeleteOutline,
                             label = stringResource(R.string.settings_clear_cover_cache),
@@ -3961,8 +3854,6 @@ private fun rememberSettingsSearchEntries(): List<SettingsSearchEntry> {
         entry(SettingsTab.Controls, R.string.settings_pad_vibration_fallback),
         entry(SettingsTab.Library, R.string.settings_game_path),
         entry(SettingsTab.Library, R.string.emulator_data_location_title),
-        entry(SettingsTab.Library, R.string.settings_cover_art_style),
-        entry(SettingsTab.Library, R.string.settings_cover_download_url),
         entry(SettingsTab.Library, R.string.settings_clear_cover_cache),
         entry(SettingsTab.Library, R.string.settings_backup_export_title),
         entry(SettingsTab.Library, R.string.settings_backup_restore_title),

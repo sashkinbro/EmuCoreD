@@ -23,7 +23,6 @@ import com.sbro.emucored.data.AppPreferences
 import com.sbro.emucored.data.HomeBackgroundRepository
 import com.sbro.emucored.data.HomeBackgroundPreset
 import com.sbro.emucored.data.HomeBackgroundType
-import com.sbro.emucored.data.CoverArtRepository
 import com.sbro.emucored.data.CoreMaintenanceRepository
 import com.sbro.emucored.data.CoreUpdateResetAction
 import com.sbro.emucored.data.CustomGameCoverRepository
@@ -88,7 +87,6 @@ data class HomeUiState(
     val sortOption: HomeSortOption = HomeSortOption.TITLE_ASC,
     val libraryViewMode: HomeLibraryViewMode = HomeLibraryViewMode.GRID,
     val lastStandardLibraryViewMode: HomeLibraryViewMode = HomeLibraryViewMode.GRID,
-    val isCoverArtDisabled: Boolean = true,
     val showWelcomeDialog: Boolean = false,
     val showCoreResetDialog: Boolean = false,
     val isProUnlocked: Boolean = false,
@@ -138,7 +136,6 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     private val proPurchaseManager = ProPurchaseManager.getInstance(application)
     private var allGames: List<GameItem> = emptyList()
     private var recentEntries: List<RecentGameEntry> = emptyList()
-    private var coverSyncJob: Job? = null
     private var searchJob: Job? = null
     private var biosInitialized = false
     private var libraryInitialized = false
@@ -146,15 +143,9 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     private var currentLibraryPaths: List<String> = emptyList()
     private var preferEnglishGameTitles = false
     private var titlesPreferenceInitialized = false
-    private var coverArtStyleInitialized = false
-    private var coverBaseUrlInitialized = false
-    private var coverCacheRevisionInitialized = false
-    private var currentCoverArtStyle = AppPreferences.COVER_ART_STYLE_3D
-    private var currentCoverDownloadBaseUrl: String? = null
     private val scanMutex = Mutex()
     private var deferredLibraryScan: DeferredLibraryScan? = null
     private var deferredWorkJob: Job? = null
-    private var deferredCoverSync = false
     private var pendingCoreFingerprint: String? = null
     private val publishPending = AtomicBoolean(false)
     private var publishJob: Job? = null
@@ -350,38 +341,6 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                 )
             }
         }
-        viewModelScope.launch {
-            preferences.coverArtStyle.distinctUntilChanged().collect { style ->
-                _uiState.value = _uiState.value.copy(
-                    isCoverArtDisabled = style == AppPreferences.COVER_ART_STYLE_DISABLED
-                )
-                val shouldRefreshLibrary = coverArtStyleInitialized && currentCoverArtStyle != style
-                currentCoverArtStyle = style
-                coverArtStyleInitialized = true
-                if (shouldRefreshLibrary) {
-                    handleCoverSourceChanged()
-                }
-            }
-        }
-        viewModelScope.launch {
-            preferences.coverDownloadBaseUrl.distinctUntilChanged().collect { baseUrl ->
-                val shouldRefreshLibrary = coverBaseUrlInitialized && currentCoverDownloadBaseUrl != baseUrl
-                currentCoverDownloadBaseUrl = baseUrl
-                coverBaseUrlInitialized = true
-                if (shouldRefreshLibrary) {
-                    handleCoverSourceChanged()
-                }
-            }
-        }
-        viewModelScope.launch {
-            preferences.coverCacheRevision.collect {
-                if (coverCacheRevisionInitialized) {
-                    handleCoverCacheCleared()
-                } else {
-                    coverCacheRevisionInitialized = true
-                }
-            }
-        }
     }
 
     fun onFolderSelected(uri: Uri) {
@@ -574,12 +533,6 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    fun enable3dCoverArt() {
-        viewModelScope.launch {
-            preferences.setCoverArtStyle(AppPreferences.COVER_ART_STYLE_3D)
-        }
-    }
-
     private fun scanGames(
         paths: List<String>,
         isInitialLoad: Boolean = false,
@@ -605,7 +558,6 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                             isRefreshing = false
                         )
                         updateBootstrapState()
-                        syncMissingCovers()
                         return@withLock
                     }
                     val context = getApplication<Application>()
@@ -649,7 +601,6 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                     publishVisibleGames()
                     updateBootstrapState()
                     libraryCacheRepository.save(rootPath, allGames, preferEnglishGameTitles)
-                    syncMissingCovers()
                 } catch (_: Exception) {
                     completeLibraryScanWithFallback(rootPath)
                 }
@@ -732,17 +683,11 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                         return@launch
                     }
 
-                    if (deferredCoverSync) {
-                        deferredCoverSync = false
-                        syncMissingCovers()
-                        return@launch
-                    }
-
                     return@launch
                 }
             } finally {
                 deferredWorkJob = null
-                if (!EmulatorBridge.isVmActive() && (deferredLibraryScan != null || deferredCoverSync)) {
+                if (!EmulatorBridge.isVmActive() && deferredLibraryScan != null) {
                     startDeferredWorkMonitor()
                 }
             }
@@ -764,15 +709,6 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     private fun shouldSkipAutoRescan(isInitialLoad: Boolean, cacheSnapshot: GameLibraryCacheSnapshot): Boolean {
         if (!isInitialLoad) return false
         if (cacheSnapshot.games.isEmpty()) return false
-        val coverRepository = CoverArtRepository(getApplication())
-        if (currentCoverArtStyle != AppPreferences.COVER_ART_STYLE_DISABLED &&
-            cacheSnapshot.games.any {
-                it.serial.isNullOrBlank() || it.coverArtPath.isNullOrBlank() ||
-                    coverRepository.isMissingManagedCover(it.coverArtPath)
-            }
-        ) {
-            return false
-        }
         val cacheAge = System.currentTimeMillis() - cacheSnapshot.savedAt
         return cacheAge in 0 until AUTO_REFRESH_INTERVAL_MS
     }
@@ -789,10 +725,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
 
     /**
      * Recomputes the visible game list off the main thread. Callers only
-     * request a refresh; concurrent requests collapse into a single pass so
-     * a cover sync does not trigger one full catalog lookup per finished
-     * download. A cheap synchronous pass runs first so the library never
-     * flashes an empty state while the cover pass resolves in the background.
+     * request a refresh; concurrent requests collapse into a single pass.
      */
     private fun publishVisibleGames() {
         publishVisibleGamesNow()
@@ -814,15 +747,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     private fun resolveVisibleGames(): Pair<List<GameItem>, List<GameItem>> {
-        val covers = CoverArtRepository(getApplication())
-        val snapshot: List<GameItem>
-        synchronized(this) {
-            allGames = allGames.map { game ->
-                val selected = covers.displayCoverPath(game.serial, game.title, game.coverArtPath)
-                if (selected == game.coverArtPath) game else game.copy(coverArtPath = selected)
-            }
-            snapshot = allGames
-        }
+        val snapshot = synchronized(this) { allGames }
         return filterAndSortGames(snapshot, _uiState.value)
     }
 
@@ -886,133 +811,6 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         _uiState.value = _uiState.value.copy(
             isBootstrapping = !(biosInitialized && libraryInitialized)
         )
-    }
-
-    private fun syncMissingCovers() {
-        if (EmulatorBridge.isVmActive()) {
-            deferredCoverSync = true
-            startDeferredWorkMonitor()
-            return
-        }
-        coverSyncJob?.cancel()
-        val context = getApplication<Application>()
-        coverSyncJob = viewModelScope.launch(Dispatchers.IO) {
-            val coverRepository = CoverArtRepository(context)
-            var removedStalePaths = false
-            synchronized(this@HomeViewModel) {
-                allGames = allGames.map { game ->
-                    val hasSerial = !game.serial.isNullOrBlank()
-                    val resolvedCoverPath = game.serial
-                        ?.takeIf { it.isNotBlank() }
-                        ?.let(coverRepository::findCachedCoverPath)
-                    when {
-                        coverRepository.isMissingManagedCover(game.coverArtPath) -> {
-                            removedStalePaths = true
-                            game.copy(coverArtPath = null)
-                        }
-                        hasSerial && resolvedCoverPath != null && resolvedCoverPath != game.coverArtPath &&
-                            coverRepository.isManagedCoverCachePath(game.coverArtPath) -> {
-                            removedStalePaths = true
-                            game.copy(coverArtPath = resolvedCoverPath)
-                        }
-                        else -> game
-                    }
-                }
-            }
-            if (removedStalePaths) publishVisibleGames()
-            val gamesToProcess = allGames.filter {
-                it.coverArtPath == null || it.coverArtPath.startsWith("http") ||
-                    (coverRepository.isManagedCoverCachePath(it.coverArtPath) &&
-                        !it.coverArtPath.contains("/igdb-n3ds-v1/"))
-            }
-            if (gamesToProcess.isEmpty()) {
-                if (removedStalePaths) {
-                    currentLibraryRoot?.let { rootPath ->
-                        libraryCacheRepository.save(rootPath, allGames, preferEnglishGameTitles)
-                    }
-                }
-                return@launch
-            }
-            val semaphore = kotlinx.coroutines.sync.Semaphore(6)
-
-            val shouldReschedule = AtomicBoolean(false)
-            coroutineScope {
-                gamesToProcess.forEach { game ->
-                    launch {
-                        semaphore.withPermit {
-                            if (EmulatorBridge.isVmActive()) {
-                                shouldReschedule.set(true)
-                                return@withPermit
-                            }
-                            val downloadedCover = repository.downloadCoverForGame(game, context)
-                            if (downloadedCover != null && downloadedCover != game.coverArtPath) {
-                                synchronized(this@HomeViewModel) {
-                                    allGames = allGames.map {
-                                        if (it.path == game.path) it.copy(coverArtPath = downloadedCover) else it
-                                    }
-                                }
-                                publishVisibleGames()
-                            }
-                        }
-                    }
-                }
-            }
-            if (shouldReschedule.get()) {
-                deferredCoverSync = true
-                startDeferredWorkMonitor()
-            }
-            currentLibraryRoot?.let { rootPath ->
-                libraryCacheRepository.save(rootPath, allGames, preferEnglishGameTitles)
-            }
-        }
-    }
-
-    private fun handleCoverSourceChanged() {
-        val rootPath = currentLibraryRoot ?: return
-        val context = getApplication<Application>()
-        val coverRepository = CoverArtRepository(context)
-        val customCoverRepository = CustomGameCoverRepository(context)
-        val cachePrefix = java.io.File(context.cacheDir, "game-covers").absolutePath
-
-        synchronized(this) {
-            allGames = allGames.map { game ->
-                val currentPath = game.coverArtPath
-                if (customCoverRepository.isCustomCoverPath(currentPath)) {
-                    return@map game
-                }
-                if (currentPath != null && currentPath.startsWith(cachePrefix, ignoreCase = true)) {
-                    game.copy(coverArtPath = coverRepository.findCachedCoverPath(game.serial))
-                } else {
-                    game
-                }
-            }
-        }
-        publishVisibleGames()
-        libraryCacheRepository.save(rootPath, allGames, preferEnglishGameTitles)
-
-        requestLibraryScan(currentLibraryPaths)
-    }
-
-    private fun handleCoverCacheCleared() {
-        if (EmulatorBridge.isVmActive()) {
-            deferredCoverSync = true
-            startDeferredWorkMonitor()
-            return
-        }
-        val rootPath = currentLibraryRoot ?: return
-        val coverRepository = CoverArtRepository(getApplication())
-        synchronized(this) {
-            allGames = allGames.map { game ->
-                if (coverRepository.isManagedCoverCachePath(game.coverArtPath)) {
-                    game.copy(coverArtPath = null)
-                } else {
-                    game
-                }
-            }
-        }
-        publishVisibleGames()
-        libraryCacheRepository.save(rootPath, allGames, preferEnglishGameTitles)
-        syncMissingCovers()
     }
 
     private fun normalizeSearchToken(value: String?): String {

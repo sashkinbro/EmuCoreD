@@ -101,8 +101,6 @@ data class SettingsSnapshot(
     val gamePath: String? = null,
     val gamePaths: List<String> = emptyList(),
     val emulatorDataPath: String? = null,
-    val coverDownloadBaseUrl: String? = null,
-    val coverArtStyle: Int = AppPreferences.COVER_ART_STYLE_3D,
     val setupComplete: Boolean = false,
     val proUnlocked: Boolean = false,
     val enableCheats: Boolean = false,
@@ -336,9 +334,6 @@ class AppPreferences(private val context: Context) {
          */
         private class SyncValueCache<T>(val value: T)
 
-        @Volatile private var coverArtStyleCache: SyncValueCache<Int>? = null
-        @Volatile private var coverDownloadBaseUrlCache: SyncValueCache<String?>? = null
-
         fun normalizeOrientationLock(value: Int?): Int = when (value) {
             ORIENTATION_LOCK_PORTRAIT, ORIENTATION_LOCK_LANDSCAPE -> value
             else -> ORIENTATION_LOCK_AUTO
@@ -361,9 +356,6 @@ class AppPreferences(private val context: Context) {
         const val GYRO_MODE_STEERING = 2
         const val DEFAULT_GYRO_SENSITIVITY = 100
         const val DEFAULT_GYRO_SMOOTHING = 45
-        const val COVER_ART_STYLE_DISABLED = -1
-        const val COVER_ART_STYLE_DEFAULT = 0
-        const val COVER_ART_STYLE_3D = 1
         const val FPS_OVERLAY_MODE_SIMPLE = 0
         const val FPS_OVERLAY_MODE_DETAILED = 1
         const val FPS_OVERLAY_CORNER_TOP_LEFT = 0
@@ -420,7 +412,6 @@ class AppPreferences(private val context: Context) {
         private val EMULATION_SIDE_ARTWORK = intPreferencesKey("emulation_side_artwork")
         private val EMULATION_SIDE_ARTWORK_REVISION = intPreferencesKey("emulation_side_artwork_revision")
         private val EMULATION_SIDE_ARTWORK_DIM = intPreferencesKey("emulation_side_artwork_dim")
-        private val COVER_CACHE_REVISION = intPreferencesKey("cover_cache_revision")
         private val TOUCH_CONTROL_VISUAL_STYLE = intPreferencesKey("touch_control_visual_style")
         private val TOUCH_CONTROL_PRESS_EFFECT = intPreferencesKey("touch_control_press_effect")
         private val CUSTOM_TOUCH_CONTROLS_JSON = stringPreferencesKey("custom_touch_controls_json")
@@ -449,9 +440,6 @@ class AppPreferences(private val context: Context) {
         private val GAME_PATH = stringPreferencesKey("game_path")
         private val GAME_PATHS = stringPreferencesKey("game_paths")
         private val EMULATOR_DATA_PATH = stringPreferencesKey("emulator_data_path")
-        private val COVER_DOWNLOAD_BASE_URL = stringPreferencesKey("cover_download_base_url")
-        private val LEGACY_COVER_ART_STYLE = intPreferencesKey("cover_art_style")
-        private val COVER_ART_STYLE = intPreferencesKey("n3ds_cover_art_style")
         private val ONBOARDING_COMPLETED = booleanPreferencesKey("onboarding_completed")
         private val PRO_UNLOCKED = booleanPreferencesKey("pro_unlocked")
         private val WELCOME_DIALOG_SHOWN = booleanPreferencesKey("welcome_dialog_shown")
@@ -660,10 +648,6 @@ class AppPreferences(private val context: Context) {
         }
         .distinctUntilChanged()
 
-    val coverCacheRevision: Flow<Int> = context.dataStore.data
-        .map { prefs -> (prefs[COVER_CACHE_REVISION] ?: 0).coerceAtLeast(0) }
-        .distinctUntilChanged()
-
     val touchControlVisualStyle: Flow<TouchControlVisualStyle> = context.dataStore.data
         .map { prefs -> TouchControlVisualStyle.fromPreference(prefs[TOUCH_CONTROL_VISUAL_STYLE]) }
         .distinctUntilChanged()
@@ -830,12 +814,6 @@ class AppPreferences(private val context: Context) {
 
     suspend fun setEmulationSideArtworkDim(dim: Int) {
         context.dataStore.edit { it[EMULATION_SIDE_ARTWORK_DIM] = dim.coerceIn(0, 85) }
-    }
-
-    suspend fun notifyCoverCacheCleared() {
-        context.dataStore.edit { prefs ->
-            prefs[COVER_CACHE_REVISION] = (prefs[COVER_CACHE_REVISION] ?: 0) + 1
-        }
     }
 
     suspend fun setTouchControlVisualStyle(style: TouchControlVisualStyle) {
@@ -1197,63 +1175,6 @@ class AppPreferences(private val context: Context) {
         }
     }
 
-    val coverDownloadBaseUrl: Flow<String?> = context.dataStore.data.map { prefs ->
-        prefs[COVER_DOWNLOAD_BASE_URL]
-    }
-
-    suspend fun setCoverDownloadBaseUrl(url: String?) {
-        val normalized = url?.trim()?.trimEnd('/')?.takeIf { it.isNotBlank() }
-        context.dataStore.edit { prefs ->
-            if (normalized == null) {
-                prefs.remove(COVER_DOWNLOAD_BASE_URL)
-            } else {
-                prefs[COVER_DOWNLOAD_BASE_URL] = normalized
-            }
-        }
-        coverDownloadBaseUrlCache = SyncValueCache(normalized)
-    }
-
-    fun getCoverDownloadBaseUrlSync(): String? {
-        coverDownloadBaseUrlCache?.let { return it.value }
-        return kotlinx.coroutines.runBlocking {
-            context.dataStore.data.map { it[COVER_DOWNLOAD_BASE_URL] }.first()
-        }.also { coverDownloadBaseUrlCache = SyncValueCache(it) }
-    }
-
-    private fun readCoverArtStyle(prefs: Preferences): Int = when (prefs[COVER_ART_STYLE]) {
-        COVER_ART_STYLE_DISABLED -> COVER_ART_STYLE_DISABLED
-        COVER_ART_STYLE_DEFAULT -> COVER_ART_STYLE_DEFAULT
-        COVER_ART_STYLE_3D -> COVER_ART_STYLE_3D
-        // Migrate old automatic artwork to PSP 3D once, preserving disabled artwork.
-        else -> if (prefs[LEGACY_COVER_ART_STYLE] == COVER_ART_STYLE_DISABLED)
-            COVER_ART_STYLE_DISABLED else COVER_ART_STYLE_3D
-    }
-
-    val coverArtStyle: Flow<Int> = context.dataStore.data.map { prefs ->
-        readCoverArtStyle(prefs)
-    }
-
-    suspend fun setCoverArtStyle(style: Int) {
-        val normalized = when (style) {
-            COVER_ART_STYLE_DISABLED -> COVER_ART_STYLE_DISABLED
-            COVER_ART_STYLE_3D -> COVER_ART_STYLE_3D
-            else -> COVER_ART_STYLE_DEFAULT
-        }
-        context.dataStore.edit { prefs ->
-            prefs[COVER_ART_STYLE] = normalized
-        }
-        coverArtStyleCache = SyncValueCache(normalized)
-    }
-
-    fun getCoverArtStyleSync(): Int {
-        coverArtStyleCache?.let { return it.value }
-        return kotlinx.coroutines.runBlocking {
-            context.dataStore.data.map { prefs ->
-                readCoverArtStyle(prefs)
-            }.first()
-        }.also { coverArtStyleCache = SyncValueCache(it) }
-    }
-
     val onboardingCompleted: Flow<Boolean> = context.dataStore.data.map { prefs ->
         prefs[ONBOARDING_COMPLETED] ?: false
     }
@@ -1419,8 +1340,6 @@ class AppPreferences(private val context: Context) {
                 gamePath = readGamePaths(prefs).firstOrNull(),
                 gamePaths = readGamePaths(prefs),
                 emulatorDataPath = prefs[EMULATOR_DATA_PATH],
-                coverDownloadBaseUrl = prefs[COVER_DOWNLOAD_BASE_URL],
-                coverArtStyle = readCoverArtStyle(prefs),
                 setupComplete = prefs[ONBOARDING_COMPLETED] ?: false,
                 proUnlocked = prefs[PRO_UNLOCKED] ?: false,
                 enableCheats = prefs[ENABLE_CHEATS] ?: false,
@@ -2779,8 +2698,6 @@ class AppPreferences(private val context: Context) {
             put("gamePath", prefs[GAME_PATH])
             put("gamePaths", JSONArray(readGamePaths(prefs)))
             put("emulatorDataPath", prefs[EMULATOR_DATA_PATH])
-            put("coverDownloadBaseUrl", prefs[COVER_DOWNLOAD_BASE_URL])
-            put("coverArtStyle", readCoverArtStyle(prefs))
             put("onboardingCompleted", prefs[ONBOARDING_COMPLETED] ?: false)
             put("languageTag", prefs[LANGUAGE_TAG])
             put("aspectRatio", normalizeAspectRatioPreference(prefs[ASPECT_RATIO]))
@@ -3016,18 +2933,6 @@ class AppPreferences(private val context: Context) {
             json.optString("emulatorDataPath").takeIf { it.isNotBlank() }?.let {
                 prefs[EMULATOR_DATA_PATH] = it
             } ?: prefs.remove(EMULATOR_DATA_PATH)
-            json.optString("coverDownloadBaseUrl").takeIf { it.isNotBlank() }?.let {
-                prefs[COVER_DOWNLOAD_BASE_URL] = it.trim().trimEnd('/')
-            } ?: prefs.remove(COVER_DOWNLOAD_BASE_URL)
-            coverDownloadBaseUrlCache = SyncValueCache(
-                prefs[COVER_DOWNLOAD_BASE_URL]
-            )
-            prefs[COVER_ART_STYLE] = when (json.optInt("coverArtStyle", COVER_ART_STYLE_3D)) {
-                COVER_ART_STYLE_DISABLED -> COVER_ART_STYLE_DISABLED
-                COVER_ART_STYLE_3D -> COVER_ART_STYLE_3D
-                else -> COVER_ART_STYLE_DEFAULT
-            }
-            coverArtStyleCache = SyncValueCache(prefs[COVER_ART_STYLE] ?: COVER_ART_STYLE_3D)
             prefs[ONBOARDING_COMPLETED] = json.optBoolean("onboardingCompleted", false)
             languageTag?.let { prefs[LANGUAGE_TAG] = it } ?: prefs.remove(LANGUAGE_TAG)
             prefs[ASPECT_RATIO] = normalizeAspectRatioPreference(json.optInt("aspectRatio", 1))

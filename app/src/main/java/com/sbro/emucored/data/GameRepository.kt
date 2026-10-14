@@ -120,29 +120,11 @@ class GameRepository {
     fun findCoverForGame(
         path: String,
         context: Context,
-        serial: String? = null,
-        title: String? = null
+        @Suppress("UNUSED_PARAMETER") serial: String? = null,
+        @Suppress("UNUSED_PARAMETER") title: String? = null
     ): String? {
-        val candidate = if (path.startsWith("content://")) {
-            runCatching { findDocumentCover(path, context, serial, title) }
-                .onFailure { error -> Log.w(TAG, "Unable to find cover for document URI: $path", error) }
-                .getOrNull()
-        } else {
-            findLocalCover(path, context, serial, title)
-        }
-        return CoverArtRepository(context).displayCoverPath(serial, title, candidate)
-    }
-
-    fun downloadCoverForGame(game: GameItem, context: Context): String? {
-        CustomGameCoverRepository(context).findCustomCoverPath(game.path)?.let { return it }
-        // A loose homebrew ELF has no retail identity; do not guess its artwork from a short filename.
-        val serial = game.serial?.takeIf(String::isNotBlank)
-        val covers = CoverArtRepository(context)
-        val downloaded = covers.downloadCover(serial, title = game.title)
-        if (covers.hasIndexedCover(serial, game.title)) return downloaded
-        return downloaded
-            ?: game.coverArtPath?.takeIf { File(it).isFile }
-            ?: N3dsGameMetadataReader.extractIcon(context, game.path)
+        return CustomGameCoverRepository(context).findCustomCoverPath(path)
+            ?: N3dsGameMetadataReader.extractIcon(context, path)
     }
 
     private fun scanLocalDirectory(
@@ -154,8 +136,6 @@ class GameRepository {
     ): List<GameItem> {
         val items = mutableListOf<GameItem>()
         val children = dir.listFiles().orEmpty()
-        val coverCandidates = buildLocalCoverCandidates(children)
-        val coverRepository = CoverArtRepository(context)
         val customCoverRepository = CustomGameCoverRepository(context)
 
         children.forEach { file ->
@@ -209,11 +189,7 @@ class GameRepository {
                         fileSize = entrySize,
                         lastModified = file.lastModified(),
                         coverArtPath = customCoverRepository.findCustomCoverPath(file.absolutePath)
-                            ?: coverRepository.findCachedCoverPath(serial, title = title)
-                            ?: N3dsGameMetadataReader.extractIcon(context, file.absolutePath)
-                            ?: cachedGame?.coverArtPath?.takeIf { File(it).exists() }
-                            ?: coverCandidates[normalizeBaseName(file.nameWithoutExtension)]?.absolutePath
-                            ?: coverCandidates[normalizeBaseName(cleanGameName(title))]?.absolutePath,
+                            ?: N3dsGameMetadataReader.extractIcon(context, file.absolutePath),
                         serial = serial
                     )
                 }
@@ -237,8 +213,6 @@ class GameRepository {
         }
         val items = mutableListOf<GameItem>()
         val children = runCatching { docFile.listFiles() }.getOrDefault(emptyArray())
-        val coverCandidates = buildDocumentCoverCandidates(children)
-        val coverRepository = CoverArtRepository(context)
         val customCoverRepository = CustomGameCoverRepository(context)
 
         for (file in children) {
@@ -303,11 +277,7 @@ class GameRepository {
                         fileSize = entrySize,
                         lastModified = lastModified,
                         coverArtPath = customCoverRepository.findCustomCoverPath(uriPath)
-                            ?: coverRepository.findCachedCoverUri(serial, title = title)
-                            ?: N3dsGameMetadataReader.extractIcon(context, uriPath)
-                            ?: cachedGame?.coverArtPath
-                            ?: coverCandidates[normalizeBaseName(name.substringBeforeLast('.'))]?.uri?.toString()
-                            ?: coverCandidates[normalizeBaseName(cleanGameName(title))]?.uri?.toString(),
+                            ?: N3dsGameMetadataReader.extractIcon(context, uriPath),
                         serial = serial
                     )
                 }
@@ -316,64 +286,6 @@ class GameRepository {
         }
 
         return items
-    }
-
-    private fun findLocalCover(path: String, context: Context, serial: String?, title: String?): String? {
-        val file = File(path)
-        val parent = file.parentFile ?: return null
-        val baseName = normalizeBaseName(file.nameWithoutExtension)
-        val titleKey = normalizeBaseName(cleanGameName(title ?: EmulatorBridge.getGameTitle(path)))
-        val coverCandidates = buildLocalCoverCandidates(parent.listFiles().orEmpty())
-        return CustomGameCoverRepository(context).findCustomCoverPath(path)
-            ?: CoverArtRepository(context).findCachedCoverPath(serial, title = title)
-            ?: N3dsGameMetadataReader.extractIcon(context, path)
-            ?: coverCandidates[baseName]?.absolutePath
-            ?: coverCandidates[titleKey]?.absolutePath
-    }
-
-    private fun findDocumentCover(path: String, context: Context, serial: String?, title: String?): String? {
-        CustomGameCoverRepository(context).findCustomCoverPath(path)?.let { return it }
-        CoverArtRepository(context).findCachedCoverUri(serial, title = title)?.let { return it }
-        N3dsGameMetadataReader.extractIcon(context, path)?.let { return it }
-
-        val uri = path.toUri()
-        val document = DocumentFile.fromSingleUri(context, uri) ?: return null
-        val parent = findDocumentParent(context, uri) ?: return null
-        val baseName = normalizeBaseName(document.name.orEmpty().substringBeforeLast('.'))
-        val titleKey = normalizeBaseName(cleanGameName(title ?: document.name.orEmpty().substringBeforeLast('.')))
-        val coverCandidates = buildDocumentCoverCandidates(parent.listFiles())
-        return coverCandidates[baseName]?.uri?.toString()
-            ?: coverCandidates[titleKey]?.uri?.toString()
-    }
-
-    private fun findDocumentParent(context: Context, documentUri: Uri): DocumentFile? {
-        val documentId = DocumentsContract.getDocumentId(documentUri)
-        val parentId = parentDocumentId(documentId) ?: return null
-        val persistedTrees = context.contentResolver.persistedUriPermissions
-            .asSequence()
-            .filter { permission -> permission.isReadPermission && permission.uri.authority == documentUri.authority }
-            .mapNotNull { permission ->
-                val rootId = runCatching { DocumentsContract.getTreeDocumentId(permission.uri) }.getOrNull()
-                    ?: return@mapNotNull null
-                Triple(permission.uri, rootId, relativeDocumentSegments(rootId, parentId))
-            }
-            .filter { (_, _, segments) -> segments != null }
-            .sortedByDescending { (_, rootId, _) -> rootId.length }
-            .toList()
-
-        for ((treeUri, _, nullableSegments) in persistedTrees) {
-            var current = DocumentFile.fromTreeUri(context, treeUri) ?: continue
-            var found = true
-            for (segment in nullableSegments.orEmpty()) {
-                current = current.findFile(segment) ?: run {
-                    found = false
-                    break
-                }
-            }
-            if (found) return current
-        }
-
-        return null
     }
 
     private fun normalizeBaseName(value: String): String {
@@ -387,53 +299,8 @@ class GameRepository {
             .trim()
     }
 
-    private fun cleanGameName(value: String): String {
-        return value.substringBeforeLast('.')
-            .replace(Regex("""\s+"""), " ")
-            .trim()
-    }
-
     private fun cleanScannedTitle(rawTitle: String, displayName: String): String {
         return EmulatorBridge.cleanGameDisplayTitle(rawTitle, displayName)
-    }
-
-    private fun buildLocalCoverCandidates(children: Array<out File>): Map<String, File> {
-        val directFiles = children.filter { it.isFile && it.extension.lowercase() in COVER_EXTENSIONS }
-        val nestedCoverFiles = children
-            .filter { it.isDirectory && normalizeBaseName(it.name) in COVER_DIRECTORY_NAMES }
-            .flatMap { it.listFiles().orEmpty().asIterable() }
-            .filter { it.isFile && it.extension.lowercase() in COVER_EXTENSIONS }
-
-        return (directFiles + nestedCoverFiles).associateBy { normalizeBaseName(cleanGameName(it.nameWithoutExtension)) }
-    }
-
-    private fun buildDocumentCoverCandidates(
-        children: Array<DocumentFile>
-    ): Map<String, DocumentFile> {
-        val directFiles = children
-            .filter {
-                runCatching { it.type }.getOrNull() != DocumentsContract.Document.MIME_TYPE_DIR &&
-                    documentDisplayName(null, it)
-                        .substringAfterLast('.', "")
-                        .lowercase() in COVER_EXTENSIONS
-            }
-        val nestedCoverFiles = children
-            .filter {
-                val type = runCatching { it.type }.getOrNull()
-                (type == DocumentsContract.Document.MIME_TYPE_DIR || type == null) &&
-                    normalizeBaseName(documentDisplayName(null, it)) in COVER_DIRECTORY_NAMES
-            }
-            .flatMap { runCatching { it.listFiles().asIterable() }.getOrDefault(emptyList()) }
-            .filter {
-                runCatching { it.type }.getOrNull() != DocumentsContract.Document.MIME_TYPE_DIR &&
-                    documentDisplayName(null, it)
-                        .substringAfterLast('.', "")
-                        .lowercase() in COVER_EXTENSIONS
-            }
-
-        return (directFiles + nestedCoverFiles).associateBy {
-            normalizeBaseName(cleanGameName(documentDisplayName(null, it).substringBeforeLast('.')))
-        }
     }
 
     private fun documentDisplayName(context: Context?, document: DocumentFile): String {

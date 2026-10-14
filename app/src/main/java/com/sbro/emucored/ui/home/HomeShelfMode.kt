@@ -43,8 +43,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.graphics.RectangleShape
-import com.sbro.emucored.ui.common.isGenerated3dCover
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
@@ -84,13 +82,11 @@ import com.sbro.emucored.ui.theme.neon.neonButtonShape
 internal fun HomeShelfMode(
     games: List<GameItem>,
     recentGames: List<GameItem>,
-    isCoverArtDisabled: Boolean,
     topInset: Dp,
     bottomInset: Dp,
     horizontalInset: Dp,
     modifier: Modifier = Modifier,
     onExitShelfMode: () -> Unit,
-    onEnable3dCoverArt: () -> Unit,
     onGameClick: (GameItem) -> Unit,
     onLongClickStart: (GameItem) -> Unit,
     onLongClickContinue: (GameItem) -> Unit,
@@ -152,8 +148,7 @@ internal fun HomeShelfMode(
             maxWidth >= 620.dp -> 204.dp
             else -> 182.dp
         }
-        val coverPromptHeightAllowance = if (isCoverArtDisabled) 58.dp else 0.dp
-        val reservedHeight = (if (isLandscape) 124.dp else 164.dp) + coverPromptHeightAllowance
+        val reservedHeight = if (isLandscape) 124.dp else 164.dp
         val maxCardWidthFromHeight =
             ((maxHeight - topInset - bottomInset - reservedHeight).coerceAtLeast(210.dp)) * GameCoverAspectRatio
         val cardWidth = (if (isLandscape) baseCardWidth * 0.84f else baseCardWidth)
@@ -165,7 +160,7 @@ internal fun HomeShelfMode(
                 .fillMaxSize()
                 .background(MaterialTheme.colorScheme.background)
         ) {
-            val activeShelfCoverPath = rememberShelfCoverPath(activeGame, isCoverArtDisabled)
+            val activeShelfCoverPath = rememberShelfCoverPath(activeGame)
             ShelfBackdrop(
                 coverPath = activeShelfCoverPath,
                 modifier = Modifier.fillMaxSize()
@@ -180,15 +175,6 @@ internal fun HomeShelfMode(
                     horizontalInset = horizontalInset,
                     onExitShelfMode = onExitShelfMode
                 )
-                if (isCoverArtDisabled) {
-                    ShelfCoverArtPrompt(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = horizontalInset)
-                            .padding(top = 2.dp, bottom = 4.dp),
-                        onEnable3dCoverArt = onEnable3dCoverArt
-                    )
-                }
                 Box(
                     modifier = Modifier
                         .weight(1f)
@@ -230,7 +216,6 @@ internal fun HomeShelfMode(
                             ShelfCoverCard(
                                 game = game,
                                 isActive = page == pagerState.currentPage,
-                                isCoverArtDisabled = isCoverArtDisabled,
                                 focusRequester = cardFocusRequesters[page],
                                 modifier = Modifier
                                     .fillMaxWidth()
@@ -461,7 +446,6 @@ private fun ShelfBackdrop(
 private fun ShelfCoverCard(
     game: GameItem,
     isActive: Boolean,
-    isCoverArtDisabled: Boolean,
     focusRequester: FocusRequester,
     modifier: Modifier = Modifier,
     onClick: () -> Unit,
@@ -478,11 +462,11 @@ private fun ShelfCoverCard(
     val debouncedClick = rememberDebouncedClick(onClick = onClick)
     val interactionSource = remember { MutableInteractionSource() }
     val showMenu = remember(game.path) { mutableStateOf(false) }
-    val shape = if (isGenerated3dCover(game.coverArtPath)) RectangleShape else neonShape(24.dp)
+    val shape = neonShape(24.dp)
     val coverAspectRatio = GameCoverAspectRatio
     val horizontalCoverPadding = if (isActive) 6.dp else 8.dp
     val verticalCoverPadding = if (isActive) 6.dp else 4.dp
-    val shelfCoverPath = rememberShelfCoverPath(game, isCoverArtDisabled)
+    val shelfCoverPath = rememberShelfCoverPath(game)
     fun dismissMenu(action: () -> Unit) {
         showMenu.value = false
         action()
@@ -575,7 +559,7 @@ private fun ShelfCoverCard(
 }
 
 @Composable
-private fun rememberShelfCoverPath(game: GameItem, isCoverArtDisabled: Boolean): String? {
+private fun rememberShelfCoverPath(game: GameItem): String? {
     val context = LocalContext.current
     val customCoverRepository = remember(context) { CustomGameCoverRepository(context) }
     val currentCoverPath = game.coverArtPath
@@ -584,57 +568,7 @@ private fun rememberShelfCoverPath(game: GameItem, isCoverArtDisabled: Boolean):
     }
     return when {
         isCustomCover -> currentCoverPath
-        isCoverArtDisabled -> null
         else -> currentCoverPath
-    }
-}
-
-@Composable
-private fun ShelfCoverArtPrompt(
-    modifier: Modifier = Modifier,
-    onEnable3dCoverArt: () -> Unit
-) {
-    Surface(
-        modifier = modifier,
-        shape = neonShape(16.dp),
-        color = Color(0xFF171B24).copy(alpha = 0.88f),
-        tonalElevation = 0.dp,
-        shadowElevation = 0.dp
-    ) {
-        Row(
-            modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                text = androidx.compose.ui.res.stringResource(R.string.home_shelf_enable_3d_title),
-                modifier = Modifier.weight(1f),
-                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
-                color = Color.White.copy(alpha = 0.94f),
-                maxLines = 2,
-                overflow = TextOverflow.Clip
-            )
-            FilledTonalButton(
-                shape = neonButtonShape(),
-                onClick = onEnable3dCoverArt,
-                colors = ButtonDefaults.filledTonalButtonColors(
-                    containerColor = Color(0xFF252C38),
-                    contentColor = Color.White.copy(alpha = 0.92f)
-                )
-            ) {
-                Icon(
-                    imageVector = Icons.Rounded.ViewCarousel,
-                    contentDescription = null,
-                    modifier = Modifier.size(18.dp)
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    text = androidx.compose.ui.res.stringResource(R.string.home_shelf_enable_3d_action),
-                    maxLines = 1,
-                    overflow = TextOverflow.Clip
-                )
-            }
-        }
     }
 }
 
