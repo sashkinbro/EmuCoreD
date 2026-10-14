@@ -34,8 +34,6 @@ class CoverArtRepository(context: Context) {
     fun clearAllTemporaryImageCaches(): CoverCacheClearResult =
         clearDirectories(listOf(coverCacheDirectory, remoteImageCacheDirectory))
 
-    fun isManagedCoverCachePath(path: String?): Boolean =
-        CoverCachePolicy.isPathInside(path, coverCacheDirectory)
 
     /** Public cover URL for external surfaces (Discord presence, cloud profiles). */
     fun buildPublicCoverUrl(
