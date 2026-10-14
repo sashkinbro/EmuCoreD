@@ -147,6 +147,8 @@ data class SettingsUiState(
     val gamePaths: List<String> = emptyList(),
     val emulatorDataPath: String? = null,
     val sdCardDataPath: String? = null,
+    val coverDownloadBaseUrl: String? = null,
+    val coverArtStyle: Int = AppPreferences.COVER_ART_STYLE_3D,
     val setupComplete: Boolean = false,
     val appVersion: String = BuildConfig.VERSION_NAME,
     val coreName: String = "Azahar",
@@ -340,6 +342,8 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
             gamePath = snapshot.gamePath,
             gamePaths = snapshot.gamePaths,
             emulatorDataPath = snapshot.emulatorDataPath,
+            coverDownloadBaseUrl = snapshot.coverDownloadBaseUrl,
+            coverArtStyle = snapshot.coverArtStyle,
             setupComplete = snapshot.setupComplete,
             enableCheats = snapshot.enableCheats,
             frameSkip = snapshot.frameSkip,
@@ -1099,10 +1103,28 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
         }
     }
 
+    fun setCoverDownloadBaseUrl(url: String?) {
+        viewModelScope.launch {
+            preferences.setCoverDownloadBaseUrl(url)
+            CoverArtRepository(getApplication()).clearCache()
+            clearCoverImageMemoryCache()
+        }
+    }
+
+    fun setCoverArtStyle(style: Int) {
+        viewModelScope.launch {
+            // Flat and 3D covers have separate cache files. Keep both so a style
+            // change cannot delete files while HomeViewModel starts loading them.
+            clearCoverImageMemoryCache()
+            preferences.setCoverArtStyle(style)
+        }
+    }
+
     fun clearCoverCache(onComplete: (CoverCacheClearResult) -> Unit) {
         viewModelScope.launch(Dispatchers.IO) {
             val result = CoverArtRepository(getApplication()).clearAllTemporaryImageCaches()
             clearCoverImageMemoryCache()
+            preferences.notifyCoverCacheCleared()
             withContext(Dispatchers.Main) {
                 onComplete(result)
             }

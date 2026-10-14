@@ -27,13 +27,17 @@ data class N3dsGameMetadata(val title: String?, val serial: String?)
  */
 object N3dsGameMetadataReader {
     private const val SMDH_MAGIC = 0x534D4448 // "SMDH"
-    private const val SMDH_SIZE = 0x2A00
-    private const val TITLE_ENGLISH_OFFSET = 0x108
-    private const val TITLE_LENGTH = 0x100
-    private const val PRODUCT_CODE_OFFSET = 0x1030
+    private const val SMDH_SIZE = 0x36C0
+    private const val TITLE_ENGLISH_OFFSET = 0x208
+    private const val TITLE_LENGTH = 0x80
     private const val PRODUCT_CODE_LENGTH = 0x10
-    private const val LARGE_ICON_OFFSET = 0x1800
+    private const val LARGE_ICON_OFFSET = 0x24C0
     private const val LARGE_ICON_SIZE = 48
+
+    // SMDH icons are stored in 8x8 Morton (Z-order) tiles; these lookup tables
+    // match VideoCore::MortonInterleave from the core.
+    private val MORTON_X = intArrayOf(0x00, 0x01, 0x04, 0x05, 0x10, 0x11, 0x14, 0x15)
+    private val MORTON_Y = intArrayOf(0x00, 0x02, 0x08, 0x0A, 0x20, 0x22, 0x28, 0x2A)
 
     // NCSD/NCCH container layout.
     private const val NCSD_MAGIC_OFFSET = 0x100
@@ -118,12 +122,9 @@ object N3dsGameMetadataReader {
             val structure = analyze(context, path, image)
             val smdh = structure.smdh ?: nativeSmdh(identity, path)
             val title = smdh?.let { decodeTitle(slice(it, TITLE_ENGLISH_OFFSET, TITLE_LENGTH)) }
-            val smdhProductCode =
-                smdh?.let { decodeProductCode(slice(it, PRODUCT_CODE_OFFSET, PRODUCT_CODE_LENGTH)) }
             val serial = structure.titleId.takeIf { it != 0L }
                 ?.let { String.format(Locale.US, "%016x", it) }
                 ?: structure.productCode
-                ?: smdhProductCode
             if (title == null && serial == null) null else N3dsGameMetadata(title, serial)
         }
         if (metadata != null && metadataCache.size < CACHE_LIMIT) {
@@ -133,7 +134,7 @@ object N3dsGameMetadataReader {
     }.getOrNull()
 
     fun extractIcon(context: Context, path: String): String? = runCatching {
-        val directory = File(context.cacheDir, "game-covers/embedded").apply { mkdirs() }
+        val directory = File(context.cacheDir, "game-covers/embedded-v3").apply { mkdirs() }
         val identity = cacheIdentity(context, path)
         val hash = MessageDigest.getInstance("SHA-256").digest(identity.toByteArray())
             .joinToString("") { "%02x".format(it) }
@@ -150,15 +151,22 @@ object N3dsGameMetadataReader {
 
         val bitmap = Bitmap.createBitmap(LARGE_ICON_SIZE, LARGE_ICON_SIZE, Bitmap.Config.ARGB_8888)
         val colors = IntArray(LARGE_ICON_SIZE * LARGE_ICON_SIZE)
-        for (index in colors.indices) {
-            val value = (raw[index * 2].toInt() and 0xFF) or ((raw[index * 2 + 1].toInt() and 0xFF) shl 8)
-            val red = (value shr 11) and 0x1F
-            val green = (value shr 5) and 0x3F
-            val blue = value and 0x1F
-            colors[index] = 0xFF000000.toInt() or
-                ((red shl 3 or (red shr 2)) shl 16) or
-                ((green shl 2 or (green shr 4)) shl 8) or
-                (blue shl 3 or (blue shr 2))
+        for (x in 0 until LARGE_ICON_SIZE) {
+            val coarseX = x and 7.inv()
+            for (y in 0 until LARGE_ICON_SIZE) {
+                val coarseY = y and 7.inv()
+                val morton = MORTON_X[x % 8] + MORTON_Y[y % 8] + coarseX * 8
+                val index = morton * 2 + coarseY * LARGE_ICON_SIZE * 2
+                val value = (raw[index].toInt() and 0xFF) or
+                    ((raw[index + 1].toInt() and 0xFF) shl 8)
+                val red = (value shr 11) and 0x1F
+                val green = (value shr 5) and 0x3F
+                val blue = value and 0x1F
+                colors[y * LARGE_ICON_SIZE + x] = 0xFF000000.toInt() or
+                    ((red shl 3 or (red shr 2)) shl 16) or
+                    ((green shl 2 or (green shr 4)) shl 8) or
+                    (blue shl 3 or (blue shr 2))
+            }
         }
         bitmap.setPixels(colors, 0, LARGE_ICON_SIZE, 0, 0, LARGE_ICON_SIZE, LARGE_ICON_SIZE)
         val temporary = File.createTempFile(hash, ".tmp", directory)

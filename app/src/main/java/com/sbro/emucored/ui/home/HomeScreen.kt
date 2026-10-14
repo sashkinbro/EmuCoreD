@@ -102,6 +102,8 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.RectangleShape
+import com.sbro.emucored.ui.common.isGenerated3dCover
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
@@ -490,6 +492,7 @@ fun HomeScreen(
                     HomeShelfMode(
                         games = uiState.games,
                         recentGames = uiState.recentGames,
+                        isCoverArtDisabled = uiState.isCoverArtDisabled,
                         // Keep the outgoing shelf edge-to-edge until its exit animation finishes.
                         // The parent state already points at the standard Home layout at that time.
                         topInset = 0.dp,
@@ -497,6 +500,7 @@ fun HomeScreen(
                         horizontalInset = horizontalInset,
                         modifier = Modifier.fillMaxSize(),
                         onExitShelfMode = viewModel::toggleShelfMode,
+                        onEnable3dCoverArt = viewModel::enable3dCoverArt,
                         onGameClick = launchGame,
                         onLongClickStart = launchGame,
                         onLongClickContinue = onContinueGame,
@@ -596,6 +600,8 @@ fun HomeScreen(
                                                     items = uiState.recentGames,
                                                     key = { _, game -> "recent_${game.path}" }
                                                 ) { index, game ->
+                                                    val showCoverPlaceholder = uiState.isCoverArtDisabled &&
+                                                        !customCoverRepository.isCustomCoverPath(game.coverArtPath)
                                                     RecentGameCard(
                                                         modifier = Modifier
                                                             .padding(
@@ -604,7 +610,7 @@ fun HomeScreen(
                                                             ),
                                                         focusModifier = if (index == 0) Modifier.focusRequester(initialGamepadFocusRequester) else Modifier,
                                                         game = game,
-                                                        showCenteredTitlePlaceholder = false,
+                                                        showCenteredTitlePlaceholder = showCoverPlaceholder,
                                                         onClick = { launchGame(game) },
                                                         onLongClickStart = { launchGame(game) },
                                                         onLongClickContinue = { onContinueGame(game) },
@@ -644,6 +650,8 @@ fun HomeScreen(
                                                 horizontalArrangement = Arrangement.spacedBy(12.dp)
                                             ) {
                                                 rowGames.forEach { game ->
+                                                    val showCoverPlaceholder = uiState.isCoverArtDisabled &&
+                                                        !customCoverRepository.isCustomCoverPath(game.coverArtPath)
                                                     Box(modifier = Modifier.weight(1f)) {
                                                         val itemFocusModifier = if (uiState.recentGames.isEmpty() && game == uiState.games.first()) {
                                                             Modifier.focusRequester(initialGamepadFocusRequester)
@@ -654,7 +662,7 @@ fun HomeScreen(
                                                             GameListCard(
                                                                 focusModifier = itemFocusModifier,
                                                                 game = game,
-                                                                showCoverArt = true,
+                                                                showCoverArt = !showCoverPlaceholder,
                                                                 onClick = { launchGame(game) },
                                                                 onLongClickStart = { launchGame(game) },
                                                                 onLongClickContinue = { onContinueGame(game) },
@@ -672,7 +680,7 @@ fun HomeScreen(
                                                             GameCard(
                                                                 focusModifier = itemFocusModifier,
                                                                 game = game,
-                                                                showCenteredTitlePlaceholder = false,
+                                                                showCenteredTitlePlaceholder = showCoverPlaceholder,
                                                                 onClick = { launchGame(game) },
                                                                 onLongClickStart = { launchGame(game) },
                                                                 onLongClickContinue = { onContinueGame(game) },
@@ -1523,13 +1531,13 @@ private fun RecentGameCard(
                     onLongClick = { showMenu = true }
                 )
                 .gamepadFocusableCard(
-                    showIdleBorder = true,
-                    shape = neonShape(16.dp),
+                    showIdleBorder = !isGenerated3dCover(game.coverArtPath),
+                    shape = if (isGenerated3dCover(game.coverArtPath)) RectangleShape else neonShape(16.dp),
                     interactionSource = interactionSource,
                     addFocusTarget = false
                 ),
-            shape = neonShape(16.dp),
-            color = MaterialTheme.colorScheme.surface,
+            shape = if (isGenerated3dCover(game.coverArtPath)) RectangleShape else neonShape(16.dp),
+            color = if (isGenerated3dCover(game.coverArtPath)) Color.Transparent else MaterialTheme.colorScheme.surface,
             tonalElevation = 0.dp,
             shadowElevation = 0.dp
         ) {
@@ -1537,7 +1545,7 @@ private fun RecentGameCard(
                 modifier = Modifier
                         .fillMaxWidth()
                         .aspectRatio(GameCoverAspectRatio)
-                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f))
+                        .background(if (isGenerated3dCover(game.coverArtPath)) Color.Transparent else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f))
                 ) {
                     if (showCenteredTitlePlaceholder) {
                         GridCoverPlaceholder(
@@ -1635,22 +1643,22 @@ private fun GameCard(
                 onLongClick = { showMenu = true }
             )
             .gamepadFocusableCard(
-                    showIdleBorder = true,
-                shape = neonShape(16.dp),
+                    showIdleBorder = !isGenerated3dCover(game.coverArtPath),
+                shape = if (isGenerated3dCover(game.coverArtPath)) RectangleShape else neonShape(16.dp),
                 interactionSource = interactionSource,
                 addFocusTarget = false
             ),
-        shape = neonShape(16.dp),
-        color = MaterialTheme.colorScheme.surface,
+        shape = if (isGenerated3dCover(game.coverArtPath)) RectangleShape else neonShape(16.dp),
+        color = if (isGenerated3dCover(game.coverArtPath)) Color.Transparent else MaterialTheme.colorScheme.surface,
         tonalElevation = 0.dp,
         shadowElevation = 0.dp,
-        border = gridCardBorder
+        border = if (isGenerated3dCover(game.coverArtPath)) null else gridCardBorder
     ) {
         Box(
             modifier = Modifier
                     .fillMaxWidth()
                     .aspectRatio(GameCoverAspectRatio)
-                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f))
+                    .background(if (isGenerated3dCover(game.coverArtPath)) Color.Transparent else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f))
             ) {
                 if (showCenteredTitlePlaceholder) {
                     GridCoverPlaceholder(
@@ -1763,7 +1771,7 @@ private fun GameListCard(
                     modifier = Modifier
                         .width(52.dp)
                         .aspectRatio(GameCoverAspectRatio)
-                        .clip(neonShape(10.dp))
+                        .clip(if (isGenerated3dCover(game.coverArtPath)) RectangleShape else neonShape(10.dp))
                         .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f))
                 ) {
                     GameCoverArt(

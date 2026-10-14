@@ -1041,7 +1041,7 @@ jbyteArray Java_com_sbro_emucored_core_EmuCoreNative_getGameSmdh(JNIEnv* env,
                         reinterpret_cast<const u8*>(source) + sizeof(Loader::SMDH));
         }
     }
-    if (smdh.size() < 0x2A00) {
+    if (smdh.size() < sizeof(Loader::SMDH)) {
         return nullptr;
     }
     jbyteArray result = env->NewByteArray(static_cast<jsize>(smdh.size()));

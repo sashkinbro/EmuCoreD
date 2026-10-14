@@ -151,6 +151,7 @@ class SaveStateRepository(private val context: Context) {
 
     private val gameRepository = GameRepository()
     private val gameLibraryCacheRepository = GameLibraryCacheRepository(context)
+    private val coverArtRepository = CoverArtRepository(context)
     private val preferences = AppPreferences(context)
 
     fun listSlots(gamePath: String, gameSerial: String? = null): List<SaveStateSlotInfo> {
@@ -529,11 +530,10 @@ class SaveStateRepository(private val context: Context) {
             .listFiles()
             .orEmpty()
             .filter { it.isFile && isPrimarySaveState(it.name) }
-        val coversBySerial = libraryCoversBySerial()
 
         return files.mapNotNull { file ->
             val parsed = parseSaveStateName(file.name) ?: return@mapNotNull null
-            parsed.toFastEntry(file, coversBySerial)
+            parsed.toFastEntry(file)
         }.sortedWith(
             compareByDescending<SaveStateEntryInfo> { it.lastModified }
                 .thenBy { it.gameTitle.lowercase(Locale.ROOT) }
@@ -571,7 +571,8 @@ class SaveStateRepository(private val context: Context) {
                     lastModified = slot.lastModified,
                     gamePath = gamePath,
                     gameTitle = fallbackInfo.title,
-                    coverArtPath = fallbackInfo.coverArtPath,
+                    coverArtPath = fallbackInfo.coverArtPath
+                        ?: coverArtRepository.findCachedCoverPath(serialKey),
                     isAutoSave = slot.isAutoSave
                 )
             }
@@ -640,7 +641,7 @@ class SaveStateRepository(private val context: Context) {
             context = context,
             serial = normalizedSerial,
             title = title
-        )
+        ) ?: coverArtRepository.findCachedCoverPath(normalizedSerial)
         return FallbackGameInfo(
             serial = normalizedSerial,
             title = title,
@@ -648,29 +649,7 @@ class SaveStateRepository(private val context: Context) {
         )
     }
 
-    /** Library artwork (the SMDH icon or a custom cover) keyed by serial. */
-    private fun libraryCoversBySerial(): Map<String, String> {
-        val libraryPaths = runCatching {
-            kotlinx.coroutines.runBlocking { preferences.gamePaths.first() }
-        }.getOrDefault(emptyList())
-        if (libraryPaths.isEmpty()) return emptyMap()
-        val games = runCatching {
-            gameLibraryCacheRepository
-                .loadSnapshot(GameLibraryCacheRepository.libraryKey(libraryPaths))
-                .games
-        }.getOrDefault(emptyList())
-        return buildMap {
-            games.forEach { game ->
-                val cover = game.coverArtPath ?: return@forEach
-                game.serial.normalizeSerialKey()?.let { serial -> putIfAbsent(serial, cover) }
-            }
-        }
-    }
-
-    private fun ParsedSaveStateName.toFastEntry(
-        file: File,
-        coversBySerial: Map<String, String>
-    ): SaveStateEntryInfo {
+    private fun ParsedSaveStateName.toFastEntry(file: File): SaveStateEntryInfo {
         val resolvedTitle = serial
         return SaveStateEntryInfo(
             absolutePath = file.absolutePath,
@@ -682,7 +661,7 @@ class SaveStateRepository(private val context: Context) {
             lastModified = file.lastModified(),
             gamePath = null,
             gameTitle = resolvedTitle,
-            coverArtPath = coversBySerial[serial.normalizeSerialKey()],
+            coverArtPath = coverArtRepository.findCachedCoverPath(serial),
             isAutoSave = slot == AUTO_SAVE_SLOT
         )
     }
