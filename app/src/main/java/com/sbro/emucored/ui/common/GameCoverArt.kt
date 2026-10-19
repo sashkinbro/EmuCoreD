@@ -55,6 +55,14 @@ internal fun isGenerated3dCover(coverPath: String?): Boolean =
             path.contains("/covers/3d/") && path.endsWith(".webp")
     } == true
 
+/** 3D covers render with transparent padding, so rounding would cut their corners. */
+fun gameCoverShape(coverPath: String?, roundedShape: androidx.compose.ui.graphics.Shape) =
+    if (isGenerated3dCover(coverPath)) androidx.compose.ui.graphics.RectangleShape else roundedShape
+
+/** 3D covers must be fitted whole; regular covers fill and crop their frame. */
+fun gameCoverContentScale(coverPath: String?, defaultScale: ContentScale): ContentScale =
+    if (isGenerated3dCover(coverPath)) ContentScale.Fit else defaultScale
+
 private val imageLoadingSemaphore = Semaphore(4)
 @Composable
 fun GameCoverArt(
@@ -121,8 +129,8 @@ fun GameCoverArt(
         Image(
             bitmap = currentBitmap.asImageBitmap(),
             contentDescription = fallbackTitle,
-            contentScale = contentScale,
-            modifier = imageModifier.clip(neonShape(20.dp))
+            contentScale = gameCoverContentScale(coverPath, contentScale),
+            modifier = imageModifier.clip(gameCoverShape(coverPath, neonShape(20.dp)))
         )
     } else {
         Box(
