@@ -178,8 +178,8 @@ val SupportedGameMenuTabs: List<GameMenuTabId> = listOf(
     GameMenuTabId.SESSION,
     GameMenuTabId.CONTROLS,
     GameMenuTabId.EMULATION,
-    GameMenuTabId.GRAPHICS,
-    GameMenuTabId.ACHIEVEMENTS
+    GameMenuTabId.CHEATS,
+    GameMenuTabId.GRAPHICS
 )
 
 val SupportedGameMenuSections: List<GameMenuSectionId> = listOf(
@@ -193,6 +193,7 @@ val SupportedGameMenuSections: List<GameMenuSectionId> = listOf(
     GameMenuSectionId.EMULATION_PERFORMANCE,
     GameMenuSectionId.EMULATION_CPU,
     GameMenuSectionId.EMULATION_AUDIO,
+    GameMenuSectionId.EMULATION_CHEATS,
     GameMenuSectionId.GRAPHICS_DISPLAY
 )
 

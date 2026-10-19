@@ -13,7 +13,7 @@
 # Signatures/annotations are read at runtime by Room and the Discord SDK.
 -keepattributes Signature,*Annotation*,InnerClasses,EnclosingMethod
 
-# --- JNI --------------------------------------------------------------------
+# --- JNI: frontend shader bridge and Discord --------------------------------
 # Native entry points are resolved by their mangled names
 # (Java_com_sbro_emucored_core_NativeCoreBridge_*,
 #  Java_com_sbro_emucored_discord_DiscordNative_*), so class and method names
@@ -24,6 +24,31 @@
 -keepclasseswithmembers,includedescriptorclasses class com.sbro.emucored.discord.DiscordNative {
     native <methods>;
 }
+
+# --- JNI: bundled Azahar core -----------------------------------------------
+# libemucore_core.so is the vendored Android core. It resolves these Kotlin
+# classes, fields, constructors and static callbacks by name from C++
+# (FindClass/GetMethodID/GetFieldID in core/src/android/app/src/main/jni).
+# Keep the whole surface explicitly instead of relying on the default
+# "native <methods>" rule or @Keep annotations alone.
+-keepclasseswithmembernames,includedescriptorclasses class com.sbro.emucored.core.** {
+    native <methods>;
+}
+-keep,includedescriptorclasses class com.sbro.emucored.core.EmuCoreNative { *; }
+-keep,includedescriptorclasses class com.sbro.emucored.core.EmuCoreNative$* { *; }
+-keep,includedescriptorclasses class com.sbro.emucored.core.Cheat { *; }
+-keep,includedescriptorclasses class com.sbro.emucored.core.CheatEngine { *; }
+-keep,includedescriptorclasses class com.sbro.emucored.core.GameInfo { *; }
+-keep,includedescriptorclasses class com.sbro.emucored.core.Log { *; }
+-keep,includedescriptorclasses class com.sbro.emucored.core.MiiSelector { *; }
+-keep,includedescriptorclasses class com.sbro.emucored.core.MiiSelector$* { *; }
+-keep,includedescriptorclasses class com.sbro.emucored.core.SoftwareKeyboard { *; }
+-keep,includedescriptorclasses class com.sbro.emucored.core.SoftwareKeyboard$* { *; }
+-keep,includedescriptorclasses class com.sbro.emucored.core.StillImageCameraHelper { *; }
+-keep,includedescriptorclasses class com.sbro.emucored.core.DiskShaderCacheProgress { *; }
+-keep,includedescriptorclasses class com.sbro.emucored.core.DiskShaderCacheProgress$* { *; }
+-keep,includedescriptorclasses class com.sbro.emucored.core.CiaInstallWorker { *; }
+-keepclasseswithmembernames,includedescriptorclasses class com.sbro.emucored.core.NetPlayManager { *; }
 
 # --- RetroAchievements ------------------------------------------------------
 # achievements_bridge.cpp resolves the HTTP bridge object, its static request

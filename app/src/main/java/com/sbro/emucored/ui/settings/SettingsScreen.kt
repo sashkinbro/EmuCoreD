@@ -2784,7 +2784,6 @@ private fun CustomizationSettingsTab(
             stringResource(R.string.settings_customization_drawer_other) to listOf(
                 DrawerItemId.APP_SETTINGS,
                 DrawerItemId.SUPPORTED_FORMATS,
-                DrawerItemId.ACHIEVEMENTS,
                 DrawerItemId.FEEDBACK,
                 DrawerItemId.DISCORD
             )

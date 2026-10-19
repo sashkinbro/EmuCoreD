@@ -588,11 +588,6 @@ private fun SideNavigation(
             closeDrawerThen(it)
         }
     }
-    val navigateAchievements = onNavigateAchievements?.let {
-        rememberDebouncedClick {
-            closeDrawerThen(it)
-        }
-    }
     val navigateProfile = onNavigateProfile?.let {
         rememberDebouncedClick {
             closeDrawerThen(it)
@@ -701,14 +696,6 @@ private fun SideNavigation(
                         Modifier.focusRequester(selectedItemFocusRequester)
                     } else Modifier,
                     onClick = navigateHub
-                )
-            }
-            if (navigateAchievements != null && DrawerItemId.ACHIEVEMENTS !in hiddenDrawerItems) {
-                ShellItem(
-                    icon = Icons.Rounded.EmojiEvents,
-                    label = stringResource(R.string.shell_achievements),
-                    selected = false,
-                    onClick = navigateAchievements
                 )
             }
             if (navigateProfile != null && DrawerItemId.PROFILE !in hiddenDrawerItems) {

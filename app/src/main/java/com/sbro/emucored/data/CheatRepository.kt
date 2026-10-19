@@ -221,13 +221,7 @@ class CheatRepository(private val context: Context) {
             return@synchronized
         }
         activeDir().mkdirs()
-        val contents = buildString {
-            blocks.forEach { block ->
-                append("// ").append(cheatBlockLabel(block)).append('\n')
-                block.lines.forEach { append(it).append('\n') }
-                append('\n')
-            }
-        }.trim() + "\n"
+        val contents = buildCoreCheatContents(blocks, normalizedSerial) ?: return@synchronized
         candidates.filterNot { it == target }.forEach { if (it.exists()) it.delete() }
         recordedActiveCheatFiles(normalizedGameKey).filterNot { it == target }.forEach { if (it.exists()) it.delete() }
         writeTextAtomically(target, contents)
@@ -352,8 +346,10 @@ class CheatRepository(private val context: Context) {
      * Azahar reads Gateway cheat files (`[name]` sections with raw code lines)
      * from its own cheats directory, keyed by the 16 hex digit title ID.
      */
-    private fun buildCoreCheatContents(blocks: List<CheatBlock>, serial: String?): String? {
-        val titleId = serial?.takeIf { it.matches(Regex("[0-9a-fA-F]{16}")) } ?: return null
+    private fun buildCoreCheatContents(
+        blocks: List<CheatBlock>,
+        @Suppress("UNUSED_PARAMETER") serial: String?
+    ): String? {
         val output = StringBuilder()
         blocks.forEach { block ->
             val label = cheatBlockLabel(block).replace('\n', ' ').replace('\r', ' ').trim()

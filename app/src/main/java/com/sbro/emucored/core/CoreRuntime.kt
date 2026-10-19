@@ -461,6 +461,19 @@ internal object CoreRuntime {
     fun loadCheats(path: String) {
         pendingCheatTitleId = EmuCoreNative.getRunningTitleId()
         if (pendingCheatTitleId == 0L) return
+        val source = File(path)
+        if (source.isFile) {
+            val destination = File(
+                File(userDirectory(), "cheats"),
+                "%016X.txt".format(Locale.US, pendingCheatTitleId)
+            )
+            destination.parentFile?.mkdirs()
+            runCatching {
+                if (source.canonicalFile != destination.canonicalFile) {
+                    source.copyTo(destination, overwrite = true)
+                }
+            }.onFailure { Log.w(TAG, "Unable to stage the core cheat file", it) }
+        }
         runCatching { CheatEngine.loadCheatFile(pendingCheatTitleId) }
             .onFailure { Log.w(TAG, "Unable to load the core cheat file", it) }
     }

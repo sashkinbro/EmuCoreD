@@ -45,9 +45,19 @@ object EmulatorStorage {
     fun sdmcDir(context: Context, customRootPath: String? = null): File =
         File(azaharUserDir(context, customRootPath), "sdmc").apply { mkdirs() }
 
+    /**
+     * Directory the native Azahar bridge actually uses as its user directory.
+     *
+     * The libretro build appended "/Azahar" to the save root; the EmuCoreD
+     * native bridge receives [CoreRuntime.userDirectory] directly, so its
+     * cheats, states and config live in `files/azahar`.
+     */
+    fun coreUserDir(context: Context): File =
+        File(context.filesDir, "azahar").apply { mkdirs() }
+
     /** Directory the core writes its own save states into (`<TITLEID>.<slot>.cst`). */
     fun coreStatesDir(context: Context): File =
-        File(azaharUserDir(context), "states").apply { mkdirs() }
+        File(coreUserDir(context), "states").apply { mkdirs() }
 
     /** The emulated NAND (installed titles, settings and system saves). */
     fun nandDir(context: Context, customRootPath: String? = null): File =
@@ -132,8 +142,8 @@ object EmulatorStorage {
     fun texturesDir(context: Context, customRootPath: String? = null): File =
         File(azaharUserDir(context, customRootPath), "load/textures").apply { mkdirs() }
 
-    fun cheatsDir(context: Context, customRootPath: String? = null): File =
-        File(azaharUserDir(context, customRootPath), "cheats").apply { mkdirs() }
+    fun cheatsDir(context: Context, @Suppress("UNUSED_PARAMETER") customRootPath: String? = null): File =
+        File(coreUserDir(context), "cheats").apply { mkdirs() }
 
     fun patchesDir(context: Context, customRootPath: String? = null): File =
         File(azaharUserDir(context, customRootPath), "patches").apply { mkdirs() }
