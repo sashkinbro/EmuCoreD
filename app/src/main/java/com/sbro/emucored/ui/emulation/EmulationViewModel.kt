@@ -674,7 +674,7 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
 
         viewModelScope.launch {
             while (isActive) {
-                delay(1_000.milliseconds)
+                delay(250.milliseconds)
                 pollNativePerformanceMetrics()
             }
         }
