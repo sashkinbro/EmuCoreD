@@ -247,7 +247,6 @@
     <string name="onboarding_profile_fast_desc">Для слабших пристроїв, яким потрібна додаткова швидкість. У частини ігор може бути більше графічних помилок або гірша стабільність.</string>
     <string name="onboarding_title">Готуйтеся до гри</string>
     <string name="onboarding_subtitle">Виберіть папки з іграми Nintendo 3DS і надайте доступ до файлів.</string>
-    <string name="onboarding_bios_desc">Виберіть папку з необов\'язковими системними файлами 3DS, експортованими з вашої консолі. Більшість ігор працює без них.</string>
     <string name="onboarding_games_title">Виберіть папку з іграми</string>
     <string name="onboarding_games_desc">Виберіть папку, яка містить ваші ігри.</string>
     <string name="onboarding_status_required">Обов\'язково</string>

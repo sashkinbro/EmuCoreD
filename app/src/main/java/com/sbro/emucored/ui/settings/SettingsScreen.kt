@@ -395,7 +395,6 @@ fun SettingsScreen(
     TvStoragePickerHost(
         request = tvStorageRequest,
         onDismiss = { tvStorageRequest = null },
-        onBiosSelected = {},
         onGameFolderSelected = viewModel::setGamePath
     )
     val launchGamePicker = rememberDebouncedClick(

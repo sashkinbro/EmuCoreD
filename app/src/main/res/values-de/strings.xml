@@ -404,7 +404,6 @@
     <string name="onboarding_profile_fast_desc">Für schwächere Geräte, die zusätzliche Geschwindigkeit benötigen. Bei einigen Spielen können mehr Grafikfehler auftreten oder sie werden instabiler.</string>
     <string name="memory_card_loading">Memory Cards werden geladen…</string>
     <string name="shell_memory_cards">3DS-SD-Karte</string>
-    <string name="onboarding_bios_desc">Wähle einen Ordner mit optionalen 3DS-Systemdateien von deiner Konsole. Die meisten Spiele funktionieren auch ohne.</string>
     <string name="emulation_quick_save_confirm_title">Spielstand speichern?</string>
     <string name="emulation_quick_save_confirm_desc">Dies überschreibt Steckplatz %1$d mit dem aktuellen Spielstand.</string>
     <string name="emulation_quick_load_confirm_title">Spielstand laden?</string>

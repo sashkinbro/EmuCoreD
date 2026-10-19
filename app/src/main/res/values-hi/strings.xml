@@ -340,7 +340,6 @@
     <string name="onboarding_profile_fast_desc">कमज़ोर उपकरणों के लिए जिन्हें अतिरिक्त गति की आवश्यकता होती है। कुछ गेम्स में अधिक ग्लिच दिख सकते हैं या वे कम स्थिर हो सकते हैं।</string>
     <string name="onboarding_title">खेलने के लिए तैयार हो जाएं</string>
     <string name="onboarding_subtitle">अपने Nintendo 3DS गेम फ़ोल्डर चुनें और फ़ाइल एक्सेस दें।</string>
-    <string name="onboarding_bios_desc">अपने कंसोल से निर्यात की गई वैकल्पिक 3DS सिस्टम फ़ाइलों वाला फ़ोल्डर चुनें। अधिकांश गेम इनके बिना चलते हैं।</string>
     <string name="onboarding_games_title">गेम्स फ़ोल्डर चुनें</string>
     <string name="onboarding_games_desc">वह फ़ोल्डर चुनें जिसमें आपके गेम्स हैं।</string>
     <string name="onboarding_status_required">आवश्यक</string>

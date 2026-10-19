@@ -379,7 +379,6 @@
     <string name="onboarding_profile_fast_desc">追加の速度が必要な弱いデバイス向けです。一部のゲームでは、より多くのグリッチが表示されたり、安定性が低下したりする可能性があります。</string>
     <string name="onboarding_title">プレイの準備をしましょう</string>
     <string name="onboarding_subtitle">Nintendo 3DSのゲームフォルダーを選び、ファイルアクセスを許可してください。</string>
-    <string name="onboarding_bios_desc">自分の本体から抽出した任意の3DSシステムファイルがあるフォルダーを選択します。ほとんどのゲームは無くても動作します。</string>
     <string name="onboarding_games_title">ゲームフォルダを選択</string>
     <string name="onboarding_games_desc">ゲームが含まれているフォルダを選択します。</string>
     <string name="onboarding_status_required">必須</string>

@@ -493,7 +493,6 @@
     <string name="settings_mediatek_notice_message">Podpora pro MediaTek je stále experimentální. Během naší práce na vylepšení kompatibility a výkonu může docházet k pádům, vizuálním chybám a nestabilnímu chování.\n\nPokud zaznamenáte grafické problémy, zkuste OpenGL se zapnutým ANGLE. Pokud problémy přetrvávají, použijte softwarový vykreslovač.</string>
     <string name="onboarding_title">Připravte se hrát</string>
     <string name="onboarding_subtitle">Vyberte složky s hrami Nintendo 3DS a udělte přístup k souborům.</string>
-    <string name="onboarding_bios_desc">Vyberte složku s volitelnými systémovými soubory 3DS z vaší konzole. Většina her funguje i bez nich.</string>
     <string name="onboarding_games_title">Přidat složky s hrami</string>
     <string name="onboarding_games_desc">Přidejte jednu nebo více složek obsahujících vaše hry.</string>
     <string name="onboarding_games_selected_count">Vybrané složky: %1$d. Klepnutím přidáte další.</string>

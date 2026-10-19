@@ -224,19 +224,15 @@ fun AppNavigation(
         }
         value = combine(
             preferences.onboardingCompleted,
-            preferences.biosPath,
             preferences.gamePaths
-        ) { onboardingCompleted, biosPath, gamePaths ->
+        ) { onboardingCompleted, gamePaths ->
             val hasGameFolder = withContext(Dispatchers.IO) {
                 SetupValidator.isAnyGameFolderPresentForStartup(context, gamePaths)
             }
-            // Azahar boots without a firmware dump, so only a game folder is
-            // required before the home screen opens.
-            val hasUsableBios = true
-            val shouldOpenHome = onboardingCompleted && hasUsableBios && hasGameFolder
+            val shouldOpenHome = onboardingCompleted && hasGameFolder
             Log.i(
                 TAG,
-                "Startup destination onboarding=$onboardingCompleted bios=$hasUsableBios gameFolder=$hasGameFolder launch=${launchRequest != null}"
+                "Startup destination onboarding=$onboardingCompleted gameFolder=$hasGameFolder launch=${launchRequest != null}"
             )
             if (shouldOpenHome) StartupDestination.HOME else StartupDestination.ONBOARDING
         }.first()

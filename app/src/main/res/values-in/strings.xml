@@ -471,7 +471,6 @@
     <string name="settings_mediatek_notice_message">Dukungan MediaTek masih bersifat eksperimental. Crash, artefak grafis, dan perilaku tidak stabil dapat terjadi sementara kami terus meningkatkan kompatibilitas dan performa.\n\nJika mengalami masalah grafis, coba OpenGL dengan ANGLE diaktifkan. Jika masalah berlanjut, gunakan perender Perangkat Lunak.</string>
     <string name="onboarding_title">Bersiaplah untuk bermain</string>
     <string name="onboarding_subtitle">Pilih folder game Nintendo 3DS Anda dan berikan akses file.</string>
-    <string name="onboarding_bios_desc">Pilih folder berisi file sistem 3DS opsional hasil ekspor dari konsol Anda. Sebagian besar game berjalan tanpanya.</string>
     <string name="onboarding_games_title">Pilih folder game</string>
     <string name="onboarding_games_desc">Pilih folder yang berisi game Anda.</string>
     <string name="onboarding_status_required">Wajib</string>

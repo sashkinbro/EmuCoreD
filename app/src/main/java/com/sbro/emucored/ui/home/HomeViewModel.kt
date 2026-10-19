@@ -376,18 +376,6 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    fun onBiosFolderSelected(uri: Uri) {
-        val context = getApplication<Application>()
-        viewModelScope.launch(Dispatchers.IO) {
-            val previousPath = preferences.biosPath.first()
-            StorageAccess.takePersistableReadPermission(context, uri)
-            preferences.setBiosPath(uri.toString())
-            if (previousPath != uri.toString()) {
-                StorageAccess.releasePersistedPermission(context, previousPath)
-            }
-        }
-    }
-
     private fun showStoragePermissionError(application: Application) {
         android.widget.Toast.makeText(
             application,

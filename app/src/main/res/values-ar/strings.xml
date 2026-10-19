@@ -379,7 +379,6 @@
     <string name="onboarding_profile_fast_desc">للأجهزة الأضعف التي تحتاج إلى سرعة إضافية. قد تظهر بعض الألعاب المزيد من الأخطاء أو تصبح أقل استقرارًا.</string>
     <string name="onboarding_title">استعد للعب</string>
     <string name="onboarding_subtitle">اختر مجلدات ألعاب Nintendo 3DS وامنح الوصول للملفات.</string>
-    <string name="onboarding_bios_desc">اختر مجلدًا يحتوي ملفات نظام 3DS اختيارية مصدّرة من جهازك. معظم الألعاب تعمل بدونها.</string>
     <string name="onboarding_games_title">اختر مجلد الألعاب</string>
     <string name="onboarding_games_desc">حدد المجلد الذي يحتوي على ألعابك.</string>
     <string name="onboarding_status_required">مطلوب</string>

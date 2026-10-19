@@ -340,7 +340,6 @@
     <string name="onboarding_profile_fast_desc">Per i dispositivi più deboli che necessitano di velocità extra. Alcuni giochi potrebbero mostrare più glitch o diventare meno stabili.</string>
     <string name="onboarding_title">Preparati a giocare</string>
     <string name="onboarding_subtitle">Scegli le cartelle dei giochi Nintendo 3DS e concedi l\'accesso ai file.</string>
-    <string name="onboarding_bios_desc">Seleziona una cartella con file di sistema 3DS opzionali esportati dalla tua console. Molti giochi funzionano anche senza.</string>
     <string name="onboarding_games_title">Scegli cartella giochi</string>
     <string name="onboarding_games_desc">Seleziona la cartella che contiene i tuoi giochi.</string>
     <string name="onboarding_status_required">Richiesto</string>

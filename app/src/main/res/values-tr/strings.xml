@@ -379,7 +379,6 @@
     <string name="onboarding_profile_fast_desc">Ekstra hıza ihtiyaç duyan daha zayıf cihazlar için. Bazı oyunlar daha fazla hata gösterebilir veya daha az kararlı hale gelebilir.</string>
     <string name="onboarding_title">Oynamak için hazırlanın</string>
     <string name="onboarding_subtitle">Nintendo 3DS oyun klasörlerinizi seçin ve dosya erişimi verin.</string>
-    <string name="onboarding_bios_desc">Konsolunuzdan aktarılan isteğe bağlı 3DS sistem dosyalarının bulunduğu klasörü seçin. Çoğu oyun onlar olmadan çalışır.</string>
     <string name="onboarding_games_title">Oyun klasörünü seç</string>
     <string name="onboarding_games_desc">Oyunlarınızı içeren klasörü seçin.</string>
     <string name="onboarding_status_required">Gerekli</string>

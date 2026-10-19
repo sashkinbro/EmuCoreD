@@ -490,7 +490,6 @@
     <string name="onboarding_title">Gotowy do odpalenia gry w PSP u EmuCoreD w swoim urządzeniu Android. Miłego powrotu u najlepszych platform wspieranych platformą emulacji PCSX u nas (Rozpocznij u EmuCoreD by móc powrócić i po raz kolejny przechodzić na telefonie Twoje ulubione wspaniałe klasyki konsol od gier używając EmuCoreD u gier z PSP pod użyciem interfejsu aplikacji).</string>
 
     <string name="onboarding_subtitle">Wybierz foldery z grami Nintendo 3DS i przyznaj dostęp do plików.</string>
-    <string name="onboarding_bios_desc">Wybierz folder z opcjonalnymi plikami systemowymi 3DS z Twojej konsoli. Większość gier działa bez nich.</string>
     <string name="onboarding_games_title">Dodaj foldery z grami</string>
     <string name="onboarding_games_desc">Dodaj jeden lub więcej folderów zawierających Twoje gry.</string>
     <string name="onboarding_games_selected_count">Wybrano folderów: %1$d. Dotknij, aby dodać kolejny.</string>

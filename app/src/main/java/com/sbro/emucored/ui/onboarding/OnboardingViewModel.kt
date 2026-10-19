@@ -28,7 +28,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 data class OnboardingUiState(
-    val biosPath: String? = null,
     val gamePath: String? = null,
     val gamePaths: List<String> = emptyList(),
     val emulatorDataPath: String? = null,
@@ -73,11 +72,6 @@ class OnboardingViewModel(application: Application) : AndroidViewModel(applicati
                 }
             }
             launch {
-                preferences.biosPath.distinctUntilChanged().collect { path ->
-                    updateState(biosPath = path)
-                }
-            }
-            launch {
                 preferences.gamePaths.distinctUntilChanged().collect { paths ->
                     val gamePathValid = withContext(Dispatchers.IO) {
                         SetupValidator.hasCoreReadableGameFile(getApplication(), paths)
@@ -107,32 +101,6 @@ class OnboardingViewModel(application: Application) : AndroidViewModel(applicati
 
     fun clearProPurchaseMessage() {
         proPurchaseManager.clearMessage()
-    }
-
-    fun setBiosPath(uri: Uri) {
-        val application = getApplication<Application>()
-        viewModelScope.launch(Dispatchers.IO) {
-            val previousPath = preferences.biosPath.first()
-            StorageAccess.takePersistableReadPermission(application, uri)
-            preferences.setBiosPath(uri.toString())
-            if (previousPath != uri.toString()) {
-                StorageAccess.releasePersistedPermission(application, previousPath)
-            }
-            val audioSettings = preferences.settingsSnapshot.first()
-            EmulatorBridge.applyRuntimeConfig(
-                emulatorDataPath = _uiState.value.emulatorDataPath,
-                renderer = audioSettings.renderer,
-                gpuHardwareProfile = GpuHardwareProfiles.detectHardwareProfile(),
-                audioVolume = audioSettings.audioVolume,
-                audioFastForwardVolume = audioSettings.audioFastForwardVolume,
-                audioMuted = audioSettings.audioMuted,
-                audioOutputLatencyMs = audioSettings.audioOutputLatencyMs,
-                audioMinimalOutputLatency = audioSettings.audioMinimalOutputLatency,
-                upscaleMultiplier = EmulatorBridge.getSetting("EmuCoreD", "UpscaleMultiplier", "float")?.toFloatOrNull()
-                    ?: EmulatorBridge.getSetting("EmuCoreD", "UpscaleMultiplier", "int")?.toIntOrNull()?.toFloat()
-                    ?: UPSCALE_DEFAULT
-            )
-        }
     }
 
     fun setGamePath(uri: Uri) {
@@ -197,7 +165,6 @@ class OnboardingViewModel(application: Application) : AndroidViewModel(applicati
     }
 
     private fun updateState(
-        biosPath: String? = _uiState.value.biosPath,
         gamePath: String? = _uiState.value.gamePath,
         gamePaths: List<String> = _uiState.value.gamePaths,
         emulatorDataPath: String? = _uiState.value.emulatorDataPath,
@@ -215,7 +182,6 @@ class OnboardingViewModel(application: Application) : AndroidViewModel(applicati
         proPurchaseMessageResId: Int? = _uiState.value.proPurchaseMessageResId
     ) {
         _uiState.value = OnboardingUiState(
-            biosPath = biosPath,
             gamePath = gamePath,
             gamePaths = gamePaths,
             emulatorDataPath = emulatorDataPath,

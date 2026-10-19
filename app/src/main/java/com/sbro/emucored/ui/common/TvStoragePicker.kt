@@ -51,7 +51,6 @@ import com.sbro.emucored.ui.theme.neon.neonShape
 import com.sbro.emucored.ui.theme.neon.neonButtonShape
 
 enum class TvStorageRequest {
-    BIOS_FILE,
     GAME_FOLDER
 }
 
@@ -65,7 +64,6 @@ enum class TvStorageRequest {
 fun TvStoragePickerHost(
     request: TvStorageRequest?,
     onDismiss: () -> Unit,
-    onBiosSelected: (Uri) -> Unit,
     onGameFolderSelected: (Uri) -> Unit
 ) {
     if (request == null) return
@@ -82,12 +80,6 @@ fun TvStoragePickerHost(
         mutableStateOf(!TvStorageAccess.isPickerAvailable(context))
     }
 
-    val biosLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.StartActivityForResult()
-    ) { result ->
-        result.data?.data?.let(onBiosSelected)
-        onDismiss()
-    }
     val folderLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult()
     ) { result ->
@@ -98,16 +90,10 @@ fun TvStoragePickerHost(
     fun launch(source: TvStorageSource) {
         val intent = TvStorageAccess.createCompatiblePickerIntent(
             context = context,
-            request = request,
             volume = source.volume
         )
         val launchResult = intent?.let { pickerIntent ->
-            runCatching {
-                when (request) {
-                    TvStorageRequest.BIOS_FILE -> biosLauncher.launch(pickerIntent)
-                    TvStorageRequest.GAME_FOLDER -> folderLauncher.launch(pickerIntent)
-                }
-            }
+            runCatching { folderLauncher.launch(pickerIntent) }
         }
         if (launchResult == null || launchResult.isFailure) {
             launchResult?.exceptionOrNull()?.let { error ->
@@ -159,15 +145,7 @@ fun TvStoragePickerHost(
                     .padding(top = 4.dp),
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                Text(
-                    stringResource(
-                        if (request == TvStorageRequest.BIOS_FILE) {
-                            R.string.onboarding_bios_desc
-                        } else {
-                            R.string.onboarding_games_desc
-                        }
-                    )
-                )
+                Text(stringResource(R.string.onboarding_games_desc))
                 sources.forEachIndexed { index, source ->
                     val interactionSource = remember(index, source.label) { MutableInteractionSource() }
                     OutlinedButton(
@@ -266,7 +244,6 @@ private object TvStorageAccess {
 
     fun createCompatiblePickerIntent(
         context: Context,
-        request: TvStorageRequest,
         volume: StorageVolume?
     ): Intent? {
         val candidates = pickerCandidates(context, volume)

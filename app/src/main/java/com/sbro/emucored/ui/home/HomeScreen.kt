@@ -352,7 +352,6 @@ fun HomeScreen(
     TvStoragePickerHost(
         request = tvStorageRequest,
         onDismiss = { tvStorageRequest = null },
-        onBiosSelected = viewModel::onBiosFolderSelected,
         onGameFolderSelected = viewModel::onFolderSelected
     )
     var pendingCustomCoverGame by remember { mutableStateOf<GameItem?>(null) }
