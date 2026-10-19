@@ -1135,7 +1135,6 @@
     <string name="hub_filter_all_topics">Усі теми</string>
     <string name="hub_filter_emucored">EmuCoreD</string>
     <string name="hub_filter_emucorev">EmuCoreDV</string>
-    <string name="hub_filter_ps1">3DS</string>
     <string name="hub_filter_other_emulators">Інші емулятори</string>
     <string name="hub_clear_filters">Скинути фільтри</string>
     <string name="hub_scroll_to_top">Прокрутити вгору</string>
@@ -1310,10 +1309,6 @@
     <string name="achievement_first_game_title">Перший запуск</string>
     <string name="achievement_five_games_description">Зіграйте у 5 різних ігор.</string>
     <string name="achievement_five_games_title">Дослідник</string>
-    <string name="achievement_game_sessions_description">Почніть %2$d сеансів у %1$s.</string>
-    <string name="achievement_game_sessions_title">Завсідник %1$s</string>
-    <string name="achievement_game_time_description">Проведіть %2$d хвилин у %1$s.</string>
-    <string name="achievement_game_time_title">Знавець %1$s</string>
     <string name="achievement_hidden_description">Продовжуйте грати, щоб відкрити це досягнення.</string>
     <string name="achievement_hidden_title">Таємне досягнення</string>
     <string name="achievement_hundred_hours_description">Проведіть в іграх 100 годин.</string>
@@ -1325,8 +1320,6 @@
     <string name="achievement_one_hour_title">Початок шляху</string>
     <string name="achievement_points_format">%1$d оч.</string>
     <string name="achievement_progress_format">%1$d / %2$d</string>
-    <string name="achievement_series_description">Зіграйте щонайменше у %2$d різні ігри серії %1$s.</string>
-    <string name="achievement_series_title">Шанувальник %1$s</string>
     <string name="achievement_sessions_description">Завершіть %1$d ігрових сеансів.</string>
     <string name="achievement_sessions_title">Завжди готовий · %1$d</string>
     <string name="achievement_single_game_sessions_description">Поверніться до однієї гри протягом %1$d сеансів.</string>
@@ -1605,20 +1598,6 @@
 
 
     <!-- EmuCoreD achievements: PS1 classics and PSP headline games -->
-    <string name="achievement_ps1_debut_title">Ветеран PlayStation</string>
-    <string name="achievement_ps1_debut_description">Запустіть класику PlayStation 1.</string>
-    <string name="achievement_ps1_library_title">Колекціонер PS1 — %1$d</string>
-    <string name="achievement_ps1_library_description">Пограйте в %1$d різних ігор PlayStation 1.</string>
-    <string name="achievement_ps1_time_title">Мешканець PS1 — %1$d хв</string>
-    <string name="achievement_ps1_time_description">Проведіть %1$d хвилин в іграх PlayStation 1.</string>
-    <string name="achievement_ps1_sessions_title">Ретро-сесія — %1$d</string>
-    <string name="achievement_ps1_sessions_description">Завершіть %1$d сесій PlayStation 1.</string>
-    <string name="achievement_gow_chains_title">Привид Спарти</string>
-    <string name="achievement_gow_chains_description">Проведіть 2 години в God of War: Chains of Olympus.</string>
-    <string name="achievement_gta_lcs_title">Історії Ліберті-Сіті</string>
-    <string name="achievement_gta_lcs_description">Проведіть 2 години в Grand Theft Auto: Liberty City Stories.</string>
-    <string name="achievement_tekken_dr_title">Король Залізного Кулака</string>
-    <string name="achievement_tekken_dr_description">Проведіть 90 хвилин у Tekken: Dark Resurrection.</string>
     <string name="drive_category_memory_stick">Збереження 3DS</string>
 
     <string name="theme_manager_preview_mode">Режим попереднього перегляду</string>

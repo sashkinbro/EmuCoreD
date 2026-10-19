@@ -36,7 +36,6 @@ enum class HubProductFilter {
     ALL,
     EMUCORED,
     EMUCOREV,
-    PLAYSTATION_1,
     OTHER_EMULATORS
 }
 
@@ -220,9 +219,8 @@ private fun HubItem.matchesProductFilter(filter: HubProductFilter): Boolean {
         HubProductFilter.ALL -> true
         HubProductFilter.EMUCORED -> "emucorea" in products
         HubProductFilter.EMUCOREV -> "emucorev" in products
-        HubProductFilter.PLAYSTATION_1 -> products.any { it in PS1_PRODUCT_IDS }
         HubProductFilter.OTHER_EMULATORS -> products.none {
-            it == "emucorea" || it == "emucorev" || it in PS1_PRODUCT_IDS
+            it == "emucorea" || it == "emucorev"
         }
     }
 }
@@ -246,12 +244,3 @@ private fun HubItem.sortDateKey(): String = when (kind) {
     else -> publishedAt
 }
 
-private val PS1_PRODUCT_IDS = setOf(
-    "ps1",
-    "psx",
-    "playstation",
-    "playstation-1",
-    "duckstation",
-    "beetle-psx",
-    "pcsx-rearmed"
-)

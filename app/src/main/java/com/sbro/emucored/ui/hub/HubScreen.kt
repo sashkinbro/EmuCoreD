@@ -515,7 +515,6 @@ private fun HubProductFilter.label(): String = when (this) {
     HubProductFilter.ALL -> stringResource(R.string.hub_filter_all_topics)
     HubProductFilter.EMUCORED -> stringResource(R.string.hub_filter_emucored)
     HubProductFilter.EMUCOREV -> stringResource(R.string.hub_filter_emucorev)
-    HubProductFilter.PLAYSTATION_1 -> stringResource(R.string.hub_filter_ps1)
     HubProductFilter.OTHER_EMULATORS -> stringResource(R.string.hub_filter_other_emulators)
 }
 

@@ -1108,7 +1108,6 @@
     <string name="hub_filter_all_topics">Все темы</string>
     <string name="hub_filter_emucored">EmuCoreD</string>
     <string name="hub_filter_emucorev">EmuCoreDV</string>
-    <string name="hub_filter_ps1">3DS</string>
     <string name="hub_filter_other_emulators">Другие эмуляторы</string>
     <string name="hub_clear_filters">Сбросить фильтры</string>
     <string name="hub_scroll_to_top">Прокрутить вверх</string>
@@ -1298,10 +1297,6 @@
     <string name="achievement_first_game_title">Первый запуск</string>
     <string name="achievement_five_games_description">Сыграйте в 5 разных игр.</string>
     <string name="achievement_five_games_title">Исследователь</string>
-    <string name="achievement_game_sessions_description">Start %2$d sessions in %1$s.</string>
-    <string name="achievement_game_sessions_title">%1$s regular</string>
-    <string name="achievement_game_time_description">Spend %2$d minutes in %1$s.</string>
-    <string name="achievement_game_time_title">%1$s specialist</string>
     <string name="achievement_hidden_description">Продолжайте играть, чтобы открыть это достижение.</string>
     <string name="achievement_hidden_title">Секретное достижение</string>
     <string name="achievement_hundred_hours_description">Проведите в играх 100 часов.</string>
@@ -1313,8 +1308,6 @@
     <string name="achievement_one_hour_title">Начало пути</string>
     <string name="achievement_points_format">%1$d оч.</string>
     <string name="achievement_progress_format">%1$d / %2$d</string>
-    <string name="achievement_series_description">Play at least %2$d different games from the %1$s series.</string>
-    <string name="achievement_series_title">%1$s devotee</string>
     <string name="achievement_sessions_description">Complete %1$d play sessions.</string>
     <string name="achievement_sessions_title">Always ready · %1$d</string>
     <string name="achievement_single_game_sessions_description">Return to one game for %1$d sessions.</string>
@@ -1593,20 +1586,6 @@
 
 
     <!-- EmuCoreD achievements: PS1 classics and PSP headline games -->
-    <string name="achievement_ps1_debut_title">Ветеран PlayStation</string>
-    <string name="achievement_ps1_debut_description">Запустите классику PlayStation 1.</string>
-    <string name="achievement_ps1_library_title">Коллекционер PS1 — %1$d</string>
-    <string name="achievement_ps1_library_description">Сыграйте в %1$d разных игр PlayStation 1.</string>
-    <string name="achievement_ps1_time_title">Житель PS1 — %1$d мин</string>
-    <string name="achievement_ps1_time_description">Проведите %1$d минут в играх PlayStation 1.</string>
-    <string name="achievement_ps1_sessions_title">Ретро-сессия — %1$d</string>
-    <string name="achievement_ps1_sessions_description">Завершите %1$d сессий PlayStation 1.</string>
-    <string name="achievement_gow_chains_title">Призрак Спарты</string>
-    <string name="achievement_gow_chains_description">Проведите 2 часа в God of War: Chains of Olympus.</string>
-    <string name="achievement_gta_lcs_title">Истории Либерти-Сити</string>
-    <string name="achievement_gta_lcs_description">Проведите 2 часа в Grand Theft Auto: Liberty City Stories.</string>
-    <string name="achievement_tekken_dr_title">Король Железного Кулака</string>
-    <string name="achievement_tekken_dr_description">Проведите 90 минут в Tekken: Dark Resurrection.</string>
     <string name="drive_category_memory_stick">Сохранения 3DS</string>
 
     <string name="theme_manager_preview_mode">Режим предпросмотра</string>

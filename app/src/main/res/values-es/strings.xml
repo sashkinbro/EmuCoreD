@@ -1106,7 +1106,6 @@
     <string name="hub_filter_all_topics">Todos los temas</string>
     <string name="hub_filter_emucored">EmuCoreD</string>
     <string name="hub_filter_emucorev">EmuCoreDV</string>
-    <string name="hub_filter_ps1">3DS</string>
     <string name="hub_filter_other_emulators">Otros emuladores</string>
     <string name="hub_clear_filters">Borrar filtros</string>
     <string name="hub_scroll_to_top">Volver arriba</string>
@@ -1296,10 +1295,6 @@
     <string name="achievement_first_game_title">Primer inicio</string>
     <string name="achievement_five_games_description">Juega 5 juegos distintos.</string>
     <string name="achievement_five_games_title">Explorador</string>
-    <string name="achievement_game_sessions_description">Start %2$d sessions in %1$s.</string>
-    <string name="achievement_game_sessions_title">%1$s regular</string>
-    <string name="achievement_game_time_description">Spend %2$d minutes in %1$s.</string>
-    <string name="achievement_game_time_title">%1$s specialist</string>
     <string name="achievement_hidden_description">Sigue jugando para revelar este logro.</string>
     <string name="achievement_hidden_title">Logro secreto</string>
     <string name="achievement_hundred_hours_description">Pasa 100 horas jugando.</string>
@@ -1311,8 +1306,6 @@
     <string name="achievement_one_hour_title">Primeros pasos</string>
     <string name="achievement_points_format">%1$d pts.</string>
     <string name="achievement_progress_format">%1$d / %2$d</string>
-    <string name="achievement_series_description">Play at least %2$d different games from the %1$s series.</string>
-    <string name="achievement_series_title">%1$s devotee</string>
     <string name="achievement_sessions_description">Complete %1$d play sessions.</string>
     <string name="achievement_sessions_title">Always ready · %1$d</string>
     <string name="achievement_single_game_sessions_description">Return to one game for %1$d sessions.</string>
@@ -1591,20 +1584,6 @@
 
 
     <!-- EmuCoreD achievements: PS1 classics and PSP headline games -->
-    <string name="achievement_ps1_debut_title">Veterano de PlayStation</string>
-    <string name="achievement_ps1_debut_description">Inicia un clásico de PlayStation 1.</string>
-    <string name="achievement_ps1_library_title">Coleccionista de PS1 — %1$d</string>
-    <string name="achievement_ps1_library_description">Juega a %1$d juegos diferentes de PlayStation 1.</string>
-    <string name="achievement_ps1_time_title">Residente de PS1 — %1$d min</string>
-    <string name="achievement_ps1_time_description">Pasa %1$d minutos en juegos de PlayStation 1.</string>
-    <string name="achievement_ps1_sessions_title">Sesión retro — %1$d</string>
-    <string name="achievement_ps1_sessions_description">Completa %1$d sesiones de PlayStation 1.</string>
-    <string name="achievement_gow_chains_title">Fantasma de Esparta</string>
-    <string name="achievement_gow_chains_description">Pasa 2 horas en God of War: Chains of Olympus.</string>
-    <string name="achievement_gta_lcs_title">Historias de Liberty City</string>
-    <string name="achievement_gta_lcs_description">Pasa 2 horas en Grand Theft Auto: Liberty City Stories.</string>
-    <string name="achievement_tekken_dr_title">Rey del Puño de Hierro</string>
-    <string name="achievement_tekken_dr_description">Pasa 90 minutos en Tekken: Dark Resurrection.</string>
     <string name="drive_category_memory_stick">Partidas de 3DS</string>
 
     <string name="theme_manager_preview_mode">Modo vista previa</string>

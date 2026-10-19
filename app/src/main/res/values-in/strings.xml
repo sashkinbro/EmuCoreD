@@ -1118,7 +1118,6 @@
     <string name="hub_filter_all_topics">Semua topik</string>
     <string name="hub_filter_emucored">EmuCoreD</string>
     <string name="hub_filter_emucorev">EmuCoreDV</string>
-    <string name="hub_filter_ps1">3DS</string>
     <string name="hub_filter_other_emulators">Emulator lainnya</string>
     <string name="hub_clear_filters">Hapus filter</string>
     <string name="hub_scroll_to_top">Gulir ke atas</string>
@@ -1308,10 +1307,6 @@
     <string name="achievement_first_game_title">First launch</string>
     <string name="achievement_five_games_description">Play 5 different games.</string>
     <string name="achievement_five_games_title">Explorer</string>
-    <string name="achievement_game_sessions_description">Start %2$d sessions in %1$s.</string>
-    <string name="achievement_game_sessions_title">%1$s regular</string>
-    <string name="achievement_game_time_description">Spend %2$d minutes in %1$s.</string>
-    <string name="achievement_game_time_title">%1$s specialist</string>
     <string name="achievement_hidden_description">Keep playing to reveal this achievement.</string>
     <string name="achievement_hidden_title">Secret achievement</string>
     <string name="achievement_hundred_hours_description">Spend 100 hours in games.</string>
@@ -1323,8 +1318,6 @@
     <string name="achievement_one_hour_title">Getting started</string>
     <string name="achievement_points_format">%1$d pts</string>
     <string name="achievement_progress_format">%1$d / %2$d</string>
-    <string name="achievement_series_description">Play at least %2$d different games from the %1$s series.</string>
-    <string name="achievement_series_title">%1$s devotee</string>
     <string name="achievement_sessions_description">Complete %1$d play sessions.</string>
     <string name="achievement_sessions_title">Always ready · %1$d</string>
     <string name="achievement_single_game_sessions_description">Return to one game for %1$d sessions.</string>
@@ -1603,20 +1596,6 @@
 
 
     <!-- EmuCoreD achievements: PS1 classics and PSP headline games -->
-    <string name="achievement_ps1_debut_title">PlayStation veteran</string>
-    <string name="achievement_ps1_debut_description">Launch a PlayStation 1 classic.</string>
-    <string name="achievement_ps1_library_title">PS1 collector — %1$d</string>
-    <string name="achievement_ps1_library_description">Play %1$d different PlayStation 1 games.</string>
-    <string name="achievement_ps1_time_title">PS1 resident — %1$d min</string>
-    <string name="achievement_ps1_time_description">Spend %1$d minutes in PlayStation 1 games.</string>
-    <string name="achievement_ps1_sessions_title">Retro session — %1$d</string>
-    <string name="achievement_ps1_sessions_description">Complete %1$d PlayStation 1 sessions.</string>
-    <string name="achievement_gow_chains_title">Ghost of Sparta</string>
-    <string name="achievement_gow_chains_description">Spend 2 hours in God of War: Chains of Olympus.</string>
-    <string name="achievement_gta_lcs_title">Liberty City stories</string>
-    <string name="achievement_gta_lcs_description">Spend 2 hours in Grand Theft Auto: Liberty City Stories.</string>
-    <string name="achievement_tekken_dr_title">King of the Iron Fist</string>
-    <string name="achievement_tekken_dr_description">Spend 90 minutes in Tekken: Dark Resurrection.</string>
     <string name="drive_category_memory_stick">Save 3DS</string>
 
     <string name="theme_manager_preview_mode">Mode pratinjau</string>

@@ -26,17 +26,11 @@ enum class EmuAchievementMetric {
     GamesPlayed,
     TotalPlayTimeMinutes,
     TotalSessions,
-    Ps1Games,
-    Ps1Minutes,
-    Ps1Sessions,
     LongestGameMinutes,
     MaxGameSessions,
     MatchingTitleMinutes,
     MatchingTitleSessions,
-    MatchingGamesCount,
-    GodOfWarMinutes,
-    GtaLcsMinutes,
-    TekkenDrMinutes
+    MatchingGamesCount
 }
 
 data class EmuAchievementDefinition(
@@ -76,7 +70,7 @@ internal fun resolveAchievementState(
 }
 
 object EmuCoreDAchievementCatalog {
-    const val VERSION = 2
+    const val VERSION = 3
 
     val definitions = buildList {
         addAll(listOf(
@@ -87,11 +81,7 @@ object EmuCoreDAchievementCatalog {
         EmuAchievementDefinition("ten_hours", R.string.achievement_ten_hours_title, R.string.achievement_ten_hours_description, EmuAchievementMetric.TotalPlayTimeMinutes, 600, 40),
         EmuAchievementDefinition("hundred_hours", R.string.achievement_hundred_hours_title, R.string.achievement_hundred_hours_description, EmuAchievementMetric.TotalPlayTimeMinutes, 6_000, 100),
         EmuAchievementDefinition("ten_sessions", R.string.achievement_ten_sessions_title, R.string.achievement_ten_sessions_description, EmuAchievementMetric.TotalSessions, 10, 20),
-        EmuAchievementDefinition("ps1_debut", R.string.achievement_ps1_debut_title, R.string.achievement_ps1_debut_description, EmuAchievementMetric.Ps1Games, 1, 25),
-        EmuAchievementDefinition("dedicated", R.string.achievement_dedicated_title, R.string.achievement_dedicated_description, EmuAchievementMetric.LongestGameMinutes, 600, 60, hidden = true),
-        EmuAchievementDefinition("god_of_war_secret", R.string.achievement_gow_chains_title, R.string.achievement_gow_chains_description, EmuAchievementMetric.GodOfWarMinutes, 120, 50, hidden = true),
-        EmuAchievementDefinition("liberty_city_secret", R.string.achievement_gta_lcs_title, R.string.achievement_gta_lcs_description, EmuAchievementMetric.GtaLcsMinutes, 120, 50, hidden = true),
-        EmuAchievementDefinition("tekken_dr_secret", R.string.achievement_tekken_dr_title, R.string.achievement_tekken_dr_description, EmuAchievementMetric.TekkenDrMinutes, 90, 50, hidden = true)
+        EmuAchievementDefinition("dedicated", R.string.achievement_dedicated_title, R.string.achievement_dedicated_description, EmuAchievementMetric.LongestGameMinutes, 600, 60, hidden = true)
         ))
 
         fun milestones(prefix: String, metric: EmuAchievementMetric, targets: List<Long>, title: Int, description: Int, hidden: Boolean = false) {
@@ -114,43 +104,8 @@ object EmuCoreDAchievementCatalog {
         milestones("sessions", EmuAchievementMetric.TotalSessions, listOf(1, 5, 25, 50, 100, 250, 500, 1_000), R.string.achievement_sessions_title, R.string.achievement_sessions_description)
         milestones("single_game_minutes", EmuAchievementMetric.LongestGameMinutes, listOf(30, 60, 120, 300, 1_200, 3_000, 6_000), R.string.achievement_single_game_time_title, R.string.achievement_single_game_time_description, hidden = true)
         milestones("single_game_sessions", EmuAchievementMetric.MaxGameSessions, listOf(2, 5, 10, 25, 50, 100), R.string.achievement_single_game_sessions_title, R.string.achievement_single_game_sessions_description)
-        milestones("ps1_library", EmuAchievementMetric.Ps1Games, listOf(2, 3, 5, 10, 20), R.string.achievement_ps1_library_title, R.string.achievement_ps1_library_description)
-        milestones("ps1_minutes", EmuAchievementMetric.Ps1Minutes, listOf(30, 60, 180, 300, 600, 1_500), R.string.achievement_ps1_time_title, R.string.achievement_ps1_time_description)
-        milestones("ps1_sessions", EmuAchievementMetric.Ps1Sessions, listOf(1, 5, 10, 25, 50), R.string.achievement_ps1_sessions_title, R.string.achievement_ps1_sessions_description)
-
-        val topGames = listOf(
-            "God of War: Chains of Olympus" to "chains of olympus",
-            "Grand Theft Auto: Liberty City Stories" to "liberty city stories",
-            "Tekken: Dark Resurrection" to "dark resurrection",
-            "Crisis Core: Final Fantasy VII" to "crisis core",
-            "Monster Hunter Freedom Unite" to "monster hunter",
-            "Gran Turismo" to "gran turismo",
-            "Metal Gear Solid: Peace Walker" to "peace walker",
-            "Final Fantasy VII" to "final fantasy vii",
-            "Persona 3 Portable" to "persona 3",
-            "Kingdom Hearts: Birth by Sleep" to "birth by sleep",
-            "Daxter" to "daxter",
-            "Ratchet & Clank: Size Matters" to "size matters",
-            "Silent Hill" to "silent hill",
-            "Wipeout" to "wipeout"
-        )
-        topGames.forEachIndexed { index, (game, term) ->
-            val slug = term.replace(Regex("[^a-z0-9]+"), "_").trim('_')
-            add(EmuAchievementDefinition("game_${slug}_time", R.string.achievement_game_time_title, R.string.achievement_game_time_description, EmuAchievementMetric.MatchingTitleMinutes, 120, 50 + index, hidden = true, textArgument = game, matchTerms = listOf(term), templatedText = true))
-            add(EmuAchievementDefinition("game_${slug}_sessions", R.string.achievement_game_sessions_title, R.string.achievement_game_sessions_description, EmuAchievementMetric.MatchingTitleSessions, 10, 45 + index, hidden = true, textArgument = game, matchTerms = listOf(term), templatedText = true))
-        }
-
-        listOf(
-            "God of War" to "god of war", "Grand Theft Auto" to "grand theft auto",
-            "Tekken" to "tekken", "Final Fantasy" to "final fantasy",
-            "Metal Gear" to "metal gear", "Monster Hunter" to "monster hunter",
-            "Gran Turismo" to "gran turismo", "Silent Hill" to "silent hill"
-        ).forEach { (series, term) ->
-            val slug = term.replace(' ', '_')
-            add(EmuAchievementDefinition("series_$slug", R.string.achievement_series_title, R.string.achievement_series_description, EmuAchievementMetric.MatchingGamesCount, 2, 60, hidden = true, textArgument = series, matchTerms = listOf(term), templatedText = true))
-        }
     }.also { definitions ->
-        check(definitions.size >= 100)
+        check(definitions.size >= 40)
         check(definitions.map { it.id }.distinct().size == definitions.size)
     }
 }
@@ -322,34 +277,17 @@ class EmuAchievementRepository(context: Context) {
             EmuAchievementMetric.GamesPlayed -> gamesPlayed
             EmuAchievementMetric.TotalPlayTimeMinutes -> totalPlayTimeMs / 60_000L
             EmuAchievementMetric.TotalSessions -> games.sumOf { it.sessions }
-            EmuAchievementMetric.Ps1Games -> ps1Games().size.toLong()
-            EmuAchievementMetric.Ps1Minutes -> ps1Games().sumOf { it.totalPlayTimeMs } / 60_000L
-            EmuAchievementMetric.Ps1Sessions -> ps1Games().sumOf { it.sessions }
             EmuAchievementMetric.LongestGameMinutes -> (games.maxOfOrNull { it.totalPlayTimeMs } ?: 0L) / 60_000L
             EmuAchievementMetric.MaxGameSessions -> games.maxOfOrNull { it.sessions } ?: 0L
             EmuAchievementMetric.MatchingTitleMinutes -> matching(definition).sumOf { it.totalPlayTimeMs } / 60_000L
             EmuAchievementMetric.MatchingTitleSessions -> matching(definition).sumOf { it.sessions }
             EmuAchievementMetric.MatchingGamesCount -> matching(definition).size.toLong()
-            EmuAchievementMetric.GodOfWarMinutes -> minutesForTitle("god of war")
-            EmuAchievementMetric.GtaLcsMinutes -> minutesForTitle("liberty city")
-            EmuAchievementMetric.TekkenDrMinutes -> minutesForTitle("tekken")
-        }
-
-        // PlayStation 1 disc serials (SLUS/SCUS/SLPS/SCES/SLES/SCPS/SLPM...) start with SL or SC,
-        // while PSP titles use ULUS/ULES/ULJM/NPJH style prefixes.
-        private fun ps1Games() = games.filter { game ->
-            val serial = game.serial.orEmpty().uppercase(Locale.ROOT)
-            serial.startsWith("SL") || serial.startsWith("SC")
         }
 
         private fun matching(definition: EmuAchievementDefinition): List<AchievementGame> = games.filter { game ->
             val title = game.title.lowercase(Locale.ROOT)
             definition.matchTerms.any { term -> title.contains(term.lowercase(Locale.ROOT)) }
         }
-
-        private fun minutesForTitle(needle: String): Long = games
-            .filter { it.title.lowercase(Locale.ROOT).contains(needle) }
-            .sumOf { it.totalPlayTimeMs } / 60_000L
     }
 
     private data class AchievementGame(
