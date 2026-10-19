@@ -42,7 +42,6 @@ object NativeApp {
     @Volatile private var saveStateIdentityPath: String? = null
     private val padButtons = intArrayOf(0xFFFF, 0xFFFF)
     private val derivedDpadButtons = intArrayOf(0xFFFF, 0xFFFF)
-    private val padAnalogMode = booleanArrayOf(false, false)
     private val padAnalogHalfAxes = Array(2) { IntArray(8) }
     private val timeControlHandler = android.os.Handler(android.os.Looper.getMainLooper())
     private val timeControlButtons = Array(2) { Array(4) { HoldButton() } }
@@ -147,12 +146,6 @@ object NativeApp {
         padAnalogHalfAxes[padIndex].fill(0)
         CoreRuntime.setPadButtons(padIndex, 0xFFFF)
         CoreRuntime.setPadAnalog(padIndex, 128, 128, 128, 128)
-    }
-
-    @JvmStatic fun setPadAnalogMode(padIndex: Int, enabled: Boolean): Boolean {
-        if (padIndex !in 0..1) return false
-        padAnalogMode[padIndex] = enabled
-        return true
     }
 
     @JvmStatic fun setAspectRatio(type: Int) { CoreRuntime.setDisplayAspectRatio(type) }
@@ -271,8 +264,6 @@ object NativeApp {
     @JvmStatic fun onPadVibration(index: Int, largeMotor: Float, smallMotor: Float) {
         GamepadManager.onPadVibration(index, largeMotor, smallMotor)
     }
-
-    @JvmStatic fun getPadRumble(index: Int): FloatArray? = null
 
     @JvmStatic fun setCrashContextString(key: String, value: String?) {
         CrashLogger.logContext(key, value)
@@ -436,7 +427,7 @@ object NativeApp {
      */
     private fun updateDerivedDpadButtons(padIndex: Int, lx: Int, ly: Int) {
         var derived = DPAD_ALL_RELEASED
-        if (isAnalogDpadInDigitalModeEnabled(padIndex)) {
+            if (isAnalogDpadInDigitalModeEnabled()) {
             when {
                 ly < 128 - ANALOG_DPAD_THRESHOLD -> derived = derived and (1 shl N3DS_BUTTON_UP).inv()
                 ly > 128 + ANALOG_DPAD_THRESHOLD -> derived = derived and (1 shl N3DS_BUTTON_DOWN).inv()
@@ -455,8 +446,7 @@ object NativeApp {
     private fun effectivePadButtons(padIndex: Int): Int =
         padButtons[padIndex] and derivedDpadButtons[padIndex]
 
-    private fun isAnalogDpadInDigitalModeEnabled(padIndex: Int): Boolean {
-        if (padAnalogMode[padIndex]) return false
+    private fun isAnalogDpadInDigitalModeEnabled(): Boolean {
         val key = "analog_dpad_in_digital_mode"
         return CoreRuntime.coreOptionValue(key)?.toBooleanStrictOrNull() ?: false
     }

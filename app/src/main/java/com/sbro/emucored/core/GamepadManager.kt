@@ -269,8 +269,6 @@ object GamepadManager {
         const val RightStickRight = 121
         const val RightStickDown = 122
         const val RightStickLeft = 123
-        const val Pressure = 124
-        const val AnalogToggle = 125
         const val FastForward = 126
         const val Rewind = 127
     }
@@ -288,7 +286,6 @@ object GamepadManager {
         MappableButtonAction("touch", PadKey.TOUCH, listOf(KeyEvent.KEYCODE_BUTTON_THUMBR)),
         MappableButtonAction("select", PadKey.Select, listOf(KeyEvent.KEYCODE_BUTTON_SELECT, KeyEvent.KEYCODE_BUTTON_9)),
         MappableButtonAction("start", PadKey.Start, listOf(KeyEvent.KEYCODE_BUTTON_START, KeyEvent.KEYCODE_BUTTON_10)),
-        MappableButtonAction("left_input_toggle", PadKey.AnalogToggle, emptyList()),
         MappableButtonAction(ACTION_QUICK_SAVE, null, emptyList()),
         MappableButtonAction(ACTION_QUICK_LOAD, null, emptyList()),
         MappableButtonAction(ACTION_TOGGLE_SECOND_SCREEN, null, emptyList()),

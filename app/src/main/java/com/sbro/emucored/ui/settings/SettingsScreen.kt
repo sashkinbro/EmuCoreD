@@ -5452,7 +5452,6 @@ private fun gamepadActionLabelRes(actionId: String): Int = when (actionId) {
     "select" -> R.string.settings_gamepad_action_select
     "start" -> R.string.settings_gamepad_action_start
     "left_input_toggle" -> R.string.settings_gamepad_action_left_input_toggle
-    "pressure" -> R.string.settings_gamepad_action_pressure
     GamepadManager.ACTION_QUICK_SAVE -> R.string.emulation_quick_save
     GamepadManager.ACTION_QUICK_LOAD -> R.string.emulation_quick_load
     GamepadManager.ACTION_FAST_FORWARD -> R.string.emulation_fast_forward
@@ -5465,14 +5464,8 @@ private fun gamepadActionLabelRes(actionId: String): Int = when (actionId) {
 }
 
 @Composable
-private fun gamepadActionLabel(actionId: String): String = when (actionId) {
-    "b" -> "B"
-    "a" -> "A"
-    "y" -> "Y"
-    "x" -> "X"
-    "pressure" -> stringResource(R.string.settings_gamepad_action_pressure)
-    else -> stringResource(gamepadActionLabelRes(actionId))
-}
+private fun gamepadActionLabel(actionId: String): String =
+    stringResource(gamepadActionLabelRes(actionId))
 
 @Composable
 private fun gamepadPlayerLabel(padIndex: Int): String {

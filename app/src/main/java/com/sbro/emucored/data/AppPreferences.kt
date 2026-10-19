@@ -387,8 +387,6 @@ class AppPreferences(private val context: Context) {
             "a" to OverlayControlLayout(),
             "right_stick" to OverlayControlLayout(scale = stickScale, widthScale = 160, visible = false),
             "select" to OverlayControlLayout(scale = 80),
-            // The analog-mode toggle is a PSP-era control; the 3DS has a fixed
-            // Circle Pad, so the button is hidden unless the user re-enables it.
             "left_input_toggle" to OverlayControlLayout(scale = 80, visible = false),
             "start" to OverlayControlLayout(scale = 80),
             "fast_forward" to OverlayControlLayout(scale = 80, visible = false),

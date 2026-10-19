@@ -357,16 +357,6 @@ internal object CoreRuntime {
         flushPadAnalog(port)
     }
 
-    fun setPadAnalogMode(port: Int, enabled: Boolean): Boolean {
-        // The 3DS always exposes both sticks; the toggle only affects whether
-        // the D-pad mirrors the left stick.
-        return enabled
-    }
-
-    fun togglePadAnalogMode(port: Int): Boolean = true
-
-    fun getPadRumble(port: Int): FloatArray? = null
-
     fun setTouchState(x: Int, y: Int, pressed: Boolean) {
         if (!running) return
         runCatching {

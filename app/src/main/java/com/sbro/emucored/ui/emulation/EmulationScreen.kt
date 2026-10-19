@@ -220,7 +220,6 @@ import com.sbro.emucored.ui.theme.GradientEnd
 import com.sbro.emucored.ui.theme.GradientStart
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.text.DateFormat
@@ -259,7 +258,6 @@ private object PadKey {
     const val RIGHT_STICK_RIGHT = 121
     const val RIGHT_STICK_DOWN = 122
     const val RIGHT_STICK_LEFT = 123
-    const val PRESSURE = 124
 }
 
 private enum class EmulationMenuTab {
@@ -861,29 +859,6 @@ fun EmulationScreen(
 
     LaunchedEffect(gamepadUiActive) {
         GamepadManager.setEmulationInputEnabled(!gamepadUiActive)
-    }
-
-    // The core latches DualShock rumble every frame; forward it to the
-    // connected gamepad or the device vibrator while emulation runs. Polling
-    // happens off the main thread because the frame loop holds the runtime
-    // session lock for the duration of each frame.
-    LaunchedEffect(uiState.isRunning, uiState.isPaused) {
-        if (!uiState.isRunning || uiState.isPaused) return@LaunchedEffect
-        try {
-            withContext(Dispatchers.Default) {
-                while (isActive) {
-                    for (port in 0..1) {
-                        EmulatorBridge.getPadRumble(port)?.let { rumble ->
-                            NativeApp.onPadVibration(port, rumble[0], rumble[1])
-                        }
-                    }
-                    delay(50L)
-                }
-            }
-        } finally {
-            NativeApp.onPadVibration(0, 0f, 0f)
-            NativeApp.onPadVibration(1, 0f, 0f)
-        }
     }
 
     DisposableEffect(touchPadIndex, shouldShowOverlay, uiState.showMenu, showControlsEditor) {
@@ -2093,7 +2068,6 @@ private fun OnScreenControls(
         "start" -> { pressed -> onPadInput(PadKey.START, 0, pressed) }
         "fast_forward" -> { pressed -> onPadInput(126, 0, pressed) }
         "rewind" -> { pressed -> onPadInput(127, 0, pressed) }
-        "pressure" -> { pressed -> onPadInput(PadKey.PRESSURE, 0, pressed) }
         "home" -> { pressed -> onPadInput(PadKey.HOME, 0, pressed) }
         "swap_screen" -> { pressed -> onPadInput(PadKey.HOME, 0, pressed) }
         "touch" -> { pressed -> onPadInput(PadKey.TOUCH, 0, pressed) }
@@ -4421,13 +4395,8 @@ private fun gamepadActionLabelRes(actionId: String): Int = when (actionId) {
 }
 
 @Composable
-private fun gamepadActionLabel(actionId: String): String = when (actionId) {
-    "b" -> "\u2715"
-    "a" -> "\u25cb"
-    "y" -> "\u25a1"
-    "x" -> "\u25b3"
-    else -> stringResource(gamepadActionLabelRes(actionId))
-}
+private fun gamepadActionLabel(actionId: String): String =
+    stringResource(gamepadActionLabelRes(actionId))
 
 @Composable
 private fun gamepadPlayerLabel(padIndex: Int): String {

@@ -1286,7 +1286,6 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
                 pendingPerGameCoreOptions.forEach { (coreKey, coreValue) ->
                     NativeApp.applyCoreOption(coreKey, coreValue)
                 }
-                syncPadAnalogModeForLaunch()
             }
             updateCrashContext(
                 launchState = if (started) "running" else "launch_failed",
@@ -1588,10 +1587,6 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
     fun toggleLeftInputMode() {
         viewModelScope.launch {
             val current = _uiState.value
-            // Keep the DualShock: switching to the D-pad only stops stick input,
-            // it must not demote the port to a digital pad (which kills rumble).
-            NativeApp.setPadAnalogMode(0, true)
-
             val profile = current.toTouchControlsLayoutProfile()
             val toggled = profile.toggleStick(current.stickToggleTarget)
             persistTouchControlsLayout(current.withTouchControlsLayout(toggled))
@@ -2534,17 +2529,6 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
         if (config != null && cheatsEnabled) {
             cheatRepository.syncActiveCheats(config.gameKey, serial, crc)
         }
-    }
-
-    /**
-     * Presents a DualShock on both ports. The core keeps it in digital mode
-     * until a game enables analog/rumble, and DualShock is the only controller
-     * class that can drive vibration, so rumble works with touch controls and
-     * gamepads alike.
-     */
-    private fun syncPadAnalogModeForLaunch() {
-        NativeApp.setPadAnalogMode(0, true)
-        NativeApp.setPadAnalogMode(1, true)
     }
 
     private fun syncCheatsForCurrentGame(gameKeyOverride: String? = null) {

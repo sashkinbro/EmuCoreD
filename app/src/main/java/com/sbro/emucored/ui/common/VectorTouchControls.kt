@@ -126,7 +126,6 @@ fun overlayDrawableForControl(controlId: String): Int? = when (controlId) {
     "home" -> R.drawable.ic_controller_l3_button
     "touch" -> R.drawable.ic_controller_r3_button
     "left_input_toggle" -> R.drawable.ic_controller_analog_button
-    "pressure" -> R.drawable.ic_controller_pressure_modifier
     else -> null
 }
 
@@ -356,8 +355,6 @@ private fun AlternativeControlGlyph(
         R.drawable.ic_controller_r3_button -> "TOUCH"
         R.drawable.ic_controller_select_button -> "SELECT"
         R.drawable.ic_controller_start_button -> "START"
-        R.drawable.ic_controller_analog_button -> "ANALOG"
-        R.drawable.ic_controller_pressure_modifier -> "P"
         else -> null
     }
     if (text != null) {
@@ -387,38 +384,7 @@ private fun AlternativeControlGlyph(
         }
         val inset = size.minDimension * 0.17f
         val center = Offset(size.width / 2f, size.height / 2f)
-        val faceColor = when (drawableRes) {
-            R.drawable.ic_controller_triangle_button -> Color(0xFF63D59A)
-            R.drawable.ic_controller_circle_button -> Color(0xFFFF6C82)
-            R.drawable.ic_controller_cross_button -> Color(0xFF78A6FF)
-            R.drawable.ic_controller_square_button -> Color(0xFFE58BEF)
-            else -> baseColor
-        }
         when (drawableRes) {
-            R.drawable.ic_controller_triangle_button -> {
-                val path = Path().apply {
-                    moveTo(center.x, inset)
-                    lineTo(size.width - inset, size.height - inset)
-                    lineTo(inset, size.height - inset)
-                    close()
-                }
-                drawPath(path, faceColor, style = Stroke(strokeWidth, cap = StrokeCap.Round))
-            }
-            R.drawable.ic_controller_circle_button -> {
-                drawCircle(faceColor, size.minDimension * 0.31f, center, style = Stroke(strokeWidth))
-            }
-            R.drawable.ic_controller_cross_button -> {
-                drawLine(faceColor, Offset(inset, inset), Offset(size.width - inset, size.height - inset), strokeWidth, StrokeCap.Round)
-                drawLine(faceColor, Offset(size.width - inset, inset), Offset(inset, size.height - inset), strokeWidth, StrokeCap.Round)
-            }
-            R.drawable.ic_controller_square_button -> {
-                drawRect(
-                    faceColor,
-                    topLeft = Offset(inset, inset),
-                    size = androidx.compose.ui.geometry.Size(size.width - inset * 2f, size.height - inset * 2f),
-                    style = Stroke(strokeWidth)
-                )
-            }
             R.drawable.ic_controller_up_button,
             R.drawable.ic_controller_down_button,
             R.drawable.ic_controller_left_button,

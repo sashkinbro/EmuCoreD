@@ -332,8 +332,6 @@ object EmulatorBridge {
         return isVmActive || (isNativeLoaded && NativeApp.hasOwnedVm())
     }
 
-    fun getPadRumble(port: Int): FloatArray? = null
-
     fun getGameTitle(path: String): String = getGameMetadata(path).title
 
     /**
