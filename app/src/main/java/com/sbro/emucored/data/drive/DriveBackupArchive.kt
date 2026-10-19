@@ -68,10 +68,11 @@ class DriveBackupArchive(private val context: Context) {
         return when (parts[0]) {
             "memory-stick" -> parts.drop(1).none { it.startsWith(".") } && !name.endsWith(".tmp")
             "memory-cards" -> parts.size == 2 && !parts[1].startsWith(".") && !name.endsWith(".tmp")
-            "save-states" -> parts.size == 2 && name.endsWith(".rstate", true)
-            "cheat-files" -> parts.size == 2 && name.endsWith(".pnach", true)
+            "save-states" -> parts.size == 2 && name.endsWith(".cst", true)
+            "cheat-files" -> parts.size == 2 && name.endsWith(".txt", true)
             "patches" -> parts.size == 2 && (
-                name.endsWith(".pnach", true) || name.endsWith(".cht", true)
+                name.endsWith(".pnach", true) || name.endsWith(".cht", true) ||
+                    name.endsWith(".ips", true) || name.endsWith(".bps", true)
                 )
             "customization" -> parts.size == 2 && parts[1] in setOf("app_font", "home_background.jpg", "home_background.png", "home_background.gif", "home_background.mp4", "home_background.image", "home_background.video")
             "side-artwork" -> parts.size == 2 && parts[1] == "custom_side_artwork.image"

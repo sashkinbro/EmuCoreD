@@ -30,16 +30,20 @@ object EmulatorStorage {
         root(context, customRootPath)
 
     /**
-     * Azahar's user directory. The core turns the save directory reported to
-     * the libretro frontend into `<save_dir>/Azahar`, which holds the emulated
-     * NAND, the virtual SD card (sdmc), system data and custom textures.
+     * Azahar's active user directory. The EmuCoreD native bridge receives this
+     * path directly, so NAND, the virtual SD card (sdmc), states, cheats and
+     * textures are all rooted here.
      */
-    fun azaharUserDir(context: Context, customRootPath: String? = null): File =
-        File(azaharSaveRoot(context, customRootPath), "Azahar").apply { mkdirs() }
+    fun azaharUserDir(
+        context: Context,
+        @Suppress("UNUSED_PARAMETER") customRootPath: String? = null
+    ): File = coreUserDir(context)
 
-    /** The save directory handed to the libretro core; Azahar appends "/Azahar". */
-    fun azaharSaveRoot(context: Context, customRootPath: String? = null): File =
-        File(root(context, customRootPath), "azahar").apply { mkdirs() }
+    /** The user directory handed to the core before a session starts. */
+    fun azaharSaveRoot(
+        context: Context,
+        @Suppress("UNUSED_PARAMETER") customRootPath: String? = null
+    ): File = coreUserDir(context)
 
     /** The virtual SD card the core exposes as `sdmc:/` to games and homebrew. */
     fun sdmcDir(context: Context, customRootPath: String? = null): File =
@@ -132,8 +136,10 @@ object EmulatorStorage {
         return prepareRoot(customRoot)
     }
 
-    fun saveStatesDir(context: Context, customRootPath: String? = null): File =
-        File(root(context, customRootPath), "sstates").apply { mkdirs() }
+    fun saveStatesDir(
+        context: Context,
+        @Suppress("UNUSED_PARAMETER") customRootPath: String? = null
+    ): File = coreStatesDir(context)
 
     fun memoryCardsDir(context: Context, customRootPath: String? = null): File =
         File(root(context, customRootPath), "memcards").apply { mkdirs() }

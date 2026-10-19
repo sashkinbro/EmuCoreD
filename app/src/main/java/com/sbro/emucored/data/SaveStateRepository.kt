@@ -439,10 +439,10 @@ class SaveStateRepository(private val context: Context) {
                     .getOrNull()
                     ?.let(::File)
                     ?.name
-                    ?.takeIf { it.endsWith(".rstate", ignoreCase = true) }
-                    ?: parsed?.let { "${it.serial}.${targetSlot.toString().padStart(2, '0')}.rstate" }
+                    ?.takeIf { it.endsWith(".cst", ignoreCase = true) }
+                    ?: parsed?.let { "${it.serial}.${targetSlot.toString().padStart(2, '0')}.cst" }
             } else {
-                parsed?.let { "${it.serial}.${targetSlot.toString().padStart(2, '0')}.rstate" }
+                parsed?.let { "${it.serial}.${targetSlot.toString().padStart(2, '0')}.cst" }
             }
             if (targetName.isNullOrBlank() || targetName in occupiedNames) {
                 skipped++
@@ -497,7 +497,7 @@ class SaveStateRepository(private val context: Context) {
             context.contentResolver.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)?.use { cursor ->
                 if (cursor.moveToFirst()) cursor.getString(0) else null
             }
-        }.getOrNull()?.takeIf { it.isNotBlank() } ?: uri.lastPathSegment?.substringAfterLast('/') ?: "save-state.rstate"
+        }.getOrNull()?.takeIf { it.isNotBlank() } ?: uri.lastPathSegment?.substringAfterLast('/') ?: "save-state.cst"
     }
 
     private fun importCacheDir(): File = File(context.cacheDir, "save-state-imports").apply { mkdirs() }
@@ -677,7 +677,7 @@ class SaveStateRepository(private val context: Context) {
     }
 
     private fun isPrimarySaveState(fileName: String): Boolean {
-        return fileName.endsWith(".rstate", ignoreCase = true) &&
+        return fileName.endsWith(".cst", ignoreCase = true) &&
             !fileName.endsWith(".backup", ignoreCase = true) &&
             !fileName.contains(".resume.", ignoreCase = true)
     }

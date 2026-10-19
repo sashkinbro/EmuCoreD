@@ -294,7 +294,7 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
         private const val AUTO_SAVE_SLOT = 0
         private const val PLAY_TIME_LOCAL_CACHE_INTERVAL_MS = 60_000L
         private const val PLAY_TIME_CLOUD_SYNC_INTERVAL_MS = 10L * 60_000L
-        private val SAVE_STATE_FILE_REGEX = Regex("""^(.+?)\.(\d{2})\.rstate$""")
+        private val SAVE_STATE_FILE_REGEX = Regex("""^(.+?)\.(\d{2})\.cst$""")
     }
 
 

@@ -181,12 +181,11 @@ private fun ZipOutputStream.writeJsonEntry(name: String, json: JSONObject) {
 }
 
 private fun isQuickSaveState(file: File): Boolean {
-    return file.name.endsWith(".rstate", ignoreCase = true) &&
-        !file.name.contains(".resume.", ignoreCase = true)
+    return file.name.endsWith(".cst", ignoreCase = true)
 }
 
 private fun isCheatFile(file: File): Boolean {
-    return file.extension.equals("pnach", ignoreCase = true)
+    return file.extension.equals("txt", ignoreCase = true)
 }
 
 private fun ZipOutputStream.writeDirectory(
