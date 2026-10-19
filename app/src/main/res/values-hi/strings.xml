@@ -1749,4 +1749,6 @@
     <string name="hardware_warning_gpu">GPU: %1$s</string>
     <string name="hardware_warning_recommended">कम रेटिंग या नकारात्मक समीक्षा देने से पहले, कम से कम Snapdragon 855, Dimensity 1000, Exynos 2200 या Tensor G2 वाले किसी अन्य डिवाइस पर EmuCoreD आज़माएँ।</string>
     <string name="hardware_warning_continue">समझ गया</string>
+
+    <string name="detail_slot">स्लॉट %d</string>
 </resources>

@@ -1770,4 +1770,6 @@
     <string name="hardware_warning_gpu">GPU: %1$s</string>
     <string name="hardware_warning_recommended">Zanim wystawisz niską ocenę lub negatywną opinię, sprawdź EmuCoreD na innym urządzeniu z co najmniej Snapdragon 855, Dimensity 1000, Exynos 2200 lub Tensor G2.</string>
     <string name="hardware_warning_continue">Rozumiem</string>
+
+    <string name="detail_slot">Gniazdo %d</string>
 </resources>

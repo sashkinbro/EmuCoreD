@@ -1748,4 +1748,6 @@
     <string name="hardware_warning_gpu">GPU: %1$s</string>
     <string name="hardware_warning_recommended">低い評価や否定的なレビューを投稿する前に、少なくとも Snapdragon 855、Dimensity 1000、Exynos 2200、Tensor G2 を搭載した別の端末で EmuCoreD をお試しください。</string>
     <string name="hardware_warning_continue">了解</string>
+
+    <string name="detail_slot">スロット %d</string>
 </resources>

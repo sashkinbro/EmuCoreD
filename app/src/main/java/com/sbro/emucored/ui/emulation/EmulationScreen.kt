@@ -6,6 +6,10 @@ import android.content.pm.ActivityInfo
 import android.graphics.PixelFormat
 import android.view.MotionEvent
 import android.view.SurfaceHolder
+import android.graphics.Bitmap
+import android.os.Handler
+import android.os.Looper
+import android.view.PixelCopy
 import android.view.SurfaceView
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
@@ -226,11 +230,15 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
+import java.io.File
+import java.io.FileOutputStream
 import java.text.DateFormat
 import java.util.Date
 import java.util.Locale
 import java.util.concurrent.atomic.AtomicLong
+import kotlin.coroutines.resume
 import kotlin.math.roundToInt
 import kotlin.time.Duration.Companion.milliseconds
 import com.sbro.emucored.ui.theme.neon.LocalNeonTheme
@@ -918,6 +926,20 @@ fun EmulationScreen(
         }
     }
 
+    val gameSurfaceView = remember { mutableStateOf<SurfaceView?>(null) }
+    LaunchedEffect(viewModel) {
+        viewModel.saveStatePreviewRequests.collect { slot ->
+            val surfaceView = gameSurfaceView.value ?: return@collect
+            val savePath = runCatching { NativeApp.getCurrentSaveStatePath(slot) }
+                .getOrNull()
+                ?.takeIf { it.isNotBlank() }
+                ?: return@collect
+            if (captureSaveStatePreview(surfaceView, savePath)) {
+                viewModel.refreshSaveStateMetadataNow()
+            }
+        }
+    }
+
     val nativeDisplayDrawRect by produceState<FloatArray?>(
         initialValue = null,
         key1 = uiState.isRunning
@@ -947,6 +969,7 @@ fun EmulationScreen(
             AndroidView(
                 factory = { ctx ->
                     SurfaceView(ctx).apply {
+                        gameSurfaceView.value = this
                         isClickable = false
                         isFocusable = false
                         isFocusableInTouchMode = false
@@ -2992,6 +3015,55 @@ private fun formatSaveTimestamp(timestamp: Long): String {
     return DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT).format(Date(timestamp))
 }
 
+private suspend fun captureSaveStatePreview(surfaceView: SurfaceView, savePath: String): Boolean {
+    val width = surfaceView.width
+    val height = surfaceView.height
+    if (width <= 0 || height <= 0 || !surfaceView.holder.surface.isValid) return false
+    val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+    val result = suspendCancellableCoroutine { continuation ->
+        try {
+            PixelCopy.request(
+                surfaceView,
+                bitmap,
+                { copyResult ->
+                    if (continuation.isActive) continuation.resume(copyResult)
+                },
+                Handler(Looper.getMainLooper())
+            )
+        } catch (_: Throwable) {
+            if (continuation.isActive) continuation.resume(PixelCopy.ERROR_UNKNOWN)
+        }
+    }
+    if (result != PixelCopy.SUCCESS) {
+        bitmap.recycle()
+        return false
+    }
+    return withContext(Dispatchers.IO) {
+        val target = File("$savePath.png")
+        val temporary = runCatching {
+            File.createTempFile(".preview-", ".tmp", target.parentFile)
+        }.getOrNull()
+        if (temporary == null) {
+            bitmap.recycle()
+            return@withContext false
+        }
+        try {
+            FileOutputStream(temporary).use { output ->
+                bitmap.compress(Bitmap.CompressFormat.PNG, 100, output)
+            }
+            if (!temporary.renameTo(target)) {
+                temporary.copyTo(target, overwrite = true)
+            }
+            true
+        } catch (_: Throwable) {
+            false
+        } finally {
+            temporary.delete()
+            bitmap.recycle()
+        }
+    }
+}
+
 private fun formatPlayTime(milliseconds: Long): String {
     val totalSeconds = (milliseconds / 1000L).coerceAtLeast(0L)
     val hours = totalSeconds / 3600L
@@ -3001,6 +3073,143 @@ private fun formatPlayTime(milliseconds: Long): String {
         "%d:%02d:%02d".format(hours, minutes, seconds)
     } else {
         "%02d:%02d".format(minutes, seconds)
+    }
+}
+
+@Composable
+private fun SaveSlotPreview(
+    slot: Int,
+    previewPath: String?,
+    lastModified: Long,
+    isSaving: Boolean,
+    gameTitle: String,
+    modifier: Modifier = Modifier
+) {
+    val shape = neonShape(14.dp)
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .aspectRatio(16f / 9f)
+            .clip(shape)
+            .background(
+                Brush.linearGradient(
+                    colors = listOf(
+                        MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.38f),
+                        MaterialTheme.colorScheme.surface.copy(alpha = 0.72f)
+                    )
+                )
+            )
+    ) {
+        if (previewPath != null) {
+            GameCoverArt(
+                coverPath = previewPath,
+                fallbackTitle = gameTitle,
+                modifier = Modifier.fillMaxSize(),
+                contentScale = ContentScale.Crop
+            )
+        } else {
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Rounded.Save,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.26f),
+                    modifier = Modifier.size(42.dp)
+                )
+            }
+        }
+
+        Surface(
+            modifier = Modifier
+                .align(Alignment.TopStart)
+                .padding(10.dp),
+            shape = RoundedCornerShape(999.dp),
+            color = Color.Black.copy(alpha = 0.58f)
+        ) {
+            Text(
+                text = stringResource(R.string.detail_slot, slot),
+                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                color = Color.White,
+                modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
+            )
+        }
+
+        Box(
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .fillMaxWidth()
+                .background(
+                    Brush.verticalGradient(
+                        colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.78f))
+                    )
+                )
+                .padding(horizontal = 12.dp, vertical = 10.dp)
+        ) {
+            Text(
+                text = if (lastModified > 0L) {
+                    stringResource(
+                        R.string.emulation_save_slot_saved_at,
+                        formatSaveTimestamp(lastModified)
+                    )
+                } else {
+                    stringResource(R.string.emulation_save_slot_empty)
+                },
+                style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold),
+                color = Color.White.copy(alpha = 0.94f),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+        }
+
+        if (isSaving) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.35f)),
+                contentAlignment = Alignment.Center
+            ) {
+                androidx.compose.material3.CircularProgressIndicator(
+                    modifier = Modifier.size(26.dp),
+                    strokeWidth = 2.dp,
+                    color = MaterialTheme.colorScheme.primary
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun SaveSlotThumbnail(
+    previewPath: String?,
+    lastModified: Long,
+    contentDescription: String,
+    modifier: Modifier = Modifier
+) {
+    Box(
+        modifier = modifier
+            .clip(neonShape(10.dp))
+            .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.32f)),
+        contentAlignment = Alignment.Center
+    ) {
+        if (previewPath != null) {
+            GameCoverArt(
+                coverPath = previewPath,
+                fallbackTitle = contentDescription,
+                modifier = Modifier.fillMaxSize(),
+                contentScale = ContentScale.Crop
+            )
+        } else {
+            Icon(
+                imageVector = Icons.Rounded.Save,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary.copy(
+                    alpha = if (lastModified > 0L) 0.8f else 0.35f
+                ),
+                modifier = Modifier.size(20.dp)
+            )
+        }
     }
 }
 
@@ -3332,6 +3541,14 @@ private fun EmulationSidebarMenu(
                                     }
                                 }
 
+                                SaveSlotPreview(
+                                    slot = uiState.currentSlot,
+                                    previewPath = uiState.currentSlotPreviewPath,
+                                    lastModified = uiState.currentSlotLastModified,
+                                    isSaving = uiState.actionLabel == "saving",
+                                    gameTitle = uiState.currentGameTitle
+                                )
+
                                 }
 
                                 if (includeFollowingAutoSave) {
@@ -3343,6 +3560,14 @@ private fun EmulationSidebarMenu(
                                     verticalAlignment = Alignment.CenterVertically,
                                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                                 ) {
+                                    SaveSlotThumbnail(
+                                        previewPath = uiState.autoSavePreviewPath,
+                                        lastModified = uiState.autoSaveLastModified,
+                                        contentDescription = stringResource(R.string.emulation_auto_save_title),
+                                        modifier = Modifier
+                                            .width(74.dp)
+                                            .aspectRatio(16f / 9f)
+                                    )
                                     Column(modifier = Modifier.weight(1f)) {
                                         Text(
                                             text = stringResource(R.string.emulation_auto_save_title),
@@ -3432,6 +3657,14 @@ private fun EmulationSidebarMenu(
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.spacedBy(12.dp)
                             ) {
+                                SaveSlotThumbnail(
+                                    previewPath = uiState.autoSavePreviewPath,
+                                    lastModified = uiState.autoSaveLastModified,
+                                    contentDescription = stringResource(R.string.emulation_auto_save_restore_title),
+                                    modifier = Modifier
+                                        .width(64.dp)
+                                        .aspectRatio(16f / 9f)
+                                )
                                 Column(modifier = Modifier.weight(1f)) {
                                     Text(
                                         text = stringResource(R.string.emulation_auto_save_restore_title),
@@ -3591,6 +3824,13 @@ private fun EmulationSidebarMenu(
                         )
 
                         MenuButton(
+                            icon = Icons.Rounded.TouchApp,
+                            text = stringResource(R.string.settings_edit_controls),
+                            onClick = onOpenControlsEditor,
+                            containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.28f)
+                        )
+
+                        MenuButton(
                             icon = if (uiState.controlsVisible) Icons.Rounded.VisibilityOff else Icons.Rounded.Visibility,
                             text = stringResource(if (uiState.controlsVisible) R.string.emulation_hide_controls else R.string.emulation_show_controls),
                             onClick = onToggleControls,
@@ -3715,13 +3955,6 @@ private fun EmulationSidebarMenu(
                             onCheckedChange = onSetInvertRightStickHorizontal,
                             helpText = stringResource(R.string.settings_help_invert_right_stick_horizontal),
                             onResetToDefault = { onSetInvertRightStickHorizontal(false) }
-                        )
-
-                        MenuButton(
-                            icon = Icons.Rounded.TouchApp,
-                            text = stringResource(R.string.settings_edit_controls),
-                            onClick = onOpenControlsEditor,
-                            containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.28f)
                         )
 
                                     }

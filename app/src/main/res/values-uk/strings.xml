@@ -1754,4 +1754,6 @@
     <string name="hardware_warning_gpu">GPU: %1$s</string>
     <string name="hardware_warning_recommended">Перш ніж ставити низьку оцінку чи негативний відгук, перевірте EmuCoreD на іншому пристрої з щонайменше Snapdragon 855, Dimensity 1000, Exynos 2200 або Tensor G2.</string>
     <string name="hardware_warning_continue">Зрозуміло</string>
+
+    <string name="detail_slot">Слот %d</string>
 </resources>

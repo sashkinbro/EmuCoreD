@@ -1748,4 +1748,6 @@
     <string name="hardware_warning_gpu">GPU: %1$s</string>
     <string name="hardware_warning_recommended">낮은 평점이나 부정적인 리뷰를 남기기 전에 최소 Snapdragon 855, Dimensity 1000, Exynos 2200 또는 Tensor G2가 탑재된 다른 기기에서 EmuCoreD를 확인해 주세요.</string>
     <string name="hardware_warning_continue">확인</string>
+
+    <string name="detail_slot">슬롯 %d</string>
 </resources>

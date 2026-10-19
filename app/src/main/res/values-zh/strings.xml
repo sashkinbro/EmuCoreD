@@ -1750,4 +1750,6 @@
     <string name="hardware_warning_gpu">GPU：%1$s</string>
     <string name="hardware_warning_recommended">在给出低评分或负面评价之前，请先在至少搭载 Snapdragon 855、Dimensity 1000、Exynos 2200 或 Tensor G2 的其他设备上试用 EmuCoreD。</string>
     <string name="hardware_warning_continue">知道了</string>
+
+    <string name="detail_slot">欄位 %d</string>
 </resources>

@@ -243,6 +243,9 @@ import com.sbro.emucored.ui.common.ScreenTopBar
 import com.sbro.emucored.ui.common.ScrollableFilterTabRow
 import com.sbro.emucored.ui.common.SettingHelpButton
 import com.sbro.emucored.ui.common.SettingsStyledDialog
+import com.sbro.emucored.ui.common.StickyTabHeader
+import com.sbro.emucored.ui.common.rememberStickyTabHeaderPinned
+import com.sbro.emucored.ui.common.stickyTabTopInset
 import com.sbro.emucored.ui.common.TvStoragePickerHost
 import com.sbro.emucored.ui.common.TvStorageRequest
 import com.sbro.emucored.ui.common.VectorAnalogStick
@@ -340,7 +343,9 @@ fun SettingsScreen(
     val customCoversResetMessage = stringResource(R.string.settings_reset_custom_covers_success)
     val customCoversResetFailedMessage = stringResource(R.string.settings_reset_custom_covers_partial)
     stringResource(R.string.settings_not_set)
-    val settingsScrollState = rememberScrollState()
+    val settingsListState = rememberLazyListState()
+    val stickyTabInset = stickyTabTopInset()
+    val settingsTabsPinned = rememberStickyTabHeaderPinned(settingsListState, "settings-tabs")
     val proPurchaseMessage = uiState.proPurchaseMessageResId?.let { stringResource(it) }
     LaunchedEffect(proPurchaseMessage) {
         val message = proPurchaseMessage ?: return@LaunchedEffect
@@ -506,15 +511,18 @@ fun SettingsScreen(
             .background(MaterialTheme.colorScheme.background)
             .padding(horizontalSystemBarPadding)
     ) {
-        Column(
+        LazyColumn(
+            state = settingsListState,
             modifier = Modifier
                 .fillMaxSize()
-                .verticalScroll(settingsScrollState)
+                .padding(top = stickyTabInset),
+            contentPadding = PaddingValues(bottom = bottomInset + 24.dp)
         ) {
+            item(key = "settings-top-bar") {
             SettingsCompactTopBar(
                 title = stringResource(R.string.settings_title),
                 subtitle = if (searchEnabled) stringResource(R.string.settings_search_subtitle) else selectedTab.label(),
-                topInset = topInset,
+                topInset = (topInset - stickyTabInset).coerceAtLeast(0.dp),
                 onBackClick = onBackClick,
                 menuExpanded = showTopBarMenu,
                 onMenuExpandedChange = { showTopBarMenu = it },
@@ -530,16 +538,22 @@ fun SettingsScreen(
                 },
                 onSearchQueryChange = { searchQuery = it }
             )
+            }
 
-            SettingsTabRow(
-                selectedTab = selectedTab,
-                onSelected = { tab ->
-                    if (selectedTab == tab) return@SettingsTabRow
-                    selectedTab = tab
-                },
-                selectedTabFocusRequester = selectedTabFocusRequester
-            )
+            stickyHeader(key = "settings-tabs") {
+                StickyTabHeader(showDivider = settingsTabsPinned) {
+                    SettingsTabRow(
+                        selectedTab = selectedTab,
+                        onSelected = { tab ->
+                            if (selectedTab == tab) return@SettingsTabRow
+                            selectedTab = tab
+                        },
+                        selectedTabFocusRequester = selectedTabFocusRequester
+                    )
+                }
+            }
 
+            item(key = "settings-content") {
             SettingsContent(
                 uiState = uiState,
                 selectedTab = selectedTab,
@@ -600,8 +614,7 @@ fun SettingsScreen(
                 modifier = Modifier
                     .fillMaxWidth()
             )
-
-            Spacer(modifier = Modifier.height(bottomInset))
+            }
         }
     }
 

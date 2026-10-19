@@ -1757,4 +1757,6 @@
     <string name="hardware_warning_gpu">GPU: %1$s</string>
     <string name="hardware_warning_recommended">قبل ترك تقييم منخفض أو مراجعة سلبية، جرّب EmuCoreD على جهاز آخر بمعالج Snapdragon 855 أو Dimensity 1000 أو Exynos 2200 أو Tensor G2 على الأقل.</string>
     <string name="hardware_warning_continue">فهمت</string>
+
+    <string name="detail_slot">الفتحة %d</string>
 </resources>

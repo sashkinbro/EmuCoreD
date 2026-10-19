@@ -45,6 +45,7 @@ import com.sbro.emucored.data.PlayTimeSyncCacheRepository
 import com.sbro.emucored.data.PlayerPlayTimeDelta
 import com.sbro.emucored.data.PlayerProfileRepository
 import com.sbro.emucored.data.RetroAchievementsRepository
+import com.sbro.emucored.data.SaveStateRepository
 import com.sbro.emucored.data.resolveShaderChain
 import com.sbro.emucored.data.TouchControlsLayoutProfile
 import com.sbro.emucored.data.PER_GAME_CUSTOM_TOUCH_CONTROLS_KEY
@@ -66,8 +67,11 @@ import com.sbro.emucored.data.PerformanceOverlayMetrics
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.ensureActive
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.SharingStarted
@@ -202,11 +206,13 @@ data class EmulationUiState(
     val gameSettingsProfileActive: Boolean = false,
     val perGameCoreOptions: Map<String, String> = emptyMap(),
     val currentSlotLastModified: Long = 0L,
+    val currentSlotPreviewPath: String? = null,
     val autoSaveEnabled: Boolean = false,
     val autoSaveIntervalMinutes: Int = 1,
     val autoSaveOnExit: Boolean = false,
     val autoLoadOnStart: Boolean = false,
     val autoSaveLastModified: Long = 0L,
+    val autoSavePreviewPath: String? = null,
     val isAutoSaveInProgress: Boolean = false,
     val activePlayTimeMs: Long = 0L,
     val audioVolume: Int = AudioDefaults.VOLUME_DEFAULT,
@@ -296,6 +302,7 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
     private val cheatRepository = CheatRepository(application)
     private val perGameSettingsRepository = PerGameSettingsRepository(application)
     private val gameRepository = GameRepository()
+    private val saveStateRepository = SaveStateRepository(application)
     private val playerProfileRepository = PlayerProfileRepository(application)
     private val playTimeSyncCacheRepository = PlayTimeSyncCacheRepository(application)
     private val performanceCpuName = MobileSocNameMapper.currentDeviceName()
@@ -340,6 +347,9 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
     private var lastAutoSavePlayTimeMs: Long = 0L
     private var pendingPlayTimeSyncMs: Long = 0L
     private var playTimeSyncJob: Job? = null
+    private var savePreviewJob: Job? = null
+    private val _saveStatePreviewRequests = MutableSharedFlow<Int>(extraBufferCapacity = 1)
+    val saveStatePreviewRequests = _saveStatePreviewRequests.asSharedFlow()
     private var lastCloudPlayTimeSyncAtMs: Long = 0L
     private var shouldCountCurrentProfileSession = false
     /** Profile play time is only tracked for real game launches, never for BIOS or autotests. */
@@ -853,6 +863,7 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
             actionLabel = if (showActionProgress) null else after.actionLabel
         )
         refreshSaveStateMetadata()
+        if (success) _saveStatePreviewRequests.tryEmit(AUTO_SAVE_SLOT)
         return success
     }
 
@@ -2648,20 +2659,47 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
     private fun refreshSaveStateMetadata() {
         val path = currentGamePath
         if (path.isNullOrBlank()) {
+            savePreviewJob?.cancel()
             _uiState.value = _uiState.value.copy(
                 currentSlotLastModified = 0L,
-                autoSaveLastModified = 0L
+                currentSlotPreviewPath = null,
+                autoSaveLastModified = 0L,
+                autoSavePreviewPath = null
             )
             return
         }
 
-        val currentSlot = _uiState.value.currentSlot
-        val currentSlotModified = saveStateLastModified(path, currentSlot)
-        val autoSaveModified = saveStateLastModified(path, AUTO_SAVE_SLOT)
+        val currentSlotFile = resolveSaveStateFile(path, _uiState.value.currentSlot)
+            ?.takeIf { it.exists() }
+        val autoSaveFile = resolveSaveStateFile(path, AUTO_SAVE_SLOT)
+            ?.takeIf { it.exists() }
         _uiState.value = _uiState.value.copy(
-            currentSlotLastModified = currentSlotModified,
-            autoSaveLastModified = autoSaveModified
+            currentSlotLastModified = currentSlotFile?.lastModified() ?: 0L,
+            autoSaveLastModified = autoSaveFile?.lastModified() ?: 0L
         )
+        refreshSaveStatePreviews(currentSlotFile, autoSaveFile)
+    }
+
+    private fun refreshSaveStatePreviews(currentSlotFile: File?, autoSaveFile: File?) {
+        savePreviewJob?.cancel()
+        savePreviewJob = viewModelScope.launch(Dispatchers.IO) {
+            val currentPreview = currentSlotFile?.let { file ->
+                runCatching { saveStateRepository.getPreviewImagePath(file) }.getOrNull()
+            }
+            ensureActive()
+            val autoSavePreview = autoSaveFile?.let { file ->
+                runCatching { saveStateRepository.getPreviewImagePath(file) }.getOrNull()
+            }
+            ensureActive()
+            _uiState.value = _uiState.value.copy(
+                currentSlotPreviewPath = currentPreview,
+                autoSavePreviewPath = autoSavePreview
+            )
+        }
+    }
+
+    fun refreshSaveStateMetadataNow() {
+        refreshSaveStateMetadata()
     }
 
     private fun saveStateLastModified(gamePath: String, slot: Int): Long {
@@ -2747,6 +2785,7 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
             // Refresh even on failure: whatever is on disk is the truth, and a
             // silent failure used to leave the slot looking empty.
             refreshSaveStateMetadata()
+            if (success) _saveStatePreviewRequests.tryEmit(slot)
             delay(2000.milliseconds)
             _uiState.value = _uiState.value.copy(toastMessage = null)
         }

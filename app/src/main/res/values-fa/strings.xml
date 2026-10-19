@@ -1764,4 +1764,6 @@
     <string name="hardware_warning_gpu">GPU: %1$s</string>
     <string name="hardware_warning_recommended">پیش از ثبت امتیاز پایین یا نظر منفی، EmuCoreD را روی دستگاه دیگری با حداقل Snapdragon 855، Dimensity 1000، Exynos 2200 یا Tensor G2 امتحان کنید.</string>
     <string name="hardware_warning_continue">متوجه شدم</string>
+
+    <string name="detail_slot">شکاف %d</string>
 </resources>
