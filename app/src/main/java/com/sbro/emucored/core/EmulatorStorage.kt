@@ -13,14 +13,6 @@ enum class EmulatorDataLocation {
 object EmulatorStorage {
     private val verifiedCustomRoots = ConcurrentHashMap.newKeySet<String>()
 
-    data class RuntimeDirectories(
-        val saveStates: File,
-        val memoryCards: File,
-        val textures: File,
-        val cheats: File,
-        val patches: File,
-        val logs: File
-    )
 
     data class StandardDataRoot(
         val directory: File,
@@ -148,19 +140,6 @@ object EmulatorStorage {
 
     fun logDir(context: Context, customRootPath: String? = null): File =
         File(root(context, customRootPath), "logs").apply { mkdirs() }
-
-    fun runtimeDirectories(context: Context, customRootPath: String? = null): RuntimeDirectories {
-        val root = root(context, customRootPath)
-        fun directory(name: String): File = File(root, name).apply { mkdirs() }
-        return RuntimeDirectories(
-            saveStates = directory("sstates"),
-            memoryCards = azaharUserDir(context, customRootPath),
-            textures = texturesDir(context, customRootPath),
-            cheats = cheatsDir(context, customRootPath),
-            patches = patchesDir(context, customRootPath),
-            logs = directory("logs")
-        )
-    }
 
     fun appStateDir(context: Context): File = File(root(context), "app-state").apply { mkdirs() }
 
