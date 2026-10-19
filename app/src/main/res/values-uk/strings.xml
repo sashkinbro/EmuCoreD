@@ -1737,4 +1737,17 @@
     <string name="settings_help_core_motion_device">Виберіть джерело руху: емуляція з сенсорного введення або UDP-сервер CemuHook.</string>
     <string name="settings_help_core_touch_device">Виберіть джерело дотику: вікно емуляції або UDP-сервер CemuHook.</string>
     <string name="settings_help_core_udp_pad_index">Індекс геймпада, на який UDP-сервер CemuHook має надсилати введення (від 1 до 4).</string>
+    <string name="settings_gamepad_action_left_stick_up">Лівий стік вгору</string>
+    <string name="settings_gamepad_action_left_stick_down">Лівий стік вниз</string>
+    <string name="settings_gamepad_action_left_stick_left">Лівий стік вліво</string>
+    <string name="settings_gamepad_action_left_stick_right">Лівий стік вправо</string>
+    <string name="settings_gamepad_action_right_stick_up">Правий стік вгору</string>
+    <string name="settings_gamepad_action_right_stick_down">Правий стік вниз</string>
+    <string name="settings_gamepad_action_right_stick_left">Правий стік вліво</string>
+    <string name="settings_gamepad_action_right_stick_right">Правий стік вправо</string>
+    <string name="settings_control_group_dpad">D-pad</string>
+    <string name="settings_control_group_face_buttons">Кнопки дій</string>
+    <string name="settings_control_label_extra_dpad">Додатковий D-pad</string>
+    <string name="settings_control_label_left_stick">Лівий стік</string>
+    <string name="settings_control_label_right_stick">Правий стік</string>
 </resources>

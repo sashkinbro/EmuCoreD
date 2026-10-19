@@ -1731,4 +1731,17 @@
     <string name="settings_help_core_motion_device">Seleziona la sorgente del movimento: emulata dall\'input touch o un server UDP CemuHook.</string>
     <string name="settings_help_core_touch_device">Seleziona la sorgente del tocco: la finestra di emulazione o un server UDP CemuHook.</string>
     <string name="settings_help_core_udp_pad_index">Indice del pad a cui un server UDP CemuHook deve inviare l\'input (1-4).</string>
+    <string name="settings_gamepad_action_left_stick_up">Stick sinistro su</string>
+    <string name="settings_gamepad_action_left_stick_down">Stick sinistro giù</string>
+    <string name="settings_gamepad_action_left_stick_left">Stick sinistro sinistra</string>
+    <string name="settings_gamepad_action_left_stick_right">Stick sinistro destra</string>
+    <string name="settings_gamepad_action_right_stick_up">Stick destro su</string>
+    <string name="settings_gamepad_action_right_stick_down">Stick destro giù</string>
+    <string name="settings_gamepad_action_right_stick_left">Stick destro sinistra</string>
+    <string name="settings_gamepad_action_right_stick_right">Stick destro destra</string>
+    <string name="settings_control_group_dpad">D-pad</string>
+    <string name="settings_control_group_face_buttons">Pulsanti azione</string>
+    <string name="settings_control_label_extra_dpad">D-pad aggiuntivo</string>
+    <string name="settings_control_label_left_stick">Stick sinistro</string>
+    <string name="settings_control_label_right_stick">Stick destro</string>
 </resources>

@@ -1731,4 +1731,17 @@
     <string name="settings_help_core_motion_device">मोशन इनपुट का स्रोत चुनता है: टच इनपुट से एम्युलेटेड या CemuHook UDP सर्वर।</string>
     <string name="settings_help_core_touch_device">टच इनपुट का स्रोत चुनता है: एम्युलेशन विंडो या CemuHook UDP सर्वर।</string>
     <string name="settings_help_core_udp_pad_index">वह पैड इंडेक्स जिस पर CemuHook UDP सर्वर को इनपुट भेजना चाहिए (1 से 4)।</string>
+    <string name="settings_gamepad_action_left_stick_up">बायां स्टिक ऊपर</string>
+    <string name="settings_gamepad_action_left_stick_down">बायां स्टिक नीचे</string>
+    <string name="settings_gamepad_action_left_stick_left">बायां स्टिक बाएं</string>
+    <string name="settings_gamepad_action_left_stick_right">बायां स्टिक दाएं</string>
+    <string name="settings_gamepad_action_right_stick_up">दायां स्टिक ऊपर</string>
+    <string name="settings_gamepad_action_right_stick_down">दायां स्टिक नीचे</string>
+    <string name="settings_gamepad_action_right_stick_left">दायां स्टिक बाएं</string>
+    <string name="settings_gamepad_action_right_stick_right">दायां स्टिक दाएं</string>
+    <string name="settings_control_group_dpad">डी-पैड</string>
+    <string name="settings_control_group_face_buttons">एक्शन बटन</string>
+    <string name="settings_control_label_extra_dpad">अतिरिक्त डी-पैड</string>
+    <string name="settings_control_label_left_stick">बायां स्टिक</string>
+    <string name="settings_control_label_right_stick">दायां स्टिक</string>
 </resources>

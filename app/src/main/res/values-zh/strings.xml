@@ -1732,4 +1732,17 @@
     <string name="settings_help_core_motion_device">选择运动输入的来源：从触摸输入模拟，或 CemuHook UDP 服务器。</string>
     <string name="settings_help_core_touch_device">选择触摸输入的来源：模拟窗口，或 CemuHook UDP 服务器。</string>
     <string name="settings_help_core_udp_pad_index">CemuHook UDP 服务器应发送输入的控制器索引（1 到 4）。</string>
+    <string name="settings_gamepad_action_left_stick_up">左摇杆上</string>
+    <string name="settings_gamepad_action_left_stick_down">左摇杆下</string>
+    <string name="settings_gamepad_action_left_stick_left">左摇杆左</string>
+    <string name="settings_gamepad_action_left_stick_right">左摇杆右</string>
+    <string name="settings_gamepad_action_right_stick_up">右摇杆上</string>
+    <string name="settings_gamepad_action_right_stick_down">右摇杆下</string>
+    <string name="settings_gamepad_action_right_stick_left">右摇杆左</string>
+    <string name="settings_gamepad_action_right_stick_right">右摇杆右</string>
+    <string name="settings_control_group_dpad">十字键</string>
+    <string name="settings_control_group_face_buttons">动作按钮</string>
+    <string name="settings_control_label_extra_dpad">额外十字键</string>
+    <string name="settings_control_label_left_stick">左摇杆</string>
+    <string name="settings_control_label_right_stick">右摇杆</string>
 </resources>

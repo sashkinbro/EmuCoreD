@@ -1752,4 +1752,17 @@
     <string name="settings_help_core_motion_device">Vybere zdroj pohybu: emulovaný z dotykového vstupu, nebo UDP server CemuHook.</string>
     <string name="settings_help_core_touch_device">Vybere zdroj dotyku: okno emulace, nebo UDP server CemuHook.</string>
     <string name="settings_help_core_udp_pad_index">Index padu, na který má UDP server CemuHook odesílat vstup (1 až 4).</string>
+    <string name="settings_gamepad_action_left_stick_up">Levá páčka nahoru</string>
+    <string name="settings_gamepad_action_left_stick_down">Levá páčka dolů</string>
+    <string name="settings_gamepad_action_left_stick_left">Levá páčka vlevo</string>
+    <string name="settings_gamepad_action_left_stick_right">Levá páčka vpravo</string>
+    <string name="settings_gamepad_action_right_stick_up">Pravá páčka nahoru</string>
+    <string name="settings_gamepad_action_right_stick_down">Pravá páčka dolů</string>
+    <string name="settings_gamepad_action_right_stick_left">Pravá páčka vlevo</string>
+    <string name="settings_gamepad_action_right_stick_right">Pravá páčka vpravo</string>
+    <string name="settings_control_group_dpad">D-pad</string>
+    <string name="settings_control_group_face_buttons">Akční tlačítka</string>
+    <string name="settings_control_label_extra_dpad">Dodatečný D-pad</string>
+    <string name="settings_control_label_left_stick">Levá páčka</string>
+    <string name="settings_control_label_right_stick">Pravá páčka</string>
 </resources>

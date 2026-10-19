@@ -1730,4 +1730,17 @@
     <string name="settings_help_core_motion_device">모션 입력 소스를 선택합니다: 터치 입력에서 에뮬레이션하거나 CemuHook UDP 서버.</string>
     <string name="settings_help_core_touch_device">터치 입력 소스를 선택합니다: 에뮬레이션 창 또는 CemuHook UDP 서버.</string>
     <string name="settings_help_core_udp_pad_index">CemuHook UDP 서버가 입력을 보내야 하는 패드 인덱스 (1~4).</string>
+    <string name="settings_gamepad_action_left_stick_up">왼쪽 스틱 위</string>
+    <string name="settings_gamepad_action_left_stick_down">왼쪽 스틱 아래</string>
+    <string name="settings_gamepad_action_left_stick_left">왼쪽 스틱 왼쪽</string>
+    <string name="settings_gamepad_action_left_stick_right">왼쪽 스틱 오른쪽</string>
+    <string name="settings_gamepad_action_right_stick_up">오른쪽 스틱 위</string>
+    <string name="settings_gamepad_action_right_stick_down">오른쪽 스틱 아래</string>
+    <string name="settings_gamepad_action_right_stick_left">오른쪽 스틱 왼쪽</string>
+    <string name="settings_gamepad_action_right_stick_right">오른쪽 스틱 오른쪽</string>
+    <string name="settings_control_group_dpad">십자 패드</string>
+    <string name="settings_control_group_face_buttons">액션 버튼</string>
+    <string name="settings_control_label_extra_dpad">추가 십자 패드</string>
+    <string name="settings_control_label_left_stick">왼쪽 스틱</string>
+    <string name="settings_control_label_right_stick">오른쪽 스틱</string>
 </resources>

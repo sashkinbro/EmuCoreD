@@ -1731,4 +1731,17 @@
     <string name="settings_help_core_motion_device">Hareket kaynağını seçer: dokunma girişinden emüle edilen veya bir CemuHook UDP sunucusu.</string>
     <string name="settings_help_core_touch_device">Dokunma kaynağını seçer: emülasyon penceresi veya bir CemuHook UDP sunucusu.</string>
     <string name="settings_help_core_udp_pad_index">Bir CemuHook UDP sunucusunun giriş göndermesi gereken pad dizini (1-4).</string>
+    <string name="settings_gamepad_action_left_stick_up">Sol çubuk yukarı</string>
+    <string name="settings_gamepad_action_left_stick_down">Sol çubuk aşağı</string>
+    <string name="settings_gamepad_action_left_stick_left">Sol çubuk sol</string>
+    <string name="settings_gamepad_action_left_stick_right">Sol çubuk sağ</string>
+    <string name="settings_gamepad_action_right_stick_up">Sağ çubuk yukarı</string>
+    <string name="settings_gamepad_action_right_stick_down">Sağ çubuk aşağı</string>
+    <string name="settings_gamepad_action_right_stick_left">Sağ çubuk sol</string>
+    <string name="settings_gamepad_action_right_stick_right">Sağ çubuk sağ</string>
+    <string name="settings_control_group_dpad">D-pad</string>
+    <string name="settings_control_group_face_buttons">Eylem düğmeleri</string>
+    <string name="settings_control_label_extra_dpad">Ek D-pad</string>
+    <string name="settings_control_label_left_stick">Sol çubuk</string>
+    <string name="settings_control_label_right_stick">Sağ çubuk</string>
 </resources>

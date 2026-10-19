@@ -1752,4 +1752,17 @@
     <string name="settings_help_core_motion_device">Wybiera źródło ruchu: emulowane z danych dotykowych lub serwer UDP CemuHook.</string>
     <string name="settings_help_core_touch_device">Wybiera źródło dotyku: okno emulacji lub serwer UDP CemuHook.</string>
     <string name="settings_help_core_udp_pad_index">Indeks pada, do którego serwer UDP CemuHook ma wysyłać dane wejściowe (od 1 do 4).</string>
+    <string name="settings_gamepad_action_left_stick_up">Lewy drążek w górę</string>
+    <string name="settings_gamepad_action_left_stick_down">Lewy drążek w dół</string>
+    <string name="settings_gamepad_action_left_stick_left">Lewy drążek w lewo</string>
+    <string name="settings_gamepad_action_left_stick_right">Lewy drążek w prawo</string>
+    <string name="settings_gamepad_action_right_stick_up">Prawy drążek w górę</string>
+    <string name="settings_gamepad_action_right_stick_down">Prawy drążek w dół</string>
+    <string name="settings_gamepad_action_right_stick_left">Prawy drążek w lewo</string>
+    <string name="settings_gamepad_action_right_stick_right">Prawy drążek w prawo</string>
+    <string name="settings_control_group_dpad">D-pad</string>
+    <string name="settings_control_group_face_buttons">Przyciski akcji</string>
+    <string name="settings_control_label_extra_dpad">Dodatkowy D-pad</string>
+    <string name="settings_control_label_left_stick">Lewy drążek</string>
+    <string name="settings_control_label_right_stick">Prawy drążek</string>
 </resources>

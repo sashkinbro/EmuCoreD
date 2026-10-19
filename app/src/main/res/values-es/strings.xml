@@ -1733,4 +1733,17 @@
     <string name="settings_help_core_motion_device">Selecciona el origen del movimiento: emulado desde la entrada táctil o un servidor UDP CemuHook.</string>
     <string name="settings_help_core_touch_device">Selecciona el origen táctil: la ventana de emulación o un servidor UDP CemuHook.</string>
     <string name="settings_help_core_udp_pad_index">Índice del mando al que un servidor UDP CemuHook debe enviar su entrada (1 a 4).</string>
+    <string name="settings_gamepad_action_left_stick_up">Stick izquierdo arriba</string>
+    <string name="settings_gamepad_action_left_stick_down">Stick izquierdo abajo</string>
+    <string name="settings_gamepad_action_left_stick_left">Stick izquierdo izquierda</string>
+    <string name="settings_gamepad_action_left_stick_right">Stick izquierdo derecha</string>
+    <string name="settings_gamepad_action_right_stick_up">Stick derecho arriba</string>
+    <string name="settings_gamepad_action_right_stick_down">Stick derecho abajo</string>
+    <string name="settings_gamepad_action_right_stick_left">Stick derecho izquierda</string>
+    <string name="settings_gamepad_action_right_stick_right">Stick derecho derecha</string>
+    <string name="settings_control_group_dpad">D-pad</string>
+    <string name="settings_control_group_face_buttons">Botones de acción</string>
+    <string name="settings_control_label_extra_dpad">D-pad adicional</string>
+    <string name="settings_control_label_left_stick">Stick izquierdo</string>
+    <string name="settings_control_label_right_stick">Stick derecho</string>
 </resources>

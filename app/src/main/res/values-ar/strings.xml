@@ -1739,4 +1739,17 @@
     <string name="settings_help_core_motion_device">يختار مصدر الحركة: محاكى من إدخال اللمس أو خادم UDP CemuHook.</string>
     <string name="settings_help_core_touch_device">يختار مصدر اللمس: نافذة المحاكاة أو خادم UDP CemuHook.</string>
     <string name="settings_help_core_udp_pad_index">فهرس اللوحة الذي يجب أن يرسل إليه خادم UDP CemuHook الإدخال (من 1 إلى 4).</string>
+    <string name="settings_gamepad_action_left_stick_up">الذراع الأيسر أعلى</string>
+    <string name="settings_gamepad_action_left_stick_down">الذراع الأيسر أسفل</string>
+    <string name="settings_gamepad_action_left_stick_left">الذراع الأيسر يسار</string>
+    <string name="settings_gamepad_action_left_stick_right">الذراع الأيسر يمين</string>
+    <string name="settings_gamepad_action_right_stick_up">الذراع الأيمن أعلى</string>
+    <string name="settings_gamepad_action_right_stick_down">الذراع الأيمن أسفل</string>
+    <string name="settings_gamepad_action_right_stick_left">الذراع الأيمن يسار</string>
+    <string name="settings_gamepad_action_right_stick_right">الذراع الأيمن يمين</string>
+    <string name="settings_control_group_dpad">لوحة الاتجاهات</string>
+    <string name="settings_control_group_face_buttons">أزرار الإجراءات</string>
+    <string name="settings_control_label_extra_dpad">لوحة اتجاهات إضافية</string>
+    <string name="settings_control_label_left_stick">الذراع الأيسر</string>
+    <string name="settings_control_label_right_stick">الذراع الأيمن</string>
 </resources>

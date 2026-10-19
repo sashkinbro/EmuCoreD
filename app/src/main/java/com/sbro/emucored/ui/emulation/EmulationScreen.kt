@@ -4391,6 +4391,14 @@ private fun gamepadActionLabelRes(actionId: String): Int = when (actionId) {
     "dpad_down" -> R.string.settings_gamepad_action_dpad_down
     "dpad_left" -> R.string.settings_gamepad_action_dpad_left
     "dpad_right" -> R.string.settings_gamepad_action_dpad_right
+    "left_stick_up" -> R.string.settings_gamepad_action_left_stick_up
+    "left_stick_down" -> R.string.settings_gamepad_action_left_stick_down
+    "left_stick_left" -> R.string.settings_gamepad_action_left_stick_left
+    "left_stick_right" -> R.string.settings_gamepad_action_left_stick_right
+    "right_stick_up" -> R.string.settings_gamepad_action_right_stick_up
+    "right_stick_down" -> R.string.settings_gamepad_action_right_stick_down
+    "right_stick_left" -> R.string.settings_gamepad_action_right_stick_left
+    "right_stick_right" -> R.string.settings_gamepad_action_right_stick_right
     else -> R.string.settings_gamepad_section
 }
 

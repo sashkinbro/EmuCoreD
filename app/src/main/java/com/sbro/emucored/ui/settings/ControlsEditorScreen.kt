@@ -1449,19 +1449,27 @@ private fun controlTitle(controlId: String): String = when (controlId) {
     "l" -> "L"
     "zr" -> "ZR"
     "r" -> "R"
-    ControlGroupDpad -> "D-pad"
-    ControlGroupActions -> "Face Buttons"
+    ControlGroupDpad -> stringResource(R.string.settings_control_group_dpad)
+    ControlGroupActions -> stringResource(R.string.settings_control_group_face_buttons)
     "dpad_up" -> stringResource(R.string.settings_gamepad_action_dpad_up)
     "dpad_down" -> stringResource(R.string.settings_gamepad_action_dpad_down)
     "dpad_left" -> stringResource(R.string.settings_gamepad_action_dpad_left)
     "dpad_right" -> stringResource(R.string.settings_gamepad_action_dpad_right)
-    "dpad_cluster" -> "Extra D-pad"
-    "left_stick" -> "Left Stick"
+    "left_stick_up" -> stringResource(R.string.settings_gamepad_action_left_stick_up)
+    "left_stick_down" -> stringResource(R.string.settings_gamepad_action_left_stick_down)
+    "left_stick_left" -> stringResource(R.string.settings_gamepad_action_left_stick_left)
+    "left_stick_right" -> stringResource(R.string.settings_gamepad_action_left_stick_right)
+    "right_stick_up" -> stringResource(R.string.settings_gamepad_action_right_stick_up)
+    "right_stick_down" -> stringResource(R.string.settings_gamepad_action_right_stick_down)
+    "right_stick_left" -> stringResource(R.string.settings_gamepad_action_right_stick_left)
+    "right_stick_right" -> stringResource(R.string.settings_gamepad_action_right_stick_right)
+    "dpad_cluster" -> stringResource(R.string.settings_control_label_extra_dpad)
+    "left_stick" -> stringResource(R.string.settings_control_label_left_stick)
     "x" -> stringResource(R.string.settings_gamepad_action_x)
     "y" -> stringResource(R.string.settings_gamepad_action_y)
     "a" -> stringResource(R.string.settings_gamepad_action_a)
     "b" -> stringResource(R.string.settings_gamepad_action_b)
-    "right_stick" -> "Right Stick"
+    "right_stick" -> stringResource(R.string.settings_control_label_right_stick)
     "select" -> stringResource(R.string.settings_gamepad_action_select)
     "left_input_toggle" -> stringResource(R.string.settings_gamepad_action_left_input_toggle)
     "start" -> stringResource(R.string.settings_gamepad_action_start)

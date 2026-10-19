@@ -1745,4 +1745,17 @@
     <string name="settings_help_core_motion_device">Memilih sumber gerakan: emulasi dari input sentuhan atau server UDP CemuHook.</string>
     <string name="settings_help_core_touch_device">Memilih sumber sentuhan: jendela emulasi atau server UDP CemuHook.</string>
     <string name="settings_help_core_udp_pad_index">Indeks pad tempat server UDP CemuHook harus mengirim input (1 hingga 4).</string>
+    <string name="settings_gamepad_action_left_stick_up">Stik kiri atas</string>
+    <string name="settings_gamepad_action_left_stick_down">Stik kiri bawah</string>
+    <string name="settings_gamepad_action_left_stick_left">Stik kiri kiri</string>
+    <string name="settings_gamepad_action_left_stick_right">Stik kiri kanan</string>
+    <string name="settings_gamepad_action_right_stick_up">Stik kanan atas</string>
+    <string name="settings_gamepad_action_right_stick_down">Stik kanan bawah</string>
+    <string name="settings_gamepad_action_right_stick_left">Stik kanan kiri</string>
+    <string name="settings_gamepad_action_right_stick_right">Stik kanan kanan</string>
+    <string name="settings_control_group_dpad">D-pad</string>
+    <string name="settings_control_group_face_buttons">Tombol aksi</string>
+    <string name="settings_control_label_extra_dpad">D-pad tambahan</string>
+    <string name="settings_control_label_left_stick">Stik kiri</string>
+    <string name="settings_control_label_right_stick">Stik kanan</string>
 </resources>

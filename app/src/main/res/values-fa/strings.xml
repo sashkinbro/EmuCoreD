@@ -1746,4 +1746,17 @@
     <string name="settings_help_core_motion_device">منبع حرکت را انتخاب می‌کند: شبیه‌سازی از ورودی لمسی یا سرور UDP CemuHook.</string>
     <string name="settings_help_core_touch_device">منبع لمس را انتخاب می‌کند: پنجره شبیه‌سازی یا سرور UDP CemuHook.</string>
     <string name="settings_help_core_udp_pad_index">شاخص پدی که سرور UDP CemuHook باید ورودی را به آن بفرستد (1 تا 4).</string>
+    <string name="settings_gamepad_action_left_stick_up">استیک چپ بالا</string>
+    <string name="settings_gamepad_action_left_stick_down">استیک چپ پایین</string>
+    <string name="settings_gamepad_action_left_stick_left">استیک چپ چپ</string>
+    <string name="settings_gamepad_action_left_stick_right">استیک چپ راست</string>
+    <string name="settings_gamepad_action_right_stick_up">استیک راست بالا</string>
+    <string name="settings_gamepad_action_right_stick_down">استیک راست پایین</string>
+    <string name="settings_gamepad_action_right_stick_left">استیک راست چپ</string>
+    <string name="settings_gamepad_action_right_stick_right">استیک راست راست</string>
+    <string name="settings_control_group_dpad">دی‌پد</string>
+    <string name="settings_control_group_face_buttons">دکمه‌های عملکرد</string>
+    <string name="settings_control_label_extra_dpad">دی‌پد اضافی</string>
+    <string name="settings_control_label_left_stick">استیک چپ</string>
+    <string name="settings_control_label_right_stick">استیک راست</string>
 </resources>

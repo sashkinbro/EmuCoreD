@@ -1730,4 +1730,17 @@
     <string name="settings_help_core_motion_device">モーション入力のソースを選択します: タッチ入力からエミュレート、またはCemuHook UDPサーバー。</string>
     <string name="settings_help_core_touch_device">タッチ入力のソースを選択します: エミュレーションウィンドウ、またはCemuHook UDPサーバー。</string>
     <string name="settings_help_core_udp_pad_index">CemuHook UDPサーバーが入力を送信するパッドのインデックス (1〜4)。</string>
+    <string name="settings_gamepad_action_left_stick_up">左スティック上</string>
+    <string name="settings_gamepad_action_left_stick_down">左スティック下</string>
+    <string name="settings_gamepad_action_left_stick_left">左スティック左</string>
+    <string name="settings_gamepad_action_left_stick_right">左スティック右</string>
+    <string name="settings_gamepad_action_right_stick_up">右スティック上</string>
+    <string name="settings_gamepad_action_right_stick_down">右スティック下</string>
+    <string name="settings_gamepad_action_right_stick_left">右スティック左</string>
+    <string name="settings_gamepad_action_right_stick_right">右スティック右</string>
+    <string name="settings_control_group_dpad">十字キー</string>
+    <string name="settings_control_group_face_buttons">アクションボタン</string>
+    <string name="settings_control_label_extra_dpad">追加の十字キー</string>
+    <string name="settings_control_label_left_stick">左スティック</string>
+    <string name="settings_control_label_right_stick">右スティック</string>
 </resources>

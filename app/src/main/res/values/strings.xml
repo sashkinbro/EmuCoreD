@@ -1756,4 +1756,17 @@
     <string name="settings_multiplayer_error">Network error</string>
     <string name="settings_multiplayer_hosted_hint">Players on the same network can join with your address.</string>
     <string name="settings_second_screen_floating">Floating window</string>
+    <string name="settings_gamepad_action_left_stick_up">Left Stick Up</string>
+    <string name="settings_gamepad_action_left_stick_down">Left Stick Down</string>
+    <string name="settings_gamepad_action_left_stick_left">Left Stick Left</string>
+    <string name="settings_gamepad_action_left_stick_right">Left Stick Right</string>
+    <string name="settings_gamepad_action_right_stick_up">Right Stick Up</string>
+    <string name="settings_gamepad_action_right_stick_down">Right Stick Down</string>
+    <string name="settings_gamepad_action_right_stick_left">Right Stick Left</string>
+    <string name="settings_gamepad_action_right_stick_right">Right Stick Right</string>
+    <string name="settings_control_group_dpad">D-pad</string>
+    <string name="settings_control_group_face_buttons">Face Buttons</string>
+    <string name="settings_control_label_extra_dpad">Extra D-pad</string>
+    <string name="settings_control_label_left_stick">Left Stick</string>
+    <string name="settings_control_label_right_stick">Right Stick</string>
 </resources>
