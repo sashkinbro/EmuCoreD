@@ -133,7 +133,9 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
@@ -859,6 +861,15 @@ fun EmulationScreen(
 
     LaunchedEffect(gamepadUiActive) {
         GamepadManager.setEmulationInputEnabled(!gamepadUiActive)
+    }
+
+    val softwareKeyboardController = LocalSoftwareKeyboardController.current
+    val focusManager = LocalFocusManager.current
+    LaunchedEffect(gamepadUiActive) {
+        if (!gamepadUiActive) {
+            softwareKeyboardController?.hide()
+            focusManager.clearFocus(force = true)
+        }
     }
 
     DisposableEffect(touchPadIndex, shouldShowOverlay, uiState.showMenu, showControlsEditor) {

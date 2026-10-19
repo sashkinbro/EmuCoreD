@@ -494,21 +494,29 @@ fun OnboardingScreen(
                                         .padding(top = 32.dp)
                                 )
                             } else if (page == 3) {
-                                OnboardingProContent(
-                                    isProUnlocked = uiState.isProUnlocked,
-                                    proPrice = uiState.proPrice,
-                                    isProductLoading = uiState.isProProductLoading,
-                                    isPurchaseInProgress = uiState.isProPurchaseInProgress,
-                                    onPurchase = { (context as? Activity)?.let(viewModel::purchasePro) },
-                                    onShowSupportOptions = if (supportOffers.isNotEmpty()) {
-                                        { showProSupportOptions = true }
-                                    } else {
-                                        null
-                                    },
-                                    requestInitialFocus = tvUiEnabled && pagerState.currentPage == page,
-                                    contentFocusRequester = pageContentFocusRequesters[page],
-                                    modifier = Modifier.padding(horizontal = 32.dp)
-                                )
+                                Column(
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .verticalScroll(rememberScrollState()),
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    verticalArrangement = Arrangement.Center
+                                ) {
+                                    OnboardingProContent(
+                                        isProUnlocked = uiState.isProUnlocked,
+                                        proPrice = uiState.proPrice,
+                                        isProductLoading = uiState.isProProductLoading,
+                                        isPurchaseInProgress = uiState.isProPurchaseInProgress,
+                                        onPurchase = { (context as? Activity)?.let(viewModel::purchasePro) },
+                                        onShowSupportOptions = if (supportOffers.isNotEmpty()) {
+                                            { showProSupportOptions = true }
+                                        } else {
+                                            null
+                                        },
+                                        requestInitialFocus = tvUiEnabled && pagerState.currentPage == page,
+                                        contentFocusRequester = pageContentFocusRequesters[page],
+                                        modifier = Modifier.padding(horizontal = 32.dp)
+                                    )
+                                }
                             } else if (page == 4) {
                                 Box(modifier = Modifier.fillMaxSize()) {
                                     Column(
