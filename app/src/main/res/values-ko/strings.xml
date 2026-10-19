@@ -277,7 +277,7 @@
     <string name="shell_data_transfer">데이터 전송</string>
     <string name="shell_launch_game_unsupported">지원되지 않는 게임 이미지 형식입니다.</string>
     <string name="shell_save_states">저장 데이터 관리자</string>
-    <string name="shell_memory_cards">메모리 카드</string>
+    <string name="shell_memory_cards">3DS SD 카드</string>
     <string name="shell_launch_bios">BIOS 실행</string>
 
     <string name="settings_controls_tab">컨트롤</string>
@@ -1323,7 +1323,7 @@
     <string name="drive_after_game">게임을 종료한 후</string>
     <string name="drive_backup_now">지금 백업</string>
     <string name="drive_cancel">취소</string>
-    <string name="drive_category_cards">메모리 카드</string>
+    <string name="drive_category_cards">3DS SD 카드</string>
     <string name="drive_category_cheats">치트</string>
     <string name="drive_category_patches">사용자 패치</string>
     <string name="drive_category_settings">설정 및 조작</string>

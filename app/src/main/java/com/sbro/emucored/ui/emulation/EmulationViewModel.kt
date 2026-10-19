@@ -1377,7 +1377,7 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
     }
 
     /**
-     * Applies a SwanStation core option while a game session is running.
+     * Applies an Azahar core option while a game session is running.
      *
      * Core options edited in-game belong to the running game, so they are stored
      * in that game's profile instead of the global core-option store. A change

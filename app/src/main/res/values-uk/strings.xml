@@ -433,7 +433,7 @@
     <string name="settings_gamepad_action_left_input_toggle">Перемикання лівого вводу</string>
     <string name="controls_editor_done">Готово</string>
     <string name="memory_card_loading">Завантаження карт пам\'яті…</string>
-    <string name="shell_memory_cards">Карти пам\'яті</string>
+    <string name="shell_memory_cards">SD-карта 3DS</string>
     <string name="emulation_quick_save_confirm_title">Зберегти стан?</string>
     <string name="emulation_quick_save_confirm_desc">Це перезапише слот %1$d поточним станом гри.</string>
     <string name="emulation_quick_load_confirm_title">Завантажити стан?</string>
@@ -1340,7 +1340,7 @@
     <string name="drive_after_game">Після закриття гри</string>
     <string name="drive_backup_now">Створити копію зараз</string>
     <string name="drive_cancel">Скасувати</string>
-    <string name="drive_category_cards">Карти пам’яті</string>
+    <string name="drive_category_cards">SD-карта 3DS</string>
     <string name="drive_category_cheats">Чити</string>
     <string name="drive_category_patches">Власні патчі</string>
     <string name="drive_category_settings">Налаштування й керування</string>

@@ -189,10 +189,10 @@ class GameRepository {
                             sourcePath,
                             readDiscMetadata = false
                         )
-                        val pspMetadata = N3dsGameMetadataReader.read(context, sourcePath)
+                        val n3dsMetadata = N3dsGameMetadataReader.read(context, sourcePath)
                         sourceMetadata.copy(
-                            title = pspMetadata?.title ?: sourceMetadata.title,
-                            serial = pspMetadata?.serial ?: sourceMetadata.serial
+                            title = n3dsMetadata?.title ?: sourceMetadata.title,
+                            serial = n3dsMetadata?.serial ?: sourceMetadata.serial
                         )
                     }
                     if (BiosValidator.isLikelyBiosLibraryEntry(file.name, metadata.title, metadata.serial, file.length())) {
@@ -282,10 +282,10 @@ class GameRepository {
                             sourcePath,
                             readDiscMetadata = false
                         )
-                        val pspMetadata = N3dsGameMetadataReader.read(context, sourcePath)
+                        val n3dsMetadata = N3dsGameMetadataReader.read(context, sourcePath)
                         sourceMetadata.copy(
-                            title = pspMetadata?.title ?: sourceMetadata.title,
-                            serial = pspMetadata?.serial ?: sourceMetadata.serial
+                            title = n3dsMetadata?.title ?: sourceMetadata.title,
+                            serial = n3dsMetadata?.serial ?: sourceMetadata.serial
                         )
                     }
 

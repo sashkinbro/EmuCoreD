@@ -12,8 +12,8 @@ class N3dsCatalogRepository(private val context: Context) {
 
     companion object {
         private const val TAG = "N3dsCatalogRepository"
-        // Keep the platform in the extracted filename so the old PS1 cache
-        // cannot be mistaken for the bundled PSP database.
+        // Keep the platform in the extracted filename so a cache from another
+        // platform cannot be mistaken for the bundled 3DS database.
         private const val DB_NAME = "n3ds_games.db"
         private const val ASSET_PATH = "catalog/games.db"
 

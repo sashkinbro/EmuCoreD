@@ -335,7 +335,7 @@
     <string name="shell_data_transfer">انتقال داده</string>
     <string name="shell_launch_game_unsupported">فرمت تصویر بازی پشتیبانی نمی‌شود.</string>
     <string name="shell_save_states">مدیریت وضعیت‌های ذخیره</string>
-    <string name="shell_memory_cards">کارت‌های حافظه</string>
+    <string name="shell_memory_cards">کارت SD 3DS</string>
     <string name="shell_texture_manager">مدیریت بافت‌ها</string>
     <string name="shell_launch_bios">اجرای BIOS</string>
 
@@ -1339,7 +1339,7 @@
     <string name="drive_after_game">پس از بستن بازی</string>
     <string name="drive_backup_now">همین حالا پشتیبان بگیر</string>
     <string name="drive_cancel">لغو</string>
-    <string name="drive_category_cards">کارت‌های حافظه</string>
+    <string name="drive_category_cards">کارت SD 3DS</string>
     <string name="drive_category_cheats">تقلب‌ها</string>
     <string name="drive_category_patches">وصله‌های سفارشی</string>
     <string name="drive_category_settings">تنظیمات و کنترل‌ها</string>

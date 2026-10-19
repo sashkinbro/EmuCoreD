@@ -335,7 +335,7 @@
     <string name="shell_data_transfer">Transfer Data</string>
     <string name="shell_launch_game_unsupported">Format gambar game tidak didukung.</string>
     <string name="shell_save_states">Pengelola Simpanan</string>
-    <string name="shell_memory_cards">Kartu Memori</string>
+    <string name="shell_memory_cards">Kartu SD 3DS</string>
     <string name="shell_texture_manager">Pengelola Tekstur</string>
     <string name="shell_launch_bios">Luncurkan BIOS</string>
 
@@ -1338,7 +1338,7 @@
     <string name="drive_after_game">Setelah menutup game</string>
     <string name="drive_backup_now">Cadangkan sekarang</string>
     <string name="drive_cancel">Batal</string>
-    <string name="drive_category_cards">Kartu memori</string>
+    <string name="drive_category_cards">Kartu SD 3DS</string>
     <string name="drive_category_cheats">Cheat</string>
     <string name="drive_category_patches">Patch kustom</string>
     <string name="drive_category_settings">Pengaturan dan kontrol</string>

@@ -238,7 +238,7 @@
     <string name="shell_data_transfer">डेटा ट्रांसफर</string>
     <string name="shell_launch_game_unsupported">असमर्थित गेम इमेज फॉर्मेट।</string>
     <string name="shell_save_states">सेव मैनेजर</string>
-    <string name="shell_memory_cards">मेमोरी कार्ड्स</string>
+    <string name="shell_memory_cards">3DS SD कार्ड</string>
     <string name="shell_launch_bios">BIOS लॉन्च करें</string>
 
     <string name="settings_controls_tab">कंट्रोल्स</string>
@@ -1324,7 +1324,7 @@
     <string name="drive_after_game">गेम बंद करने के बाद</string>
     <string name="drive_backup_now">अभी बैकअप लें</string>
     <string name="drive_cancel">रद्द करें</string>
-    <string name="drive_category_cards">मेमोरी कार्ड</string>
+    <string name="drive_category_cards">3DS SD कार्ड</string>
     <string name="drive_category_cheats">चीट</string>
     <string name="drive_category_patches">कस्टम पैच</string>
     <string name="drive_category_settings">सेटिंग्स और कंट्रोल</string>

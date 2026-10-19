@@ -356,7 +356,7 @@
     <string name="shell_data_transfer">Přenos dat</string>
     <string name="shell_launch_game_unsupported">Nepodporovaný formát obrazu hry.</string>
     <string name="shell_save_states">Správce uložení</string>
-    <string name="shell_memory_cards">Paměťové karty</string>
+    <string name="shell_memory_cards">SD karta 3DS</string>
     <string name="shell_texture_manager">Správce textur</string>
     <string name="shell_launch_bios">Spustit BIOS</string>
 
@@ -1345,7 +1345,7 @@
     <string name="drive_after_game">Po zavření hry</string>
     <string name="drive_backup_now">Zálohovat nyní</string>
     <string name="drive_cancel">Zrušit</string>
-    <string name="drive_category_cards">Paměťové karty</string>
+    <string name="drive_category_cards">SD karta 3DS</string>
     <string name="drive_category_cheats">Cheaty</string>
     <string name="drive_category_patches">Vlastní záplaty</string>
     <string name="drive_category_settings">Nastavení a ovládání</string>

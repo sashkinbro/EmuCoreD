@@ -406,7 +406,7 @@
     <string name="onboarding_profile_fast_title">Быстрый / Небезопасный</string>
     <string name="onboarding_profile_fast_desc">Для слабых устройств, которым нужна дополнительная скорость. В некоторых играх может быть больше графических ошибок, или они могут стать менее стабильными.</string>
     <string name="memory_card_loading">Загрузка карт памяти…</string>
-    <string name="shell_memory_cards">Карты памяти</string>
+    <string name="shell_memory_cards">SD-карта 3DS</string>
     <string name="emulation_quick_save_confirm_title">Сохранить состояние?</string>
     <string name="emulation_quick_save_confirm_desc">Это перезапишет слот %1$d текущим состоянием игры.</string>
     <string name="emulation_quick_load_confirm_title">Загрузить состояние?</string>
@@ -1328,7 +1328,7 @@
     <string name="drive_after_game">После закрытия игры</string>
     <string name="drive_backup_now">Создать копию сейчас</string>
     <string name="drive_cancel">Отмена</string>
-    <string name="drive_category_cards">Карты памяти</string>
+    <string name="drive_category_cards">SD-карта 3DS</string>
     <string name="drive_category_cheats">Читы</string>
     <string name="drive_category_patches">Свои патчи</string>
     <string name="drive_category_settings">Настройки и управление</string>

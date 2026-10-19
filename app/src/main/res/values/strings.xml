@@ -371,7 +371,7 @@
     <string name="shell_data_transfer">Data Transfer</string>
     <string name="shell_launch_game_unsupported">Unsupported game image format.</string>
     <string name="shell_save_states">Save Manager</string>
-    <string name="shell_memory_cards">Memory Cards</string>
+    <string name="shell_memory_cards">3DS SD Card</string>
     <string name="shell_texture_manager">Texture Manager</string>
     <string name="shell_launch_bios">Launch BIOS</string>
 
@@ -1425,7 +1425,7 @@
     <string name="drive_after_game">After closing a game</string>
     <string name="drive_backup_now">Back up now</string>
     <string name="drive_cancel">Cancel</string>
-    <string name="drive_category_cards">Memory cards</string>
+    <string name="drive_category_cards">3DS SD Card</string>
     <string name="drive_category_cheats">Cheats</string>
     <string name="drive_category_patches">Custom patches</string>
     <string name="drive_category_settings">Settings and controls</string>

@@ -277,7 +277,7 @@
     <string name="shell_data_transfer">データ転送</string>
     <string name="shell_launch_game_unsupported">サポートされていないゲームイメージ形式です。</string>
     <string name="shell_save_states">セーブマネージャー</string>
-    <string name="shell_memory_cards">メモリーカード</string>
+    <string name="shell_memory_cards">3DS SDカード</string>
     <string name="shell_launch_bios">BIOSを起動</string>
 
     <string name="settings_controls_tab">操作</string>
@@ -1323,7 +1323,7 @@
     <string name="drive_after_game">ゲーム終了後</string>
     <string name="drive_backup_now">今すぐバックアップ</string>
     <string name="drive_cancel">キャンセル</string>
-    <string name="drive_category_cards">メモリーカード</string>
+    <string name="drive_category_cards">3DS SDカード</string>
     <string name="drive_category_cheats">チート</string>
     <string name="drive_category_patches">カスタムパッチ</string>
     <string name="drive_category_settings">設定と操作</string>

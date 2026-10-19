@@ -277,7 +277,7 @@
     <string name="shell_data_transfer">Veri Aktarımı</string>
     <string name="shell_launch_game_unsupported">Desteklenmeyen oyun imajı formatı.</string>
     <string name="shell_save_states">Kayıt Yöneticisi</string>
-    <string name="shell_memory_cards">Hafıza Kartları</string>
+    <string name="shell_memory_cards">3DS SD kartı</string>
     <string name="shell_launch_bios">BIOS\'u Başlat</string>
 
     <string name="settings_controls_tab">Kontroller</string>
@@ -1324,7 +1324,7 @@
     <string name="drive_after_game">Oyun kapatıldıktan sonra</string>
     <string name="drive_backup_now">Şimdi yedekle</string>
     <string name="drive_cancel">İptal</string>
-    <string name="drive_category_cards">Bellek kartları</string>
+    <string name="drive_category_cards">3DS SD kartı</string>
     <string name="drive_category_cheats">Hileler</string>
     <string name="drive_category_patches">Özel yamalar</string>
     <string name="drive_category_settings">Ayarlar ve kontroller</string>

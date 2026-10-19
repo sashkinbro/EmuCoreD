@@ -405,7 +405,7 @@
     <string name="onboarding_profile_fast_title">Schnell / Unsicher</string>
     <string name="onboarding_profile_fast_desc">Für schwächere Geräte, die zusätzliche Geschwindigkeit benötigen. Bei einigen Spielen können mehr Grafikfehler auftreten oder sie werden instabiler.</string>
     <string name="memory_card_loading">Memory Cards werden geladen…</string>
-    <string name="shell_memory_cards">Memory Cards</string>
+    <string name="shell_memory_cards">3DS-SD-Karte</string>
     <string name="onboarding_bios_desc">Wähle einen Ordner mit optionalen 3DS-Systemdateien von deiner Konsole. Die meisten Spiele funktionieren auch ohne.</string>
     <string name="emulation_quick_save_confirm_title">Spielstand speichern?</string>
     <string name="emulation_quick_save_confirm_desc">Dies überschreibt Steckplatz %1$d mit dem aktuellen Spielstand.</string>
@@ -1326,7 +1326,7 @@
     <string name="drive_after_game">Nach dem Schließen eines Spiels</string>
     <string name="drive_backup_now">Jetzt sichern</string>
     <string name="drive_cancel">Abbrechen</string>
-    <string name="drive_category_cards">Speicherkarten</string>
+    <string name="drive_category_cards">3DS-SD-Karte</string>
     <string name="drive_category_cheats">Cheats</string>
     <string name="drive_category_patches">Eigene Patches</string>
     <string name="drive_category_settings">Einstellungen und Steuerung</string>

@@ -1837,7 +1837,7 @@ private fun PreviewLayout(
 
         visibleButtonSpecs.forEach { spec ->
             val baseZIndex = when (spec.id) {
-                "select", "left_input_toggle", "pressure", "start", "home", "touch" -> 3f
+                "select", "left_input_toggle", "start", "home", "touch" -> 3f
                 else -> 1f
             }
             PreviewCanvasButton(

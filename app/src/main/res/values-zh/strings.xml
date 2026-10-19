@@ -405,7 +405,7 @@
     <string name="onboarding_profile_fast_title">快速 / 不安全</string>
     <string name="onboarding_profile_fast_desc">适用于需要额外速度的低配置设备。某些游戏可能会出现更多图形错误或变得不够稳定。</string>
     <string name="memory_card_loading">正在加载记忆卡…</string>
-    <string name="shell_memory_cards">记忆卡</string>
+    <string name="shell_memory_cards">3DS SD 卡</string>
     <string name="onboarding_bios_desc">选择包含从您主机导出的可选 3DS 系统文件的文件夹。大多数游戏无需它们即可运行。</string>
     <string name="emulation_quick_save_confirm_title">保存状态？</string>
     <string name="emulation_quick_save_confirm_desc">这将使用当前游戏状态覆盖插槽 %1$d。</string>
@@ -1325,7 +1325,7 @@
     <string name="drive_after_game">关闭游戏后</string>
     <string name="drive_backup_now">立即备份</string>
     <string name="drive_cancel">取消</string>
-    <string name="drive_category_cards">记忆卡</string>
+    <string name="drive_category_cards">3DS SD 卡</string>
     <string name="drive_category_cheats">金手指</string>
     <string name="drive_category_patches">自定义补丁</string>
     <string name="drive_category_settings">设置与控制</string>

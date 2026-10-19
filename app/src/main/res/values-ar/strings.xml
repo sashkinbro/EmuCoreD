@@ -277,7 +277,7 @@
     <string name="shell_data_transfer">نقل البيانات</string>
     <string name="shell_launch_game_unsupported">صيغة ملف صورة اللعبة غير مدعومة.</string>
     <string name="shell_save_states">مدير الحفظ</string>
-    <string name="shell_memory_cards">بطاقات الذاكرة</string>
+    <string name="shell_memory_cards">بطاقة SD للـ 3DS</string>
     <string name="shell_launch_bios">تشغيل BIOS</string>
 
     <string name="settings_controls_tab">التحكم</string>
@@ -1332,7 +1332,7 @@
     <string name="drive_after_game">بعد إغلاق اللعبة</string>
     <string name="drive_backup_now">نسخ احتياطي الآن</string>
     <string name="drive_cancel">إلغاء</string>
-    <string name="drive_category_cards">بطاقات الذاكرة</string>
+    <string name="drive_category_cards">بطاقة SD للـ 3DS</string>
     <string name="drive_category_cheats">الغش</string>
     <string name="drive_category_patches">تصحيحات مخصصة</string>
     <string name="drive_category_settings">الإعدادات والتحكم</string>

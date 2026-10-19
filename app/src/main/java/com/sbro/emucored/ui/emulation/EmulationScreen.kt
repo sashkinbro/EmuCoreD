@@ -3687,7 +3687,7 @@ private fun EmulationSidebarMenu(
 
                         // Internal resolution belongs to the app-level per-game
                         // upscale setting (uiState.upscale). Binding this row to
-                        // the raw core option (swanstation_GPU_ResolutionScale)
+                        // the raw core option
                         // persisted changes to the global core-option store, so
                         // they leaked into every game and never appeared in the
                         // game manager.

@@ -869,7 +869,7 @@ private fun GameSettingsTabContent(
                     // Internal resolution is the app-level per-game setting
                     // (draft.upscaleMultiplier) - the same value the in-game
                     // resolution selector edits. Exposing the raw core option
-                    // (swanstation_GPU_ResolutionScale) here duplicated the
+                    // here duplicated the
                     // setting: the manager showed the catalogue default (1x)
                     // while the game ran the in-game value, and a single edit
                     // here pinned a core-option override that shadowed the

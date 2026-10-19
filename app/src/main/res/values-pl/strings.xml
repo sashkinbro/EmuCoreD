@@ -353,7 +353,7 @@
     <string name="shell_data_transfer">Transfer danych</string>
     <string name="shell_launch_game_unsupported">Nieobsługiwany format obrazu gry.</string>
     <string name="shell_save_states">Menedżer zapisów</string>
-    <string name="shell_memory_cards">Karty pamięci</string>
+    <string name="shell_memory_cards">Karta SD 3DS</string>
     <string name="shell_texture_manager">Menedżer tekstur</string>
     <string name="shell_launch_bios">Uruchom BIOS</string>
 
@@ -1345,7 +1345,7 @@
     <string name="drive_after_game">Po zamknięciu gry</string>
     <string name="drive_backup_now">Utwórz kopię teraz</string>
     <string name="drive_cancel">Anuluj</string>
-    <string name="drive_category_cards">Karty pamięci</string>
+    <string name="drive_category_cards">Karta SD 3DS</string>
     <string name="drive_category_cheats">Kody</string>
     <string name="drive_category_patches">Własne poprawki</string>
     <string name="drive_category_settings">Ustawienia i sterowanie</string>

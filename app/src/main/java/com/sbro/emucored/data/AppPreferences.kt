@@ -1207,7 +1207,7 @@ class AppPreferences(private val context: Context) {
         COVER_ART_STYLE_DISABLED -> COVER_ART_STYLE_DISABLED
         COVER_ART_STYLE_DEFAULT -> COVER_ART_STYLE_DEFAULT
         COVER_ART_STYLE_3D -> COVER_ART_STYLE_3D
-        // Migrate old automatic artwork to PSP 3D once, preserving disabled artwork.
+        // Migrate old automatic artwork to 3D once, preserving disabled artwork.
         else -> if (prefs[LEGACY_COVER_ART_STYLE] == COVER_ART_STYLE_DISABLED)
             COVER_ART_STYLE_DISABLED else COVER_ART_STYLE_3D
     }

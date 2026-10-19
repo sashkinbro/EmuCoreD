@@ -405,7 +405,7 @@
     <string name="onboarding_profile_fast_title">Rápido / Inseguro</string>
     <string name="onboarding_profile_fast_desc">Para dispositivos mais fracos que precisam de velocidade extra. Alguns jogos podem apresentar mais falhas ou se tornarem menos estáveis.</string>
     <string name="memory_card_loading">Carregando cartões de memória…</string>
-    <string name="shell_memory_cards">Cartões de memória</string>
+    <string name="shell_memory_cards">Cartão SD do 3DS</string>
     <string name="onboarding_bios_desc">Selecione uma pasta com arquivos de sistema 3DS opcionais exportados do seu console. A maioria dos jogos funciona sem eles.</string>
     <string name="emulation_quick_save_confirm_title">Salvar estado?</string>
     <string name="emulation_quick_save_confirm_desc">Isso substituirá o slot %1$d pelo estado atual do jogo.</string>
@@ -1326,7 +1326,7 @@
     <string name="drive_after_game">Após fechar um jogo</string>
     <string name="drive_backup_now">Criar cópia agora</string>
     <string name="drive_cancel">Cancelar</string>
-    <string name="drive_category_cards">Cartões de memória</string>
+    <string name="drive_category_cards">Cartão SD do 3DS</string>
     <string name="drive_category_cheats">Truques</string>
     <string name="drive_category_patches">Patches personalizados</string>
     <string name="drive_category_settings">Definições e controlos</string>
