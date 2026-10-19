@@ -14,7 +14,6 @@ object GameLaunchShortcut {
     const val ACTION_LAUNCH_GAME = "com.sbro.emucored.action.LAUNCH_GAME"
     const val EXTRA_GAME_PATH = "com.sbro.emucored.extra.GAME_PATH"
     const val EXTRA_SAVE_SLOT = "com.sbro.emucored.extra.SAVE_SLOT"
-    const val EXTRA_BOOT_BIOS = "com.sbro.emucored.extra.BOOT_BIOS"
     const val EXTRA_BOOT_SMOKE_PROBE = "com.sbro.emucored.extra.BOOT_SMOKE_PROBE"
     const val EXTRA_AUTOTEST_MODE = "com.sbro.emucored.extra.AUTOTEST_MODE"
     const val EXTRA_RENDERER = "com.sbro.emucored.extra.RENDERER"
@@ -29,7 +28,6 @@ object GameLaunchShortcut {
     data class LaunchRequest(
         val gamePath: String? = null,
         val saveSlot: Int? = null,
-        val bootBios: Boolean = false,
         val bootSmokeProbe: Boolean = false,
         val autotestMode: Boolean = false,
         val renderer: Int? = null
@@ -81,17 +79,14 @@ object GameLaunchShortcut {
             data?.scheme == SCHEME && data.host == HOST -> normalizeSaveSlot(data.getQueryParameter("saveSlot")?.toIntOrNull())
             else -> null
         }
-        val bootBios = intent.getBooleanExtra(EXTRA_BOOT_BIOS, false) ||
-            (data?.scheme == SCHEME && data.host == HOST && data.getQueryParameter("bootBios") == "true")
         val bootSmokeProbe = intent.getBooleanExtra(EXTRA_BOOT_SMOKE_PROBE, false) ||
             (data?.scheme == SCHEME && data.host == HOST && data.getQueryParameter("bootSmoke") == "true")
         val autotestMode = intent.getBooleanExtra(EXTRA_AUTOTEST_MODE, false) ||
             (data?.scheme == SCHEME && data.host == HOST && data.getQueryParameter("autotest") == "true")
-        if (gamePath.isNullOrBlank() && !bootBios) return null
+        if (gamePath.isNullOrBlank()) return null
         return LaunchRequest(
             gamePath = gamePath,
             saveSlot = saveSlot,
-            bootBios = bootBios,
             bootSmokeProbe = bootSmokeProbe,
             autotestMode = autotestMode,
             renderer = optionalIntExtra(intent, EXTRA_RENDERER)
@@ -105,7 +100,6 @@ object GameLaunchShortcut {
         intent.removeExtra(EXTRA_GAME_PATH_ALT)
         intent.removeExtra(EXTRA_GAME_PATH_LEGACY)
         intent.removeExtra(EXTRA_SAVE_SLOT)
-        intent.removeExtra(EXTRA_BOOT_BIOS)
         intent.removeExtra(EXTRA_BOOT_SMOKE_PROBE)
         intent.removeExtra(EXTRA_AUTOTEST_MODE)
         intent.removeExtra(EXTRA_RENDERER)

@@ -124,6 +124,7 @@ import com.sbro.emucored.ui.common.ScreenTopBar
 import com.sbro.emucored.ui.common.appScreenTopPadding
 import com.sbro.emucored.ui.common.SettingHelpButton
 import com.sbro.emucored.ui.common.gamepadFocusableCard
+import com.sbro.emucored.ui.common.premiumFilterChipColors
 import com.sbro.emucored.ui.common.tvGamepadFocusableCard
 import com.sbro.emucored.ui.common.tvFocusGroup
 import com.sbro.emucored.ui.common.navigationBarsHorizontalPaddingValues
@@ -759,6 +760,7 @@ private fun GameSettingsManagerTabRow(
                 selected = selectedTab == tab,
                 onClick = { onSelected(tab) },
                 interactionSource = interactionSource,
+                colors = premiumFilterChipColors(),
                 label = {
                     Text(
                         text = when (tab) {
@@ -1375,6 +1377,7 @@ private fun SelectionRow(
                     selected = selectedValue == value,
                     onClick = { onSelected(value) },
                     interactionSource = optionInteractionSource,
+                    colors = premiumFilterChipColors(),
                     label = { Text(label) }
                 )
             }

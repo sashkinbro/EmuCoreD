@@ -57,7 +57,6 @@
     <string name="emulation_save_failed">Не вдалося зберегти стан гри.</string>
     <string name="emulation_loaded">Завантажено</string>
     <string name="emulation_load_failed">Не вдалося завантажити збереження.</string>
-    <string name="emulation_bios_missing">Спочатку додайте файл BIOS.</string>
     <string name="emulation_launch_failed">Неможливо відкрити цю гру.</string>
     <string name="emulation_launch_path_error">Неможливо відкрити цей файл.</string>
     <string name="emulation_show_controls">Показати керування</string>
@@ -176,7 +175,6 @@
     <string name="shell_data_transfer">Перенесення даних</string>
     <string name="shell_launch_game_unsupported">Непідтримуваний формат образу гри.</string>
     <string name="shell_save_states">Менеджер збережень</string>
-    <string name="shell_launch_bios">Запуск BIOS</string>
 
     <string name="settings_controls_tab">Керування</string>
     <string name="settings_overlay_scale">Масштаб накладання</string>
@@ -742,7 +740,6 @@
     <string name="settings_customization_touch_style_minimal">Мінімалістичний</string>
     <string name="settings_game_menu_content_summary">Виберіть вкладки, блоки контенту та порядок їх відображення у внутрішньоігровому меню. Нові блоки з майбутніх оновлень додаватимуться автоматично.</string>
     <string name="settings_game_menu_tab_content_format">Контент %1$s</string>
-    <string name="settings_game_menu_section_debug_tools">Діагностика розробника</string>
     <string name="settings_game_menu_section_controls_general">Поведінка оверлею та екрану</string>
     <string name="settings_game_menu_section_graphics_display">Рендерер, роздільна здатність і співвідношення сторін</string>
     <string name="settings_game_menu_full_reset_desc">Показати кожну вкладку та блок контенту в початковому порядку</string>

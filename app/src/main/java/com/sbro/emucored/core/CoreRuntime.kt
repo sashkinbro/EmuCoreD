@@ -132,7 +132,7 @@ internal object CoreRuntime {
      * for the whole session, so it must not occupy the frontend's serial
      * control lane; otherwise surface and shutdown callbacks could never run.
      */
-    fun start(gamePath: String, biosOnly: Boolean): Boolean = lifecycleLock.withLock {
+    fun start(gamePath: String): Boolean = lifecycleLock.withLock {
         val active = context ?: return@withLock false
         if (!EmuCoreNative.isLoaded) {
             _failure.value = RuntimeFailure("core_library_missing")
@@ -168,7 +168,7 @@ internal object CoreRuntime {
 
         val thread = Thread({
             try {
-                EmuCoreNative.run(if (biosOnly) "" else gamePath)
+                EmuCoreNative.run(gamePath)
             } catch (error: Throwable) {
                 Log.e(TAG, "Emulation thread failed", error)
                 if (_failure.value == null) {
@@ -250,7 +250,7 @@ internal object CoreRuntime {
         requestedRenderer = renderer
         if (path.isNullOrBlank()) return false
         shutdown()
-        return start(path, biosOnly = false)
+        return start(path)
     }
 
     fun hasDiscMedia(): Boolean = currentGamePath?.isNotBlank() == true

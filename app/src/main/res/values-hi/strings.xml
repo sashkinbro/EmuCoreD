@@ -70,7 +70,6 @@
     <string name="emulation_save_failed">सेव स्थिति सहेजने में विफल।</string>
     <string name="emulation_loaded">लोड हो गया</string>
     <string name="emulation_load_failed">सेव स्थिति लोड करने में विफल।</string>
-    <string name="emulation_bios_missing">पहले एक BIOS फ़ाइल जोड़ें।</string>
     <string name="emulation_launch_failed">इस गेम को खोलने में असमर्थ।</string>
     <string name="emulation_launch_path_error">इस फ़ाइल को खोलने में असमर्थ।</string>
     <string name="emulation_session_restored_unavailable">पिछला एमुलेशन सत्र पृष्ठभूमि में बंद कर दिया गया था। अपनी लाइब्रेरी से गेम को फिर से लॉन्च करें।</string>
@@ -239,7 +238,6 @@
     <string name="shell_launch_game_unsupported">असमर्थित गेम इमेज फॉर्मेट।</string>
     <string name="shell_save_states">सेव मैनेजर</string>
     <string name="shell_memory_cards">3DS SD कार्ड</string>
-    <string name="shell_launch_bios">BIOS लॉन्च करें</string>
 
     <string name="settings_controls_tab">कंट्रोल्स</string>
     <string name="settings_overlay_scale">ओवरले का आकार</string>
@@ -711,7 +709,6 @@
     <string name="settings_customization_touch_style_minimal">न्यूनतम</string>
     <string name="settings_game_menu_content_summary">इन-गेम मेनू में दिखाए गए टैब, सामग्री ब्लॉक और क्रम चुनें। भविष्य के अपडेट द्वारा जोड़े गए नए ब्लॉक स्वचालित रूप से शामिल हो जाते हैं।</string>
     <string name="settings_game_menu_tab_content_format">%1$s सामग्री</string>
-    <string name="settings_game_menu_section_debug_tools">डेवलपर डायग्नोस्टिक्स</string>
     <string name="settings_game_menu_section_controls_general">ओवरले और स्क्रीन व्यवहार</string>
     <string name="settings_game_menu_section_graphics_display">रेंडरर, रिज़ॉल्यूशन और आस्पेक्ट रेशियो</string>
     <string name="settings_game_menu_full_reset_desc">प्रत्येक टैब और सामग्री ब्लॉक को मूल क्रम में दिखाएं</string>

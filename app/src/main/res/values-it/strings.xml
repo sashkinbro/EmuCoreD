@@ -70,7 +70,6 @@
     <string name="emulation_save_failed">Impossibile salvare lo stato di salvataggio.</string>
     <string name="emulation_loaded">Caricato</string>
     <string name="emulation_load_failed">Impossibile caricare lo stato di salvataggio.</string>
-    <string name="emulation_bios_missing">Aggiungi prima un file BIOS.</string>
     <string name="emulation_launch_failed">Impossibile aprire questo gioco.</string>
     <string name="emulation_launch_path_error">Impossibile aprire questo file.</string>
     <string name="emulation_session_restored_unavailable">La precedente sessione di emulazione è stata chiusa in background. Avvia nuovamente il gioco dalla tua libreria.</string>
@@ -239,7 +238,6 @@
     <string name="shell_launch_game_unsupported">Formato immagine di gioco non supportato.</string>
     <string name="shell_save_states">Gestore salvataggi</string>
     <string name="shell_memory_cards">SD 3DS</string>
-    <string name="shell_launch_bios">Avvia BIOS</string>
 
     <string name="settings_controls_tab">Controlli</string>
     <string name="settings_overlay_scale">Scala overlay</string>
@@ -711,7 +709,6 @@
     <string name="settings_customization_touch_style_minimal">Minimale</string>
     <string name="settings_game_menu_content_summary">Scegli le schede, i blocchi di contenuti e l\'ordine mostrati nel menu di gioco. I nuovi blocchi aggiunti dai futuri aggiornamenti vengono inclusi automaticamente.</string>
     <string name="settings_game_menu_tab_content_format">Contenuto %1$s</string>
-    <string name="settings_game_menu_section_debug_tools">Diagnostica sviluppatore</string>
     <string name="settings_game_menu_section_controls_general">Comportamento dell\'overlay e dello schermo</string>
     <string name="settings_game_menu_section_graphics_display">Renderer, risoluzione e proporzioni</string>
     <string name="settings_game_menu_full_reset_desc">Mostra ogni scheda e blocco di contenuto nell\'ordine originale</string>

@@ -210,7 +210,7 @@ object NativeApp {
 
     @JvmStatic fun runVMThread(path: String): Boolean {
         currentGamePath = path
-        return CoreRuntime.start(path, biosOnly = path.isBlank())
+        return CoreRuntime.start(path)
     }
 
     @JvmStatic fun restartRenderer(renderer: Int): Boolean =

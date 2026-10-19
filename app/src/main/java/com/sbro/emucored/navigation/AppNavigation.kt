@@ -102,7 +102,6 @@ data class EmulationRoute(
     val gamePath: String? = null,
     val installedPath: String? = null,
     val saveSlot: Int? = null,
-    val bootBios: Boolean = false,
     val bootSmokeProbe: Boolean = false,
     val autotestMode: Boolean = false,
     val renderer: Int? = null,
@@ -110,8 +109,7 @@ data class EmulationRoute(
 )
 
 internal fun EmulationRoute.isMeaningfulReviewSession(): Boolean =
-    !bootBios &&
-        !bootSmokeProbe &&
+    !bootSmokeProbe &&
         !autotestMode &&
         !exitAppOnExit &&
         !gamePath.isNullOrBlank()
@@ -448,7 +446,6 @@ fun AppNavigation(
                     onLaunchGame = launchGamePickerAction,
                     // Nintendo 3DS system files are optional and a game card
                     // cannot be launched from the drawer, so no BIOS action.
-                    onLaunchBios = null
                 ) { openDrawer ->
                     HomeScreen(
                         onGameClick = { game, installedPath ->
@@ -613,8 +610,7 @@ fun AppNavigation(
                     onNavigateProfile = navigateProfile,
                         onBackClick = { navController.popBackStack() },
                         onLaunchGame = launchGamePickerAction,
-                        onLaunchBios = null
-                    ) {
+                        ) {
                         HubScreen(
                             onBackClick = { navController.popBackStack() },
                             onOpenArticle = openDetail
@@ -648,7 +644,6 @@ fun AppNavigation(
                 EmulationScreen(
                     gamePath = route.gamePath,
                     installedPath = route.installedPath,
-                    bootToBios = route.bootBios,
                     bootSmokeProbe = route.bootSmokeProbe,
                     saveSlot = route.saveSlot,
                     autotestMode = route.autotestMode,
@@ -1047,7 +1042,7 @@ fun AppNavigation(
             val launchRequest = GameLaunchShortcut.parseLaunchRequest(activity?.intent) ?: return@LaunchedEffect
             Log.i(
                 TAG,
-                "Handling launch request destination=$startupDestination path=${launchRequest.gamePath} bios=${launchRequest.bootBios} autotest=${launchRequest.autotestMode}"
+                "Handling launch request destination=$startupDestination path=${launchRequest.gamePath} autotest=${launchRequest.autotestMode}"
             )
             if (startupDestination == null) return@LaunchedEffect
             // Shortcuts and external intents carry an explicit game; boot them
@@ -1059,7 +1054,6 @@ fun AppNavigation(
                 EmulationRoute(
                     gamePath = launchRequest.gamePath,
                     saveSlot = launchRequest.saveSlot,
-                    bootBios = launchRequest.bootBios,
                     bootSmokeProbe = launchRequest.bootSmokeProbe,
                     autotestMode = launchRequest.autotestMode,
                     renderer = launchRequest.renderer,

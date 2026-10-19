@@ -56,7 +56,6 @@
     <string name="emulation_save_failed">無法儲存即時存檔。</string>
     <string name="emulation_loaded">已載入</string>
     <string name="emulation_load_failed">無法載入即時存檔。</string>
-    <string name="emulation_bios_missing">請先新增 BIOS 檔案。</string>
     <string name="emulation_launch_failed">無法開啟此遊戲。</string>
     <string name="emulation_launch_path_error">無法開啟此檔案。</string>
     <string name="emulation_show_controls">顯示控制</string>
@@ -164,7 +163,6 @@
     <string name="shell_data_transfer">資料傳輸</string>
     <string name="shell_launch_game_unsupported">不支援的遊戲映像檔格式。</string>
     <string name="shell_save_states">存檔管理器</string>
-    <string name="shell_launch_bios">啟動 BIOS</string>
 
     <string name="settings_controls_tab">控制</string>
     <string name="settings_overlay_scale">面板縮放</string>
@@ -712,7 +710,6 @@
     <string name="settings_customization_touch_style_minimal">极简</string>
     <string name="settings_game_menu_content_summary">选择在游戏内菜单中显示的选项卡、内容块及其顺序。未来更新中添加的新区块将自动包含在内。</string>
     <string name="settings_game_menu_tab_content_format">%1$s 内容</string>
-    <string name="settings_game_menu_section_debug_tools">开发者诊断</string>
     <string name="settings_game_menu_section_controls_general">叠加层与屏幕行为</string>
     <string name="settings_game_menu_section_graphics_display">渲染器、分辨率与宽高比</string>
     <string name="settings_game_menu_full_reset_desc">按原始顺序显示所有选项卡和内容块</string>

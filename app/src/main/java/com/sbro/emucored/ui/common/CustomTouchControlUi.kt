@@ -164,6 +164,7 @@ fun ActionSelector(
                         null
                     },
                     shape = neonShape(14.dp),
+                    colors = premiumFilterChipColors(),
                     modifier = Modifier.actionChipTestTag(testTagPrefix, "none")
                 )
             }
@@ -179,6 +180,7 @@ fun ActionSelector(
                     null
                 },
                 shape = neonShape(14.dp),
+                colors = premiumFilterChipColors(),
                 modifier = Modifier.actionChipTestTag(testTagPrefix, action)
             )
         }

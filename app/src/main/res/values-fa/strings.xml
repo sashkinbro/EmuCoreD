@@ -86,7 +86,6 @@
     <string name="emulation_save_failed">ذخیره وضعیت بازی با شکست مواجه شد.</string>
     <string name="emulation_loaded">بارگذاری شد</string>
     <string name="emulation_load_failed">بارگذاری وضعیت ذخیره شده با شکست مواجه شد.</string>
-    <string name="emulation_bios_missing">ابتدا یک فایل BIOS اضافه کنید.</string>
     <string name="emulation_launch_failed">باز کردن این بازی امکان‌پذیر نیست.</string>
     <string name="emulation_launch_path_error">باز کردن این فایل امکان‌پذیر نیست.</string>
     <string name="emulation_session_restored_unavailable">جلسه قبلی شبیه‌سازی در پس‌زمینه بسته شد. بازی را دوباره از کتابخانه خود اجرا کنید.</string>
@@ -337,7 +336,6 @@
     <string name="shell_save_states">مدیریت وضعیت‌های ذخیره</string>
     <string name="shell_memory_cards">کارت SD 3DS</string>
     <string name="shell_texture_manager">مدیریت بافت‌ها</string>
-    <string name="shell_launch_bios">اجرای BIOS</string>
 
     <!-- Texture Manager -->
 
@@ -726,7 +724,6 @@
     <string name="settings_customization_touch_style_minimal">مینیمال</string>
     <string name="settings_game_menu_content_summary">زبانه‌ها، بلوک‌های محتوا و ترتیب نمایش در منوی داخل بازی را انتخاب کنید. بلوک‌های جدیدی که در به‌روزرسانی‌های آینده اضافه می‌شوند به‌طور خودکار لحاظ خواهند شد.</string>
     <string name="settings_game_menu_tab_content_format">محتوای %1$s</string>
-    <string name="settings_game_menu_section_debug_tools">عیب‌یابی توسعه‌دهنده</string>
     <string name="settings_game_menu_section_controls_general">رفتار همپوشانی و صفحه‌نمایش</string>
     <string name="settings_game_menu_section_graphics_display">رندر، وضوح و نسبت تصویر</string>
     <string name="settings_game_menu_full_reset_desc">نمایش همه زبانه‌ها و بلوک‌های محتوا در ترتیب اصلی</string>

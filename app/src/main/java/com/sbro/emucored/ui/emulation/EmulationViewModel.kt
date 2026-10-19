@@ -885,7 +885,6 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
     fun startEmulation(
         path: String?,
         slotToLoad: Int? = null,
-        bootToBios: Boolean = false,
         bootSmokeProbe: Boolean = false,
         autotestMode: Boolean = false,
         rendererOverride: Int? = null,
@@ -894,19 +893,18 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
         val analyticsLaunchType = when {
             bootSmokeProbe -> "smoke_test"
             autotestMode -> "autotest"
-            bootToBios -> "bios"
             else -> "game"
         }
         Log.i(
             TAG,
-            "startEmulation requested path=$path bootBios=$bootToBios bootSmoke=$bootSmokeProbe autotest=$autotestMode"
+            "startEmulation requested path=$path bootSmoke=$bootSmokeProbe autotest=$autotestMode"
         )
         if (_uiState.value.isStarting) {
             Log.w(TAG, "startEmulation skipped because another start is in progress")
             return
         }
         val normalizedSlotToLoad = slotToLoad?.let { normalizeSaveSlot(it) }
-        val hasPendingStateLoad = !bootToBios && !bootSmokeProbe && normalizedSlotToLoad != null
+        val hasPendingStateLoad = !bootSmokeProbe && normalizedSlotToLoad != null
         var analyticsPerformanceProfile = PerformanceProfiles.SAFE
         cancelPendingStart = false
         pausedForBackground = false
@@ -917,7 +915,7 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
                 }
             }
         }
-        currentGamePath = if (bootToBios) null else path?.takeIf { it.isNotBlank() }
+        currentGamePath = path?.takeIf { it.isNotBlank() }
         currentTouchControlsLayoutProfile = null
         currentCustomTouchControlsProfile = null
         currentGameCoverArtPath = null
@@ -992,7 +990,6 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
 
                 val bootSourcePath = launchPathOverride?.takeIf { it.isNotBlank() } ?: path
                 val launchPath = when {
-                    bootToBios -> ""
                     bootSourcePath.isNullOrBlank() -> null
                     bootSourcePath.startsWith("content://") && DocumentPathResolver.getDisplayName(getApplication(), bootSourcePath)
                         .substringAfterLast('.', "").equals("elf", ignoreCase = true) ->
@@ -1000,7 +997,7 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
                     else -> DocumentPathResolver.prepareGameLaunchPath(getApplication(), bootSourcePath)
                 }
 
-                if (!bootToBios && launchPath.isNullOrBlank()) {
+                if (launchPath.isNullOrBlank()) {
                     _uiState.value = _uiState.value.copy(
                         isStarting = false,
                         statusMessage = null,
@@ -1012,28 +1009,8 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
                 }
 
                 finalLaunchPath = launchPath
-                Log.i(TAG, "Prepared launch path=$launchPath originalPath=$path bootBios=$bootToBios")
-                if (bootToBios) {
-                    currentGameTitle = "HOME Menu"
-                    currentGamePath = null
-                    currentGameSerial = ""
-                    currentGameRegionLabel = ""
-                    currentGameCoverArtPath = null
-                    currentGameCrc = ""
-                    currentGameSource = "bios_only"
-                    shouldCountCurrentProfileSession = false
-                    shouldTrackCurrentProfilePlayTime = false
-                    pendingPerGameCoreOptions = emptyMap()
-                    _uiState.value = _uiState.value.copy(
-                        currentGameTitle = currentGameTitle,
-                        currentGameSubtitle = currentGameSubtitle(),
-                        currentGameCoverPath = currentGameCoverArtPath,
-                        gameSettingsProfileActive = false,
-                        perGameCoreOptions = emptyMap(),
-                        cheatsGameKey = null,
-                        availableCheats = emptyList()
-                    )
-                } else if (autotestMode) {
+                Log.i(TAG, "Prepared launch path=$launchPath originalPath=$path")
+                if (autotestMode) {
                     val safePath = path.orEmpty()
                     currentGameTitle = File(safePath).nameWithoutExtension.ifBlank { "Autotest ELF" }
                     currentGameSerial = ""
@@ -1113,7 +1090,7 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
                     statusMessage = "status_starting_core"
                 )
                 refreshSaveStateMetadata()
-                if (!autotestMode && !bootSmokeProbe && !bootToBios && !path.isNullOrBlank()) {
+                if (!autotestMode && !bootSmokeProbe && !path.isNullOrBlank()) {
                     preferences.markGameLaunched(
                         path = path,
                         title = currentGameTitle.ifBlank {
@@ -1261,10 +1238,7 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
             }
 
             val started = try {
-                EmulatorBridge.startEmulation(
-                    pathToLaunch,
-                    allowBiosBoot = bootToBios
-                )
+                EmulatorBridge.startEmulation(pathToLaunch)
             } catch (error: Exception) {
                 Log.e(TAG, "EmulatorBridge.startEmulation failed", error)
                 false

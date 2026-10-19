@@ -86,7 +86,6 @@
     <string name="emulation_save_failed">Gagal menyimpan status permainan.</string>
     <string name="emulation_loaded">Dimuat</string>
     <string name="emulation_load_failed">Gagal memuat status simpanan.</string>
-    <string name="emulation_bios_missing">Tambahkan file BIOS terlebih dahulu.</string>
     <string name="emulation_launch_failed">Tidak dapat membuka game ini.</string>
     <string name="emulation_launch_path_error">Tidak dapat membuka file ini.</string>
     <string name="emulation_session_restored_unavailable">Sesi emulasi sebelumnya ditutup di latar belakang. Luncurkan game lagi dari pustaka Anda.</string>
@@ -337,7 +336,6 @@
     <string name="shell_save_states">Pengelola Simpanan</string>
     <string name="shell_memory_cards">Kartu SD 3DS</string>
     <string name="shell_texture_manager">Pengelola Tekstur</string>
-    <string name="shell_launch_bios">Luncurkan BIOS</string>
 
     <!-- Texture Manager -->
 
@@ -725,7 +723,6 @@
     <string name="settings_customization_touch_style_minimal">Minimalis</string>
     <string name="settings_game_menu_content_summary">Pilih tab, blok konten, dan urutan yang ditampilkan di menu dalam game. Blok baru yang ditambahkan oleh pembaruan mendatang akan disertakan secara otomatis.</string>
     <string name="settings_game_menu_tab_content_format">Konten %1$s</string>
-    <string name="settings_game_menu_section_debug_tools">Diagnostik pengembang</string>
     <string name="settings_game_menu_section_controls_general">Perilaku overlay dan layar</string>
     <string name="settings_game_menu_section_graphics_display">Penyaji, resolusi, dan rasio aspek</string>
     <string name="settings_game_menu_full_reset_desc">Tampilkan setiap tab dan blok konten dalam urutan aslinya</string>

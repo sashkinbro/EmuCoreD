@@ -86,7 +86,6 @@
     <string name="emulation_save_failed">Nie udało się zapisać stanu gry.</string>
     <string name="emulation_loaded">Wczytano</string>
     <string name="emulation_load_failed">Nie udało się wczytać stanu zapisu.</string>
-    <string name="emulation_bios_missing">Najpierw dodaj plik BIOS.</string>
     <string name="emulation_launch_failed">Nie można otworzyć tej gry.</string>
     <string name="emulation_launch_path_error">Nie można otworzyć tego pliku.</string>
     <string name="emulation_session_restored_unavailable">Poprzednia sesja emulacji została zamknięta w tle. Uruchom grę ponownie ze swojej biblioteki.</string>
@@ -355,7 +354,6 @@
     <string name="shell_save_states">Menedżer zapisów</string>
     <string name="shell_memory_cards">Karta SD 3DS</string>
     <string name="shell_texture_manager">Menedżer tekstur</string>
-    <string name="shell_launch_bios">Uruchom BIOS</string>
 
     <!-- Texture Manager -->
 
@@ -761,7 +759,6 @@
     <string name="settings_game_menu_section_quick_actions">Szybki zapis i wczytanie</string>
     <string name="settings_game_menu_section_automation">Automatyzacja zapisu i wczytywania</string>
     <string name="settings_game_menu_section_game_profile">Profil poszczególnej gry</string>
-    <string name="settings_game_menu_section_debug_tools">Diagnostyka deweloperska</string>
     <string name="settings_game_menu_section_controls_general">Nakładka i zachowanie ekranu</string>
     <string name="settings_game_menu_section_graphics_display">Renderowanie, rozdzielczość i proporcje obrazu</string>
     <string name="settings_game_menu_reset_section">Przywróć układ</string>

@@ -206,6 +206,7 @@ import com.sbro.emucored.ui.common.VectorDpadCluster
 import com.sbro.emucored.ui.common.VectorOverlayButton
 import com.sbro.emucored.ui.common.buildOverlayCanvasLayout
 import com.sbro.emucored.ui.common.gamepadFocusableCard
+import com.sbro.emucored.ui.common.premiumFilterChipColors
 import com.sbro.emucored.ui.common.rememberDebouncedClick
 import com.sbro.emucored.ui.common.tvFocusGroup
 import com.sbro.emucored.ui.settings.ControlsEditorScreen
@@ -368,7 +369,6 @@ private fun Int.isRightOverlayCorner(): Boolean {
 fun EmulationScreen(
     gamePath: String? = null,
     installedPath: String? = null,
-    bootToBios: Boolean = false,
     bootSmokeProbe: Boolean = false,
     saveSlot: Int? = null,
     autotestMode: Boolean = false,
@@ -746,7 +746,6 @@ fun EmulationScreen(
     LaunchedEffect(
         gamePath,
         installedPath,
-        bootToBios,
         bootSmokeProbe,
         autotestMode,
         rendererOverride,
@@ -756,7 +755,6 @@ fun EmulationScreen(
         viewModel.startEmulation(
             path = gamePath,
             slotToLoad = saveSlot,
-            bootToBios = bootToBios,
             bootSmokeProbe = bootSmokeProbe,
             autotestMode = autotestMode,
             rendererOverride = rendererOverride,
@@ -1088,7 +1086,6 @@ fun EmulationScreen(
                 "save_failed" -> stringResource(R.string.emulation_save_failed)
                 "loaded" -> stringResource(R.string.emulation_loaded)
                 "load_failed" -> stringResource(R.string.emulation_load_failed)
-                "bios_missing" -> stringResource(R.string.emulation_bios_missing)
                 "launch_failed" -> stringResource(R.string.emulation_launch_failed)
                 "launch_path_error" -> stringResource(R.string.emulation_launch_path_error)
                 else -> ""
@@ -1800,6 +1797,7 @@ fun EmulationScreen(
                                     shape = neonChipShape(),
                                     selected = selectedGamepadPadIndex == padIndex,
                                     onClick = { selectedGamepadPadIndex = padIndex },
+                                    colors = premiumFilterChipColors(),
                                     label = { Text(gamepadPlayerLabel(padIndex)) }
                                 )
                             }
@@ -4180,7 +4178,7 @@ private fun GameMenuNavigationTile(
         shape = shape,
         color = when {
             destructive -> MaterialTheme.colorScheme.error.copy(alpha = 0.12f)
-            selected -> MaterialTheme.colorScheme.primary.copy(alpha = 0.18f)
+            selected -> MaterialTheme.colorScheme.primaryContainer
             else -> MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.26f)
         },
         border = BorderStroke(
@@ -4206,7 +4204,7 @@ private fun GameMenuNavigationTile(
                 contentDescription = resolvedLabel,
                 tint = when {
                     destructive -> MaterialTheme.colorScheme.error
-                    selected -> MaterialTheme.colorScheme.primary
+                    selected -> MaterialTheme.colorScheme.onPrimaryContainer
                     else -> MaterialTheme.colorScheme.onSurfaceVariant
                 },
                 modifier = Modifier.size(21.dp)
@@ -4215,7 +4213,11 @@ private fun GameMenuNavigationTile(
                 Text(
                     text = resolvedLabel,
                     style = MaterialTheme.typography.labelLarge,
-                    color = if (destructive) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface,
+                    color = when {
+                        destructive -> MaterialTheme.colorScheme.error
+                        selected -> MaterialTheme.colorScheme.onPrimaryContainer
+                        else -> MaterialTheme.colorScheme.onSurface
+                    },
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
@@ -4280,7 +4282,7 @@ private fun EmulationMenuRailButton(
         shape = shape,
         color = when {
             isDestructive -> MaterialTheme.colorScheme.error.copy(alpha = 0.12f)
-            selected -> MaterialTheme.colorScheme.primary.copy(alpha = 0.18f)
+            selected -> MaterialTheme.colorScheme.primaryContainer
             else -> MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.32f)
         },
         border = border
@@ -4295,7 +4297,7 @@ private fun EmulationMenuRailButton(
                 contentDescription = contentDescription,
                 tint = when {
                     isDestructive -> MaterialTheme.colorScheme.error
-                    selected -> MaterialTheme.colorScheme.primary
+                    selected -> MaterialTheme.colorScheme.onPrimaryContainer
                     else -> MaterialTheme.colorScheme.onSurfaceVariant
                 },
                 modifier = Modifier
@@ -4990,6 +4992,7 @@ private fun LiveSelectionChip(
         modifier = modifier,
         selected = selected,
         onClick = onClick,
+        colors = premiumFilterChipColors(),
         leadingIcon = option.icon?.let { icon ->
             {
                 Icon(
@@ -5289,6 +5292,7 @@ private fun LiveChipsSelectionRow(
                     shape = neonChipShape(),
                     selected = currentValue == value,
                     onClick = { onValueChange(value) },
+                    colors = premiumFilterChipColors(),
                     label = { Text(text = label) }
                 )
             }
@@ -5348,6 +5352,7 @@ private fun LiveBitmaskChoiceRow(
                     shape = neonChipShape(),
                     selected = PerformanceOverlayMetrics.isEnabled(selectedMask, metric),
                     onClick = { onToggle(metric) },
+                    colors = premiumFilterChipColors(),
                     label = { Text(text = label) }
                 )
             }

@@ -56,7 +56,6 @@
     <string name="emulation_save_failed">No se pudo guardar la partida.</string>
     <string name="emulation_loaded">Cargado</string>
     <string name="emulation_load_failed">No se pudo cargar el guardado.</string>
-    <string name="emulation_bios_missing">Añade primero un archivo BIOS.</string>
     <string name="emulation_launch_failed">No se pudo abrir este juego.</string>
     <string name="emulation_launch_path_error">No se pudo abrir este archivo.</string>
     <string name="emulation_show_controls">Mostrar controles</string>
@@ -164,7 +163,6 @@
     <string name="shell_data_transfer">Transferencia de datos</string>
     <string name="shell_launch_game_unsupported">Formato de imagen de juego no compatible.</string>
     <string name="shell_save_states">Administrador de guardados</string>
-    <string name="shell_launch_bios">Iniciar BIOS</string>
 
     <string name="settings_controls_tab">Controles</string>
     <string name="settings_overlay_scale">Escala de superposición</string>
@@ -713,7 +711,6 @@
     <string name="settings_customization_touch_style_minimal">Minimalista</string>
     <string name="settings_game_menu_content_summary">Elige las pestañas, los bloques de contenido y el orden que se muestran en el menú del juego. Los bloques nuevos de futuras actualizaciones se añaden automáticamente.</string>
     <string name="settings_game_menu_tab_content_format">Contenido de %1$s</string>
-    <string name="settings_game_menu_section_debug_tools">Diagnósticos de desarrollador</string>
     <string name="settings_game_menu_section_controls_general">Comportamiento de superposición y pantalla</string>
     <string name="settings_game_menu_section_graphics_display">Renderizador, resolución y relación de aspecto</string>
     <string name="settings_game_menu_full_reset_desc">Mostrar todas las pestañas y bloques de contenido en el orden original</string>

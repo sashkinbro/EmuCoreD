@@ -78,7 +78,6 @@
     <string name="emulation_save_failed">セーブ状態の保存に失敗しました。</string>
     <string name="emulation_loaded">ロードしました</string>
     <string name="emulation_load_failed">セーブ状態のロードに失敗しました。</string>
-    <string name="emulation_bios_missing">まずBIOSファイルを追加してください。</string>
     <string name="emulation_launch_failed">このゲームを開くことができません。</string>
     <string name="emulation_launch_path_error">このファイルを開くことができません。</string>
     <string name="emulation_session_restored_unavailable">前のエミュレーションセッションはバックグラウンドで終了しました。ライブラリからもう一度ゲームを起動してください。</string>
@@ -278,7 +277,6 @@
     <string name="shell_launch_game_unsupported">サポートされていないゲームイメージ形式です。</string>
     <string name="shell_save_states">セーブマネージャー</string>
     <string name="shell_memory_cards">3DS SDカード</string>
-    <string name="shell_launch_bios">BIOSを起動</string>
 
     <string name="settings_controls_tab">操作</string>
     <string name="settings_overlay_scale">オーバレイのスケール</string>
@@ -710,7 +708,6 @@
     <string name="settings_customization_touch_style_minimal">ミニマル</string>
     <string name="settings_game_menu_content_summary">ゲーム内メニューに表示されるタブ、コンテンツブロック、順序を選択します。今後のアップデートで追加される新しいブロックは自動的に含まれます。</string>
     <string name="settings_game_menu_tab_content_format">%1$sコンテンツ</string>
-    <string name="settings_game_menu_section_debug_tools">開発者用診断</string>
     <string name="settings_game_menu_section_controls_general">オーバーレイと画面の動作</string>
     <string name="settings_game_menu_section_graphics_display">レンダラー、解像度、アスペクト比</string>
     <string name="settings_game_menu_full_reset_desc">すべてのタブとコンテンツブロックを元の順序で表示する</string>

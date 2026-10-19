@@ -56,7 +56,6 @@
     <string name="emulation_save_failed">Spielstand konnte nicht gespeichert werden.</string>
     <string name="emulation_loaded">Geladen</string>
     <string name="emulation_load_failed">Speicherstand konnte nicht geladen werden.</string>
-    <string name="emulation_bios_missing">Füge zuerst eine BIOS-Datei hinzu.</string>
     <string name="emulation_launch_failed">Dieses Spiel konnte nicht geöffnet werden.</string>
     <string name="emulation_launch_path_error">Diese Datei konnte nicht geöffnet werden.</string>
     <string name="emulation_show_controls">Steuerung anzeigen</string>
@@ -164,7 +163,6 @@
     <string name="shell_data_transfer">Datenübertragung</string>
     <string name="shell_launch_game_unsupported">Nicht unterstütztes Spiel-Image-Format.</string>
     <string name="shell_save_states">Speicher-Manager</string>
-    <string name="shell_launch_bios">BIOS starten</string>
 
     <string name="settings_controls_tab">Steuerung</string>
     <string name="settings_overlay_scale">Overlay-Größe</string>
@@ -713,7 +711,6 @@
     <string name="settings_customization_touch_style_minimal">Minimal</string>
     <string name="settings_game_menu_content_summary">Wähle die Tabs, Inhaltsblöcke und die Reihenfolge im In-Game-Menü. Neue Blöcke aus zukünftigen Updates werden automatisch hinzugefügt.</string>
     <string name="settings_game_menu_tab_content_format">%1$s-Inhalt</string>
-    <string name="settings_game_menu_section_debug_tools">Entwickler-Diagnose</string>
     <string name="settings_game_menu_section_controls_general">Overlay- und Bildschirmverhalten</string>
     <string name="settings_game_menu_section_graphics_display">Renderer, Auflösung und Seitenverhältnis</string>
     <string name="settings_game_menu_full_reset_desc">Jeden Tab und Inhaltsblock in der ursprünglichen Reihenfolge anzeigen</string>

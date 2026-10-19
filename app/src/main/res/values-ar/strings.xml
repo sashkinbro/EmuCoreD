@@ -78,7 +78,6 @@
     <string name="emulation_save_failed">فشل في حفظ حالة اللعبة.</string>
     <string name="emulation_loaded">تم التحميل</string>
     <string name="emulation_load_failed">فشل في تحميل حالة الحفظ.</string>
-    <string name="emulation_bios_missing">أضف ملف BIOS أولاً.</string>
     <string name="emulation_launch_failed">تعذر فتح هذه اللعبة.</string>
     <string name="emulation_launch_path_error">تعذر فتح هذا الملف.</string>
     <string name="emulation_session_restored_unavailable">تم إغلاق جلسة المحاكاة السابقة في الخلفية. قم بتشغيل اللعبة مرة أخرى من مكتبتك.</string>
@@ -278,7 +277,6 @@
     <string name="shell_launch_game_unsupported">صيغة ملف صورة اللعبة غير مدعومة.</string>
     <string name="shell_save_states">مدير الحفظ</string>
     <string name="shell_memory_cards">بطاقة SD للـ 3DS</string>
-    <string name="shell_launch_bios">تشغيل BIOS</string>
 
     <string name="settings_controls_tab">التحكم</string>
     <string name="settings_overlay_scale">مقياس الطبقة</string>
@@ -715,7 +713,6 @@
     <string name="settings_customization_touch_style_minimal">بسيط</string>
     <string name="settings_game_menu_content_summary">اختر علامات التبويب وكتل المحتوى والترتيب الموضح في القائمة داخل اللعبة. يتم تضمين الكتل الجديدة المضافة بواسطة التحديثات المستقبلية تلقائيًا.</string>
     <string name="settings_game_menu_tab_content_format">محتوى %1$s</string>
-    <string name="settings_game_menu_section_debug_tools">تشخيصات المطور</string>
     <string name="settings_game_menu_section_controls_general">سلوك التراكب والشاشة</string>
     <string name="settings_game_menu_section_graphics_display">العارض والدقة ونسبة العرض إلى الارتفاع</string>
     <string name="settings_game_menu_full_reset_desc">إظهار كل علامة تبويب وكتلة محتوى بالترتيب الأصلي</string>

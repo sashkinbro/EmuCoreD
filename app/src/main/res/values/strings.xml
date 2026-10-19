@@ -87,7 +87,6 @@
     <string name="emulation_save_failed">Failed to save the game state.</string>
     <string name="emulation_loaded">Loaded</string>
     <string name="emulation_load_failed">Failed to load save state.</string>
-    <string name="emulation_bios_missing">Add a BIOS file first.</string>
     <string name="emulation_launch_failed">Unable to open this game.</string>
     <string name="emulation_launch_path_error">Unable to open this file.</string>
     <string name="emulation_session_restored_unavailable">The previous emulation session was closed in the background. Launch the game again from your library.</string>
@@ -373,7 +372,6 @@
     <string name="shell_save_states">Save Manager</string>
     <string name="shell_memory_cards">3DS SD Card</string>
     <string name="shell_texture_manager">Texture Manager</string>
-    <string name="shell_launch_bios">Launch BIOS</string>
 
     <!-- Texture Manager -->
 
@@ -864,7 +862,6 @@
     <string name="settings_game_menu_section_quick_actions">Quick save and load</string>
     <string name="settings_game_menu_section_automation">Save and load automation</string>
     <string name="settings_game_menu_section_game_profile">Per-game profile</string>
-    <string name="settings_game_menu_section_debug_tools">Developer diagnostics</string>
     <string name="settings_game_menu_section_controls_general">Overlay and screen behavior</string>
     <string name="settings_game_menu_section_graphics_display">Renderer, resolution, and aspect ratio</string>
     <string name="settings_game_menu_reset_section">Restore layout</string>

@@ -127,7 +127,6 @@ import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
-import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -251,6 +250,7 @@ import com.sbro.emucored.ui.common.appScreenTopPadding
 import com.sbro.emucored.ui.common.calculateSideArtworkPreviewLayout
 import com.sbro.emucored.ui.common.gamepadFocusableCard
 import com.sbro.emucored.ui.common.navigationBarsHorizontalPaddingValues
+import com.sbro.emucored.ui.common.premiumFilterChipColors
 import com.sbro.emucored.ui.common.rememberDebouncedClick
 import com.sbro.emucored.ui.common.skipGamepadTextFieldFocus
 import com.sbro.emucored.ui.common.tvFocusGroup
@@ -1721,6 +1721,7 @@ private fun SettingsContent(
                                     selected = selectedGamepadPadIndex == padIndex,
                                     onClick = { selectedGamepadPadIndex = padIndex },
                                     interactionSource = interactionSource,
+                                    colors = premiumFilterChipColors(),
                                     label = { Text(gamepadPlayerLabel(padIndex)) }
                                 )
                             }
@@ -2987,6 +2988,7 @@ private fun StickToggleTargetPicker(
                 FilterChip(
                     selected = isSelected,
                     onClick = { onSelect(target) },
+                    colors = premiumFilterChipColors(),
                     label = { Text(stringResource(labelRes)) },
                     leadingIcon = if (isSelected) {
                         { Icon(Icons.Rounded.Check, contentDescription = null) }
@@ -3334,7 +3336,7 @@ private fun drawerItemIcon(item: DrawerItemId): ImageVector = when (item) {
     DrawerItemId.LIBRARY -> Icons.Rounded.Home
     DrawerItemId.CATALOG_SEARCH -> Icons.Rounded.Search
     DrawerItemId.HUB -> Icons.Rounded.Newspaper
-    DrawerItemId.LAUNCH_GAME, DrawerItemId.LAUNCH_BIOS -> Icons.Rounded.PlayArrow
+    DrawerItemId.LAUNCH_GAME -> Icons.Rounded.PlayArrow
     DrawerItemId.GAME_SETTINGS -> Icons.Rounded.Tune
     DrawerItemId.DATA_TRANSFER -> Icons.Rounded.SwapVert
     DrawerItemId.RESET_SETTINGS -> Icons.Rounded.Restore
@@ -3355,7 +3357,6 @@ private fun drawerItemLabel(item: DrawerItemId): String = when (item) {
     DrawerItemId.CATALOG_SEARCH -> stringResource(R.string.shell_catalog_search)
     DrawerItemId.HUB -> stringResource(R.string.hub_title)
     DrawerItemId.LAUNCH_GAME -> stringResource(R.string.shell_launch_game)
-    DrawerItemId.LAUNCH_BIOS -> stringResource(R.string.shell_launch_bios)
     DrawerItemId.GAME_SETTINGS -> stringResource(R.string.shell_game_settings_manager)
     DrawerItemId.DATA_TRANSFER -> stringResource(R.string.shell_data_transfer)
     DrawerItemId.RESET_SETTINGS -> stringResource(R.string.settings_reset_all_action)
@@ -3462,7 +3463,6 @@ private fun gameMenuSectionLabel(section: GameMenuSectionId): String = when (sec
     GameMenuSectionId.QUICK_ACTIONS -> stringResource(R.string.settings_game_menu_section_quick_actions)
     GameMenuSectionId.AUTOMATION -> stringResource(R.string.settings_game_menu_section_automation)
     GameMenuSectionId.GAME_PROFILE -> stringResource(R.string.settings_game_menu_section_game_profile)
-    GameMenuSectionId.SESSION_DEBUG_TOOLS -> stringResource(R.string.settings_game_menu_section_debug_tools)
     GameMenuSectionId.CONTROLS_GENERAL -> stringResource(R.string.settings_game_menu_section_controls_general)
     GameMenuSectionId.CONTROLS_TOUCH -> stringResource(R.string.settings_touch_controls_section)
     GameMenuSectionId.CONTROLS_GAMEPAD -> stringResource(R.string.settings_gamepad_controls_section)
@@ -5347,17 +5347,6 @@ private fun BitmaskChoiceSection(
 }
 
 @Composable
-private fun premiumFilterChipColors() = FilterChipDefaults.filterChipColors(
-    containerColor = Color.Transparent,
-    labelColor = MaterialTheme.colorScheme.onSurfaceVariant,
-    iconColor = MaterialTheme.colorScheme.primary,
-    selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
-    selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer,
-    selectedLeadingIconColor = MaterialTheme.colorScheme.onPrimaryContainer,
-    selectedTrailingIconColor = MaterialTheme.colorScheme.onPrimaryContainer
-)
-
-@Composable
 internal fun SettingsInlineNote(text: String) {
     Text(
         text = text,
@@ -5650,6 +5639,7 @@ private fun GamepadAssignmentChip(
         selected = selected,
         onClick = onClick,
         interactionSource = interactionSource,
+        colors = premiumFilterChipColors(),
         label = { Text(label) }
     )
 }

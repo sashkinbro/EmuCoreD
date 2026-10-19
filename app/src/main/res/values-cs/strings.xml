@@ -86,7 +86,6 @@
     <string name="emulation_save_failed">Nepodařilo se uložit stav hry.</string>
     <string name="emulation_loaded">Načteno</string>
     <string name="emulation_load_failed">Nepodařilo se načíst uložený stav.</string>
-    <string name="emulation_bios_missing">Nejprve přidejte soubor BIOS.</string>
     <string name="emulation_launch_failed">Tuto hru nelze otevřít.</string>
     <string name="emulation_launch_path_error">Tento soubor nelze otevřít.</string>
     <string name="emulation_session_restored_unavailable">Předchozí relace emulace byla ukončena na pozadí. Spusťte hru znovu z knihovny.</string>
@@ -358,7 +357,6 @@
     <string name="shell_save_states">Správce uložení</string>
     <string name="shell_memory_cards">SD karta 3DS</string>
     <string name="shell_texture_manager">Správce textur</string>
-    <string name="shell_launch_bios">Spustit BIOS</string>
 
     <!-- Texture Manager -->
 
@@ -762,7 +760,6 @@
     <string name="settings_game_menu_section_quick_actions">Rychlé uložení a načtení</string>
     <string name="settings_game_menu_section_automation">Automatizace ukládání a načítání</string>
     <string name="settings_game_menu_section_game_profile">Profil pro jednotlivou hru</string>
-    <string name="settings_game_menu_section_debug_tools">Vývojářská diagnostika</string>
     <string name="settings_game_menu_section_controls_general">Chování překrytí a obrazovky</string>
     <string name="settings_game_menu_section_graphics_display">Vykreslovač, rozlišení a poměr stran</string>
     <string name="settings_game_menu_reset_section">Obnovit rozložení</string>

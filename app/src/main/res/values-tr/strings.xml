@@ -78,7 +78,6 @@
     <string name="emulation_save_failed">Kayıt durumu kaydedilemedi.</string>
     <string name="emulation_loaded">Yüklendi</string>
     <string name="emulation_load_failed">Kayıt durumu yüklenemedi.</string>
-    <string name="emulation_bios_missing">Önce bir BIOS dosyası ekleyin.</string>
     <string name="emulation_launch_failed">Bu oyun açılamıyor.</string>
     <string name="emulation_launch_path_error">Bu dosya açılamıyor.</string>
     <string name="emulation_session_restored_unavailable">Önceki emülasyon oturumu arka planda kapatıldı. Oyunu kütüphanenizden tekrar başlatın.</string>
@@ -278,7 +277,6 @@
     <string name="shell_launch_game_unsupported">Desteklenmeyen oyun imajı formatı.</string>
     <string name="shell_save_states">Kayıt Yöneticisi</string>
     <string name="shell_memory_cards">3DS SD kartı</string>
-    <string name="shell_launch_bios">BIOS\'u Başlat</string>
 
     <string name="settings_controls_tab">Kontroller</string>
     <string name="settings_overlay_scale">Arayüz Ölçeği</string>
@@ -711,7 +709,6 @@
     <string name="settings_customization_touch_style_minimal">Minimal</string>
     <string name="settings_game_menu_content_summary">Oyun içi menüde gösterilecek sekmeleri, içerik bloklarını ve sırasını seçin. Gelecekteki güncellemelerle eklenen yeni bloklar otomatik olarak dahil edilir.</string>
     <string name="settings_game_menu_tab_content_format">%1$s içeriği</string>
-    <string name="settings_game_menu_section_debug_tools">Geliştirici teşhisleri</string>
     <string name="settings_game_menu_section_controls_general">Arayüz (Overlay) ve ekran davranışı</string>
     <string name="settings_game_menu_section_graphics_display">Oluşturucu, çözünürlük ve en boy oranı</string>
     <string name="settings_game_menu_full_reset_desc">Tüm sekmeleri ve içerik bloklarını orijinal sırayla göster</string>

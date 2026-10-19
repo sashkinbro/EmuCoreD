@@ -198,14 +198,13 @@ object EmulatorBridge {
 
     suspend fun startEmulation(
         path: String,
-        saveStateIdentityPath: String? = null,
-        allowBiosBoot: Boolean = false
+        saveStateIdentityPath: String? = null
     ): Boolean {
         if (!isNativeLoaded) {
             Log.e(TAG, "startEmulation skipped: native library is not loaded")
             return false
         }
-        if (path.isBlank() && !allowBiosBoot) {
+        if (path.isBlank()) {
             Log.e(TAG, "startEmulation rejected blank game path")
             return false
         }
@@ -219,11 +218,7 @@ object EmulatorBridge {
         // Save-state files are named after the path the user launched, not the
         // core's prepared/materialized path, so writes and listings agree.
         NativeApp.setSaveStateIdentityPath(saveStateIdentityPath ?: path)
-        val pathType = when {
-            path.startsWith("content://") -> "content"
-            path.isBlank() -> "bios"
-            else -> "file"
-        }
+        val pathType = if (path.startsWith("content://")) "content" else "file"
         NativeApp.logCrashBreadcrumb("startEmulation requested pathType=$pathType vmActive=$isVmActive")
         Log.i(TAG, "startEmulation requested pathType=$pathType vmActive=$isVmActive")
 
@@ -240,7 +235,7 @@ object EmulatorBridge {
                     Log.e(TAG, "startEmulation native call failed", error)
                     false
                 }
-                if (result && !allowBiosBoot && path.isNotBlank() && !NativeApp.hasDiscMedia()) {
+                if (result && !NativeApp.hasDiscMedia()) {
                     // The core silently boots the HOME menu when an image cannot
                     // be opened. Surface that as a failed launch instead of
                     // leaving the user on a misleading screen.

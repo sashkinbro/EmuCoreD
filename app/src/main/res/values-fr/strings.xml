@@ -56,7 +56,6 @@
     <string name="emulation_save_failed">Impossible d\'enregistrer la sauvegarde.</string>
     <string name="emulation_loaded">Chargé</string>
     <string name="emulation_load_failed">Impossible de charger la sauvegarde.</string>
-    <string name="emulation_bios_missing">Ajoutez d\'abord un fichier BIOS.</string>
     <string name="emulation_launch_failed">Impossible d\'ouvrir ce jeu.</string>
     <string name="emulation_launch_path_error">Impossible d\'ouvrir ce fichier.</string>
     <string name="emulation_show_controls">Afficher les contrôles</string>
@@ -164,7 +163,6 @@
     <string name="shell_data_transfer">Transfert de données</string>
     <string name="shell_launch_game_unsupported">Format d\'image de jeu non pris en charge.</string>
     <string name="shell_save_states">Gestionnaire de sauvegardes</string>
-    <string name="shell_launch_bios">Lancer le BIOS</string>
 
     <string name="settings_controls_tab">Contrôles</string>
     <string name="settings_overlay_scale">Échelle de superposition</string>
@@ -713,7 +711,6 @@
     <string name="settings_customization_touch_style_minimal">Minimaliste</string>
     <string name="settings_game_menu_content_summary">Choisissez les onglets, les blocs de contenu et l\'ordre affichés dans le menu du jeu. Les nouveaux blocs ajoutés lors de futures mises à jour sont inclus automatiquement.</string>
     <string name="settings_game_menu_tab_content_format">Contenu %1$s</string>
-    <string name="settings_game_menu_section_debug_tools">Diagnostics développeur</string>
     <string name="settings_game_menu_section_controls_general">Comportement de la superposition et de l\'écran</string>
     <string name="settings_game_menu_section_graphics_display">Moteur de rendu, résolution et format d\'image</string>
     <string name="settings_game_menu_full_reset_desc">Afficher chaque onglet et bloc de contenu dans l\'ordre d\'origine</string>
