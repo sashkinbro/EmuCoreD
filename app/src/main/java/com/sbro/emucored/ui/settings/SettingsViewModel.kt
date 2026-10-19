@@ -10,7 +10,6 @@ import com.sbro.emucored.core.AndroidTouchHaptics
 import com.sbro.emucored.core.AudioDefaults
 import com.sbro.emucored.core.AppUpdateRelease
 import com.sbro.emucored.core.AppUpdateRepository
-import com.sbro.emucored.core.BiosValidator
 import com.sbro.emucored.core.CoreConfig
 import com.sbro.emucored.core.DocumentPathResolver
 import com.sbro.emucored.core.EmulatorBridge
@@ -248,13 +247,6 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
         viewModelScope.launch {
             preferences.stickToggleTarget.collect { target ->
                 _uiState.value = _uiState.value.copy(stickToggleTarget = target)
-            }
-        }
-        viewModelScope.launch {
-            preferences.biosPath.distinctUntilChanged().collect { path ->
-                val biosValid = withContext(Dispatchers.IO) {
-                    BiosValidator.hasUsableBiosFiles(getApplication(), path)
-                }
             }
         }
         viewModelScope.launch {

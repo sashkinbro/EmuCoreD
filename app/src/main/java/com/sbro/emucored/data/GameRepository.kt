@@ -6,7 +6,6 @@ import android.provider.DocumentsContract
 import android.util.Log
 import androidx.core.net.toUri
 import androidx.documentfile.provider.DocumentFile
-import com.sbro.emucored.core.BiosValidator
 import com.sbro.emucored.core.DocumentPathResolver
 import com.sbro.emucored.core.EmulatorBridge
 import com.sbro.emucored.core.SetupValidator
@@ -195,10 +194,6 @@ class GameRepository {
                             serial = n3dsMetadata?.serial ?: sourceMetadata.serial
                         )
                     }
-                    if (BiosValidator.isLikelyBiosLibraryEntry(file.name, metadata.title, metadata.serial, file.length())) {
-                        return@forEach
-                    }
-
                     val cleanTitle = EmulatorBridge.cleanGameDisplayTitle(metadata.title, file.name)
                     val serial = metadata.serial
                     val title = cleanTitle
@@ -287,10 +282,6 @@ class GameRepository {
                             title = n3dsMetadata?.title ?: sourceMetadata.title,
                             serial = n3dsMetadata?.serial ?: sourceMetadata.serial
                         )
-                    }
-
-                    if (BiosValidator.isLikelyBiosLibraryEntry(name, metadata.title, metadata.serial, fileSize)) {
-                        continue
                     }
 
                     val cleanTitle = cleanScannedTitle(metadata.title, name)

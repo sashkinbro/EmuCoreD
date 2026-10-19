@@ -94,7 +94,6 @@ data class SettingsSnapshot(
     val showHomeSearch: Boolean = false,
     val preferEnglishGameTitles: Boolean = false,
     val biosPath: String? = null,
-    val biosValid: Boolean = false,
     val gamePath: String? = null,
     val gamePaths: List<String> = emptyList(),
     val emulatorDataPath: String? = null,

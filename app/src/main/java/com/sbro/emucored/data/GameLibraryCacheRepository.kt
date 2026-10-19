@@ -1,7 +1,6 @@
 package com.sbro.emucored.data
 
 import android.content.Context
-import com.sbro.emucored.core.BiosValidator
 import com.sbro.emucored.core.DocumentPathResolver
 import com.sbro.emucored.core.EmulatorBridge
 import org.json.JSONArray
@@ -64,9 +63,6 @@ class GameLibraryCacheRepository(context: Context) {
                             fileName = fileName
                         )
                         val fileSize = game.optLong("file_size")
-                        if (BiosValidator.isLikelyBiosLibraryEntry(fileName, title, serial, fileSize)) {
-                            continue
-                        }
                         add(
                             GameItem(
                                 title = title,

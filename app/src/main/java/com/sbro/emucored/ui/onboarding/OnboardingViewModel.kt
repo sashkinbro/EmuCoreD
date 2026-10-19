@@ -6,7 +6,6 @@ import android.net.Uri
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.sbro.emucored.core.AppAnalytics
-import com.sbro.emucored.core.BiosValidator
 import com.sbro.emucored.core.EmulatorBridge
 import com.sbro.emucored.core.EmulatorDataLocation
 import com.sbro.emucored.core.EmulatorStorage
@@ -34,7 +33,6 @@ data class OnboardingUiState(
     val gamePaths: List<String> = emptyList(),
     val emulatorDataPath: String? = null,
     val sdCardDataPath: String? = null,
-    val biosValid: Boolean = false,
     val gamePathValid: Boolean = false,
     val canContinue: Boolean = false,
     val currentPage: Int = 0,
@@ -76,13 +74,7 @@ class OnboardingViewModel(application: Application) : AndroidViewModel(applicati
             }
             launch {
                 preferences.biosPath.distinctUntilChanged().collect { path ->
-                    val biosValid = withContext(Dispatchers.IO) {
-                        BiosValidator.hasUsableBiosFiles(getApplication(), path)
-                    }
-                    updateState(
-                        biosPath = path,
-                        biosValid = biosValid
-                    )
+                    updateState(biosPath = path)
                 }
             }
             launch {
@@ -210,7 +202,6 @@ class OnboardingViewModel(application: Application) : AndroidViewModel(applicati
         gamePaths: List<String> = _uiState.value.gamePaths,
         emulatorDataPath: String? = _uiState.value.emulatorDataPath,
         sdCardDataPath: String? = _uiState.value.sdCardDataPath,
-        biosValid: Boolean = _uiState.value.biosValid,
         gamePathValid: Boolean = _uiState.value.gamePathValid,
         currentPage: Int = _uiState.value.currentPage,
         isProUnlocked: Boolean = _uiState.value.isProUnlocked,
@@ -229,7 +220,6 @@ class OnboardingViewModel(application: Application) : AndroidViewModel(applicati
             gamePaths = gamePaths,
             emulatorDataPath = emulatorDataPath,
             sdCardDataPath = sdCardDataPath,
-            biosValid = biosValid,
             gamePathValid = gamePathValid,
             canContinue = gamePathValid,
             currentPage = currentPage.coerceIn(0, 4),
