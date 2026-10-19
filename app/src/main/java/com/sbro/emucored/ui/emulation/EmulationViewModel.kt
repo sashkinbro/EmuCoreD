@@ -1014,7 +1014,7 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
                 finalLaunchPath = launchPath
                 Log.i(TAG, "Prepared launch path=$launchPath originalPath=$path bootBios=$bootToBios")
                 if (bootToBios) {
-                    currentGameTitle = "PlayStation BIOS"
+                    currentGameTitle = "HOME Menu"
                     currentGamePath = null
                     currentGameSerial = ""
                     currentGameRegionLabel = ""
@@ -2031,8 +2031,8 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
 
     private fun resolvePerGameTitle(state: EmulationUiState): String {
         return state.currentGameTitle
-            .takeIf { it.isNotBlank() && it != "PlayStation BIOS" }
-            ?: currentGameTitle.takeIf { it.isNotBlank() && it != "PlayStation BIOS" }
+            .takeIf { it.isNotBlank() && it != "HOME Menu" }
+            ?: currentGameTitle.takeIf { it.isNotBlank() && it != "HOME Menu" }
             ?: activePerGameKey()?.let { DocumentPathResolver.getDisplayName(getApplication(), it).substringBeforeLast('.') }
             ?: "Unknown Game"
     }

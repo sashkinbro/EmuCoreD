@@ -1229,7 +1229,6 @@
     <string name="save_manager_import_partial">Importováno: %1$d. Selhalo: %2$d.</string>
     <string name="settings_theme_neon">Neon</string>
 
-    <!-- SwanStation core options -->
     <string name="settings_frame_limit">Limit snímků</string>
     <string name="settings_frame_limit_desc">Omezuje emulaci na obnovovací frekvenci konzole. Vypnutím poběží tak rychle, jak zařízení dovolí.</string>
     <string name="settings_rewind">Převíjení</string>
@@ -1602,7 +1601,6 @@
     <string name="welcome_title">Vítejte v EmuCoreD</string>
 
 
-    <!-- EmuCoreD achievements: PS1 classics and PSP headline games -->
     <string name="drive_category_memory_stick">Pozice 3DS</string>
 
     <string name="theme_manager_preview_mode">Režim náhledu</string>

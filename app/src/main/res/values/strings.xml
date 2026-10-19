@@ -1313,7 +1313,6 @@
     <string name="discord_friends_empty">No Discord friends are using EmuCoreD right now.</string>
     <string name="settings_theme_neon">Neon</string>
 
-    <!-- SwanStation core options -->
 
 
     <string name="settings_frame_limit">Frame limit</string>
@@ -1682,7 +1681,6 @@
     <string name="welcome_title">Welcome to EmuCoreD</string>
 
 
-    <!-- EmuCoreD achievements: PS1 classics and PSP headline games -->
     <string name="drive_category_memory_stick">3DS saves</string>
 
     <string name="theme_manager_preview_mode">Preview mode</string>

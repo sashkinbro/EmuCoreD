@@ -1207,7 +1207,6 @@
     <string name="save_manager_import_partial">가져옴: %1$d. 실패: %2$d.</string>
     <string name="settings_theme_neon">네온</string>
 
-    <!-- SwanStation core options -->
     <string name="settings_frame_limit">프레임 제한</string>
     <string name="settings_frame_limit_desc">에뮬레이션을 콘솔의 주사율로 제한합니다. 끄면 기기가 허용하는 만큼 빠르게 실행됩니다.</string>
     <string name="settings_rewind">되감기</string>
@@ -1580,7 +1579,6 @@
     <string name="welcome_title">EmuCoreD에 오신 것을 환영합니다</string>
 
 
-    <!-- EmuCoreD achievements: PS1 classics and PSP headline games -->
     <string name="drive_category_memory_stick">3DS 저장 데이터</string>
 
     <string name="theme_manager_preview_mode">미리보기 모드</string>

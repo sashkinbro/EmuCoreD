@@ -1208,7 +1208,6 @@
     <string name="save_manager_import_partial">İçe aktarıldı: %1$d. Başarısız: %2$d.</string>
     <string name="settings_theme_neon">Neon</string>
 
-    <!-- SwanStation core options -->
     <string name="settings_frame_limit">Kare sınırı</string>
     <string name="settings_frame_limit_desc">Emülasyonu konsolun yenileme hızıyla sınırlar. Cihazın izin verdiği kadar hızlı çalışması için kapatın.</string>
     <string name="settings_rewind">Geri sarma</string>
@@ -1581,7 +1580,6 @@
     <string name="welcome_title">EmuCoreD\'e Hoş Geldiniz</string>
 
 
-    <!-- EmuCoreD achievements: PS1 classics and PSP headline games -->
     <string name="drive_category_memory_stick">3DS kayıtları</string>
 
     <string name="theme_manager_preview_mode">Önizleme modu</string>

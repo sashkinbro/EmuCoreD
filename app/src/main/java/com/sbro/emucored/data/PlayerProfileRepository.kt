@@ -408,7 +408,7 @@ class PlayerProfileRepository(context: Context) {
             .filter { entry ->
                 !entry.gamePath.isNullOrBlank() &&
                     entry.durationMs > 0L &&
-                    !entry.title.equals(BIOS_TITLE, ignoreCase = true) &&
+                    !entry.title.equals(HOME_MENU_TITLE, ignoreCase = true) &&
                     !isAutotestPlayTimeEntry(entry)
             }
             .groupBy { entry -> buildGameKey(entry.serial, entry.gamePath.orEmpty()) }
@@ -976,7 +976,7 @@ class PlayerProfileRepository(context: Context) {
         private const val MAX_COVER_PATH_LENGTH = 500
         private const val DEFAULT_DISPLAY_NAME = "Player"
         private const val DEFAULT_GAME_TITLE = "Unknown game"
-        private const val BIOS_TITLE = "PlayStation BIOS"
+        private const val HOME_MENU_TITLE = "HOME Menu"
 
         private const val FIELD_UID = "uid"
         private const val FIELD_PROFILE_SCHEMA_VERSION = "profileSchemaVersion"

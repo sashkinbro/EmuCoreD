@@ -1209,7 +1209,6 @@
     <string name="save_manager_import_partial">已导入：%1$d。失败：%2$d。</string>
     <string name="settings_theme_neon">霓虹</string>
 
-    <!-- SwanStation core options -->
     <string name="settings_frame_limit">幀率限制</string>
     <string name="settings_frame_limit_desc">將模擬限制在主機的刷新率。關閉後以裝置允許的最高速度運行。</string>
     <string name="settings_rewind">倒帶</string>
@@ -1582,7 +1581,6 @@
     <string name="welcome_title">欢迎使用 EmuCoreD</string>
 
 
-    <!-- EmuCoreD achievements: PS1 classics and PSP headline games -->
     <string name="drive_category_memory_stick">3DS 存档</string>
 
     <string name="theme_manager_preview_mode">预览模式</string>

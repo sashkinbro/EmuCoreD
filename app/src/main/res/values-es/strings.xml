@@ -1210,7 +1210,6 @@
     <string name="save_manager_import_partial">Importados: %1$d. Fallidos: %2$d.</string>
     <string name="settings_theme_neon">Neón</string>
 
-    <!-- SwanStation core options -->
     <string name="settings_frame_limit">Límite de fotogramas</string>
     <string name="settings_frame_limit_desc">Limita la emulación a la frecuencia de actualización de la consola. Desactívalo para ir tan rápido como permita el dispositivo.</string>
     <string name="settings_rewind">Rebobinar</string>
@@ -1583,7 +1582,6 @@
     <string name="welcome_title">Bienvenido a EmuCoreD</string>
 
 
-    <!-- EmuCoreD achievements: PS1 classics and PSP headline games -->
     <string name="drive_category_memory_stick">Partidas de 3DS</string>
 
     <string name="theme_manager_preview_mode">Modo vista previa</string>

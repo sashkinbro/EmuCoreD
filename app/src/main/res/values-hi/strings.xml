@@ -1208,7 +1208,6 @@
     <string name="save_manager_import_partial">आयातित: %1$d। विफल: %2$d।</string>
     <string name="settings_theme_neon">नियॉन</string>
 
-    <!-- SwanStation core options -->
     <string name="settings_frame_limit">फ़्रेम सीमा</string>
     <string name="settings_frame_limit_desc">एमुलेशन को कंसोल की रिफ्रेश दर तक सीमित करता है। डिवाइस की अधिकतम गति से चलाने के लिए इसे बंद करें।</string>
     <string name="settings_rewind">रीवाइंड</string>
@@ -1581,7 +1580,6 @@
     <string name="welcome_title">EmuCoreD में आपका स्वागत है</string>
 
 
-    <!-- EmuCoreD achievements: PS1 classics and PSP headline games -->
     <string name="drive_category_memory_stick">3DS सेव</string>
 
     <string name="theme_manager_preview_mode">पूर्वावलोकन मोड</string>

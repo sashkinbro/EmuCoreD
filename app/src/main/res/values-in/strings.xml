@@ -1222,7 +1222,6 @@
     <string name="save_manager_import_partial">Diimpor: %1$d. Gagal: %2$d.</string>
     <string name="settings_theme_neon">Neon</string>
 
-    <!-- SwanStation core options -->
     <string name="settings_frame_limit">Batas bingkai</string>
     <string name="settings_frame_limit_desc">Membatasi emulasi ke laju penyegaran konsol. Matikan agar berjalan secepat perangkat.</string>
     <string name="settings_rewind">Mundur</string>
@@ -1595,7 +1594,6 @@
     <string name="welcome_title">Selamat datang di EmuCoreD</string>
 
 
-    <!-- EmuCoreD achievements: PS1 classics and PSP headline games -->
     <string name="drive_category_memory_stick">Save 3DS</string>
 
     <string name="theme_manager_preview_mode">Mode pratinjau</string>

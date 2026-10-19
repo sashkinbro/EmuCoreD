@@ -1224,7 +1224,6 @@
     <string name="discord_friends_empty">Зараз ніхто з ваших друзів у Discord не користується EmuCoreD.</string>
     <string name="settings_theme_neon">Неон</string>
 
-    <!-- SwanStation core options -->
     <string name="settings_frame_limit">Обмеження кадрів</string>
     <string name="settings_frame_limit_desc">Обмежує емуляцію частотою оновлення консолі. Вимкніть, щоб працювати так швидко, як дозволяє пристрій.</string>
     <string name="settings_rewind">Перемотування назад</string>
@@ -1597,7 +1596,6 @@
     <string name="welcome_title">Ласкаво просимо до EmuCoreD</string>
 
 
-    <!-- EmuCoreD achievements: PS1 classics and PSP headline games -->
     <string name="drive_category_memory_stick">Збереження 3DS</string>
 
     <string name="theme_manager_preview_mode">Режим попереднього перегляду</string>

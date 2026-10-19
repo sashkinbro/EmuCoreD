@@ -1223,7 +1223,6 @@
     <string name="save_manager_import_partial">درون‌ریزی: %1$d. ناموفق: %2$d.</string>
     <string name="settings_theme_neon">نئون</string>
 
-    <!-- SwanStation core options -->
     <string name="settings_frame_limit">محدودیت فریم</string>
     <string name="settings_frame_limit_desc">شبیه‌سازی را به نرخ نوسازی کنسول محدود می‌کند. برای اجرا با بیشترین سرعت دستگاه، آن را خاموش کنید.</string>
     <string name="settings_rewind">عقب‌گرد</string>
@@ -1596,7 +1595,6 @@
     <string name="welcome_title">به EmuCoreD خوش آمدید</string>
 
 
-    <!-- EmuCoreD achievements: PS1 classics and PSP headline games -->
     <string name="drive_category_memory_stick">ذخیره‌های 3DS</string>
 
     <string name="theme_manager_preview_mode">حالت پیش‌نمایش</string>
