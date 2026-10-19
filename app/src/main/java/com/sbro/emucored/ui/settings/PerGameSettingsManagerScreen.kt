@@ -35,6 +35,7 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -121,7 +122,10 @@ import com.sbro.emucored.data.TouchControlPressEffect
 import com.sbro.emucored.data.TouchControlVisualStyle
 import com.sbro.emucored.ui.common.GameCoverArt
 import com.sbro.emucored.ui.common.ScreenTopBar
+import com.sbro.emucored.ui.common.StickyTabHeader
 import com.sbro.emucored.ui.common.appScreenTopPadding
+import com.sbro.emucored.ui.common.rememberStickyTabHeaderPinned
+import com.sbro.emucored.ui.common.stickyTabTopInset
 import com.sbro.emucored.ui.common.SettingHelpButton
 import com.sbro.emucored.ui.common.gamepadFocusableCard
 import com.sbro.emucored.ui.common.premiumFilterChipColors
@@ -139,6 +143,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
+import com.sbro.emucored.ui.theme.neon.neonChipShape
 import com.sbro.emucored.ui.theme.neon.neonShape
 
 private enum class GameSettingsManagerTab {
@@ -189,6 +194,9 @@ fun PerGameSettingsManagerScreen(
     val topInset = appScreenTopPadding()
     val bottomInset = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
     val horizontalSystemBarPadding = navigationBarsHorizontalPaddingValues()
+    val listState = rememberLazyListState()
+    val stickyTabInset = stickyTabTopInset()
+    val tabsPinned = rememberStickyTabHeaderPinned(listState, "game-settings-tabs")
     val exportSuccess = stringResource(R.string.game_settings_manager_export_success)
     val exportFailure = stringResource(R.string.game_settings_manager_export_failure)
     val importSuccess = stringResource(R.string.game_settings_manager_import_success)
@@ -327,15 +335,19 @@ fun PerGameSettingsManagerScreen(
     }
 
     val neonThemeActive = LocalNeonTheme.current
+    LaunchedEffect(selectedTab) {
+        listState.scrollToItem(0)
+    }
     LazyColumn(
+        state = listState,
         modifier = Modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
-            .padding(horizontalSystemBarPadding),
+            .padding(horizontalSystemBarPadding)
+            .padding(top = stickyTabInset),
         contentPadding = PaddingValues(
             start = ScreenHorizontalPadding,
             end = ScreenHorizontalPadding,
-            top = topInset,
             bottom = 24.dp + bottomInset
         ),
         verticalArrangement = Arrangement.spacedBy(16.dp)
@@ -344,6 +356,9 @@ fun PerGameSettingsManagerScreen(
             ScreenTopBar(
                 title = stringResource(R.string.game_settings_manager_title),
                 onBackClick = onBackClick,
+                modifier = Modifier.padding(
+                    top = (topInset - stickyTabInset).coerceAtLeast(0.dp)
+                ),
                 actions = {
                     Box {
                         IconButton(onClick = { showTopBarMenu = true }) {
@@ -496,11 +511,16 @@ fun PerGameSettingsManagerScreen(
                 }
             }
 
-            item {
-                GameSettingsManagerTabRow(
-                    selectedTab = selectedTab,
-                    onSelected = { selectedTab = it }
-                )
+            stickyHeader(key = "game-settings-tabs") {
+                StickyTabHeader(
+                    showDivider = tabsPinned,
+                    modifier = Modifier.gameManagerFullBleed()
+                ) {
+                    GameSettingsManagerTabRow(
+                        selectedTab = selectedTab,
+                        onSelected = { selectedTab = it }
+                    )
+                }
             }
 
             selectedGame?.let { game ->
@@ -741,7 +761,6 @@ private fun GameSettingsManagerTabRow(
     LazyRow(
         modifier = Modifier
             .fillMaxWidth()
-            .gameManagerFullBleed()
             .tvFocusGroup(),
         horizontalArrangement = Arrangement.spacedBy(10.dp),
         contentPadding = PaddingValues(
@@ -753,10 +772,11 @@ private fun GameSettingsManagerTabRow(
             val interactionSource = remember { MutableInteractionSource() }
             FilterChip(
                 modifier = Modifier.tvGamepadFocusableCard(
-                    shape = neonShape(16.dp),
+                    shape = neonChipShape(),
                     interactionSource = interactionSource,
                     addFocusTarget = false
                 ),
+                shape = neonChipShape(),
                 selected = selectedTab == tab,
                 onClick = { onSelected(tab) },
                 interactionSource = interactionSource,
@@ -1124,6 +1144,45 @@ private fun GameSettingsTabContent(
                         helpText = stringResource(R.string.settings_help_racing_mode),
                         onResetToDefault = { onDraftChange(draft.copy(racingMode = defaultProfile.racingMode)) }
                     )
+                    StickyButtonsSelector(
+                        selected = draft.stickyButtons,
+                        onSelectionChange = { onDraftChange(draft.copy(stickyButtons = it)) },
+                        helpText = stringResource(R.string.settings_help_sticky_buttons),
+                        onResetToDefault = {
+                            onDraftChange(draft.copy(stickyButtons = defaultProfile.stickyButtons))
+                        }
+                    )
+                    ToggleRow(
+                        title = stringResource(R.string.settings_touchscreen_left_stick),
+                        checked = draft.touchscreenLeftStick,
+                        onCheckedChange = { onDraftChange(draft.copy(touchscreenLeftStick = it)) },
+                        helpText = stringResource(R.string.settings_help_touchscreen_left_stick),
+                        onResetToDefault = {
+                            onDraftChange(draft.copy(touchscreenLeftStick = defaultProfile.touchscreenLeftStick))
+                        }
+                    )
+                    if (draft.touchscreenLeftStick) {
+                        SliderRow(
+                            title = stringResource(R.string.settings_touchscreen_left_stick_sensitivity),
+                            value = draft.touchscreenLeftStickSensitivity.toFloat(),
+                            valueLabel = "${draft.touchscreenLeftStickSensitivity}%",
+                            range = AppPreferences.TOUCHSCREEN_RIGHT_STICK_SENSITIVITY_MIN.toFloat()..
+                                AppPreferences.TOUCHSCREEN_RIGHT_STICK_SENSITIVITY_MAX.toFloat(),
+                            steps = AppPreferences.TOUCHSCREEN_RIGHT_STICK_SENSITIVITY_MAX -
+                                AppPreferences.TOUCHSCREEN_RIGHT_STICK_SENSITIVITY_MIN - 1,
+                            onValueChange = {
+                                onDraftChange(draft.copy(touchscreenLeftStickSensitivity = it.roundToInt()))
+                            },
+                            helpText = stringResource(R.string.settings_help_touchscreen_left_stick_sensitivity),
+                            onResetToDefault = {
+                                onDraftChange(
+                                    draft.copy(
+                                        touchscreenLeftStickSensitivity = defaultProfile.touchscreenLeftStickSensitivity
+                                    )
+                                )
+                            }
+                        )
+                    }
                     ToggleRow(
                         title = stringResource(R.string.settings_touchscreen_right_stick),
                         checked = draft.touchscreenRightStick,
@@ -1370,10 +1429,11 @@ private fun SelectionRow(
                 val optionInteractionSource = remember { MutableInteractionSource() }
                 FilterChip(
                     modifier = Modifier.tvGamepadFocusableCard(
-                        shape = neonShape(16.dp),
+                        shape = neonChipShape(),
                         interactionSource = optionInteractionSource,
                         addFocusTarget = false
                     ),
+                    shape = neonChipShape(),
                     selected = selectedValue == value,
                     onClick = { onSelected(value) },
                     interactionSource = optionInteractionSource,
@@ -1628,6 +1688,9 @@ private fun SettingsSnapshot.toPerGameSettings(game: GameItem): PerGameSettings 
         showFps = showFps,
         fpsOverlayMode = fpsOverlayMode,
         racingMode = racingMode,
+        stickyButtons = stickyButtons,
+        touchscreenLeftStick = touchscreenLeftStick,
+        touchscreenLeftStickSensitivity = touchscreenLeftStickSensitivity,
         touchscreenRightStick = touchscreenRightStick,
         touchscreenRightStickSensitivity = touchscreenRightStickSensitivity,
         touchHaptics = touchHaptics,
@@ -1672,6 +1735,13 @@ private fun PerGameSettings.resolveAgainst(defaultProfile: PerGameSettings): Per
         showFps = pick("showFps", showFps, defaultProfile.showFps),
         fpsOverlayMode = pick("fpsOverlayMode", fpsOverlayMode, defaultProfile.fpsOverlayMode),
         racingMode = pick("racingMode", racingMode, defaultProfile.racingMode),
+        stickyButtons = pick("stickyButtons", stickyButtons, defaultProfile.stickyButtons),
+        touchscreenLeftStick = pick("touchscreenLeftStick", touchscreenLeftStick, defaultProfile.touchscreenLeftStick),
+        touchscreenLeftStickSensitivity = pick(
+            "touchscreenLeftStickSensitivity",
+            touchscreenLeftStickSensitivity,
+            defaultProfile.touchscreenLeftStickSensitivity
+        ),
         touchscreenRightStick = pick("touchscreenRightStick", touchscreenRightStick, defaultProfile.touchscreenRightStick),
         touchscreenRightStickSensitivity = pick(
             "touchscreenRightStickSensitivity",

@@ -98,7 +98,8 @@ internal fun HomeShelfMode(
     onLongClickManage: (GameItem) -> Unit,
     onLongClickCreateShortcut: (GameItem) -> Unit,
 
-    onLongClickCustomCover: (GameItem) -> Unit
+    onLongClickCustomCover: (GameItem) -> Unit,
+    onLongClickRestoreCover: (GameItem) -> Unit
 ) {
     if (games.isEmpty()) {
         NoGamesState()
@@ -261,6 +262,7 @@ internal fun HomeShelfMode(
                                 onLongClickCreateShortcut = { onLongClickCreateShortcut(game) },
 
                                 onLongClickCustomCover = { onLongClickCustomCover(game) },
+                                onLongClickRestoreCover = { onLongClickRestoreCover(game) },
                                 onNavigateLeft = {
                                     if (page > 0 && !pagerState.isScrollInProgress) {
                                         scope.launch { pagerState.animateScrollToPage(page - 1) }
@@ -472,6 +474,7 @@ private fun ShelfCoverCard(
     onLongClickCreateShortcut: () -> Unit,
 
     onLongClickCustomCover: () -> Unit,
+    onLongClickRestoreCover: () -> Unit,
     onNavigateLeft: () -> Unit,
     onNavigateRight: () -> Unit
 ) {
@@ -561,6 +564,7 @@ private fun ShelfCoverCard(
     }
 
     GameCardContextMenu(
+        game = game,
         expanded = showMenu.value,
         offset = DpOffset.Zero,
         onDismiss = { showMenu.value = false },
@@ -570,7 +574,8 @@ private fun ShelfCoverCard(
         onManage = { dismissMenu(onLongClickManage) },
         onCreateShortcut = { dismissMenu(onLongClickCreateShortcut) },
 
-        onCustomCover = { dismissMenu(onLongClickCustomCover) }
+        onCustomCover = { dismissMenu(onLongClickCustomCover) },
+        onRestoreCover = { dismissMenu(onLongClickRestoreCover) }
     )
 }
 

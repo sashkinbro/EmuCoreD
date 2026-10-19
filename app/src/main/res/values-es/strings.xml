@@ -1721,4 +1721,34 @@
     <string name="settings_control_label_right_stick">Stick derecho</string>
     <string name="controls_editor_show_grid">Mostrar cuadrícula</string>
     <string name="controls_editor_snap_grid">Ajustar a la cuadrícula</string>
+
+    <string name="settings_sticky_buttons">Botones con bloqueo</string>
+    <string name="settings_sticky_buttons_desc">Toca un botón seleccionado para mantenerlo y vuelve a tocar para soltarlo.</string>
+    <string name="settings_help_sticky_buttons">Permite elegir botones de la superposición que alternan su estado pulsado con un toque en lugar de mantenerlos. Útil para juegos de disparos y terror que quieren mantener R1, R2 u otros botones pulsados mientras usas los botones frontales.</string>
+    <string name="settings_touchscreen_left_stick">Stick izquierdo en pantalla táctil</string>
+    <string name="settings_touchscreen_left_stick_desc">Desliza por un espacio libre de la pantalla para controlar el stick izquierdo virtual.</string>
+    <string name="settings_help_touchscreen_left_stick">Asigna los gestos de arrastre en las zonas no utilizadas de la pantalla del juego a los ejes del stick izquierdo virtual, permitiendo moverse sin tocar el stick visible. Los botones táctiles y los sticks visibles mantienen su comportamiento normal.</string>
+    <string name="settings_touchscreen_left_stick_sensitivity">Sensibilidad táctil del stick izquierdo</string>
+    <string name="settings_help_touchscreen_left_stick_sensitivity">Ajusta la fuerza con la que la distancia de arrastre en la pantalla controla el stick izquierdo virtual. No cambia la sensibilidad del stick izquierdo visible.</string>
+    <string name="settings_respect_display_cutout">Respetar el corte de la cámara</string>
+    <string name="settings_respect_display_cutout_desc">Mantener la imagen del juego fuera del área del corte.</string>
+    <string name="settings_help_respect_display_cutout">Añade un margen alrededor de la imagen emulada para que no se dibuje bajo el corte de la cámara (notch o agujero). Útil en horizontal cuando el corte tapa la imagen. Solo afecta a la emulación; el resto de la app ya respeta los recortes.</string>
+    <string name="home_game_menu_restore_cover">Restaurar carátula predeterminada</string>
+    <string name="home_game_menu_restore_cover_success">Carátula predeterminada restaurada.</string>
+    <string name="home_game_menu_restore_cover_failed">No se pudo restaurar la carátula predeterminada.</string>
+    <string name="settings_reset_custom_covers">Restablecer carátulas personalizadas</string>
+    <string name="settings_reset_custom_covers_desc">Restaurar las carátulas predeterminadas de todos los juegos.</string>
+    <string name="settings_reset_custom_covers_confirm_title">¿Restablecer todas las carátulas personalizadas?</string>
+    <string name="settings_reset_custom_covers_confirm_body">Las carátulas personalizadas se eliminarán de la biblioteca y se sustituirán por las predeterminadas. Se conservarán las imágenes originales y los archivos de los juegos.</string>
+    <string name="settings_reset_custom_covers_action">Restablecer</string>
+    <string name="settings_reset_custom_covers_success">Carátulas personalizadas restablecidas.</string>
+    <string name="settings_reset_custom_covers_partial">No se pudieron restablecer algunas carátulas personalizadas. Inténtalo de nuevo.</string>
+
+    <string name="home_library_options">Opciones de la biblioteca</string>
+
+    <string name="hardware_warning_title">El dispositivo puede ser demasiado lento</string>
+    <string name="hardware_warning_body">Este dispositivo está por debajo del hardware recomendado para la emulación de 3DS, por lo que los juegos pueden ir lentos o con tirones. No es un error: prueba a bajar la resolución o a usar los ajustes de rendimiento.</string>
+    <string name="hardware_warning_gpu">GPU: %1$s</string>
+    <string name="hardware_warning_recommended">Antes de dejar una mala puntuación o una reseña negativa, prueba EmuCoreD en otro dispositivo con al menos Snapdragon 855, Dimensity 1000, Exynos 2200 o Tensor G2.</string>
+    <string name="hardware_warning_continue">Entendido</string>
 </resources>

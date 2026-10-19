@@ -1,4 +1,4 @@
-
+﻿
 package com.sbro.emucored.ui.emulation
 
 import android.annotation.SuppressLint
@@ -34,6 +34,7 @@ import androidx.compose.foundation.interaction.collectIsFocusedAsState
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
@@ -222,12 +223,14 @@ import coil3.compose.AsyncImage
 import com.sbro.emucored.ui.theme.GradientEnd
 import com.sbro.emucored.ui.theme.GradientStart
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.text.DateFormat
 import java.util.Date
 import java.util.Locale
+import java.util.concurrent.atomic.AtomicLong
 import kotlin.math.roundToInt
 import kotlin.time.Duration.Companion.milliseconds
 import com.sbro.emucored.ui.theme.neon.LocalNeonTheme
@@ -272,7 +275,7 @@ private enum class EmulationMenuTab {
     Achievements
 }
 
-private data class TouchButtonSpec(
+internal data class TouchButtonSpec(
     val id: String,
     val drawableRes: Int? = null,
     val width: Dp,
@@ -283,10 +286,25 @@ private data class TouchButtonSpec(
     val opacity: Float = 1f,
     val customControl: CustomTouchControl? = null,
     val haptics: Boolean = true,
-    val onPressChange: ((Boolean) -> Unit)? = null,
+    val pressActions: List<TouchButtonPressAction> = emptyList(),
     val onClick: (() -> Unit)? = null,
-    val tapToHold: Boolean = false
+    val tapToHold: Boolean = false,
+    val longPressDelayMs: Long = 0L,
+    val onLongPressChange: ((Boolean) -> Unit)? = null
 )
+
+internal data class TouchButtonPressAction(
+    val ownerId: String,
+    val onPressChange: (Boolean) -> Unit
+)
+
+internal fun touchButtonActionOwner(actionId: String): String = when (actionId) {
+    "dpad_up" -> "up"
+    "dpad_down" -> "down"
+    "dpad_left" -> "left"
+    "dpad_right" -> "right"
+    else -> actionId
+}
 
 private data class TouchButtonLayoutKey(
     val id: String,
@@ -294,7 +312,8 @@ private data class TouchButtonLayoutKey(
     val height: Dp,
     val x: Dp,
     val y: Dp,
-    val tapToHold: Boolean
+    val tapToHold: Boolean,
+    val hasLongPressAction: Boolean
 )
 
 private data class LiveSelectionOption(
@@ -460,22 +479,27 @@ fun EmulationScreen(
         }
     }
     val rootCutoutPadding = WindowInsets.displayCutout.asPaddingValues()
+    val gameCutoutPadding = if (globalDefaults.respectDisplayCutout) {
+        rootCutoutPadding
+    } else {
+        PaddingValues(0.dp)
+    }
     val rootNavPadding = WindowInsets.navigationBars.asPaddingValues()
     val overlayLeftSafeInset = maxOf(
-        rootCutoutPadding.calculateLeftPadding(androidx.compose.ui.unit.LayoutDirection.Ltr),
+        gameCutoutPadding.calculateLeftPadding(androidx.compose.ui.unit.LayoutDirection.Ltr),
         rootNavPadding.calculateLeftPadding(androidx.compose.ui.unit.LayoutDirection.Ltr)
     )
     val overlayRightSafeInset = maxOf(
-        rootCutoutPadding.calculateRightPadding(androidx.compose.ui.unit.LayoutDirection.Ltr),
+        gameCutoutPadding.calculateRightPadding(androidx.compose.ui.unit.LayoutDirection.Ltr),
         rootNavPadding.calculateRightPadding(androidx.compose.ui.unit.LayoutDirection.Ltr)
     )
     val overlayHorizontalSafeInset = maxOf(overlayLeftSafeInset, overlayRightSafeInset)
     val overlayTopSafeInset = maxOf(
-        rootCutoutPadding.calculateTopPadding(),
+        gameCutoutPadding.calculateTopPadding(),
         rootNavPadding.calculateTopPadding()
     )
     val overlayBottomSafeInset = maxOf(
-        rootCutoutPadding.calculateBottomPadding(),
+        gameCutoutPadding.calculateBottomPadding(),
         rootNavPadding.calculateBottomPadding()
     )
 
@@ -958,6 +982,7 @@ fun EmulationScreen(
                 },
                 modifier = Modifier
                     .fillMaxSize()
+                    .padding(gameCutoutPadding)
                     .pointerInteropFilter { event ->
                         if (!showControlsEditor && !uiState.showMenu && event.actionMasked == MotionEvent.ACTION_DOWN) {
                             val timestamp = event.eventTime
@@ -1324,40 +1349,14 @@ fun EmulationScreen(
             }
         }
 
-        val showPerformanceHud = uiState.showFps &&
-            !uiState.showMenu &&
-            !showControlsEditor &&
-            (uiState.fpsOverlayMode == FPS_OVERLAY_MODE_SIMPLE || uiState.performanceOverlayText.isNotBlank())
-        AnimatedVisibility(
-            visible = showPerformanceHud,
-            enter = fadeIn(tween(160)),
-            exit = fadeOut(tween(160)),
-            modifier = Modifier
-                .align(uiState.fpsOverlayCorner.toOverlayAlignment())
-                .padding(
-                    start = if (uiState.fpsOverlayCorner.isRightOverlayCorner()) 0.dp else overlayHorizontalSafeInset + 12.dp,
-                    top = if (uiState.fpsOverlayCorner.isTopOverlayCorner()) overlayTopSafeInset + 12.dp else 0.dp,
-                    end = if (uiState.fpsOverlayCorner.isRightOverlayCorner()) overlayHorizontalSafeInset + 12.dp else 0.dp,
-                    bottom = if (uiState.fpsOverlayCorner.isBottomOverlayCorner()) overlayBottomSafeInset + 12.dp else 0.dp
-                )
-                .zIndex(30f)
-        ) {
-            if (uiState.fpsOverlayMode == FPS_OVERLAY_MODE_SIMPLE) {
-                SimpleFpsCounter(
-                    fps = uiState.fps,
-                    fontScale = uiState.fpsOverlayScale / 100f
-                )
-            } else {
-                SystemPerformanceHud(
-                    speedPercent = uiState.speedPercent,
-                    text = uiState.performanceOverlayText,
-                    fixedHeaderLine = uiState.performanceOverlayHeader,
-                    isRightCorner = uiState.fpsOverlayCorner.isRightOverlayCorner(),
-                    fontScale = uiState.fpsOverlayScale / 100f,
-                    metricsMask = uiState.fpsOverlayMetrics
-                )
-            }
-        }
+        EmulationPerformanceOverlay(
+            viewModel = viewModel,
+            uiState = uiState,
+            showControlsEditor = showControlsEditor,
+            overlayHorizontalSafeInset = overlayHorizontalSafeInset,
+            overlayTopSafeInset = overlayTopSafeInset,
+            overlayBottomSafeInset = overlayBottomSafeInset
+        )
 
         AnimatedVisibility(
             visible = uiState.transportMode != EmulationTransportMode.None &&
@@ -1399,6 +1398,8 @@ fun EmulationScreen(
                     rightStickDownToL2 = uiState.gamepadRightStickDownToL2,
                     touchscreenRightStick = uiState.touchscreenRightStick,
                     touchscreenRightStickSensitivity = uiState.touchscreenRightStickSensitivity / 100f,
+                    touchscreenLeftStick = uiState.touchscreenLeftStick,
+                    touchscreenLeftStickSensitivity = uiState.touchscreenLeftStickSensitivity / 100f,
                     touchHaptics = uiState.touchHaptics,
                     touchHapticsPreset = uiState.touchHapticsPreset,
                     touchHapticsStrength = uiState.touchHapticsStrength,
@@ -1414,10 +1415,23 @@ fun EmulationScreen(
                     centerOffset = uiState.centerOffset,
                     controlLayouts = uiState.controlLayouts,
                     racingMode = uiState.racingMode,
+                    stickyButtons = uiState.stickyButtons,
                     stickToggleTarget = uiState.stickToggleTarget,
                     onToggleLeftInputMode = viewModel::toggleLeftInputMode,
                     onPadInput = { keyCode, range, pressed ->
                         viewModel.onPadInput(overlayPadIndex, keyCode, range, pressed)
+                    },
+                    // The controls must move with the same safe area the editor uses:
+                    // when the cutout option is off they may be dragged to the screen edge.
+                    safeInsets = if (globalDefaults.respectDisplayCutout) {
+                        PaddingValues(
+                            start = overlayLeftSafeInset,
+                            top = overlayTopSafeInset,
+                            end = overlayRightSafeInset,
+                            bottom = overlayBottomSafeInset
+                        )
+                    } else {
+                        PaddingValues(0.dp)
                     },
                     onScreenDoubleTap = { secondScreenTabRevealSignal++ }
                 )
@@ -1604,6 +1618,10 @@ fun EmulationScreen(
                     onSetGamepadRightStickSensitivity = { viewModel.setGamepadRightStickSensitivity(it) },
                     onSetGamepadRightStickUpToR2 = { viewModel.setGamepadRightStickUpToR2(it) },
                     onSetGamepadRightStickDownToL2 = { viewModel.setGamepadRightStickDownToL2(it) },
+                    onSetTouchscreenRightStick = { viewModel.setTouchscreenRightStick(it) },
+                    onSetTouchscreenRightStickSensitivity = { viewModel.setTouchscreenRightStickSensitivity(it) },
+                    onSetTouchscreenLeftStick = { viewModel.setTouchscreenLeftStick(it) },
+                    onSetTouchscreenLeftStickSensitivity = { viewModel.setTouchscreenLeftStickSensitivity(it) },
                     onToggleControls = toggleControlsClick,
                     onOpenControlsEditor = { showControlsEditor = true },
                     onOpenGamepadMapping = { showGamepadMappingDialog = true },
@@ -1944,6 +1962,54 @@ fun EmulationScreen(
     }
 }
 
+@Composable
+private fun BoxScope.EmulationPerformanceOverlay(
+    viewModel: EmulationViewModel,
+    uiState: EmulationUiState,
+    showControlsEditor: Boolean,
+    overlayHorizontalSafeInset: Dp,
+    overlayTopSafeInset: Dp,
+    overlayBottomSafeInset: Dp
+) {
+    // Metrics change four times per second; keep their state reads below the
+    // screen's restart scope so they only recompose the monitoring overlay.
+    val performance by viewModel.performanceState.collectAsState()
+    val showPerformanceHud = uiState.showFps &&
+        !uiState.showMenu &&
+        !showControlsEditor &&
+        (uiState.fpsOverlayMode == FPS_OVERLAY_MODE_SIMPLE || performance.overlayText.isNotBlank())
+    AnimatedVisibility(
+        visible = showPerformanceHud,
+        enter = fadeIn(tween(160)),
+        exit = fadeOut(tween(160)),
+        modifier = Modifier
+            .align(uiState.fpsOverlayCorner.toOverlayAlignment())
+            .padding(
+                start = if (uiState.fpsOverlayCorner.isRightOverlayCorner()) 0.dp else overlayHorizontalSafeInset + 12.dp,
+                top = if (uiState.fpsOverlayCorner.isTopOverlayCorner()) overlayTopSafeInset + 12.dp else 0.dp,
+                end = if (uiState.fpsOverlayCorner.isRightOverlayCorner()) overlayHorizontalSafeInset + 12.dp else 0.dp,
+                bottom = if (uiState.fpsOverlayCorner.isBottomOverlayCorner()) overlayBottomSafeInset + 12.dp else 0.dp
+            )
+            .zIndex(30f)
+    ) {
+        if (uiState.fpsOverlayMode == FPS_OVERLAY_MODE_SIMPLE) {
+            SimpleFpsCounter(
+                fps = performance.fps,
+                fontScale = uiState.fpsOverlayScale / 100f
+            )
+        } else {
+            SystemPerformanceHud(
+                speedPercent = performance.speedPercent,
+                text = performance.overlayText,
+                fixedHeaderLine = uiState.performanceOverlayHeader,
+                isRightCorner = uiState.fpsOverlayCorner.isRightOverlayCorner(),
+                fontScale = uiState.fpsOverlayScale / 100f,
+                metricsMask = uiState.fpsOverlayMetrics
+            )
+        }
+    }
+}
+
 private fun GameMenuTabId.toEmulationMenuTab(): EmulationMenuTab = when (this) {
     GameMenuTabId.SESSION -> EmulationMenuTab.Session
     GameMenuTabId.CONTROLS -> EmulationMenuTab.Controls
@@ -1968,6 +2034,8 @@ private fun OnScreenControls(
     rightStickDownToL2: Boolean = false,
     touchscreenRightStick: Boolean = AppPreferences.DEFAULT_TOUCHSCREEN_RIGHT_STICK,
     touchscreenRightStickSensitivity: Float = 1.0f,
+    touchscreenLeftStick: Boolean = AppPreferences.DEFAULT_TOUCHSCREEN_LEFT_STICK,
+    touchscreenLeftStickSensitivity: Float = 1.0f,
     touchHaptics: Boolean = false,
     touchHapticsPreset: Int = AppPreferences.DEFAULT_TOUCH_HAPTICS_PRESET,
     touchHapticsStrength: Int = AppPreferences.DEFAULT_TOUCH_HAPTICS_STRENGTH,
@@ -1983,14 +2051,16 @@ private fun OnScreenControls(
     centerOffset: Pair<Float, Float>,
     controlLayouts: Map<String, OverlayControlLayout>,
     racingMode: Boolean,
+    stickyButtons: Set<String> = emptySet(),
     stickToggleTarget: Int = AppPreferences.DEFAULT_STICK_TOGGLE_TARGET,
     onToggleLeftInputMode: () -> Unit,
     onPadInput: (Int, Int, Boolean) -> Unit,
     onScreenDoubleTap: () -> Unit = {},
-    respectSystemInsets: Boolean = true
+    respectSystemInsets: Boolean = true,
+    safeInsets: PaddingValues? = null
 ) {
     val density = LocalDensity.current
-    val safeDrawingPadding = WindowInsets.safeDrawing.asPaddingValues()
+    val safeDrawingPadding = safeInsets ?: WindowInsets.safeDrawing.asPaddingValues()
     val safeLeft = if (respectSystemInsets) {
         safeDrawingPadding.calculateLeftPadding(androidx.compose.ui.unit.LayoutDirection.Ltr)
     } else 0.dp
@@ -2160,6 +2230,11 @@ private fun OnScreenControls(
 
         fun runtimeSpecs(specs: List<com.sbro.emucored.ui.common.OverlayCanvasButtonSpec>): List<TouchButtonSpec> {
             return specs.filter { it.visible }.map { spec ->
+                val pressActions = listOfNotNull(
+                    buttonPressHandler(spec.id)?.let {
+                        TouchButtonPressAction(touchButtonActionOwner(spec.id), it)
+                    }
+                )
                 TouchButtonSpec(
                     id = spec.id,
                     drawableRes = spec.drawableRes,
@@ -2169,9 +2244,10 @@ private fun OnScreenControls(
                     y = spec.y,
                     shape = spec.shape,
                     opacity = spec.opacity / 100f,
-                    onPressChange = buttonPressHandler(spec.id),
+                    pressActions = pressActions,
                     onClick = if (spec.id == "left_input_toggle") onToggleLeftInputMode else null,
-                    tapToHold = racingMode && isRacingTapToHoldButton(spec.id)
+                    tapToHold = (racingMode && isRacingTapToHoldButton(spec.id)) ||
+                        spec.id in stickyButtons
                 )
             }
         }
@@ -2209,9 +2285,15 @@ private fun OnScreenControls(
                 val height = control.heightDp.dp
                 val travelX = (maxWidth - safeLeft - safeRight - width).coerceAtLeast(0.dp)
                 val travelY = (maxHeight - safeTop - safeBottom - height).coerceAtLeast(0.dp)
-                val pressHandlers = listOfNotNull(
-                    buttonPressHandler(control.actionId),
-                    control.secondaryActionId?.let(::buttonPressHandler)
+                val pressActions = listOfNotNull(
+                    buttonPressHandler(control.actionId)?.let {
+                        TouchButtonPressAction(touchButtonActionOwner(control.actionId), it)
+                    },
+                    control.secondaryActionId?.let { actionId ->
+                        buttonPressHandler(actionId)?.let {
+                            TouchButtonPressAction(touchButtonActionOwner(actionId), it)
+                        }
+                    }
                 )
                 TouchButtonSpec(
                     id = "custom:${control.id}",
@@ -2222,24 +2304,24 @@ private fun OnScreenControls(
                     shape = control.composeShape(),
                     customControl = control,
                     haptics = control.haptics,
-                    onPressChange = if (pressHandlers.isNotEmpty()) {
-                        { pressed -> pressHandlers.forEach { handler -> handler(pressed) } }
-                    } else {
-                        null
-                    },
+                    pressActions = pressActions,
                     tapToHold = control.pressMode == CustomTouchControlPressMode.TOGGLE
                 )
             }
             .toList()
-        if (allButtonSpecs.isNotEmpty() || touchscreenRightStick) {
+        if (allButtonSpecs.isNotEmpty() || touchscreenRightStick || touchscreenLeftStick) {
             TouchButtonGroup(
                 specs = allButtonSpecs,
                 inputWidth = maxWidth,
                 inputHeight = maxHeight,
                 touchscreenRightStick = touchscreenRightStick,
                 touchscreenRightStickSensitivity = touchscreenRightStickSensitivity,
+                touchscreenLeftStick = touchscreenLeftStick,
+                touchscreenLeftStickSensitivity = touchscreenLeftStickSensitivity,
                 invertRightStick = invertRightStick,
                 invertRightStickHorizontal = invertRightStickHorizontal,
+                invertLeftStick = invertLeftStick,
+                invertLeftStickHorizontal = invertLeftStickHorizontal,
                 onPadInput = onPadInput,
                 onScreenDoubleTap = onScreenDoubleTap,
                 visualStyle = visualStyle,
@@ -2342,37 +2424,53 @@ private fun OnScreenControls(
 }
 
 @Composable
-private fun TouchButtonGroup(
+internal fun TouchButtonGroup(
     specs: List<TouchButtonSpec>,
     inputWidth: Dp,
     inputHeight: Dp,
     touchscreenRightStick: Boolean,
     touchscreenRightStickSensitivity: Float,
+    touchscreenLeftStick: Boolean = false,
+    touchscreenLeftStickSensitivity: Float = 1f,
     invertRightStick: Boolean,
     invertRightStickHorizontal: Boolean,
+    invertLeftStick: Boolean = false,
+    invertLeftStickHorizontal: Boolean = false,
     onPadInput: (Int, Int, Boolean) -> Unit,
-    onScreenDoubleTap: () -> Unit,
+    onScreenDoubleTap: () -> Unit = {},
     visualStyle: TouchControlVisualStyle,
     pressEffect: TouchControlPressEffect,
     onTouchHaptic: (ButtonPhase) -> Unit,
     modifier: Modifier = Modifier
 ) {
     val density = LocalDensity.current
-    val activeTargets = remember { mutableStateMapOf<Long, String>() }
-    val downTargets = remember { mutableMapOf<Long, String?>() }
+    val coroutineScope = rememberCoroutineScope()
+    val activeTargets = remember { mutableStateMapOf<Long, Set<String>>() }
+    val downTargets = remember { mutableMapOf<Long, Set<String>>() }
     val latchedTargets = remember { mutableStateMapOf<String, Boolean>() }
+    val longPressJobs = remember { mutableMapOf<Pair<Long, String>, Job>() }
+    val longPressActiveTargets = remember { mutableStateMapOf<Long, Set<String>>() }
+    val shortTapSequence = remember { AtomicLong() }
+    val shortTapJobs = remember { mutableMapOf<String, Job>() }
+    val shortTapActionOwners = remember { mutableMapOf<String, Set<String>>() }
     val specById = specs.associateBy { it.id }
     val currentSpecById by rememberUpdatedState(specById)
     val currentOnPadInput by rememberUpdatedState(onPadInput)
+    val currentTouchscreenRightStickSensitivity by rememberUpdatedState(touchscreenRightStickSensitivity)
+    val currentTouchscreenLeftStickSensitivity by rememberUpdatedState(touchscreenLeftStickSensitivity)
+    val currentInvertRightStick by rememberUpdatedState(invertRightStick)
+    val currentInvertRightStickHorizontal by rememberUpdatedState(invertRightStickHorizontal)
+    val currentInvertLeftStick by rememberUpdatedState(invertLeftStick)
+    val currentInvertLeftStickHorizontal by rememberUpdatedState(invertLeftStickHorizontal)
     val currentOnScreenDoubleTap by rememberUpdatedState(onScreenDoubleTap)
     var lastTouchscreenDownTime by remember { mutableStateOf(0L) }
     var lastTouchscreenDownPosition by remember { mutableStateOf(Offset.Zero) }
-    val currentTouchscreenRightStickSensitivity by rememberUpdatedState(touchscreenRightStickSensitivity)
-    val currentInvertRightStick by rememberUpdatedState(invertRightStick)
-    val currentInvertRightStickHorizontal by rememberUpdatedState(invertRightStickHorizontal)
-    var gesturePointerId by remember { mutableStateOf<Long?>(null) }
-    var gestureOrigin by remember { mutableStateOf(Offset.Zero) }
     var touchPointerId by remember { mutableStateOf<Long?>(null) }
+    // One independent pointer per gesture stick so both can be dragged at the same time.
+    var leftGesturePointerId by remember { mutableStateOf<Long?>(null) }
+    var rightGesturePointerId by remember { mutableStateOf<Long?>(null) }
+    var leftGestureOrigin by remember { mutableStateOf(Offset.Zero) }
+    var rightGestureOrigin by remember { mutableStateOf(Offset.Zero) }
     val gestureRadiusPx = with(density) { 96.dp.toPx() }
     val layoutKey = specs.map { spec ->
         TouchButtonLayoutKey(
@@ -2381,9 +2479,23 @@ private fun TouchButtonGroup(
             height = spec.height,
             x = spec.x,
             y = spec.y,
-            tapToHold = spec.tapToHold
+            tapToHold = spec.tapToHold,
+            hasLongPressAction = spec.onLongPressChange != null && spec.longPressDelayMs > 0L
         )
     }
+    val actionOwnersByTarget = specs.associate { spec ->
+        spec.id to spec.pressActions.mapTo(LinkedHashSet(), TouchButtonPressAction::ownerId)
+    }
+    val pointerActionTargets = specs.asSequence()
+        .filterNot { it.tapToHold || (it.onLongPressChange != null && it.longPressDelayMs > 0L) }
+        .mapTo(LinkedHashSet(), TouchButtonSpec::id)
+    val pointerState = remember(layoutKey, actionOwnersByTarget, pointerActionTargets) {
+        TouchButtonPointerState(actionOwnersByTarget, pointerActionTargets)
+    }
+    val routingKey = Triple(layoutKey, actionOwnersByTarget, pointerActionTargets)
+    val pressActionsByOwner = specs.flatMap(TouchButtonSpec::pressActions)
+        .associateBy(TouchButtonPressAction::ownerId)
+    val currentPressActionsByOwner by rememberUpdatedState(pressActionsByOwner)
     val bounds = remember(layoutKey, density) {
         with(density) {
             val rects = specs.associate { spec ->
@@ -2411,68 +2523,143 @@ private fun TouchButtonGroup(
     val groupWidth = inputWidth
     val groupHeight = inputHeight
 
-    fun hitTarget(x: Float, y: Float): String? =
-        specs.lastOrNull { spec -> rects.getValue(spec.id).contains(Offset(x, y)) }?.id
+    fun hitTargets(x: Float, y: Float): List<String> =
+        selectTouchButtonHitTargets(
+            specs.asSequence()
+                .filter { spec -> rects.getValue(spec.id).contains(Offset(x, y)) }
+                .map { spec ->
+                    TouchButtonHitCandidate(
+                        id = spec.id,
+                        clickOnlyUtility = spec.onClick != null && spec.pressActions.isEmpty()
+                    )
+                }
+                .toList()
+        )
+
+    fun TouchButtonSpec.hasLongPressAction(): Boolean {
+        return onLongPressChange != null && longPressDelayMs > 0L
+    }
 
     fun TouchButtonSpec.hasTapToHoldAction(): Boolean {
-        return tapToHold && onPressChange != null
+        return tapToHold && pressActions.isNotEmpty()
     }
 
-    fun toggleLatchedTarget(spec: TouchButtonSpec) {
-        val press = spec.onPressChange ?: return
-        if (latchedTargets.remove(spec.id) == true) {
-            press(false)
-        } else {
-            latchedTargets[spec.id] = true
-            press(true)
+    fun dispatchActionTransition(
+        transition: TouchButtonPointerTransition,
+        handlers: Map<String, TouchButtonPressAction> = currentPressActionsByOwner
+    ) {
+        transition.releasedActionOwners.forEach { ownerId -> handlers[ownerId]?.onPressChange?.invoke(false) }
+        transition.pressedActionOwners.forEach { ownerId -> handlers[ownerId]?.onPressChange?.invoke(true) }
+    }
+
+    fun cancelLongPress(pointerId: Long, targetId: String) {
+        longPressJobs.remove(pointerId to targetId)?.cancel()
+        val activeForPointer = longPressActiveTargets[pointerId].orEmpty()
+        if (targetId in activeForPointer) {
+            val remaining = activeForPointer - targetId
+            if (remaining.isEmpty()) longPressActiveTargets.remove(pointerId) else longPressActiveTargets[pointerId] = remaining
+            if (longPressActiveTargets.values.none { targetId in it }) {
+                currentSpecById[targetId]?.onLongPressChange?.invoke(false)
+            }
         }
     }
 
-    fun updatePointerTarget(pointerId: Long, newTarget: String?, emitReleaseHaptic: Boolean = true) {
-        val oldTarget = activeTargets[pointerId]
-        if (oldTarget == newTarget) return
+    fun startLongPress(pointerId: Long, targetId: String) {
+        val spec = currentSpecById[targetId] ?: return
+        if (!spec.hasLongPressAction()) return
+        val key = pointerId to targetId
+        longPressJobs.remove(key)?.cancel()
+        longPressJobs[key] = coroutineScope.launch {
+            delay(spec.longPressDelayMs.milliseconds)
+            if (targetId !in activeTargets[pointerId].orEmpty()) return@launch
+            val wasAlreadyActive = longPressActiveTargets.values.any { targetId in it }
+            longPressActiveTargets[pointerId] = longPressActiveTargets[pointerId].orEmpty() + targetId
+            if (!wasAlreadyActive) {
+                spec.onLongPressChange?.invoke(true)
+            }
+        }
+    }
 
-        if (oldTarget != null) {
+    fun scheduleShortTapRelease(sourceId: String) {
+        shortTapJobs[sourceId] = coroutineScope.launch {
+            delay(70.milliseconds)
+            dispatchActionTransition(pointerState.setTransientActionOwners(sourceId, emptySet()))
+            shortTapActionOwners.remove(sourceId)
+            shortTapJobs.remove(sourceId)
+        }
+    }
+
+    fun completePointerTargets(
+        pointerId: Long,
+        latchedUpdates: Map<String, Boolean> = emptyMap(),
+        transientActionOwners: Map<String, Set<String>> = emptyMap()
+    ) {
+        val transition = pointerState.completePointer(pointerId, latchedUpdates, transientActionOwners)
+        activeTargets.remove(pointerId)
+        downTargets.remove(pointerId)
+        transition.exitedTargets.forEach { targetId -> cancelLongPress(pointerId, targetId) }
+        latchedUpdates.forEach { (targetId, latched) ->
+            if (latched) latchedTargets[targetId] = true else latchedTargets.remove(targetId)
+        }
+        transientActionOwners.forEach { (sourceId, owners) ->
+            shortTapActionOwners[sourceId] = owners
+        }
+        dispatchActionTransition(transition)
+        if (transition.deactivatedTargets.any { currentSpecById[it]?.haptics != false }) {
+            onTouchHaptic(ButtonPhase.RELEASE)
+        }
+        transientActionOwners.keys.forEach(::scheduleShortTapRelease)
+    }
+
+    fun updatePointerTargets(pointerId: Long, newTargets: Collection<String>, emitHaptics: Boolean = true) {
+        val transition = pointerState.update(pointerId, newTargets)
+        if (newTargets.isEmpty()) {
             activeTargets.remove(pointerId)
-            val oldSpec = specById[oldTarget]
-            if (oldSpec?.hasTapToHoldAction() == true) {
-                // Tap-to-hold buttons are toggled on release, not while the pointer is moving.
-            } else if (!activeTargets.containsValue(oldTarget)) {
-                oldSpec?.onPressChange?.invoke(false)
-            }
-            if (
-                newTarget == null &&
-                emitReleaseHaptic &&
-                oldSpec?.haptics != false &&
-                !activeTargets.containsValue(oldTarget)
-            ) {
-                onTouchHaptic(ButtonPhase.RELEASE)
-            }
+        } else {
+            activeTargets[pointerId] = newTargets.toCollection(LinkedHashSet())
         }
 
-        if (newTarget != null) {
-            val alreadyActive = activeTargets.containsValue(newTarget)
-            activeTargets[pointerId] = newTarget
-            val newSpec = specById[newTarget]
-            if (!alreadyActive && newSpec?.haptics != false) {
-                onTouchHaptic(ButtonPhase.PRESS)
-            }
-            if (newSpec?.hasTapToHoldAction() == true) {
-                // Tap-to-hold buttons are toggled on release, not on pointer entry.
-            } else if (!alreadyActive) {
-                newSpec?.onPressChange?.invoke(true)
-            }
+        transition.exitedTargets.forEach { targetId -> cancelLongPress(pointerId, targetId) }
+        transition.enteredTargets.forEach { targetId ->
+            if (currentSpecById[targetId]?.hasLongPressAction() == true) startLongPress(pointerId, targetId)
+        }
+        dispatchActionTransition(transition)
+
+        if (emitHaptics && transition.activatedTargets.any { currentSpecById[it]?.haptics != false }) {
+            onTouchHaptic(ButtonPhase.PRESS)
+        }
+        if (emitHaptics && transition.deactivatedTargets.any { currentSpecById[it]?.haptics != false }) {
+            onTouchHaptic(ButtonPhase.RELEASE)
         }
     }
 
-    fun releaseTouchscreenRightStick() {
-        updateRightAnalogStick(
-            x = 0f,
-            y = 0f,
-            sensitivity = currentTouchscreenRightStickSensitivity,
-            onPadInput = currentOnPadInput
-        )
-        gesturePointerId = null
+    fun releaseTouchscreenStick(target: TouchscreenStickGestureTarget) {
+        when (target) {
+            TouchscreenStickGestureTarget.LEFT -> {
+                updateLeftAnalogStick(
+                    x = 0f,
+                    y = 0f,
+                    sensitivity = currentTouchscreenLeftStickSensitivity,
+                    onPadInput = currentOnPadInput
+                )
+                leftGesturePointerId = null
+            }
+            TouchscreenStickGestureTarget.RIGHT -> {
+                updateRightAnalogStick(
+                    x = 0f,
+                    y = 0f,
+                    sensitivity = currentTouchscreenRightStickSensitivity,
+                    onPadInput = currentOnPadInput
+                )
+                rightGesturePointerId = null
+            }
+            TouchscreenStickGestureTarget.NONE -> Unit
+        }
+    }
+
+    fun releaseTouchscreenGestures() {
+        releaseTouchscreenStick(TouchscreenStickGestureTarget.LEFT)
+        releaseTouchscreenStick(TouchscreenStickGestureTarget.RIGHT)
     }
 
     /**
@@ -2500,21 +2687,38 @@ private fun TouchButtonGroup(
         touchPointerId = null
     }
 
-    DisposableEffect(layoutKey, touchscreenRightStick) {
+    DisposableEffect(routingKey, touchscreenRightStick, touchscreenLeftStick) {
+        val stateAtStart = pointerState
+        val specsAtStart = specById
+        val pressActionsAtStart = pressActionsByOwner
         onDispose {
-            latchedTargets.keys.toList().forEach { targetId ->
-                currentSpecById[targetId]?.onPressChange?.invoke(false)
+            longPressJobs.values.forEach { it.cancel() }
+            longPressActiveTargets.values.flatten().toSet().forEach { targetId ->
+                specsAtStart[targetId]?.onLongPressChange?.invoke(false)
             }
-            activeTargets.values.toSet().forEach { targetId ->
-                val spec = currentSpecById[targetId]
-                if (spec?.hasTapToHoldAction() != true) {
-                    spec?.onPressChange?.invoke(false)
-                }
+            longPressActiveTargets.clear()
+            shortTapJobs.values.forEach { it.cancel() }
+            shortTapActionOwners.keys.toList().forEach { sourceId ->
+                dispatchActionTransition(
+                    stateAtStart.setTransientActionOwners(sourceId, emptySet()),
+                    pressActionsAtStart
+                )
+            }
+            shortTapActionOwners.clear()
+            shortTapJobs.clear()
+            latchedTargets.keys.toList().forEach { targetId ->
+                dispatchActionTransition(stateAtStart.setLatched(targetId, latched = false), pressActionsAtStart)
+            }
+            latchedTargets.clear()
+            (activeTargets.keys + downTargets.keys).toSet().forEach { pointerId ->
+                dispatchActionTransition(stateAtStart.update(pointerId, emptyList()), pressActionsAtStart)
             }
             activeTargets.clear()
             downTargets.clear()
             latchedTargets.clear()
-            releaseTouchscreenRightStick()
+            longPressJobs.clear()
+            longPressActiveTargets.clear()
+            releaseTouchscreenGestures()
             releaseTouchscreenPointer()
         }
     }
@@ -2525,108 +2729,172 @@ private fun TouchButtonGroup(
                 IntOffset(groupRect.left.roundToInt(), groupRect.top.roundToInt())
             }
             .size(groupWidth, groupHeight)
-            .pointerInput(layoutKey, inputWidth, inputHeight, touchscreenRightStick) {
-                try {
-                    awaitPointerEventScope {
-                        while (true) {
-                            val event = awaitPointerEvent()
-                            event.changes.forEach { change ->
-                                val pointerId = change.id.value
-                                val x = change.position.x + groupRect.left
-                                val y = change.position.y + groupRect.top
-
-                                when {
-                                    change.pressed && !change.previousPressed -> {
-                                        val target = hitTarget(x, y)
-                                        if (target != null) {
-                                            downTargets[pointerId] = target
-                                            updatePointerTarget(pointerId, target)
-                                            change.consume()
-                                        } else if (
-                                            touchscreenRightStick &&
-                                            gesturePointerId == null &&
-                                            !change.isConsumed
-                                        ) {
-                                            gesturePointerId = pointerId
-                                            gestureOrigin = change.position
-                                            change.consume()
-                                        } else if (
-                                            touchPointerId == null &&
-                                            !change.isConsumed
-                                        ) {
-                                            touchPointerId = pointerId
-                                            val now = change.uptimeMillis
-                                            val distance = (change.position - lastTouchscreenDownPosition)
-                                                .getDistance()
-                                            if (now - lastTouchscreenDownTime in 1..350L && distance < 140f) {
-                                                lastTouchscreenDownTime = 0L
-                                                currentOnScreenDoubleTap()
-                                            } else {
-                                                lastTouchscreenDownTime = now
-                                                lastTouchscreenDownPosition = change.position
+            // Use Compose pointerInput instead of pointerInteropFilter:
+            // - pointerInput delivers proper per-pointer press/move/release events and cancellation
+            // - pointerInteropFilter could miss ACTION_UP under rapid multitouch / Samsung OneUI
+            //   which caused stuck keys and completely dead overlay on some devices (e.g., Samsung S26)
+            .pointerInput(routingKey, touchscreenRightStick, touchscreenLeftStick) {
+                awaitPointerEventScope {
+                    while (true) {
+                        val event = awaitPointerEvent()
+                        val isNativeCancel = event.motionEvent?.actionMasked == MotionEvent.ACTION_CANCEL
+                        event.changes.forEach { change ->
+                            val pointerId = change.id.value
+                            val isDown = change.pressed && !change.previousPressed
+                            val isUp = !change.pressed && change.previousPressed
+                            if (isDown && !change.isConsumed) {
+                                val targets = hitTargets(change.position.x, change.position.y)
+                                if (targets.isNotEmpty()) {
+                                    downTargets[pointerId] = targets.toCollection(LinkedHashSet())
+                                    updatePointerTargets(pointerId, targets)
+                                    change.consume()
+                                } else {
+                                    val target = resolveTouchscreenStickGestureTarget(
+                                        leftEnabled = touchscreenLeftStick,
+                                        rightEnabled = touchscreenRightStick,
+                                        startX = change.position.x,
+                                        widthPx = groupRect.width
+                                    )
+                                    val targetFree = when (target) {
+                                        TouchscreenStickGestureTarget.LEFT -> leftGesturePointerId == null
+                                        TouchscreenStickGestureTarget.RIGHT -> rightGesturePointerId == null
+                                        TouchscreenStickGestureTarget.NONE -> false
+                                    }
+                                    if (targetFree) {
+                                        when (target) {
+                                            TouchscreenStickGestureTarget.LEFT -> {
+                                                leftGesturePointerId = pointerId
+                                                leftGestureOrigin = change.position
                                             }
-                                            forwardTouchscreenPointer(x, y, pressed = true)
-                                            change.consume()
+                                            TouchscreenStickGestureTarget.RIGHT -> {
+                                                rightGesturePointerId = pointerId
+                                                rightGestureOrigin = change.position
+                                            }
+                                            TouchscreenStickGestureTarget.NONE -> Unit
                                         }
-                                    }
-
-                                    change.pressed -> {
-                                        if (downTargets.containsKey(pointerId)) {
-                                            val target = hitTarget(x, y)
-                                            updatePointerTarget(pointerId, target)
-                                            change.consume()
-                                        } else if (gesturePointerId == pointerId) {
-                                            val value = calculateRightStickGestureValue(
-                                                deltaX = change.position.x - gestureOrigin.x,
-                                                deltaY = change.position.y - gestureOrigin.y,
-                                                radiusPx = gestureRadiusPx
-                                            )
-                                            updateRightAnalogStick(
-                                                x = if (currentInvertRightStickHorizontal) -value.x else value.x,
-                                                y = if (currentInvertRightStick) -value.y else value.y,
-                                                sensitivity = currentTouchscreenRightStickSensitivity,
-                                                onPadInput = currentOnPadInput
-                                            )
-                                            change.consume()
-                                        } else if (touchPointerId == pointerId) {
-                                            forwardTouchscreenPointer(x, y, pressed = true)
-                                            change.consume()
+                                        change.consume()
+                                    } else if (touchPointerId == null) {
+                                        touchPointerId = pointerId
+                                        val now = change.uptimeMillis
+                                        val distance = (change.position - lastTouchscreenDownPosition)
+                                            .getDistance()
+                                        if (now - lastTouchscreenDownTime in 1..350L && distance < 140f) {
+                                            lastTouchscreenDownTime = 0L
+                                            currentOnScreenDoubleTap()
+                                        } else {
+                                            lastTouchscreenDownTime = now
+                                            lastTouchscreenDownPosition = change.position
                                         }
+                                        forwardTouchscreenPointer(
+                                            change.position.x,
+                                            change.position.y,
+                                            pressed = true
+                                        )
+                                        change.consume()
                                     }
-
-                                    change.previousPressed -> {
-                                        val downTarget = downTargets.remove(pointerId)
-                                        if (downTarget != null) {
-                                            val upTarget = hitTarget(x, y)
-                                            val downSpec = specById[downTarget]
-                                            updatePointerTarget(pointerId, null)
-                                            if (downTarget == upTarget) {
-                                                if (downSpec?.hasTapToHoldAction() == true) {
-                                                    toggleLatchedTarget(downSpec)
-                                                } else {
-                                                    downSpec?.onClick?.invoke()
+                                }
+                            } else if (isUp) {
+                                val downTargetSet = downTargets.remove(pointerId)
+                                if (downTargetSet != null) {
+                                    // Compose synthesizes cancellation changes with isConsumed=true and
+                                    // no native MotionEvent; use both cancellation signals before consuming this up.
+                                    if (isNativeCancel || change.isConsumed) {
+                                        completePointerTargets(pointerId)
+                                    } else {
+                                        val upTargets = hitTargets(change.position.x, change.position.y).toSet()
+                                        val matchingTargets = matchingTouchButtonReleaseTargets(downTargetSet, upTargets)
+                                        val consumedByLongPress = longPressActiveTargets[pointerId].orEmpty()
+                                        val latchedUpdates = mutableMapOf<String, Boolean>()
+                                        val transientOwners = mutableMapOf<String, Set<String>>()
+                                        val clickTargets = mutableListOf<TouchButtonSpec>()
+                                        matchingTargets.forEach { targetId ->
+                                            val downSpec = currentSpecById[targetId] ?: return@forEach
+                                            if (downSpec.hasLongPressAction()) {
+                                                if (targetId !in consumedByLongPress && downSpec.pressActions.isNotEmpty()) {
+                                                    val sourceId = "tap:$pointerId:${downSpec.id}:${shortTapSequence.incrementAndGet()}"
+                                                    transientOwners[sourceId] = downSpec.pressActions
+                                                        .mapTo(LinkedHashSet(), TouchButtonPressAction::ownerId)
                                                 }
+                                            } else if (downSpec.hasTapToHoldAction()) {
+                                                latchedUpdates[targetId] = latchedTargets[targetId] != true
+                                            } else if (downSpec.onClick != null) {
+                                                clickTargets += downSpec
                                             }
-                                            change.consume()
-                                        } else if (gesturePointerId == pointerId) {
-                                            releaseTouchscreenRightStick()
-                                            change.consume()
-                                        } else if (touchPointerId == pointerId) {
-                                            releaseTouchscreenPointer()
-                                            change.consume()
                                         }
+                                        completePointerTargets(pointerId, latchedUpdates, transientOwners)
+                                        clickTargets.forEach { it.onClick?.invoke() }
                                     }
+                                    change.consume()
+                                } else if (pointerId == leftGesturePointerId) {
+                                    releaseTouchscreenStick(TouchscreenStickGestureTarget.LEFT)
+                                    change.consume()
+                                } else if (pointerId == rightGesturePointerId) {
+                                    releaseTouchscreenStick(TouchscreenStickGestureTarget.RIGHT)
+                                    change.consume()
+                                } else if (touchPointerId == pointerId) {
+                                    releaseTouchscreenPointer()
+                                    change.consume()
+                                }
+                            } else if (change.pressed) {
+                                if (downTargets.containsKey(pointerId)) {
+                                    val newTargets = hitTargets(change.position.x, change.position.y)
+                                    updatePointerTargets(pointerId, newTargets)
+                                    change.consume()
+                                } else if (pointerId == leftGesturePointerId) {
+                                    val value = calculateRightStickGestureValue(
+                                        deltaX = change.position.x - leftGestureOrigin.x,
+                                        deltaY = change.position.y - leftGestureOrigin.y,
+                                        radiusPx = gestureRadiusPx
+                                    )
+                                    updateLeftAnalogStick(
+                                        x = if (currentInvertLeftStickHorizontal) -value.x else value.x,
+                                        y = if (currentInvertLeftStick) -value.y else value.y,
+                                        sensitivity = currentTouchscreenLeftStickSensitivity,
+                                        onPadInput = currentOnPadInput
+                                    )
+                                    change.consume()
+                                } else if (pointerId == rightGesturePointerId) {
+                                    val value = calculateRightStickGestureValue(
+                                        deltaX = change.position.x - rightGestureOrigin.x,
+                                        deltaY = change.position.y - rightGestureOrigin.y,
+                                        radiusPx = gestureRadiusPx
+                                    )
+                                    updateRightAnalogStick(
+                                        x = if (currentInvertRightStickHorizontal) -value.x else value.x,
+                                        y = if (currentInvertRightStick) -value.y else value.y,
+                                        sensitivity = currentTouchscreenRightStickSensitivity,
+                                        onPadInput = currentOnPadInput
+                                    )
+                                    change.consume()
+                                } else if (touchPointerId == pointerId) {
+                                    forwardTouchscreenPointer(
+                                        change.position.x,
+                                        change.position.y,
+                                        pressed = true
+                                    )
+                                    change.consume()
                                 }
                             }
                         }
+                        // Stuck-key guard: clean up pointers that disappeared without explicit up (missed cancel)
+                        val presentIds = event.changes.map { it.id.value }.toSet()
+                        val staleActive = (activeTargets.keys + downTargets.keys).toSet().filter { it !in presentIds }
+                        if (staleActive.isNotEmpty()) {
+                            staleActive.forEach { pid ->
+                                updatePointerTargets(pid, emptyList(), emitHaptics = false)
+                                downTargets.remove(pid)
+                            }
+                        }
+                        if (leftGesturePointerId != null && leftGesturePointerId !in presentIds) {
+                            releaseTouchscreenStick(TouchscreenStickGestureTarget.LEFT)
+                        }
+                        if (rightGesturePointerId != null && rightGesturePointerId !in presentIds) {
+                            releaseTouchscreenStick(TouchscreenStickGestureTarget.RIGHT)
+                        }
+                        if (touchPointerId != null && touchPointerId !in presentIds) {
+                            releaseTouchscreenPointer()
+                        }
                     }
-                } finally {
-                    activeTargets.keys.toList().forEach { pointerId ->
-                        updatePointerTarget(pointerId, null, emitReleaseHaptic = false)
-                    }
-                    downTargets.clear()
-                    releaseTouchscreenRightStick()
-                    releaseTouchscreenPointer()
                 }
             }
     ) {
@@ -2637,7 +2905,7 @@ private fun TouchButtonGroup(
                         (spec.y.roundToPx() - groupRect.top.roundToInt())
                     )
                 }
-            val pressed = activeTargets.containsValue(spec.id) || latchedTargets[spec.id] == true
+            val pressed = activeTargets.values.any { spec.id in it } || latchedTargets[spec.id] == true
             val vectorDrawable = spec.customControl
                 ?.takeIf { it.usesVectorStyle }
                 ?.let { actionDrawableRes(it.actionId) }
@@ -2697,6 +2965,24 @@ private fun updateRightAnalogStick(
         rightKey = PadKey.RIGHT_STICK_RIGHT,
         downKey = PadKey.RIGHT_STICK_DOWN,
         leftKey = PadKey.RIGHT_STICK_LEFT,
+        onPadInput = onPadInput
+    )
+}
+
+private fun updateLeftAnalogStick(
+    x: Float,
+    y: Float,
+    sensitivity: Float = 1f,
+    onPadInput: (Int, Int, Boolean) -> Unit
+) {
+    updateAnalogStick(
+        x = x,
+        y = y,
+        sensitivity = sensitivity,
+        upKey = PadKey.LEFT_STICK_UP,
+        rightKey = PadKey.LEFT_STICK_RIGHT,
+        downKey = PadKey.LEFT_STICK_DOWN,
+        leftKey = PadKey.LEFT_STICK_LEFT,
         onPadInput = onPadInput
     )
 }
@@ -2762,6 +3048,10 @@ private fun EmulationSidebarMenu(
     onSetGamepadRightStickSensitivity: (Int) -> Unit,
     onSetGamepadRightStickUpToR2: (Boolean) -> Unit,
     onSetGamepadRightStickDownToL2: (Boolean) -> Unit,
+    onSetTouchscreenRightStick: (Boolean) -> Unit,
+    onSetTouchscreenRightStickSensitivity: (Int) -> Unit,
+    onSetTouchscreenLeftStick: (Boolean) -> Unit,
+    onSetTouchscreenLeftStickSensitivity: (Int) -> Unit,
     onToggleControls: () -> Unit,
     onOpenControlsEditor: () -> Unit,
     onOpenGamepadMapping: () -> Unit,
@@ -3484,6 +3774,60 @@ private fun EmulationSidebarMenu(
                             onResetToDefault = { onSetGamepadRightStickSensitivity(AppPreferences.DEFAULT_GAMEPAD_STICK_SENSITIVITY) }
                         )
 
+                        SettingsToggle(
+                            title = stringResource(R.string.settings_touchscreen_left_stick),
+                            checked = uiState.touchscreenLeftStick,
+                            onCheckedChange = onSetTouchscreenLeftStick,
+                            helpText = stringResource(R.string.settings_help_touchscreen_left_stick),
+                            onResetToDefault = { onSetTouchscreenLeftStick(globalDefaults.touchscreenLeftStick) }
+                        )
+
+                        if (uiState.touchscreenLeftStick) {
+                            LiveSliderRow(
+                                title = stringResource(R.string.settings_touchscreen_left_stick_sensitivity),
+                                valueLabelForValue = { "$it%" },
+                                value = uiState.touchscreenLeftStickSensitivity.toFloat(),
+                                range = AppPreferences.TOUCHSCREEN_RIGHT_STICK_SENSITIVITY_MIN.toFloat()..
+                                    AppPreferences.TOUCHSCREEN_RIGHT_STICK_SENSITIVITY_MAX.toFloat(),
+                                steps = AppPreferences.TOUCHSCREEN_RIGHT_STICK_SENSITIVITY_MAX -
+                                    AppPreferences.TOUCHSCREEN_RIGHT_STICK_SENSITIVITY_MIN - 1,
+                                onValueChange = { onSetTouchscreenLeftStickSensitivity(it.toInt()) },
+                                helpText = stringResource(R.string.settings_help_touchscreen_left_stick_sensitivity),
+                                onResetToDefault = {
+                                    onSetTouchscreenLeftStickSensitivity(
+                                        globalDefaults.touchscreenLeftStickSensitivity
+                                    )
+                                }
+                            )
+                        }
+
+                        SettingsToggle(
+                            title = stringResource(R.string.settings_touchscreen_right_stick),
+                            checked = uiState.touchscreenRightStick,
+                            onCheckedChange = onSetTouchscreenRightStick,
+                            helpText = stringResource(R.string.settings_help_touchscreen_right_stick),
+                            onResetToDefault = { onSetTouchscreenRightStick(globalDefaults.touchscreenRightStick) }
+                        )
+
+                        if (uiState.touchscreenRightStick) {
+                            LiveSliderRow(
+                                title = stringResource(R.string.settings_touchscreen_right_stick_sensitivity),
+                                valueLabelForValue = { "$it%" },
+                                value = uiState.touchscreenRightStickSensitivity.toFloat(),
+                                range = AppPreferences.TOUCHSCREEN_RIGHT_STICK_SENSITIVITY_MIN.toFloat()..
+                                    AppPreferences.TOUCHSCREEN_RIGHT_STICK_SENSITIVITY_MAX.toFloat(),
+                                steps = AppPreferences.TOUCHSCREEN_RIGHT_STICK_SENSITIVITY_MAX -
+                                    AppPreferences.TOUCHSCREEN_RIGHT_STICK_SENSITIVITY_MIN - 1,
+                                onValueChange = { onSetTouchscreenRightStickSensitivity(it.toInt()) },
+                                helpText = stringResource(R.string.settings_help_touchscreen_right_stick_sensitivity),
+                                onResetToDefault = {
+                                    onSetTouchscreenRightStickSensitivity(
+                                        globalDefaults.touchscreenRightStickSensitivity
+                                    )
+                                }
+                            )
+                        }
+
                         MenuButton(
                             icon = Icons.Rounded.Gamepad,
                             text = stringResource(R.string.settings_gamepad_mapping_title),
@@ -3731,17 +4075,6 @@ private fun EmulationSidebarMenu(
                         )
 
                         SecondScreenSettingsRows()
-
-                        LiveSelectionRow(
-                            title = stringResource(R.string.settings_display_crop),
-                            options = DisplayCrop.PRESET_PIXELS.map {
-                                LiveSelectionOption(it, stringResource(R.string.settings_display_crop_pixels, it))
-                            },
-                            currentValue = uiState.displayCrop.presetPixels,
-                            onValueChange = { onSetDisplayCrop(DisplayCrop.uniform(it)) },
-                            helpText = stringResource(R.string.settings_display_crop_desc),
-                            onResetToDefault = { onSetDisplayCrop(globalDefaults.displayCrop) }
-                        )
 
                         CoreOptionRows(
                             options = AzaharCoreOptions.gameMenuGraphicsOptions(),

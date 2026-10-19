@@ -7,6 +7,7 @@ import com.sbro.emucored.core.AppAnalytics
 import com.sbro.emucored.core.AppIconManager
 import com.sbro.emucored.core.BackupSessionGate
 import com.sbro.emucored.core.CrashLogger
+import com.sbro.emucored.core.DeviceGpuInfoProvider
 import com.sbro.emucored.core.EmulatorBridge
 import com.sbro.emucored.data.AppPreferences
 import com.sbro.emucored.data.drive.DriveBackupArchive
@@ -47,6 +48,15 @@ class EmuCoreDApp : Application() {
             }
         }
         AppAnalytics.initialize(this)
+        applicationScope.launch {
+            try {
+                DeviceGpuInfoProvider.preload(this@EmuCoreDApp)
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (error: Exception) {
+                android.util.Log.w("DeviceGpu", "GPU profile preload failed", error)
+            }
+        }
         AppIconManager.applyProIcon(this, AppPreferences(this).getProUnlockedSync())
         DriveBackupWork.resumePending(this)
         EmulatorBridge.initializeOnce(this)

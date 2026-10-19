@@ -53,6 +53,7 @@ import com.sbro.emucored.data.DefaultGameMenuSectionOrder
 import com.sbro.emucored.data.AppPreferences.Companion.FPS_OVERLAY_MODE_DETAILED
 import com.sbro.emucored.data.CoverArtRepository
 import com.sbro.emucored.data.CoverCacheClearResult
+import com.sbro.emucored.data.CustomGameCoverRepository
 import com.sbro.emucored.data.CustomFontRepository
 import com.sbro.emucored.data.CustomThemeConfig
 import com.sbro.emucored.data.CustomThemeLibrary
@@ -136,6 +137,7 @@ data class SettingsUiState(
     val backButtonExitsGame: Boolean = false,
     val compactControls: Boolean = true,
     val keepScreenOn: Boolean = true,
+    val respectDisplayCutout: Boolean = false,
     val showRecentGames: Boolean = true,
     val showHomeSearch: Boolean = false,
     val preferEnglishGameTitles: Boolean = false,
@@ -161,6 +163,9 @@ data class SettingsUiState(
     val overlayOpacity: Int = AppPreferences.DEFAULT_OVERLAY_OPACITY,
     val overlayShow: Boolean = true,
     val racingMode: Boolean = false,
+    val stickyButtons: Set<String> = emptySet(),
+    val touchscreenLeftStick: Boolean = AppPreferences.DEFAULT_TOUCHSCREEN_LEFT_STICK,
+    val touchscreenLeftStickSensitivity: Int = AppPreferences.DEFAULT_TOUCHSCREEN_LEFT_STICK_SENSITIVITY,
     val touchscreenRightStick: Boolean = AppPreferences.DEFAULT_TOUCHSCREEN_RIGHT_STICK,
     val touchscreenRightStickSensitivity: Int = AppPreferences.DEFAULT_TOUCHSCREEN_RIGHT_STICK_SENSITIVITY,
     val touchHaptics: Boolean = false,
@@ -322,6 +327,7 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
             backButtonExitsGame = snapshot.backButtonExitsGame,
             compactControls = snapshot.compactControls,
             keepScreenOn = snapshot.keepScreenOn,
+            respectDisplayCutout = snapshot.respectDisplayCutout,
             showRecentGames = snapshot.showRecentGames,
             showHomeSearch = snapshot.showHomeSearch,
             preferEnglishGameTitles = snapshot.preferEnglishGameTitles,
@@ -337,6 +343,9 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
             overlayOpacity = snapshot.overlayOpacity,
             overlayShow = snapshot.overlayShow,
             racingMode = snapshot.racingMode,
+            stickyButtons = snapshot.stickyButtons,
+            touchscreenLeftStick = snapshot.touchscreenLeftStick,
+            touchscreenLeftStickSensitivity = snapshot.touchscreenLeftStickSensitivity,
             touchscreenRightStick = snapshot.touchscreenRightStick,
             touchscreenRightStickSensitivity = snapshot.touchscreenRightStickSensitivity,
             touchHaptics = snapshot.touchHaptics,
@@ -917,10 +926,22 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
     }
     fun setBackButtonExitsGame(enabled: Boolean) { viewModelScope.launch { preferences.setBackButtonExitsGame(enabled) } }
     fun setKeepScreenOn(enabled: Boolean) { viewModelScope.launch { preferences.setKeepScreenOn(enabled) } }
+    fun setRespectDisplayCutout(enabled: Boolean) {
+        viewModelScope.launch { preferences.setRespectDisplayCutout(enabled) }
+    }
     fun setTvInterfaceMode(mode: TvInterfaceMode) {
         viewModelScope.launch { preferences.setTvInterfaceMode(mode) }
     }
     fun setRacingMode(enabled: Boolean) { viewModelScope.launch { preferences.setRacingMode(enabled) } }
+    fun setStickyButtons(buttons: Set<String>) {
+        viewModelScope.launch { preferences.setStickyButtons(buttons) }
+    }
+    fun setTouchscreenLeftStick(enabled: Boolean) {
+        viewModelScope.launch { preferences.setTouchscreenLeftStick(enabled) }
+    }
+    fun setTouchscreenLeftStickSensitivity(value: Int) {
+        viewModelScope.launch { preferences.setTouchscreenLeftStickSensitivity(value) }
+    }
     fun setTouchHaptics(enabled: Boolean) { viewModelScope.launch { preferences.setTouchHaptics(enabled) } }
     fun setTouchscreenRightStick(enabled: Boolean) { viewModelScope.launch { preferences.setTouchscreenRightStick(enabled) } }
     fun setTouchscreenRightStickSensitivity(value: Int) {
@@ -1111,6 +1132,15 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
             withContext(Dispatchers.Main) {
                 onComplete(result)
             }
+        }
+    }
+
+    fun resetCustomCovers(onComplete: (Boolean) -> Unit) {
+        viewModelScope.launch(Dispatchers.IO) {
+            val result = CustomGameCoverRepository(getApplication()).resetAllCustomCovers()
+            clearCoverImageMemoryCache()
+            preferences.notifyCustomCoversReset()
+            withContext(Dispatchers.Main) { onComplete(result) }
         }
     }
 

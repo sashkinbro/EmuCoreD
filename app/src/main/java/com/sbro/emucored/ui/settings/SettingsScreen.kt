@@ -84,6 +84,7 @@ import androidx.compose.material.icons.rounded.MoreVert
 import androidx.compose.material.icons.rounded.Newspaper
 import androidx.compose.material.icons.rounded.Palette
 import androidx.compose.material.icons.rounded.Person
+import androidx.compose.material.icons.rounded.PhoneAndroid
 import androidx.compose.material.icons.rounded.PhotoCamera
 import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material.icons.rounded.RateReview
@@ -312,6 +313,7 @@ fun SettingsScreen(
     var includeSaveStatesInBackup by rememberSaveable { mutableStateOf(false) }
     val showCoverUrlDialog = remember { mutableStateOf(false) }
     var showClearCoverCacheDialog by rememberSaveable { mutableStateOf(false) }
+    var showResetCustomCoversDialog by rememberSaveable { mutableStateOf(false) }
     var showEmulatorDataLocationDialog by remember { mutableStateOf(false) }
     val pendingCoverUrl = remember { mutableStateOf("") }
     var searchEnabled by remember { mutableStateOf(false) }
@@ -335,6 +337,8 @@ fun SettingsScreen(
     val coverUrlInvalidMessage = stringResource(R.string.settings_cover_download_url_invalid)
     val coverCacheClearedMessage = stringResource(R.string.settings_clear_cover_cache_success)
     val coverCachePartiallyClearedMessage = stringResource(R.string.settings_clear_cover_cache_partial)
+    val customCoversResetMessage = stringResource(R.string.settings_reset_custom_covers_success)
+    val customCoversResetFailedMessage = stringResource(R.string.settings_reset_custom_covers_partial)
     stringResource(R.string.settings_not_set)
     val settingsScrollState = rememberScrollState()
     val proPurchaseMessage = uiState.proPurchaseMessageResId?.let { stringResource(it) }
@@ -568,6 +572,7 @@ fun SettingsScreen(
                     showCoverUrlDialog.value = true
                 },
                 onClearCoverCache = { showClearCoverCacheDialog = true },
+                onResetCustomCovers = { showResetCustomCoversDialog = true },
                 launchSettingsBackupExport = {
                     includeSaveStatesInBackup = false
                     showBackupExportDialog = true
@@ -727,6 +732,42 @@ fun SettingsScreen(
             },
             dismissButton = {
                 TextButton(onClick = { showClearCoverCacheDialog = false }) {
+                    Text(stringResource(android.R.string.cancel))
+                }
+            }
+        )
+    }
+
+    if (showResetCustomCoversDialog) {
+        AlertDialog(
+            onDismissRequest = { showResetCustomCoversDialog = false },
+            icon = {
+                Icon(
+                    imageVector = Icons.Rounded.DeleteOutline,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary
+                )
+            },
+            title = { Text(stringResource(R.string.settings_reset_custom_covers_confirm_title)) },
+            text = { Text(stringResource(R.string.settings_reset_custom_covers_confirm_body)) },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showResetCustomCoversDialog = false
+                        viewModel.resetCustomCovers { result ->
+                            Toast.makeText(
+                                context,
+                                if (result) customCoversResetMessage else customCoversResetFailedMessage,
+                                Toast.LENGTH_SHORT
+                            ).show()
+                        }
+                    }
+                ) {
+                    Text(stringResource(R.string.settings_reset_custom_covers_action))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showResetCustomCoversDialog = false }) {
                     Text(stringResource(android.R.string.cancel))
                 }
             }
@@ -1034,6 +1075,7 @@ private fun SettingsContent(
     launchShaderPackPicker: () -> Unit,
     onOpenCoverUrlEditor: () -> Unit,
     onClearCoverCache: () -> Unit,
+    onResetCustomCovers: () -> Unit,
     launchSettingsBackupExport: () -> Unit,
     launchSettingsBackupImport: () -> Unit,
     launchCloudBackup: () -> Unit,
@@ -1207,6 +1249,15 @@ private fun SettingsContent(
                             onResetToDefault = { viewModel.setEmulationAllowsBothOrientations(false) }
                         )
                         ToggleItem(
+                            icon = Icons.Rounded.PhoneAndroid,
+                            title = stringResource(R.string.settings_respect_display_cutout),
+                            subtitle = stringResource(R.string.settings_respect_display_cutout_desc),
+                            checked = uiState.respectDisplayCutout,
+                            onCheckedChange = viewModel::setRespectDisplayCutout,
+                            helpText = stringResource(R.string.settings_help_respect_display_cutout),
+                            onResetToDefault = { viewModel.setRespectDisplayCutout(defaults.respectDisplayCutout) }
+                        )
+                        ToggleItem(
                             icon = Icons.AutoMirrored.Rounded.ExitToApp,
                             title = stringResource(R.string.settings_back_button_exits_game),
                             subtitle = stringResource(R.string.settings_back_button_exits_game_desc),
@@ -1375,6 +1426,42 @@ private fun SettingsContent(
                         )
                         ToggleItem(
                             icon = Icons.Rounded.TouchApp,
+                            title = stringResource(R.string.settings_touchscreen_left_stick),
+                            subtitle = stringResource(R.string.settings_touchscreen_left_stick_desc),
+                            checked = uiState.touchscreenLeftStick,
+                            onCheckedChange = viewModel::setTouchscreenLeftStick,
+                            helpText = stringResource(R.string.settings_help_touchscreen_left_stick),
+                            onResetToDefault = {
+                                viewModel.setTouchscreenLeftStick(
+                                    AppPreferences.DEFAULT_TOUCHSCREEN_LEFT_STICK
+                                )
+                            }
+                        )
+                        if (uiState.touchscreenLeftStick) {
+                            SliderItem(
+                                icon = Icons.Rounded.TouchApp,
+                                title = stringResource(R.string.settings_touchscreen_left_stick_sensitivity),
+                                subtitle = "${uiState.touchscreenLeftStickSensitivity}%",
+                                value = uiState.touchscreenLeftStickSensitivity.toFloat(),
+                                range = AppPreferences.TOUCHSCREEN_RIGHT_STICK_SENSITIVITY_MIN.toFloat()..
+                                    AppPreferences.TOUCHSCREEN_RIGHT_STICK_SENSITIVITY_MAX.toFloat(),
+                                steps = AppPreferences.TOUCHSCREEN_RIGHT_STICK_SENSITIVITY_MAX -
+                                    AppPreferences.TOUCHSCREEN_RIGHT_STICK_SENSITIVITY_MIN - 1,
+                                onValueChange = {
+                                    viewModel.setTouchscreenLeftStickSensitivity(it.roundToInt())
+                                },
+                                helpText = stringResource(
+                                    R.string.settings_help_touchscreen_left_stick_sensitivity
+                                ),
+                                onResetToDefault = {
+                                    viewModel.setTouchscreenLeftStickSensitivity(
+                                        AppPreferences.DEFAULT_TOUCHSCREEN_LEFT_STICK_SENSITIVITY
+                                    )
+                                }
+                            )
+                        }
+                        ToggleItem(
+                            icon = Icons.Rounded.TouchApp,
                             title = stringResource(R.string.settings_touchscreen_right_stick),
                             subtitle = stringResource(R.string.settings_touchscreen_right_stick_desc),
                             checked = uiState.touchscreenRightStick,
@@ -1417,6 +1504,12 @@ private fun SettingsContent(
                             onCheckedChange = viewModel::setRacingMode,
                             helpText = stringResource(R.string.settings_help_racing_mode),
                             onResetToDefault = { viewModel.setRacingMode(defaults.racingMode) }
+                        )
+                        StickyButtonsSelector(
+                            selected = uiState.stickyButtons,
+                            onSelectionChange = viewModel::setStickyButtons,
+                            helpText = stringResource(R.string.settings_help_sticky_buttons),
+                            onResetToDefault = { viewModel.setStickyButtons(defaults.stickyButtons) }
                         )
                         ToggleItem(
                             icon = Icons.Rounded.Vibration,
@@ -1856,6 +1949,12 @@ private fun SettingsContent(
                             label = stringResource(R.string.settings_clear_cover_cache),
                             value = stringResource(R.string.settings_clear_cover_cache_desc),
                             onClick = onClearCoverCache
+                        )
+                        SettingsItem(
+                            icon = Icons.Rounded.Restore,
+                            label = stringResource(R.string.settings_reset_custom_covers),
+                            value = stringResource(R.string.settings_reset_custom_covers_desc),
+                            onClick = onResetCustomCovers
                         )
                     }
 
@@ -3918,6 +4017,7 @@ private fun rememberSettingsSearchEntries(): List<SettingsSearchEntry> {
         entry(SettingsTab.GameMenu, R.string.settings_game_menu_session_sections),
         entry(SettingsTab.General, R.string.settings_keep_screen_on),
         entry(SettingsTab.General, R.string.settings_emulation_both_orientations),
+        entry(SettingsTab.General, R.string.settings_respect_display_cutout),
         entry(SettingsTab.General, R.string.settings_orientation_lock),
         entry(SettingsTab.General, R.string.settings_back_button_exits_game),
         entry(SettingsTab.General, R.string.settings_confirm_save_load_actions),
@@ -3962,6 +4062,7 @@ private fun rememberSettingsSearchEntries(): List<SettingsSearchEntry> {
         entry(SettingsTab.Library, R.string.settings_cover_art_style),
         entry(SettingsTab.Library, R.string.settings_cover_download_url),
         entry(SettingsTab.Library, R.string.settings_clear_cover_cache),
+        entry(SettingsTab.Library, R.string.settings_reset_custom_covers),
         entry(SettingsTab.Library, R.string.settings_backup_export_title),
         entry(SettingsTab.Library, R.string.settings_backup_restore_title),
         entry(SettingsTab.Library, R.string.drive_title),

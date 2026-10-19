@@ -164,6 +164,9 @@
     <string name="settings_pad_vibration_desc">Увімкнути вібрацію в підтримуваних іграх і на підтримуваних пристроях.</string>
     <string name="settings_show_fps">Показувати лічильник FPS</string>
     <string name="settings_show_fps_desc">Відображати частоту кадрів під час гри.</string>
+    <string name="settings_respect_display_cutout">Враховувати виріз камери</string>
+    <string name="settings_respect_display_cutout_desc">Тримати зображення гри поза зоною вирізу камери.</string>
+    <string name="settings_help_respect_display_cutout">Додає відступ навколо зображення емуляції, щоб воно не малювалося під вирізом камери (notch або отвір). Корисно в альбомній орієнтації, коли виріз перекриває зображення. Впливає лише на емуляцію; решта застосунку вже враховує вирізи.</string>
     <string name="settings_keep_screen_on">Не вимикати екран</string>
     <string name="settings_keep_screen_on_desc">Запобігати затемненню екрана під час гри.</string>
     <string name="shell_quick_actions">Швидкі дії</string>
@@ -477,6 +480,9 @@
     <string name="home_game_menu_custom_cover">Вибрати обкладинку</string>
     <string name="home_game_menu_custom_cover_applied">Власну обкладинку застосовано.</string>
     <string name="home_game_menu_custom_cover_failed">Не вдалося застосувати власну обкладинку.</string>
+    <string name="home_game_menu_restore_cover">Відновити стандартну обкладинку</string>
+    <string name="home_game_menu_restore_cover_success">Стандартну обкладинку відновлено.</string>
+    <string name="home_game_menu_restore_cover_failed">Не вдалося відновити стандартну обкладинку.</string>
     <string name="home_shelf_games_counter">%1$d з %2$d</string>
     <string name="home_shelf_enable_3d_title">3D-обкладинки для каруселі</string>
     <string name="home_shelf_enable_3d_action">Увімкнути</string>
@@ -568,6 +574,9 @@
     <string name="gpu_powervr_title">PowerVR</string>
     <string name="settings_racing_mode">Гоночний режим</string>
     <string name="settings_racing_mode_desc">Торкніться кнопок дій та тригерів (шифтів), щоб утримувати їх натиснутими, і торкніться знову, щоб відпустити.</string>
+    <string name="settings_sticky_buttons">Фіксовані кнопки</string>
+    <string name="settings_sticky_buttons_desc">Торкніться цих кнопок один раз, щоб утримувати їх, і торкніться знову, щоб відпустити.</string>
+    <string name="settings_help_sticky_buttons">Фіксовані кнопки залишаються натиснутими після дотику, тож ними можна користуватися як перемикачами. Торкніться знову, щоб відпустити.</string>
     <string name="settings_help_racing_mode">Дозволяє сенсорним кнопкам дій і тригерам перемикати стан натискання одним дотиком. Це корисно для гоночних ігор, де потрібно постійно утримувати газ, тоді як Start, Select, стіки та хрестовина (D-pad) працюють як зазвичай.</string>
     <string name="game_settings_manager_choose_game">Вибрати гру</string>
     <string name="game_settings_manager_no_games">У вашій поточній бібліотеці не знайдено жодної гри.</string>
@@ -833,6 +842,11 @@
     <string name="settings_backup_include_save_states">Включити швидкі збереження</string>
     <string name="settings_backup_include_save_states_desc">Додає швидкі збереження до архіву. Його розмір може значно зрости, а збереження можуть не працювати з іншою версією ядра.</string>
     <string name="settings_backup_export_action">Експортувати</string>
+    <string name="settings_touchscreen_left_stick">Лівий стік на сенсорному екрані</string>
+    <string name="settings_touchscreen_left_stick_desc">Проводьте пальцем по вільній частині екрана, щоб керувати віртуальним лівим стіком.</string>
+    <string name="settings_help_touchscreen_left_stick">Прив’язує жести перетягування у вільних ділянках ігрового екрана до осей віртуального лівого стіка. Сенсорні кнопки та видимі стіки працюють як зазвичай.</string>
+    <string name="settings_touchscreen_left_stick_sensitivity">Чутливість лівого стіка на сенсорному екрані</string>
+    <string name="settings_help_touchscreen_left_stick_sensitivity">Регулює, наскільки сильно відстань перетягування на екрані впливає на віртуальний лівий стік. Це не змінює чутливість видимого лівого стіка.</string>
     <string name="settings_touchscreen_right_stick">Правий стік на сенсорному екрані</string>
     <string name="settings_touchscreen_right_stick_desc">Проводьте пальцем по вільній частині екрана, щоб керувати віртуальним правим стіком.</string>
     <string name="settings_help_touchscreen_right_stick">Прив’язує жести перетягування у вільних ділянках ігрового екрана до осей віртуального правого стіка, щоб рухати камерою без торкання видимого стіка. Сенсорні кнопки та видимі стіки працюють як зазвичай.</string>
@@ -1084,6 +1098,13 @@
     <string name="settings_clear_cover_cache_action">Очистити</string>
     <string name="settings_clear_cover_cache_success">Кеш обкладинок очищено. Обкладинки автоматично завантажаться знову.</string>
     <string name="settings_clear_cover_cache_partial">Не всі кешовані обкладинки вдалося видалити. Спробуйте ще раз після завершення поточних завантажень.</string>
+    <string name="settings_reset_custom_covers">Скинути власні обкладинки</string>
+    <string name="settings_reset_custom_covers_desc">Видалити всі власні обкладинки й повернути стандартні зображення.</string>
+    <string name="settings_reset_custom_covers_confirm_title">Скинути власні обкладинки?</string>
+    <string name="settings_reset_custom_covers_confirm_body">Усі власні обкладинки буде видалено, а бібліотека повернеться до стандартних зображень. Цю дію неможливо скасувати.</string>
+    <string name="settings_reset_custom_covers_action">Скинути</string>
+    <string name="settings_reset_custom_covers_success">Власні обкладинки скинуто.</string>
+    <string name="settings_reset_custom_covers_partial">Не всі власні обкладинки вдалося видалити. Спробуйте ще раз за мить.</string>
     <string name="settings_language_polish">Польська</string>
     <string name="settings_language_native_polish">Polski</string>
     <string name="settings_language_czech">Чеська</string>
@@ -1725,4 +1746,12 @@
     <string name="settings_control_label_right_stick">Правий стік</string>
     <string name="controls_editor_show_grid">Показати сітку</string>
     <string name="controls_editor_snap_grid">Прив\'язувати до сітки</string>
+
+    <string name="home_library_options">Параметри бібліотеки</string>
+
+    <string name="hardware_warning_title">Пристрій може бути занадто слабким</string>
+    <string name="hardware_warning_body">Цей пристрій слабший за рекомендовані вимоги для емуляції 3DS, тому ігри можуть працювати повільно або з підвисаннями. Це не помилка — спробуйте знизити роздільну здатність або скористатися налаштуваннями продуктивності.</string>
+    <string name="hardware_warning_gpu">GPU: %1$s</string>
+    <string name="hardware_warning_recommended">Перш ніж ставити низьку оцінку чи негативний відгук, перевірте EmuCoreD на іншому пристрої з щонайменше Snapdragon 855, Dimensity 1000, Exynos 2200 або Tensor G2.</string>
+    <string name="hardware_warning_continue">Зрозуміло</string>
 </resources>

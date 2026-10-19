@@ -1721,4 +1721,34 @@
     <string name="settings_control_label_right_stick">Rechter Stick</string>
     <string name="controls_editor_show_grid">Raster anzeigen</string>
     <string name="controls_editor_snap_grid">Am Raster ausrichten</string>
+
+    <string name="settings_sticky_buttons">Tasten mit Fixierung</string>
+    <string name="settings_sticky_buttons_desc">Tippe auf eine ausgewählte Taste, um sie zu halten, und tippe erneut, um sie loszulassen.</string>
+    <string name="settings_help_sticky_buttons">Ermöglicht die Auswahl von Overlay-Tasten, die ihren gedrückten Zustand per Tippen umschalten, statt gehalten werden zu müssen. Nützlich für Shooter und Horror-Spiele, bei denen R1, R2 oder andere Tasten gedrückt bleiben sollen, während du die Gesichtstasten benutzt.</string>
+    <string name="settings_touchscreen_left_stick">Linker Stick per Touchscreen</string>
+    <string name="settings_touchscreen_left_stick_desc">Wische über freie Bildschirmflächen, um den virtuellen linken Stick zu steuern.</string>
+    <string name="settings_help_touchscreen_left_stick">Ordnet Ziehgesten in ungenutzten Bereichen des Spielbildschirms den Achsen des virtuellen linken Sticks zu, sodass Bewegung ohne Berühren des sichtbaren Sticks möglich ist. Touch-Tasten und sichtbare Sticks behalten ihr normales Verhalten.</string>
+    <string name="settings_touchscreen_left_stick_sensitivity">Touchscreen-Empfindlichkeit des linken Sticks</string>
+    <string name="settings_help_touchscreen_left_stick_sensitivity">Legt fest, wie stark die Ziehstrecke auf dem Bildschirm den virtuellen linken Stick steuert. Die Empfindlichkeit des sichtbaren linken Sticks bleibt unverändert.</string>
+    <string name="settings_respect_display_cutout">Kameraussparung berücksichtigen</string>
+    <string name="settings_respect_display_cutout_desc">Spielbild außerhalb der Kameraussparung halten.</string>
+    <string name="settings_help_respect_display_cutout">Fügt einen Rand um das Emulationsbild hinzu, damit es nicht unter der Kameraussparung (Notch oder Loch) gerendert wird. Nützlich im Querformat, wenn die Aussparung das Bild überdeckt. Betrifft nur die Emulation – der Rest der App berücksichtigt Aussparungen bereits.</string>
+    <string name="home_game_menu_restore_cover">Standardcover wiederherstellen</string>
+    <string name="home_game_menu_restore_cover_success">Standardcover wiederhergestellt.</string>
+    <string name="home_game_menu_restore_cover_failed">Das Standardcover konnte nicht wiederhergestellt werden.</string>
+    <string name="settings_reset_custom_covers">Eigene Cover zurücksetzen</string>
+    <string name="settings_reset_custom_covers_desc">Standardcover für alle Spiele wiederherstellen.</string>
+    <string name="settings_reset_custom_covers_confirm_title">Alle eigenen Cover zurücksetzen?</string>
+    <string name="settings_reset_custom_covers_confirm_body">Eigene Cover werden aus der Bibliothek entfernt und durch Standardcover ersetzt. Die ursprünglichen Bilder und Spieldateien bleiben erhalten.</string>
+    <string name="settings_reset_custom_covers_action">Zurücksetzen</string>
+    <string name="settings_reset_custom_covers_success">Eigene Cover zurückgesetzt.</string>
+    <string name="settings_reset_custom_covers_partial">Einige eigene Cover konnten nicht zurückgesetzt werden. Bitte erneut versuchen.</string>
+
+    <string name="home_library_options">Bibliotheksoptionen</string>
+
+    <string name="hardware_warning_title">Gerät möglicherweise zu langsam</string>
+    <string name="hardware_warning_body">Dieses Gerät liegt unter der empfohlenen Hardware für 3DS-Emulation, daher können Spiele langsam laufen oder ruckeln. Das ist kein Fehler – versuche, die Auflösung zu senken oder die Leistungseinstellungen zu verwenden.</string>
+    <string name="hardware_warning_gpu">GPU: %1$s</string>
+    <string name="hardware_warning_recommended">Bevor du eine schlechte Bewertung abgibst, teste EmuCoreD auf einem anderen Gerät mit mindestens Snapdragon 855, Dimensity 1000, Exynos 2200 oder Tensor G2.</string>
+    <string name="hardware_warning_continue">Verstanden</string>
 </resources>

@@ -1720,4 +1720,34 @@
     <string name="settings_control_label_right_stick">右摇杆</string>
     <string name="controls_editor_show_grid">显示网格</string>
     <string name="controls_editor_snap_grid">对齐到网格</string>
+
+    <string name="settings_sticky_buttons">按键锁定</string>
+    <string name="settings_sticky_buttons_desc">轻点所选按键即可保持按下，再次轻点即可松开。</string>
+    <string name="settings_help_sticky_buttons">可让你选择以轻点切换按下状态的覆盖按键，而无需一直按住。适合在射击和恐怖游戏中，让你使用正面按键时保持 R1、R2 或其他按键按下。</string>
+    <string name="settings_touchscreen_left_stick">触屏左摇杆</string>
+    <string name="settings_touchscreen_left_stick_desc">在屏幕空白区域滑动以控制虚拟左摇杆。</string>
+    <string name="settings_help_touchscreen_left_stick">将游戏屏幕未使用区域中的拖动手势映射到虚拟左摇杆轴，无需触摸可见摇杆即可移动。触摸按钮和可见摇杆保持正常行为。</string>
+    <string name="settings_touchscreen_left_stick_sensitivity">触屏左摇杆灵敏度</string>
+    <string name="settings_help_touchscreen_left_stick_sensitivity">调整屏幕拖动距离对虚拟左摇杆的驱动强度。不会改变可见左摇杆的灵敏度。</string>
+    <string name="settings_respect_display_cutout">避开摄像头挖孔</string>
+    <string name="settings_respect_display_cutout_desc">让游戏画面避开摄像头挖孔区域。</string>
+    <string name="settings_help_respect_display_cutout">在模拟画面上添加边距，避免其绘制到摄像头挖孔（刘海或打孔）下方。横向时挖孔遮挡画面会很有用。仅影响模拟画面，应用其他界面已适配挖孔。</string>
+    <string name="home_game_menu_restore_cover">恢复默认封面</string>
+    <string name="home_game_menu_restore_cover_success">已恢复默认封面。</string>
+    <string name="home_game_menu_restore_cover_failed">无法恢复默认封面。</string>
+    <string name="settings_reset_custom_covers">重置自定义封面</string>
+    <string name="settings_reset_custom_covers_desc">将所有游戏的封面恢复为默认封面。</string>
+    <string name="settings_reset_custom_covers_confirm_title">重置所有自定义封面？</string>
+    <string name="settings_reset_custom_covers_confirm_body">自定义封面将从游戏库中移除并替换为默认封面。原始图片和游戏文件将保留。</string>
+    <string name="settings_reset_custom_covers_action">重置</string>
+    <string name="settings_reset_custom_covers_success">已重置自定义封面。</string>
+    <string name="settings_reset_custom_covers_partial">部分自定义封面无法重置，请重试。</string>
+
+    <string name="home_library_options">游戏库选项</string>
+
+    <string name="hardware_warning_title">设备可能太慢</string>
+    <string name="hardware_warning_body">此设备低于 3DS 模拟的推荐硬件要求，游戏可能会运行缓慢或卡顿。这不是错误——请尝试降低分辨率或使用性能设置。</string>
+    <string name="hardware_warning_gpu">GPU：%1$s</string>
+    <string name="hardware_warning_recommended">在给出低评分或负面评价之前，请先在至少搭载 Snapdragon 855、Dimensity 1000、Exynos 2200 或 Tensor G2 的其他设备上试用 EmuCoreD。</string>
+    <string name="hardware_warning_continue">知道了</string>
 </resources>

@@ -10,6 +10,7 @@ import androidx.datastore.preferences.core.floatPreferencesKey
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
+import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.sbro.emucored.core.AudioDefaults
 import com.sbro.emucored.core.EmulatorBridge
@@ -90,6 +91,7 @@ data class SettingsSnapshot(
     val backButtonExitsGame: Boolean = false,
     val compactControls: Boolean = true,
     val keepScreenOn: Boolean = true,
+    val respectDisplayCutout: Boolean = false,
     val showRecentGames: Boolean = true,
     val showHomeSearch: Boolean = false,
     val preferEnglishGameTitles: Boolean = false,
@@ -106,6 +108,9 @@ data class SettingsSnapshot(
     val overlayOpacity: Int = AppPreferences.DEFAULT_OVERLAY_OPACITY,
     val overlayShow: Boolean = true,
     val racingMode: Boolean = false,
+    val stickyButtons: Set<String> = emptySet(),
+    val touchscreenLeftStick: Boolean = AppPreferences.DEFAULT_TOUCHSCREEN_LEFT_STICK,
+    val touchscreenLeftStickSensitivity: Int = AppPreferences.DEFAULT_TOUCHSCREEN_LEFT_STICK_SENSITIVITY,
     val touchscreenRightStick: Boolean = AppPreferences.DEFAULT_TOUCHSCREEN_RIGHT_STICK,
     val touchscreenRightStickSensitivity: Int = AppPreferences.DEFAULT_TOUCHSCREEN_RIGHT_STICK_SENSITIVITY,
     val touchHaptics: Boolean = false,
@@ -195,9 +200,11 @@ class AppPreferences(private val context: Context) {
             "audioMinimalOutputLatency", "padVibration", "padVibrationStrength",
             "padVibrationFallback", "showFps", "fpsOverlayMode", "fpsOverlayCorner",
             "fpsOverlayScale", "fpsOverlayMetrics", "confirmSaveLoadActions",
-            "backButtonExitsGame", "compactControls", "keepScreenOn", "overlayScale",
-            "overlayOpacity", "overlayShow", "racingMode", "touchscreenRightStick",
-            "touchscreenRightStickSensitivity", "touchHaptics", "touchHapticsPreset",
+            "backButtonExitsGame", "compactControls", "keepScreenOn", "respectDisplayCutout", "overlayScale",
+            "overlayOpacity", "overlayShow", "racingMode", "stickyButtons",
+            "touchscreenLeftStick", "touchscreenLeftStickSensitivity",
+            "touchscreenRightStick", "touchscreenRightStickSensitivity",
+            "touchHaptics", "touchHapticsPreset",
             "touchHapticsStrength", "gyroMode", "gyroSensitivity", "gyroSmoothing",
             "gyroInvertX", "gyroInvertY", "gamepadStickDeadzone",
             "gamepadLeftStickSensitivity", "gamepadRightStickSensitivity",
@@ -250,6 +257,8 @@ class AppPreferences(private val context: Context) {
         const val OVERLAY_OPACITY_MIN = 0
         const val OVERLAY_OPACITY_MAX = 100
         const val DEFAULT_OVERLAY_OPACITY = 80
+        const val DEFAULT_TOUCHSCREEN_LEFT_STICK = false
+        const val DEFAULT_TOUCHSCREEN_LEFT_STICK_SENSITIVITY = 100
         const val DEFAULT_TOUCHSCREEN_RIGHT_STICK = false
         const val TOUCHSCREEN_RIGHT_STICK_SENSITIVITY_MIN = 50
         const val TOUCHSCREEN_RIGHT_STICK_SENSITIVITY_MAX = 200
@@ -405,6 +414,7 @@ class AppPreferences(private val context: Context) {
         private val EMULATION_SIDE_ARTWORK_REVISION = intPreferencesKey("emulation_side_artwork_revision")
         private val EMULATION_SIDE_ARTWORK_DIM = intPreferencesKey("emulation_side_artwork_dim")
         private val COVER_CACHE_REVISION = intPreferencesKey("cover_cache_revision")
+        private val CUSTOM_COVERS_REVISION = intPreferencesKey("custom_covers_revision")
         private val TOUCH_CONTROL_VISUAL_STYLE = intPreferencesKey("touch_control_visual_style")
         private val TOUCH_CONTROL_PRESS_EFFECT = intPreferencesKey("touch_control_press_effect")
         private val CUSTOM_TOUCH_CONTROLS_JSON = stringPreferencesKey("custom_touch_controls_json")
@@ -438,6 +448,7 @@ class AppPreferences(private val context: Context) {
         private val ONBOARDING_COMPLETED = booleanPreferencesKey("onboarding_completed")
         private val PRO_UNLOCKED = booleanPreferencesKey("pro_unlocked")
         private val WELCOME_DIALOG_SHOWN = booleanPreferencesKey("welcome_dialog_shown")
+        private val HARDWARE_WARNING_SHOWN = booleanPreferencesKey("hardware_warning_shown")
         private val LAST_CORE_BINARY_FINGERPRINT =
             stringPreferencesKey("last_core_binary_fingerprint")
         private val PERFORMANCE_PROFILE = intPreferencesKey("performance_profile")
@@ -465,6 +476,7 @@ class AppPreferences(private val context: Context) {
         private val BACK_BUTTON_EXITS_GAME = booleanPreferencesKey("back_button_exits_game")
         private val COMPACT_CONTROLS = booleanPreferencesKey("compact_controls")
         private val KEEP_SCREEN_ON = booleanPreferencesKey("keep_screen_on")
+        private val RESPECT_DISPLAY_CUTOUT = booleanPreferencesKey("respect_display_cutout")
         private val SHOW_RECENT_GAMES = booleanPreferencesKey("show_recent_games")
         private val SHOW_HOME_SEARCH = booleanPreferencesKey("show_home_search")
         private val PREFER_ENGLISH_GAME_TITLES = booleanPreferencesKey("prefer_english_game_titles")
@@ -476,6 +488,9 @@ class AppPreferences(private val context: Context) {
         private val OVERLAY_OPACITY = intPreferencesKey("overlay_opacity")
         private val OVERLAY_SHOW = booleanPreferencesKey("overlay_show")
         private val RACING_MODE = booleanPreferencesKey("racing_mode")
+        private val STICKY_BUTTONS = stringSetPreferencesKey("sticky_buttons")
+        private val TOUCHSCREEN_LEFT_STICK = booleanPreferencesKey("touchscreen_left_stick")
+        private val TOUCHSCREEN_LEFT_STICK_SENSITIVITY = intPreferencesKey("touchscreen_left_stick_sensitivity")
         private val TOUCHSCREEN_RIGHT_STICK = booleanPreferencesKey("touchscreen_right_stick")
         private val TOUCHSCREEN_RIGHT_STICK_SENSITIVITY = intPreferencesKey("touchscreen_right_stick_sensitivity")
         // Extended emulator settings
@@ -642,6 +657,10 @@ class AppPreferences(private val context: Context) {
 
     val coverCacheRevision: Flow<Int> = context.dataStore.data
         .map { prefs -> (prefs[COVER_CACHE_REVISION] ?: 0).coerceAtLeast(0) }
+        .distinctUntilChanged()
+
+    val customCoversRevision: Flow<Int> = context.dataStore.data
+        .map { prefs -> (prefs[CUSTOM_COVERS_REVISION] ?: 0).coerceAtLeast(0) }
         .distinctUntilChanged()
 
     val touchControlVisualStyle: Flow<TouchControlVisualStyle> = context.dataStore.data
@@ -815,6 +834,12 @@ class AppPreferences(private val context: Context) {
     suspend fun notifyCoverCacheCleared() {
         context.dataStore.edit { prefs ->
             prefs[COVER_CACHE_REVISION] = (prefs[COVER_CACHE_REVISION] ?: 0) + 1
+        }
+    }
+
+    suspend fun notifyCustomCoversReset() {
+        context.dataStore.edit { prefs ->
+            prefs[CUSTOM_COVERS_REVISION] = (prefs[CUSTOM_COVERS_REVISION] ?: 0) + 1
         }
     }
 
@@ -1260,6 +1285,14 @@ class AppPreferences(private val context: Context) {
         context.dataStore.edit { prefs -> prefs[WELCOME_DIALOG_SHOWN] = shown }
     }
 
+    val hardwareWarningShown: Flow<Boolean> = context.dataStore.data
+        .map { prefs -> prefs[HARDWARE_WARNING_SHOWN] ?: false }
+        .distinctUntilChanged()
+
+    suspend fun setHardwareWarningShown(shown: Boolean) {
+        context.dataStore.edit { prefs -> prefs[HARDWARE_WARNING_SHOWN] = shown }
+    }
+
     val lastCoreBinaryFingerprint: Flow<String?> = context.dataStore.data
         .map { prefs -> prefs[LAST_CORE_BINARY_FINGERPRINT] }
         .distinctUntilChanged()
@@ -1379,6 +1412,7 @@ class AppPreferences(private val context: Context) {
                 backButtonExitsGame = prefs[BACK_BUTTON_EXITS_GAME] ?: false,
                 compactControls = prefs[COMPACT_CONTROLS] ?: true,
                 keepScreenOn = prefs[KEEP_SCREEN_ON] ?: true,
+                respectDisplayCutout = prefs[RESPECT_DISPLAY_CUTOUT] ?: false,
                 showRecentGames = prefs[SHOW_RECENT_GAMES] ?: true,
                 showHomeSearch = prefs[SHOW_HOME_SEARCH] ?: false,
                 preferEnglishGameTitles = prefs[PREFER_ENGLISH_GAME_TITLES] ?: false,
@@ -1396,6 +1430,13 @@ class AppPreferences(private val context: Context) {
                     .coerceIn(OVERLAY_OPACITY_MIN, OVERLAY_OPACITY_MAX),
                 overlayShow = prefs[OVERLAY_SHOW] ?: true,
                 racingMode = prefs[RACING_MODE] ?: false,
+                stickyButtons = prefs[STICKY_BUTTONS] ?: emptySet(),
+                touchscreenLeftStick = prefs[TOUCHSCREEN_LEFT_STICK] ?: DEFAULT_TOUCHSCREEN_LEFT_STICK,
+                touchscreenLeftStickSensitivity = (prefs[TOUCHSCREEN_LEFT_STICK_SENSITIVITY]
+                    ?: DEFAULT_TOUCHSCREEN_LEFT_STICK_SENSITIVITY).coerceIn(
+                    TOUCHSCREEN_RIGHT_STICK_SENSITIVITY_MIN,
+                    TOUCHSCREEN_RIGHT_STICK_SENSITIVITY_MAX
+                ),
                 touchscreenRightStick = prefs[TOUCHSCREEN_RIGHT_STICK] ?: DEFAULT_TOUCHSCREEN_RIGHT_STICK,
                 touchscreenRightStickSensitivity = (prefs[TOUCHSCREEN_RIGHT_STICK_SENSITIVITY]
                     ?: DEFAULT_TOUCHSCREEN_RIGHT_STICK_SENSITIVITY).coerceIn(
@@ -1681,6 +1722,14 @@ class AppPreferences(private val context: Context) {
         context.dataStore.edit { it[KEEP_SCREEN_ON] = enabled }
     }
 
+    val respectDisplayCutout: Flow<Boolean> = context.dataStore.data.map { prefs ->
+        prefs[RESPECT_DISPLAY_CUTOUT] ?: false
+    }
+
+    suspend fun setRespectDisplayCutout(enabled: Boolean) {
+        context.dataStore.edit { it[RESPECT_DISPLAY_CUTOUT] = enabled }
+    }
+
     val showRecentGames: Flow<Boolean> = context.dataStore.data.map { prefs ->
         prefs[SHOW_RECENT_GAMES] ?: true
     }
@@ -1927,6 +1976,39 @@ class AppPreferences(private val context: Context) {
 
     suspend fun setRacingMode(enabled: Boolean) {
         context.dataStore.edit { it[RACING_MODE] = enabled }
+    }
+
+    val stickyButtons: Flow<Set<String>> = context.dataStore.data.map { prefs ->
+        prefs[STICKY_BUTTONS] ?: emptySet()
+    }
+
+    suspend fun setStickyButtons(buttons: Set<String>) {
+        context.dataStore.edit { it[STICKY_BUTTONS] = buttons }
+    }
+
+    val touchscreenLeftStick: Flow<Boolean> = context.dataStore.data.map { prefs ->
+        prefs[TOUCHSCREEN_LEFT_STICK] ?: DEFAULT_TOUCHSCREEN_LEFT_STICK
+    }
+
+    suspend fun setTouchscreenLeftStick(enabled: Boolean) {
+        context.dataStore.edit { it[TOUCHSCREEN_LEFT_STICK] = enabled }
+    }
+
+    val touchscreenLeftStickSensitivity: Flow<Int> = context.dataStore.data.map { prefs ->
+        (prefs[TOUCHSCREEN_LEFT_STICK_SENSITIVITY]
+            ?: DEFAULT_TOUCHSCREEN_LEFT_STICK_SENSITIVITY).coerceIn(
+            TOUCHSCREEN_RIGHT_STICK_SENSITIVITY_MIN,
+            TOUCHSCREEN_RIGHT_STICK_SENSITIVITY_MAX
+        )
+    }
+
+    suspend fun setTouchscreenLeftStickSensitivity(value: Int) {
+        context.dataStore.edit { prefs ->
+            prefs[TOUCHSCREEN_LEFT_STICK_SENSITIVITY] = value.coerceIn(
+                TOUCHSCREEN_RIGHT_STICK_SENSITIVITY_MIN,
+                TOUCHSCREEN_RIGHT_STICK_SENSITIVITY_MAX
+            )
+        }
     }
 
     val touchscreenRightStick: Flow<Boolean> = context.dataStore.data.map { prefs ->
@@ -2734,6 +2816,7 @@ class AppPreferences(private val context: Context) {
             put("backButtonExitsGame", prefs[BACK_BUTTON_EXITS_GAME] ?: false)
             put("compactControls", prefs[COMPACT_CONTROLS] ?: true)
             put("keepScreenOn", prefs[KEEP_SCREEN_ON] ?: true)
+            put("respectDisplayCutout", prefs[RESPECT_DISPLAY_CUTOUT] ?: false)
             put("showRecentGames", prefs[SHOW_RECENT_GAMES] ?: true)
             put("showHomeSearch", prefs[SHOW_HOME_SEARCH] ?: false)
 
@@ -2748,6 +2831,19 @@ class AppPreferences(private val context: Context) {
             )
             put("overlayShow", prefs[OVERLAY_SHOW] ?: true)
             put("racingMode", prefs[RACING_MODE] ?: false)
+            put("stickyButtons", JSONArray((prefs[STICKY_BUTTONS] ?: emptySet()).sorted()))
+            put(
+                "touchscreenLeftStick",
+                prefs[TOUCHSCREEN_LEFT_STICK] ?: DEFAULT_TOUCHSCREEN_LEFT_STICK
+            )
+            put(
+                "touchscreenLeftStickSensitivity",
+                (prefs[TOUCHSCREEN_LEFT_STICK_SENSITIVITY]
+                    ?: DEFAULT_TOUCHSCREEN_LEFT_STICK_SENSITIVITY).coerceIn(
+                    TOUCHSCREEN_RIGHT_STICK_SENSITIVITY_MIN,
+                    TOUCHSCREEN_RIGHT_STICK_SENSITIVITY_MAX
+                )
+            )
             put(
                 "touchscreenRightStick",
                 prefs[TOUCHSCREEN_RIGHT_STICK] ?: DEFAULT_TOUCHSCREEN_RIGHT_STICK
@@ -2998,6 +3094,7 @@ class AppPreferences(private val context: Context) {
             prefs[BACK_BUTTON_EXITS_GAME] = json.optBoolean("backButtonExitsGame", false)
             prefs[COMPACT_CONTROLS] = json.optBoolean("compactControls", true)
             prefs[KEEP_SCREEN_ON] = json.optBoolean("keepScreenOn", true)
+            prefs[RESPECT_DISPLAY_CUTOUT] = json.optBoolean("respectDisplayCutout", false)
             prefs[SHOW_RECENT_GAMES] = json.optBoolean("showRecentGames", true)
             prefs[SHOW_HOME_SEARCH] = json.optBoolean("showHomeSearch", false)
 
@@ -3009,6 +3106,22 @@ class AppPreferences(private val context: Context) {
                 .coerceIn(OVERLAY_OPACITY_MIN, OVERLAY_OPACITY_MAX)
             prefs[OVERLAY_SHOW] = json.optBoolean("overlayShow", true)
             prefs[RACING_MODE] = json.optBoolean("racingMode", false)
+            prefs[STICKY_BUTTONS] = json.optJSONArray("stickyButtons")?.let { array ->
+                (0 until array.length()).mapNotNull { index ->
+                    (array.opt(index) as? String)?.takeIf { it.isNotBlank() }
+                }.toSet()
+            } ?: emptySet()
+            prefs[TOUCHSCREEN_LEFT_STICK] = json.optBoolean(
+                "touchscreenLeftStick",
+                DEFAULT_TOUCHSCREEN_LEFT_STICK
+            )
+            prefs[TOUCHSCREEN_LEFT_STICK_SENSITIVITY] = json.optInt(
+                "touchscreenLeftStickSensitivity",
+                DEFAULT_TOUCHSCREEN_LEFT_STICK_SENSITIVITY
+            ).coerceIn(
+                TOUCHSCREEN_RIGHT_STICK_SENSITIVITY_MIN,
+                TOUCHSCREEN_RIGHT_STICK_SENSITIVITY_MAX
+            )
             prefs[TOUCHSCREEN_RIGHT_STICK] = json.optBoolean(
                 "touchscreenRightStick",
                 DEFAULT_TOUCHSCREEN_RIGHT_STICK

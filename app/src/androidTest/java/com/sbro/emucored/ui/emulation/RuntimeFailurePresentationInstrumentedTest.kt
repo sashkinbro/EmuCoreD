@@ -30,7 +30,7 @@ class RuntimeFailurePresentationInstrumentedTest {
         val intent = EmulationUiState(isRunning = true, isStarting = true,
             isPaused = true, showMenu = true, isActionInProgress = true,
             actionLabel = "loading", statusMessage = "status_running",
-            toastMessage = "loaded", fps = "60")
+            toastMessage = "loaded")
         val failure = RuntimeFailure("probe device lost")
         val shown = intent.withRuntimeFailure(failure)
         assertSame(failure, shown.runtimeFailure)
@@ -42,7 +42,6 @@ class RuntimeFailurePresentationInstrumentedTest {
         assertNull(shown.actionLabel)
         assertNull(shown.statusMessage)
         assertNull(shown.toastMessage)
-        assertEquals("0", shown.fps)
         // Late completion cannot hide the failure, and cleared runtime state
         // does not permanently rewrite the next session's requested settings.
         assertEquals(shown, intent.copy(isStarting = false).withRuntimeFailure(failure))

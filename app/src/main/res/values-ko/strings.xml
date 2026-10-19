@@ -1718,4 +1718,34 @@
     <string name="settings_control_label_right_stick">오른쪽 스틱</string>
     <string name="controls_editor_show_grid">격자 표시</string>
     <string name="controls_editor_snap_grid">격자에 맞추기</string>
+
+    <string name="settings_sticky_buttons">누름 고정 버튼</string>
+    <string name="settings_sticky_buttons_desc">선택한 버튼을 누르면 눌린 상태로 유지되고, 다시 누르면 해제됩니다.</string>
+    <string name="settings_help_sticky_buttons">길게 누르는 대신 탭으로 눌린 상태를 전환할 오버레이 버튼을 선택할 수 있습니다. 얼굴 버튼을 사용하는 동안 R1, R2 또는 다른 버튼을 눌린 상태로 유지하려는 슈팅 및 호러 게임에 유용합니다.</string>
+    <string name="settings_touchscreen_left_stick">터치스크린 왼쪽 스틱</string>
+    <string name="settings_touchscreen_left_stick_desc">화면의 빈 공간을 밀어 가상 왼쪽 스틱을 조작합니다.</string>
+    <string name="settings_help_touchscreen_left_stick">게임 화면의 사용하지 않는 영역에서 드래그 제스처를 가상 왼쪽 스틱 축에 매핑하여 보이는 스틱을 만지지 않고 이동할 수 있습니다. 터치 버튼과 보이는 스틱은 정상적으로 동작합니다.</string>
+    <string name="settings_touchscreen_left_stick_sensitivity">터치스크린 왼쪽 스틱 감도</string>
+    <string name="settings_help_touchscreen_left_stick_sensitivity">화면의 드래그 거리가 가상 왼쪽 스틱을 얼마나 강하게 조작하는지 조정합니다. 보이는 왼쪽 스틱의 감도는 바뀌지 않습니다.</string>
+    <string name="settings_respect_display_cutout">카메라 컷아웃 고려</string>
+    <string name="settings_respect_display_cutout_desc">게임 화면이 카메라 컷아웃 영역을 피하도록 합니다.</string>
+    <string name="settings_help_respect_display_cutout">에뮬레이션 화면이 카메라 컷아웃(노치 또는 펀치홀) 아래에 그려지지 않도록 여백을 추가합니다. 컷아웃이 화면을 가리는 가로 모드에서 유용합니다. 에뮬레이션에만 적용되며 나머지 앱 화면은 이미 컷아웃을 고려합니다.</string>
+    <string name="home_game_menu_restore_cover">기본 커버로 되돌리기</string>
+    <string name="home_game_menu_restore_cover_success">기본 커버로 되돌렸습니다.</string>
+    <string name="home_game_menu_restore_cover_failed">기본 커버로 되돌리지 못했습니다.</string>
+    <string name="settings_reset_custom_covers">사용자 지정 커버 초기화</string>
+    <string name="settings_reset_custom_covers_desc">모든 게임의 커버를 기본 커버로 되돌립니다.</string>
+    <string name="settings_reset_custom_covers_confirm_title">모든 사용자 지정 커버를 초기화할까요?</string>
+    <string name="settings_reset_custom_covers_confirm_body">라이브러리에서 사용자 지정 커버를 삭제하고 기본 커버로 되돌립니다. 원본 이미지와 게임 파일은 유지됩니다.</string>
+    <string name="settings_reset_custom_covers_action">초기화</string>
+    <string name="settings_reset_custom_covers_success">사용자 지정 커버를 초기화했습니다.</string>
+    <string name="settings_reset_custom_covers_partial">일부 사용자 지정 커버를 초기화하지 못했습니다. 다시 시도해 주세요.</string>
+
+    <string name="home_library_options">라이브러리 옵션</string>
+
+    <string name="hardware_warning_title">기기가 너무 느릴 수 있습니다</string>
+    <string name="hardware_warning_body">이 기기는 3DS 에뮬레이션 권장 하드웨어보다 낮아 게임이 느리거나 끊길 수 있습니다. 오류가 아니며, 해상도를 낮추거나 성능 설정을 사용해 보세요.</string>
+    <string name="hardware_warning_gpu">GPU: %1$s</string>
+    <string name="hardware_warning_recommended">낮은 평점이나 부정적인 리뷰를 남기기 전에 최소 Snapdragon 855, Dimensity 1000, Exynos 2200 또는 Tensor G2가 탑재된 다른 기기에서 EmuCoreD를 확인해 주세요.</string>
+    <string name="hardware_warning_continue">확인</string>
 </resources>

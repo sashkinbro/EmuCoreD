@@ -341,6 +341,9 @@
     <string name="settings_help_show_fps">Shows a live performance overlay while the game is running. Use it when tuning settings or checking whether a slowdown comes from emulation speed, frame pacing, or the game itself.</string>
     <string name="settings_help_fps_overlay_mode">Chooses between a simple FPS readout and a more detailed stats panel. Use the compact mode if you just want a quick speed check, or the extended mode when you are actively tuning performance.</string>
     <string name="settings_help_fps_overlay_position">Places the FPS or stats overlay in one of the four corners. Move it away from touch controls, HUD elements, subtitles, or minimaps so it stays readable without covering important game info.</string>
+    <string name="settings_respect_display_cutout">Respect camera cutout</string>
+    <string name="settings_respect_display_cutout_desc">Keep the game image outside the camera cutout area.</string>
+    <string name="settings_help_respect_display_cutout">Adds a margin around the emulation image so it is not drawn under the camera cutout (notch or punch-hole). Useful in landscape when the cutout covers the image. Affects emulation only; the rest of the app already respects cutouts.</string>
     <string name="settings_keep_screen_on">Keep screen awake</string>
     <string name="settings_keep_screen_on_desc">Prevent the screen from dimming while playing.</string>
     <string name="settings_fps_overlay_position">Stats position</string>
@@ -381,6 +384,9 @@
     <string name="settings_overlay_opacity">Overlay Opacity</string>
     <string name="settings_racing_mode">Racing mode</string>
     <string name="settings_racing_mode_desc">Tap action and shoulder buttons to hold them, then tap again to release.</string>
+    <string name="settings_sticky_buttons">Sticky buttons</string>
+    <string name="settings_sticky_buttons_desc">Tap these buttons once to hold them, then tap again to release.</string>
+    <string name="settings_help_sticky_buttons">Sticky buttons stay pressed after a tap so you can use them like toggles. Tap again to release.</string>
     <string name="settings_left_stick_sensitivity">Left Stick Sensitivity</string>
     <string name="settings_right_stick_sensitivity">Right Stick Sensitivity</string>
     <string name="settings_invert_left_stick">Invert Left Stick</string>
@@ -664,6 +670,9 @@
     <string name="home_game_menu_custom_cover">Choose cover</string>
     <string name="home_game_menu_custom_cover_applied">Custom cover applied.</string>
     <string name="home_game_menu_custom_cover_failed">Failed to apply custom cover.</string>
+    <string name="home_game_menu_restore_cover">Restore default cover</string>
+    <string name="home_game_menu_restore_cover_success">Default cover restored.</string>
+    <string name="home_game_menu_restore_cover_failed">Failed to restore the default cover.</string>
     <string name="save">Save</string>
     <string name="delete">Delete</string>
     <string name="error_storage_permission_not_persisted">Android did not grant permanent access to this location. Please choose it again in the system picker.</string>
@@ -924,6 +933,11 @@
     <string name="settings_backup_include_save_states">Include quick saves</string>
     <string name="settings_backup_include_save_states_desc">Adds quick-save states to the archive. This can greatly increase its size, and states may not work with a different core version.</string>
     <string name="settings_backup_export_action">Export</string>
+    <string name="settings_touchscreen_left_stick">Touchscreen left stick</string>
+    <string name="settings_touchscreen_left_stick_desc">Swipe on free screen space to control the virtual left stick.</string>
+    <string name="settings_help_touchscreen_left_stick">Maps drag gestures in unused areas of the game screen to the virtual left-stick axes. Touch buttons and visible sticks keep their normal behavior.</string>
+    <string name="settings_touchscreen_left_stick_sensitivity">Touchscreen left-stick sensitivity</string>
+    <string name="settings_help_touchscreen_left_stick_sensitivity">Adjusts how strongly drag distance on the screen drives the virtual left stick. This does not change the sensitivity of the visible left stick.</string>
     <string name="settings_touchscreen_right_stick">Touchscreen right stick</string>
     <string name="settings_touchscreen_right_stick_desc">Swipe on free screen space to control the virtual right stick.</string>
     <string name="settings_help_touchscreen_right_stick">Maps drag gestures in unused areas of the game screen to the virtual right-stick axes, allowing camera movement without touching the visible stick. Touch buttons and visible sticks keep their normal behavior.</string>
@@ -1177,6 +1191,13 @@
     <string name="settings_clear_cover_cache_action">Clear</string>
     <string name="settings_clear_cover_cache_success">Cover cache cleared. Covers will download again automatically.</string>
     <string name="settings_clear_cover_cache_partial">Some cached covers could not be removed. Try again after current downloads finish.</string>
+    <string name="settings_reset_custom_covers">Reset custom covers</string>
+    <string name="settings_reset_custom_covers_desc">Delete every custom cover and restore the default artwork.</string>
+    <string name="settings_reset_custom_covers_confirm_title">Reset custom covers?</string>
+    <string name="settings_reset_custom_covers_confirm_body">All custom covers will be deleted and the library will return to its default artwork. This cannot be undone.</string>
+    <string name="settings_reset_custom_covers_action">Reset</string>
+    <string name="settings_reset_custom_covers_success">Custom covers reset.</string>
+    <string name="settings_reset_custom_covers_partial">Some custom covers could not be removed. Try again in a moment.</string>
     <string name="hub_title">EmuCore-Hub</string>
     <string name="hub_tab_news">News</string>
     <string name="hub_tab_videos">Videos</string>
@@ -1744,4 +1765,12 @@
     <string name="settings_control_label_right_stick">Right Stick</string>
     <string name="controls_editor_show_grid">Show grid</string>
     <string name="controls_editor_snap_grid">Snap to grid</string>
+
+    <string name="home_library_options">Library options</string>
+
+    <string name="hardware_warning_title">Device may be too slow</string>
+    <string name="hardware_warning_body">This device is below the recommended hardware for 3DS emulation, so games may run slowly or stutter. This is not an error — try lowering the resolution or using the performance settings.</string>
+    <string name="hardware_warning_gpu">GPU: %1$s</string>
+    <string name="hardware_warning_recommended">Before leaving a low rating or a negative review, check EmuCoreD on another device with at least a Snapdragon 855, Dimensity 1000, Exynos 2200 or Tensor G2.</string>
+    <string name="hardware_warning_continue">Got it</string>
 </resources>

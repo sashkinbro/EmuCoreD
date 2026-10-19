@@ -66,6 +66,8 @@ import com.sbro.emucored.data.RetroAchievementsGameData
 import com.sbro.emucored.data.RetroAchievementsLibraryGame
 import com.sbro.emucored.data.RetroAchievementsState
 import com.sbro.emucored.ui.common.GameCoverArt
+import com.sbro.emucored.ui.common.gameCoverContentScale
+import com.sbro.emucored.ui.common.gameCoverShape
 import com.sbro.emucored.ui.common.GameCoverAspectRatio
 import com.sbro.emucored.ui.common.ScreenTopBar
 import com.sbro.emucored.ui.common.appScreenTopPadding
@@ -451,11 +453,11 @@ private fun LibraryGameCard(game: RetroAchievementsLibraryGame, onClick: () -> U
             GameCoverArt(
                 coverPath = coverPath,
                 fallbackTitle = game.title,
-                contentScale = ContentScale.Fit,
+                contentScale = gameCoverContentScale(coverPath, ContentScale.Fit),
                 modifier = Modifier
                     .width(120.dp)
                     .aspectRatio(GameCoverAspectRatio)
-                    .clip(neonShape(12.dp))
+                    .clip(gameCoverShape(coverPath, neonShape(12.dp)))
             )
             Column(
                 modifier = Modifier.weight(1f),

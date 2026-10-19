@@ -1721,4 +1721,34 @@
     <string name="settings_control_label_right_stick">Stick droit</string>
     <string name="controls_editor_show_grid">Afficher la grille</string>
     <string name="controls_editor_snap_grid">Aligner sur la grille</string>
+
+    <string name="settings_sticky_buttons">Boutons à verrouillage</string>
+    <string name="settings_sticky_buttons_desc">Touchez un bouton sélectionné pour le maintenir, puis touchez à nouveau pour le relâcher.</string>
+    <string name="settings_help_sticky_buttons">Permet de choisir des boutons de l\'overlay qui basculent leur état enfoncé d\'un simple toucher au lieu d\'un maintien. Utile pour les jeux de tir et d\'horreur qui veulent garder R1, R2 ou d\'autres boutons enfoncés pendant que vous utilisez les boutons de façade.</string>
+    <string name="settings_touchscreen_left_stick">Stick gauche sur l’écran tactile</string>
+    <string name="settings_touchscreen_left_stick_desc">Balayez un espace libre de l’écran pour contrôler le stick gauche virtuel.</string>
+    <string name="settings_help_touchscreen_left_stick">Associe les gestes de glissement dans les zones inutilisées de l’écran de jeu aux axes du stick gauche virtuel, permettant de se déplacer sans toucher le stick visible. Les boutons tactiles et les sticks visibles gardent leur comportement normal.</string>
+    <string name="settings_touchscreen_left_stick_sensitivity">Sensibilité tactile du stick gauche</string>
+    <string name="settings_help_touchscreen_left_stick_sensitivity">Ajuste l’influence de la distance de glissement à l’écran sur le stick gauche virtuel. Cela ne modifie pas la sensibilité du stick gauche visible.</string>
+    <string name="settings_respect_display_cutout">Respecter l\'encoche de la caméra</string>
+    <string name="settings_respect_display_cutout_desc">Garder l\'image du jeu hors de la zone de l\'encoche.</string>
+    <string name="settings_help_respect_display_cutout">Ajoute une marge autour de l\'image d\'émulation pour qu\'elle ne passe pas sous l\'encoche de la caméra (notch ou poinçon). Utile en mode paysage lorsque l\'encoche recouvre l\'image. N\'affecte que l\'émulation ; le reste de l\'application respecte déjà les encoches.</string>
+    <string name="home_game_menu_restore_cover">Rétablir la jaquette par défaut</string>
+    <string name="home_game_menu_restore_cover_success">Jaquette par défaut rétablie.</string>
+    <string name="home_game_menu_restore_cover_failed">Impossible de rétablir la jaquette par défaut.</string>
+    <string name="settings_reset_custom_covers">Réinitialiser les jaquettes personnalisées</string>
+    <string name="settings_reset_custom_covers_desc">Rétablir les jaquettes par défaut de tous les jeux.</string>
+    <string name="settings_reset_custom_covers_confirm_title">Réinitialiser toutes les jaquettes personnalisées ?</string>
+    <string name="settings_reset_custom_covers_confirm_body">Les jaquettes personnalisées seront retirées de la bibliothèque et remplacées par les jaquettes par défaut. Vos images originales et les fichiers des jeux seront conservés.</string>
+    <string name="settings_reset_custom_covers_action">Réinitialiser</string>
+    <string name="settings_reset_custom_covers_success">Jaquettes personnalisées réinitialisées.</string>
+    <string name="settings_reset_custom_covers_partial">Certaines jaquettes personnalisées n’ont pas pu être réinitialisées. Veuillez réessayer.</string>
+
+    <string name="home_library_options">Options de la bibliothèque</string>
+
+    <string name="hardware_warning_title">L\'appareil est peut-être trop lent</string>
+    <string name="hardware_warning_body">Cet appareil est en dessous du matériel recommandé pour l\'émulation 3DS, les jeux peuvent donc être lents ou saccadés. Ce n\'est pas une erreur — essayez de réduire la résolution ou d\'utiliser les réglages de performance.</string>
+    <string name="hardware_warning_gpu">GPU : %1$s</string>
+    <string name="hardware_warning_recommended">Avant de laisser une note faible ou un avis négatif, testez EmuCoreD sur un autre appareil avec au moins un Snapdragon 855, Dimensity 1000, Exynos 2200 ou Tensor G2.</string>
+    <string name="hardware_warning_continue">Compris</string>
 </resources>

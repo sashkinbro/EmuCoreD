@@ -1733,4 +1733,34 @@
     <string name="settings_control_label_right_stick">Stik kanan</string>
     <string name="controls_editor_show_grid">Tampilkan kisi</string>
     <string name="controls_editor_snap_grid">Snap ke kisi</string>
+
+    <string name="settings_sticky_buttons">Tombol tahan</string>
+    <string name="settings_sticky_buttons_desc">Ketuk tombol yang dipilih untuk menahannya, lalu ketuk lagi untuk melepaskannya.</string>
+    <string name="settings_help_sticky_buttons">Memungkinkan Anda memilih tombol overlay yang mengalihkan status ditekan dengan ketukan alih-alih harus ditahan. Berguna untuk game tembak-menembak dan horor yang ingin R1, R2, atau tombol lain tetap ditekan saat Anda menggunakan tombol muka.</string>
+    <string name="settings_touchscreen_left_stick">Stik kiri di layar sentuh</string>
+    <string name="settings_touchscreen_left_stick_desc">Geser di area kosong layar untuk mengontrol stik kiri virtual.</string>
+    <string name="settings_help_touchscreen_left_stick">Memetakan gerakan geser di area yang tidak terpakai pada layar game ke sumbu stik kiri virtual, sehingga dapat bergerak tanpa menyentuh stik yang terlihat. Tombol sentuh dan stik yang terlihat tetap berperilaku normal.</string>
+    <string name="settings_touchscreen_left_stick_sensitivity">Sensitivitas stik kiri layar sentuh</string>
+    <string name="settings_help_touchscreen_left_stick_sensitivity">Mengatur seberapa kuat jarak geser di layar mengendalikan stik kiri virtual. Ini tidak mengubah sensitivitas stik kiri yang terlihat.</string>
+    <string name="settings_respect_display_cutout">Perhitungkan cutout kamera</string>
+    <string name="settings_respect_display_cutout_desc">Jauhkan gambar game dari area cutout kamera.</string>
+    <string name="settings_help_respect_display_cutout">Menambahkan margin di sekitar gambar emulasi agar tidak tergambar di bawah cutout kamera (notch atau punch-hole). Berguna dalam mode lanskap saat cutout menutupi gambar. Hanya memengaruhi emulasi; bagian aplikasi lain sudah memperhitungkan cutout.</string>
+    <string name="home_game_menu_restore_cover">Pulihkan sampul bawaan</string>
+    <string name="home_game_menu_restore_cover_success">Sampul bawaan dipulihkan.</string>
+    <string name="home_game_menu_restore_cover_failed">Tidak dapat memulihkan sampul bawaan.</string>
+    <string name="settings_reset_custom_covers">Reset sampul kustom</string>
+    <string name="settings_reset_custom_covers_desc">Pulihkan sampul bawaan untuk semua gim.</string>
+    <string name="settings_reset_custom_covers_confirm_title">Reset semua sampul kustom?</string>
+    <string name="settings_reset_custom_covers_confirm_body">Sampul kustom akan dihapus dari pustaka dan diganti dengan sampul bawaan. Gambar asli dan berkas gim Anda akan tetap disimpan.</string>
+    <string name="settings_reset_custom_covers_action">Reset</string>
+    <string name="settings_reset_custom_covers_success">Sampul kustom direset.</string>
+    <string name="settings_reset_custom_covers_partial">Beberapa sampul kustom tidak dapat direset. Silakan coba lagi.</string>
+
+    <string name="home_library_options">Opsi pustaka</string>
+
+    <string name="hardware_warning_title">Perangkat mungkin terlalu lambat</string>
+    <string name="hardware_warning_body">Perangkat ini di bawah perangkat keras yang disarankan untuk emulasi 3DS, jadi game bisa berjalan lambat atau tersendat. Ini bukan kesalahan — coba turunkan resolusi atau gunakan pengaturan performa.</string>
+    <string name="hardware_warning_gpu">GPU: %1$s</string>
+    <string name="hardware_warning_recommended">Sebelum memberi rating rendah atau ulasan negatif, coba EmuCoreD di perangkat lain dengan setidaknya Snapdragon 855, Dimensity 1000, Exynos 2200, atau Tensor G2.</string>
+    <string name="hardware_warning_continue">Mengerti</string>
 </resources>

@@ -1719,4 +1719,34 @@
     <string name="settings_control_label_right_stick">Stick destro</string>
     <string name="controls_editor_show_grid">Mostra griglia</string>
     <string name="controls_editor_snap_grid">Aggancia alla griglia</string>
+
+    <string name="settings_sticky_buttons">Pulsanti con blocco</string>
+    <string name="settings_sticky_buttons_desc">Tocca un pulsante selezionato per tenerlo premuto, poi tocca di nuovo per rilasciarlo.</string>
+    <string name="settings_help_sticky_buttons">Consente di scegliere i pulsanti dell\'overlay che alternano lo stato premuto con un tocco invece di richiedere una pressione continua. Utile per sparatutto e horror che vogliono mantenere premuti R1, R2 o altri pulsanti mentre usi i pulsanti frontali.</string>
+    <string name="settings_touchscreen_left_stick">Stick sinistro sul touchscreen</string>
+    <string name="settings_touchscreen_left_stick_desc">Scorri su uno spazio libero dello schermo per controllare lo stick sinistro virtuale.</string>
+    <string name="settings_help_touchscreen_left_stick">Mappa i gesti di trascinamento nelle aree inutilizzate dello schermo di gioco sugli assi dello stick sinistro virtuale, consentendo di muoversi senza toccare lo stick visibile. I pulsanti touch e gli stick visibili mantengono il comportamento normale.</string>
+    <string name="settings_touchscreen_left_stick_sensitivity">Sensibilità touch dello stick sinistro</string>
+    <string name="settings_help_touchscreen_left_stick_sensitivity">Regola quanto la distanza di trascinamento sullo schermo controlla lo stick sinistro virtuale. Non modifica la sensibilità dello stick sinistro visibile.</string>
+    <string name="settings_respect_display_cutout">Rispetta il notch della fotocamera</string>
+    <string name="settings_respect_display_cutout_desc">Mantieni l\'immagine di gioco fuori dall\'area del notch.</string>
+    <string name="settings_help_respect_display_cutout">Aggiunge un margine attorno all\'immagine emulata per non disegnarla sotto il notch della fotocamera (notch o foro). Utile in orizzontale quando il notch copre l\'immagine. Influisce solo sull\'emulazione; il resto dell\'app rispetta già i ritagli.</string>
+    <string name="home_game_menu_restore_cover">Ripristina copertina predefinita</string>
+    <string name="home_game_menu_restore_cover_success">Copertina predefinita ripristinata.</string>
+    <string name="home_game_menu_restore_cover_failed">Impossibile ripristinare la copertina predefinita.</string>
+    <string name="settings_reset_custom_covers">Reimposta copertine personalizzate</string>
+    <string name="settings_reset_custom_covers_desc">Ripristina le copertine predefinite di tutti i giochi.</string>
+    <string name="settings_reset_custom_covers_confirm_title">Reimpostare tutte le copertine personalizzate?</string>
+    <string name="settings_reset_custom_covers_confirm_body">Le copertine personalizzate saranno rimosse dalla libreria e sostituite con quelle predefinite. Le immagini originali e i file dei giochi saranno conservati.</string>
+    <string name="settings_reset_custom_covers_action">Reimposta</string>
+    <string name="settings_reset_custom_covers_success">Copertine personalizzate reimpostate.</string>
+    <string name="settings_reset_custom_covers_partial">Impossibile reimpostare alcune copertine personalizzate. Riprova.</string>
+
+    <string name="home_library_options">Opzioni della libreria</string>
+
+    <string name="hardware_warning_title">Il dispositivo potrebbe essere troppo lento</string>
+    <string name="hardware_warning_body">Questo dispositivo è al di sotto dell\'hardware consigliato per l\'emulazione 3DS, quindi i giochi potrebbero essere lenti o a scatti. Non è un errore: prova a ridurre la risoluzione o usa le impostazioni di prestazioni.</string>
+    <string name="hardware_warning_gpu">GPU: %1$s</string>
+    <string name="hardware_warning_recommended">Prima di lasciare una valutazione bassa o una recensione negativa, prova EmuCoreD su un altro dispositivo con almeno Snapdragon 855, Dimensity 1000, Exynos 2200 o Tensor G2.</string>
+    <string name="hardware_warning_continue">Ho capito</string>
 </resources>

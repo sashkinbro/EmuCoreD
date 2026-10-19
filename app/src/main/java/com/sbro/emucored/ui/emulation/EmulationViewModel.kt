@@ -68,6 +68,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.stateIn
@@ -157,6 +158,9 @@ data class EmulationUiState(
     val invertLeftStickHorizontal: Boolean = false,
     val invertRightStickHorizontal: Boolean = false,
     val racingMode: Boolean = false,
+    val stickyButtons: Set<String> = emptySet(),
+    val touchscreenLeftStick: Boolean = AppPreferences.DEFAULT_TOUCHSCREEN_LEFT_STICK,
+    val touchscreenLeftStickSensitivity: Int = AppPreferences.DEFAULT_TOUCHSCREEN_LEFT_STICK_SENSITIVITY,
     val touchscreenRightStick: Boolean = AppPreferences.DEFAULT_TOUCHSCREEN_RIGHT_STICK,
     val touchscreenRightStickSensitivity: Int = AppPreferences.DEFAULT_TOUCHSCREEN_RIGHT_STICK_SENSITIVITY,
     val touchHaptics: Boolean = false,
@@ -176,11 +180,8 @@ data class EmulationUiState(
     val gamepadBindingsByPad: Map<Int, Map<String, Int>> = emptyMap(),
     val stickSurfaceMode: Boolean = false,
     val controlLayouts: Map<String, OverlayControlLayout> = AppPreferences.defaultOverlayControlLayouts(),
-    val fps: String = "0.0",
     val fpsOverlayMode: Int = FPS_OVERLAY_MODE_DETAILED,
-    val performanceOverlayText: String = "",
     val performanceOverlayHeader: String = "",
-    val speedPercent: Float = 100f,
     val toastMessage: String? = null,
     val statusMessage: String? = null,
     val currentSlot: Int = 1,
@@ -255,6 +256,9 @@ private data class LiveRuntimeSnapshot(
     val audioVolume: Int,
     val audioMuted: Boolean,
     val racingMode: Boolean,
+    val stickyButtons: Set<String>,
+    val touchscreenLeftStick: Boolean,
+    val touchscreenLeftStickSensitivity: Int,
     val touchscreenRightStick: Boolean,
     val touchscreenRightStickSensitivity: Int,
     val touchHaptics: Boolean,
@@ -306,6 +310,8 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
         state, failure -> state.withRuntimeFailure(failure)
     }.stateIn(viewModelScope, SharingStarted.Eagerly,
         _uiState.value.withRuntimeFailure(EmulatorBridge.runtimeFailure.value))
+    private val _performanceState = MutableStateFlow(EmulationPerformanceState())
+    val performanceState: StateFlow<EmulationPerformanceState> = _performanceState.asStateFlow()
     private val lifecycleMutex = Mutex()
     private var pausedForBackground = false
     @Volatile
@@ -620,6 +626,21 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
             }
         }
         viewModelScope.launch {
+            preferences.stickyButtons.collect { buttons ->
+                applyGlobalRuntimePreferenceUpdate { it.copy(stickyButtons = buttons) }
+            }
+        }
+        viewModelScope.launch {
+            preferences.touchscreenLeftStick.collect { enabled ->
+                applyGlobalRuntimePreferenceUpdate { it.copy(touchscreenLeftStick = enabled) }
+            }
+        }
+        viewModelScope.launch {
+            preferences.touchscreenLeftStickSensitivity.collect { value ->
+                applyGlobalRuntimePreferenceUpdate { it.copy(touchscreenLeftStickSensitivity = value) }
+            }
+        }
+        viewModelScope.launch {
             preferences.touchscreenRightStick.collect { enabled ->
                 applyGlobalRuntimePreferenceUpdate { it.copy(touchscreenRightStick = enabled) }
             }
@@ -846,10 +867,10 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
         val fps = parts[0].toFloatOrNull() ?: return
         val speedPercent = parts[1].toFloatOrNull() ?: return
         val overlayText = buildPerformanceOverlayText(parts[2], state)
-        _uiState.value = state.copy(
-            performanceOverlayText = overlayText,
+        _performanceState.value = EmulationPerformanceState(
             fps = "%.1f".format(fps),
-            speedPercent = speedPercent
+            speedPercent = speedPercent,
+            overlayText = overlayText
         )
     }
 
@@ -1117,6 +1138,9 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
                     frameLimitEnabled = liveRuntime.frameLimitEnabled,
                     fastForwardSpeed = liveRuntime.fastForwardSpeed,
                     racingMode = liveRuntime.racingMode,
+                    stickyButtons = liveRuntime.stickyButtons,
+                    touchscreenLeftStick = liveRuntime.touchscreenLeftStick,
+                    touchscreenLeftStickSensitivity = liveRuntime.touchscreenLeftStickSensitivity,
                     touchscreenRightStick = liveRuntime.touchscreenRightStick,
                     touchscreenRightStickSensitivity = liveRuntime.touchscreenRightStickSensitivity,
                     touchHaptics = liveRuntime.touchHaptics,
@@ -1489,6 +1513,46 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
         viewModelScope.launch {
             preferences.setInvertRightStickHorizontal(enabled)
             _uiState.value = _uiState.value.copy(invertRightStickHorizontal = enabled)
+        }
+    }
+
+    fun setTouchscreenRightStick(enabled: Boolean) {
+        viewModelScope.launch {
+            persistRuntimeState(_uiState.value.copy(touchscreenRightStick = enabled)) {
+                preferences.setTouchscreenRightStick(enabled)
+            }
+        }
+    }
+
+    fun setTouchscreenRightStickSensitivity(value: Int) {
+        viewModelScope.launch {
+            val normalized = value.coerceIn(
+                AppPreferences.TOUCHSCREEN_RIGHT_STICK_SENSITIVITY_MIN,
+                AppPreferences.TOUCHSCREEN_RIGHT_STICK_SENSITIVITY_MAX
+            )
+            persistRuntimeState(_uiState.value.copy(touchscreenRightStickSensitivity = normalized)) {
+                preferences.setTouchscreenRightStickSensitivity(normalized)
+            }
+        }
+    }
+
+    fun setTouchscreenLeftStick(enabled: Boolean) {
+        viewModelScope.launch {
+            persistRuntimeState(_uiState.value.copy(touchscreenLeftStick = enabled)) {
+                preferences.setTouchscreenLeftStick(enabled)
+            }
+        }
+    }
+
+    fun setTouchscreenLeftStickSensitivity(value: Int) {
+        viewModelScope.launch {
+            val normalized = value.coerceIn(
+                AppPreferences.TOUCHSCREEN_RIGHT_STICK_SENSITIVITY_MIN,
+                AppPreferences.TOUCHSCREEN_RIGHT_STICK_SENSITIVITY_MAX
+            )
+            persistRuntimeState(_uiState.value.copy(touchscreenLeftStickSensitivity = normalized)) {
+                preferences.setTouchscreenLeftStickSensitivity(normalized)
+            }
         }
     }
 
@@ -2261,6 +2325,9 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
             audioVolume = settings.audioVolume,
             audioMuted = settings.audioMuted,
             racingMode = settings.racingMode,
+            stickyButtons = settings.stickyButtons,
+            touchscreenLeftStick = settings.touchscreenLeftStick,
+            touchscreenLeftStickSensitivity = settings.touchscreenLeftStickSensitivity,
             touchscreenRightStick = settings.touchscreenRightStick,
             touchscreenRightStickSensitivity = settings.touchscreenRightStickSensitivity,
             touchHaptics = settings.touchHaptics,
@@ -2326,6 +2393,12 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
             showFps = pick("showFps", showFps) { showFps },
             fpsOverlayMode = pick("fpsOverlayMode", fpsOverlayMode) { fpsOverlayMode },
             racingMode = pick("racingMode", racingMode) { racingMode },
+            stickyButtons = pick("stickyButtons", stickyButtons) { stickyButtons },
+            touchscreenLeftStick = pick("touchscreenLeftStick", touchscreenLeftStick) { touchscreenLeftStick },
+            touchscreenLeftStickSensitivity = pick(
+                "touchscreenLeftStickSensitivity",
+                touchscreenLeftStickSensitivity
+            ) { touchscreenLeftStickSensitivity },
             touchscreenRightStick = pick("touchscreenRightStick", touchscreenRightStick) { touchscreenRightStick },
             touchscreenRightStickSensitivity = pick(
                 "touchscreenRightStickSensitivity",
@@ -2409,6 +2482,9 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
             frameSkip = frameSkip,
             frameLimitEnabled = frameLimitEnabled,
             racingMode = racingMode,
+            stickyButtons = stickyButtons,
+            touchscreenLeftStick = touchscreenLeftStick,
+            touchscreenLeftStickSensitivity = touchscreenLeftStickSensitivity,
             touchscreenRightStick = touchscreenRightStick,
             touchscreenRightStickSensitivity = touchscreenRightStickSensitivity,
             touchHaptics = touchHaptics,
@@ -2452,6 +2528,11 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
         if (audioVolume != settings.audioVolume) add("audioVolume")
         if (audioMuted != settings.audioMuted) add("audioMuted")
         if (racingMode != settings.racingMode) add("racingMode")
+        if (stickyButtons != settings.stickyButtons) add("stickyButtons")
+        if (touchscreenLeftStick != settings.touchscreenLeftStick) add("touchscreenLeftStick")
+        if (touchscreenLeftStickSensitivity != settings.touchscreenLeftStickSensitivity) {
+            add("touchscreenLeftStickSensitivity")
+        }
         if (touchscreenRightStick != settings.touchscreenRightStick) add("touchscreenRightStick")
         if (touchscreenRightStickSensitivity != settings.touchscreenRightStickSensitivity) {
             add("touchscreenRightStickSensitivity")
@@ -2856,11 +2937,9 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
                     showMenu = false,
                     isActionInProgress = false,
                     actionLabel = null,
-                    fps = "0",
-                    performanceOverlayText = "",
-                    speedPercent = 100f,
                     statusMessage = null
                 )
+                _performanceState.value = EmulationPerformanceState(fps = "0")
                 syncNativePerformanceOverlayState(_uiState.value)
                 clearCrashContext()
                 RetroAchievementsRepository.get(getApplication()).onGameStopped()
@@ -2917,10 +2996,10 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
         currentGameSerial = ""
         currentGameCoverArtPath = null
         currentGameCrc = ""
+        // The sidebar can still be drawing its exit animation after shutdown.
+        // Keep its game identity until navigation disposes the screen; the next
+        // launch replaces it while the menu is hidden.
         _uiState.value = _uiState.value.copy(
-            currentGameTitle = "",
-            currentGameSubtitle = "",
-            currentGameCoverPath = null,
             gameSettingsProfileActive = false
         )
         currentGameSource = ""

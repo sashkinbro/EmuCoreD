@@ -1719,4 +1719,34 @@
     <string name="settings_control_label_right_stick">Sağ çubuk</string>
     <string name="controls_editor_show_grid">Izgara göster</string>
     <string name="controls_editor_snap_grid">Izgaraya yapıştır</string>
+
+    <string name="settings_sticky_buttons">Basılı kalan tuşlar</string>
+    <string name="settings_sticky_buttons_desc">Seçili bir tuşa dokunarak basılı tutun, bırakmak için tekrar dokunun.</string>
+    <string name="settings_help_sticky_buttons">Basılı tutmak yerine dokunuşla basılı durumunu değiştiren kaplama tuşlarını seçmenizi sağlar. R1, R2 veya diğer tuşların yüz tuşlarını kullanırken basılı kalmasını isteyen nişancı ve korku oyunları için kullanışlıdır.</string>
+    <string name="settings_touchscreen_left_stick">Dokunmatik ekranda sol çubuk</string>
+    <string name="settings_touchscreen_left_stick_desc">Sanal sol çubuğu kontrol etmek için ekranın boş bir alanında kaydırın.</string>
+    <string name="settings_help_touchscreen_left_stick">Oyun ekranının kullanılmayan alanlarındaki sürükleme hareketlerini sanal sol çubuk eksenlerine eşler; görünür çubuğa dokunmadan hareket etmeyi sağlar. Dokunmatik düğmeler ve görünür çubuklar normal davranışlarını korur.</string>
+    <string name="settings_touchscreen_left_stick_sensitivity">Dokunmatik sol çubuk hassasiyeti</string>
+    <string name="settings_help_touchscreen_left_stick_sensitivity">Ekrandaki sürükleme mesafesinin sanal sol çubuğu ne kadar güçlü kontrol ettiğini ayarlar. Görünür sol çubuğun hassasiyetini değiştirmez.</string>
+    <string name="settings_respect_display_cutout">Kamera çentiğini dikkate al</string>
+    <string name="settings_respect_display_cutout_desc">Oyun görüntüsünü kamera çentiğinin dışında tut.</string>
+    <string name="settings_help_respect_display_cutout">Emülasyon görüntüsünün kamera çentiğinin (notch veya delik) altına girmemesi için kenar boşluğu ekler. Çentik görüntüyü kapattığında yatay modda kullanışlıdır. Yalnızca emülasyonu etkiler; uygulamanın geri kalanı çentikleri zaten dikkate alır.</string>
+    <string name="home_game_menu_restore_cover">Varsayılan kapağı geri yükle</string>
+    <string name="home_game_menu_restore_cover_success">Varsayılan kapak geri yüklendi.</string>
+    <string name="home_game_menu_restore_cover_failed">Varsayılan kapak geri yüklenemedi.</string>
+    <string name="settings_reset_custom_covers">Özel kapakları sıfırla</string>
+    <string name="settings_reset_custom_covers_desc">Tüm oyunların varsayılan kapaklarını geri yükle.</string>
+    <string name="settings_reset_custom_covers_confirm_title">Tüm özel kapaklar sıfırlansın mı?</string>
+    <string name="settings_reset_custom_covers_confirm_body">Özel kapaklar kütüphaneden kaldırılacak ve varsayılan kapaklarla değiştirilecek. Özgün görselleriniz ve oyun dosyalarınız korunacak.</string>
+    <string name="settings_reset_custom_covers_action">Sıfırla</string>
+    <string name="settings_reset_custom_covers_success">Özel kapaklar sıfırlandı.</string>
+    <string name="settings_reset_custom_covers_partial">Bazı özel kapaklar sıfırlanamadı. Lütfen tekrar deneyin.</string>
+
+    <string name="home_library_options">Kitaplık seçenekleri</string>
+
+    <string name="hardware_warning_title">Cihaz çok yavaş olabilir</string>
+    <string name="hardware_warning_body">Bu cihaz 3DS emülasyonu için önerilen donanımın altında, bu nedenle oyunlar yavaş çalışabilir veya takılabilir. Bu bir hata değil — çözünürlüğü düşürmeyi veya performans ayarlarını kullanmayı deneyin.</string>
+    <string name="hardware_warning_gpu">GPU: %1$s</string>
+    <string name="hardware_warning_recommended">Düşük puan veya olumsuz yorum bırakmadan önce EmuCoreD\'i en az Snapdragon 855, Dimensity 1000, Exynos 2200 veya Tensor G2\'li başka bir cihazda deneyin.</string>
+    <string name="hardware_warning_continue">Anladım</string>
 </resources>

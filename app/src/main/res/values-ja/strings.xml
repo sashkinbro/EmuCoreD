@@ -1718,4 +1718,34 @@
     <string name="settings_control_label_right_stick">右スティック</string>
     <string name="controls_editor_show_grid">グリッドを表示</string>
     <string name="controls_editor_snap_grid">グリッドにスナップ</string>
+
+    <string name="settings_sticky_buttons">押しっぱなしボタン</string>
+    <string name="settings_sticky_buttons_desc">選択したボタンをタップすると押しっぱなしになり、もう一度タップすると離します。</string>
+    <string name="settings_help_sticky_buttons">押し続ける代わりにタップで押下状態を切り替えるオーバーレイボタンを選べます。顔ボタンを使っている間、R1やR2などを押しっぱなしにしたいシューティングやホラーゲームに便利です。</string>
+    <string name="settings_touchscreen_left_stick">タッチスクリーン左スティック</string>
+    <string name="settings_touchscreen_left_stick_desc">画面の空き領域をスワイプして仮想左スティックを操作します。</string>
+    <string name="settings_help_touchscreen_left_stick">ゲーム画面の未使用領域でのドラッグ操作を仮想左スティックの軸に割り当て、表示されるスティックに触れずに移動できるようにします。タッチボタンと表示スティックは通常どおり動作します。</string>
+    <string name="settings_touchscreen_left_stick_sensitivity">タッチスクリーン左スティック感度</string>
+    <string name="settings_help_touchscreen_left_stick_sensitivity">画面のドラッグ距離が仮想左スティックをどれだけ強く操作するかを調整します。表示される左スティックの感度は変わりません。</string>
+    <string name="settings_respect_display_cutout">カメラの切り欠きを考慮</string>
+    <string name="settings_respect_display_cutout_desc">ゲーム映像をカメラ切り欠き領域の外側に保ちます。</string>
+    <string name="settings_help_respect_display_cutout">エミュレーション映像がカメラの切り欠き（ノッチやパンチホール）の下に描画されないよう余白を追加します。切り欠きが映像に重なる横向き時に便利です。影響するのはエミュレーションのみで、アプリの他の画面は既に切り欠きを考慮しています。</string>
+    <string name="home_game_menu_restore_cover">標準のカバーに戻す</string>
+    <string name="home_game_menu_restore_cover_success">標準のカバーに戻しました。</string>
+    <string name="home_game_menu_restore_cover_failed">標準のカバーに戻せませんでした。</string>
+    <string name="settings_reset_custom_covers">カスタムカバーをリセット</string>
+    <string name="settings_reset_custom_covers_desc">すべてのゲームを標準のカバーに戻します。</string>
+    <string name="settings_reset_custom_covers_confirm_title">すべてのカスタムカバーをリセットしますか？</string>
+    <string name="settings_reset_custom_covers_confirm_body">カスタムカバーをライブラリから削除し、標準のカバーに戻します。元の画像とゲームファイルは保持されます。</string>
+    <string name="settings_reset_custom_covers_action">リセット</string>
+    <string name="settings_reset_custom_covers_success">カスタムカバーをリセットしました。</string>
+    <string name="settings_reset_custom_covers_partial">一部のカスタムカバーをリセットできませんでした。もう一度お試しください。</string>
+
+    <string name="home_library_options">ライブラリのオプション</string>
+
+    <string name="hardware_warning_title">このデバイスは遅すぎる可能性があります</string>
+    <string name="hardware_warning_body">このデバイスは3DSエミュレーションの推奨ハードウェアを下回っているため、ゲームが遅くなったりカクついたりする場合があります。これはエラーではありません。解像度を下げるか、パフォーマンス設定をお試しください。</string>
+    <string name="hardware_warning_gpu">GPU: %1$s</string>
+    <string name="hardware_warning_recommended">低い評価や否定的なレビューを投稿する前に、少なくとも Snapdragon 855、Dimensity 1000、Exynos 2200、Tensor G2 を搭載した別の端末で EmuCoreD をお試しください。</string>
+    <string name="hardware_warning_continue">了解</string>
 </resources>

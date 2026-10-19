@@ -1740,4 +1740,34 @@
     <string name="settings_control_label_right_stick">Pravá páčka</string>
     <string name="controls_editor_show_grid">Zobrazit mřížku</string>
     <string name="controls_editor_snap_grid">Přichytávat k mřížce</string>
+
+    <string name="settings_sticky_buttons">Tlačítka s fixací</string>
+    <string name="settings_sticky_buttons_desc">Klepněte na vybrané tlačítko pro jeho podržení a klepnutím znovu jej uvolníte.</string>
+    <string name="settings_help_sticky_buttons">Umožňuje vybrat tlačítka překryvu, která přepínají stisknutí klepnutím místo držení. Hodí se pro střílečky a horory, které chtějí držet R1, R2 nebo jiná tlačítka stisknutá, zatímco používáte přední tlačítka.</string>
+    <string name="settings_touchscreen_left_stick">Levá páčka na dotykové obrazovce</string>
+    <string name="settings_touchscreen_left_stick_desc">Přejeďte prstem po volném místě obrazovky pro ovládání virtuální levé páčky.</string>
+    <string name="settings_help_touchscreen_left_stick">Mapuje gesta tažení v nevyužitých oblastech herní obrazovky na osy virtuální levé páčky, takže se lze pohybovat bez dotyku viditelné páčky. Dotyková tlačítka a viditelné páčky si zachovávají běžné chování.</string>
+    <string name="settings_touchscreen_left_stick_sensitivity">Citlivost levé páčky na dotykové obrazovce</string>
+    <string name="settings_help_touchscreen_left_stick_sensitivity">Nastavuje, jak silně vzdálenost tažení na obrazovce ovládá virtuální levou páčku. Nemění citlivost viditelné levé páčky.</string>
+    <string name="settings_respect_display_cutout">Respektovat výřez fotoaparátu</string>
+    <string name="settings_respect_display_cutout_desc">Udržet obraz hry mimo oblast výřezu.</string>
+    <string name="settings_help_respect_display_cutout">Přidá okraj kolem obrazu emulace, aby se nevykresloval pod výřezem fotoaparátu (notch nebo otvor). Hodí se na šířku, když výřez zakrývá obraz. Ovlivňuje pouze emulaci – zbytek aplikace už výřezy respektuje.</string>
+    <string name="home_game_menu_restore_cover">Obnovit výchozí obal</string>
+    <string name="home_game_menu_restore_cover_success">Výchozí obal byl obnoven.</string>
+    <string name="home_game_menu_restore_cover_failed">Výchozí obal se nepodařilo obnovit.</string>
+    <string name="settings_reset_custom_covers">Obnovit výchozí obaly</string>
+    <string name="settings_reset_custom_covers_desc">Obnovit výchozí obaly všech her.</string>
+    <string name="settings_reset_custom_covers_confirm_title">Obnovit výchozí obaly u všech her?</string>
+    <string name="settings_reset_custom_covers_confirm_body">Vlastní obaly budou odebrány z knihovny a nahrazeny výchozími. Původní obrázky a soubory her zůstanou zachovány.</string>
+    <string name="settings_reset_custom_covers_action">Obnovit</string>
+    <string name="settings_reset_custom_covers_success">Vlastní obaly byly nahrazeny výchozími.</string>
+    <string name="settings_reset_custom_covers_partial">U některých her se nepodařilo obnovit výchozí obal. Zkuste to znovu.</string>
+
+    <string name="home_library_options">Možnosti knihovny</string>
+
+    <string name="hardware_warning_title">Zařízení může být příliš pomalé</string>
+    <string name="hardware_warning_body">Toto zařízení je pod doporučenými požadavky pro emulaci 3DS, takže hry mohou běžet pomalu nebo se zasekávat. Není to chyba — zkuste snížit rozlišení nebo použít nastavení výkonu.</string>
+    <string name="hardware_warning_gpu">GPU: %1$s</string>
+    <string name="hardware_warning_recommended">Než dáte nízké hodnocení nebo negativní recenzi, vyzkoušejte EmuCoreD na jiném zařízení s alespoň Snapdragon 855, Dimensity 1000, Exynos 2200 nebo Tensor G2.</string>
+    <string name="hardware_warning_continue">Rozumím</string>
 </resources>

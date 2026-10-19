@@ -16,7 +16,5 @@ internal fun EmulationUiState.withRuntimeFailure(failure: RuntimeFailure?): Emul
         isActionInProgress = false,
         actionLabel = null,
         statusMessage = null,
-        toastMessage = null,
-        fps = "0",
-        performanceOverlayText = ""
+        toastMessage = null
     )

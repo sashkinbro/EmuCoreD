@@ -61,7 +61,7 @@ android {
         minSdk = 26
         targetSdk = 37
         versionCode = 14
-        versionName = "0.0.1Alpha"
+        versionName = "0.0.1"
 
         buildConfigField("String", "FEEDBACK_ENDPOINT", buildConfigString(feedbackEndpoint))
         buildConfigField("String", "FEEDBACK_API_KEY", buildConfigString(feedbackApiKey))

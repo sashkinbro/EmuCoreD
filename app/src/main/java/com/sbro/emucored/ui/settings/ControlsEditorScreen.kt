@@ -115,6 +115,37 @@ import com.sbro.emucored.ui.theme.neon.neonShape
 import java.util.UUID
 import kotlin.math.roundToInt
 
+internal data class ControlVisibilityToggle(
+    val controlVisible: Boolean,
+    val pairedControlId: String? = null,
+    val pairedControlVisible: Boolean = false
+)
+
+/**
+ * Resolves what a visibility click in the controls editor should update.
+ *
+ * The stick and its toggle D-pad share one slot: turning either on hides the other,
+ * but turning one off never forces the counterpart back on, so both may stay hidden.
+ * This mirrors the in-game stick/toggle behaviour without changing it.
+ */
+internal fun resolveControlVisibilityToggle(
+    controlId: String,
+    nextVisible: Boolean,
+    toggleStickId: String
+): ControlVisibilityToggle = when (controlId) {
+    toggleStickId -> ControlVisibilityToggle(
+        controlVisible = nextVisible,
+        pairedControlId = "dpad_toggle",
+        pairedControlVisible = false
+    )
+    "dpad_toggle" -> ControlVisibilityToggle(
+        controlVisible = nextVisible,
+        pairedControlId = if (nextVisible) toggleStickId else null,
+        pairedControlVisible = false
+    )
+    else -> ControlVisibilityToggle(controlVisible = nextVisible)
+}
+
 data class ControlsEditorState(
     val overlayScale: Int = 100,
     val touchControlVisualStyle: TouchControlVisualStyle = TouchControlVisualStyle.CLASSIC,
@@ -127,6 +158,7 @@ data class ControlsEditorState(
     val rbtnOffset: Pair<Float, Float> = AppPreferences.DEFAULT_RBTN_OFFSET_X to AppPreferences.DEFAULT_RBTN_OFFSET_Y,
     val centerOffset: Pair<Float, Float> = AppPreferences.DEFAULT_CENTER_OFFSET_X to AppPreferences.DEFAULT_CENTER_OFFSET_Y,
     val stickScale: Int = 100,
+    val stickToggleTarget: Int = AppPreferences.DEFAULT_STICK_TOGGLE_TARGET,
     val controlLayouts: Map<String, OverlayControlLayout> = AppPreferences.defaultOverlayControlLayouts(),
     val customControls: CustomTouchControlLibrary = CustomTouchControlLibrary.Empty
 )
@@ -143,6 +175,7 @@ fun EmulationUiState.toControlsEditorState(): ControlsEditorState = ControlsEdit
     rbtnOffset = rbtnOffset,
     centerOffset = centerOffset,
     stickScale = stickScale,
+    stickToggleTarget = stickToggleTarget,
     controlLayouts = controlLayouts,
     customControls = customTouchControls
 )
@@ -151,6 +184,7 @@ fun TouchControlsLayoutProfile.toControlsEditorState(
     visualStyle: TouchControlVisualStyle,
     pressEffect: TouchControlPressEffect,
     overlayScale: Int,
+    stickToggleTarget: Int = AppPreferences.DEFAULT_STICK_TOGGLE_TARGET,
     customControls: CustomTouchControlLibrary = CustomTouchControlLibrary.Empty
 ): ControlsEditorState = ControlsEditorState(
     overlayScale = overlayScale,
@@ -164,6 +198,7 @@ fun TouchControlsLayoutProfile.toControlsEditorState(
     rbtnOffset = rbtnOffset,
     centerOffset = centerOffset,
     stickScale = stickScale,
+    stickToggleTarget = AppPreferences.normalizeStickToggleTarget(stickToggleTarget),
     controlLayouts = controlLayouts,
     customControls = customControls
 )
@@ -784,7 +819,27 @@ fun ControlsEditorScreen(
                                     )
                                 }
                                 controlId !in ControlGroupIds -> {
-                                    setControlVisibleLocally(controlId, !(selectedLayout?.visible ?: true))
+                                    val nextVisible = !(selectedLayout?.visible ?: true)
+                                    val toggleStickId = if (
+                                        AppPreferences.normalizeStickToggleTarget(state.stickToggleTarget) ==
+                                        AppPreferences.STICK_TOGGLE_LEFT
+                                    ) {
+                                        "left_stick"
+                                    } else {
+                                        "right_stick"
+                                    }
+                                    // The stick and its toggle D-pad share one slot. Showing
+                                    // either hides the other, but hiding one never forces its
+                                    // counterpart back on, so both can stay hidden.
+                                    val visibility = resolveControlVisibilityToggle(
+                                        controlId = controlId,
+                                        nextVisible = nextVisible,
+                                        toggleStickId = toggleStickId
+                                    )
+                                    setControlVisibleLocally(controlId, visibility.controlVisible)
+                                    visibility.pairedControlId?.let { pairedId ->
+                                        setControlVisibleLocally(pairedId, visibility.pairedControlVisible)
+                                    }
                                 }
                             }
                         }

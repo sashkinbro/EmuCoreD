@@ -152,6 +152,9 @@
     <string name="settings_pad_vibration_desc">Включить вибрацию в поддерживаемых играх и на поддерживаемых устройствах.</string>
     <string name="settings_show_fps">Показывать счетчик FPS</string>
     <string name="settings_show_fps_desc">Отображать частоту кадров во время игры.</string>
+    <string name="settings_respect_display_cutout">Учитывать вырез камеры</string>
+    <string name="settings_respect_display_cutout_desc">Держать изображение игры вне зоны выреза камеры.</string>
+    <string name="settings_help_respect_display_cutout">Добавляет отступ вокруг изображения эмуляции, чтобы оно не рисовалось под вырезом камеры (notch или отверстие). Полезно в альбомной ориентации, когда вырез перекрывает изображение. Влияет только на эмуляцию; остальная часть приложения уже учитывает вырезы.</string>
     <string name="settings_keep_screen_on">Не выключать экран</string>
     <string name="settings_keep_screen_on_desc">Предотвращать затемнение экрана во время игры.</string>
     <string name="shell_quick_actions">Быстрые действия</string>
@@ -450,6 +453,9 @@
     <string name="home_game_menu_custom_cover">Выбрать обложку</string>
     <string name="home_game_menu_custom_cover_applied">Пользовательская обложка применена.</string>
     <string name="home_game_menu_custom_cover_failed">Не удалось применить пользовательскую обложку.</string>
+    <string name="home_game_menu_restore_cover">Восстановить стандартную обложку</string>
+    <string name="home_game_menu_restore_cover_success">Стандартная обложка восстановлена.</string>
+    <string name="home_game_menu_restore_cover_failed">Не удалось восстановить стандартную обложку.</string>
     <string name="home_shelf_games_counter">%1$d из %2$d</string>
     <string name="home_view_shelf">Показать полку с обложками</string>
     <string name="home_exit_shelf">Закрыть полку с обложками</string>
@@ -541,6 +547,9 @@
     <string name="gpu_powervr_title">PowerVR</string>
     <string name="settings_racing_mode">Гоночный режим</string>
     <string name="settings_racing_mode_desc">Коснитесь кнопок действий и триггеров (шифтов), чтобы удерживать их нажатыми, и коснитесь снова, чтобы отпустить.</string>
+    <string name="settings_sticky_buttons">Фиксированные кнопки</string>
+    <string name="settings_sticky_buttons_desc">Коснитесь этих кнопок один раз, чтобы удерживать их, и коснитесь снова, чтобы отпустить.</string>
+    <string name="settings_help_sticky_buttons">Фиксированные кнопки остаются нажатыми после касания, поэтому их можно использовать как переключатели. Коснитесь снова, чтобы отпустить.</string>
     <string name="settings_help_racing_mode">Позволяет кнопкам действий на сенсорном экране и триггерам переключать состояние нажатия одним касанием. Это полезно для гоночных игр, где нужно постоянно удерживать газ, в то время как Start, Select, стики и крестовина (D-pad) работают как обычно.</string>
     <string name="game_settings_manager_choose_game">Выбрать игру</string>
     <string name="game_settings_manager_no_games">В вашей текущей библиотеке не найдено ни одной игры.</string>
@@ -806,6 +815,11 @@
     <string name="settings_backup_include_save_states">Включить быстрые сохранения</string>
     <string name="settings_backup_include_save_states_desc">Добавляет быстрые сохранения в архив. Его размер может значительно увеличиться, а сохранения могут не работать с другой версией ядра.</string>
     <string name="settings_backup_export_action">Экспортировать</string>
+    <string name="settings_touchscreen_left_stick">Левый стик на сенсорном экране</string>
+    <string name="settings_touchscreen_left_stick_desc">Проводите пальцем по свободной части экрана, чтобы управлять виртуальным левым стиком.</string>
+    <string name="settings_help_touchscreen_left_stick">Привязывает жесты перетаскивания в свободных областях игрового экрана к осям виртуального левого стика. Сенсорные кнопки и видимые стики работают как обычно.</string>
+    <string name="settings_touchscreen_left_stick_sensitivity">Чувствительность левого стика на сенсорном экране</string>
+    <string name="settings_help_touchscreen_left_stick_sensitivity">Регулирует, насколько сильно расстояние перетаскивания на экране влияет на виртуальный левый стик. Это не меняет чувствительность видимого левого стика.</string>
     <string name="settings_touchscreen_right_stick">Правый стик на сенсорном экране</string>
     <string name="settings_touchscreen_right_stick_desc">Проводите пальцем по свободной части экрана, чтобы управлять виртуальным правым стиком.</string>
     <string name="settings_help_touchscreen_right_stick">Привязывает жесты перетаскивания в свободных областях игрового экрана к осям виртуального правого стика, позволяя двигать камерой без касания видимого стика. Сенсорные кнопки и видимые стики работают как обычно.</string>
@@ -1057,6 +1071,13 @@
     <string name="settings_clear_cover_cache_action">Очистить</string>
     <string name="settings_clear_cover_cache_success">Кеш обложек очищен. Обложки автоматически загрузятся снова.</string>
     <string name="settings_clear_cover_cache_partial">Не все кешированные обложки удалось удалить. Повторите попытку после завершения текущих загрузок.</string>
+    <string name="settings_reset_custom_covers">Сбросить пользовательские обложки</string>
+    <string name="settings_reset_custom_covers_desc">Удалить все пользовательские обложки и вернуть стандартные изображения.</string>
+    <string name="settings_reset_custom_covers_confirm_title">Сбросить пользовательские обложки?</string>
+    <string name="settings_reset_custom_covers_confirm_body">Все пользовательские обложки будут удалены, а библиотека вернётся к стандартным изображениям. Это действие нельзя отменить.</string>
+    <string name="settings_reset_custom_covers_action">Сбросить</string>
+    <string name="settings_reset_custom_covers_success">Пользовательские обложки сброшены.</string>
+    <string name="settings_reset_custom_covers_partial">Не все пользовательские обложки удалось удалить. Повторите попытку через мгновение.</string>
     <string name="settings_language_polish">Польский</string>
     <string name="settings_language_native_polish">Polski</string>
     <string name="settings_language_czech">Чешский</string>
@@ -1723,4 +1744,12 @@
     <string name="settings_control_label_right_stick">Правый стик</string>
     <string name="controls_editor_show_grid">Показать сетку</string>
     <string name="controls_editor_snap_grid">Привязать к сетке</string>
+
+    <string name="home_library_options">Параметры библиотеки</string>
+
+    <string name="hardware_warning_title">Устройство может быть слишком слабым</string>
+    <string name="hardware_warning_body">Это устройство слабее рекомендованных требований для эмуляции 3DS, поэтому игры могут работать медленно или с подтормаживаниями. Это не ошибка — попробуйте снизить разрешение или использовать настройки производительности.</string>
+    <string name="hardware_warning_gpu">GPU: %1$s</string>
+    <string name="hardware_warning_recommended">Прежде чем ставить низкую оценку или негативный отзыв, проверьте EmuCoreD на другом устройстве с как минимум Snapdragon 855, Dimensity 1000, Exynos 2200 или Tensor G2.</string>
+    <string name="hardware_warning_continue">Понятно</string>
 </resources>
