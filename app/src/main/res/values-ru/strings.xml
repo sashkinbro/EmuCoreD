@@ -1748,4 +1748,6 @@
     <string name="settings_control_label_extra_dpad">Дополнительный D-pad</string>
     <string name="settings_control_label_left_stick">Левый стик</string>
     <string name="settings_control_label_right_stick">Правый стик</string>
+    <string name="controls_editor_show_grid">Показать сетку</string>
+    <string name="controls_editor_snap_grid">Привязать к сетке</string>
 </resources>

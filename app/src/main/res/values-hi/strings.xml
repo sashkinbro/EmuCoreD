@@ -1744,4 +1744,6 @@
     <string name="settings_control_label_extra_dpad">अतिरिक्त डी-पैड</string>
     <string name="settings_control_label_left_stick">बायां स्टिक</string>
     <string name="settings_control_label_right_stick">दायां स्टिक</string>
+    <string name="controls_editor_show_grid">ग्रिड दिखाएं</string>
+    <string name="controls_editor_snap_grid">ग्रिड से स्नैप करें</string>
 </resources>

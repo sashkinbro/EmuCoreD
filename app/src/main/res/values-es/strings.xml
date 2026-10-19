@@ -1746,4 +1746,6 @@
     <string name="settings_control_label_extra_dpad">D-pad adicional</string>
     <string name="settings_control_label_left_stick">Stick izquierdo</string>
     <string name="settings_control_label_right_stick">Stick derecho</string>
+    <string name="controls_editor_show_grid">Mostrar cuadrícula</string>
+    <string name="controls_editor_snap_grid">Ajustar a la cuadrícula</string>
 </resources>

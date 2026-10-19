@@ -1750,4 +1750,6 @@
     <string name="settings_control_label_extra_dpad">Додатковий D-pad</string>
     <string name="settings_control_label_left_stick">Лівий стік</string>
     <string name="settings_control_label_right_stick">Правий стік</string>
+    <string name="controls_editor_show_grid">Показати сітку</string>
+    <string name="controls_editor_snap_grid">Прив\'язувати до сітки</string>
 </resources>

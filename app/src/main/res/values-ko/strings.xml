@@ -1743,4 +1743,6 @@
     <string name="settings_control_label_extra_dpad">추가 십자 패드</string>
     <string name="settings_control_label_left_stick">왼쪽 스틱</string>
     <string name="settings_control_label_right_stick">오른쪽 스틱</string>
+    <string name="controls_editor_show_grid">격자 표시</string>
+    <string name="controls_editor_snap_grid">격자에 맞추기</string>
 </resources>

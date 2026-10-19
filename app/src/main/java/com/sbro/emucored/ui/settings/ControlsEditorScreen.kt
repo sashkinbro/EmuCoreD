@@ -34,6 +34,8 @@ import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.ContentCopy
 import androidx.compose.material.icons.rounded.Delete
+import androidx.compose.material.icons.rounded.Grid4x4
+import androidx.compose.material.icons.rounded.GridOn
 import androidx.compose.material.icons.rounded.Remove
 import androidx.compose.material.icons.rounded.TouchApp
 import androidx.compose.material.icons.rounded.Tune
@@ -63,6 +65,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.toArgb
@@ -106,6 +109,7 @@ import com.sbro.emucored.ui.common.VectorDpadCluster
 import com.sbro.emucored.ui.common.VectorOverlayButton
 import com.sbro.emucored.ui.common.buildOverlayCanvasLayout
 import com.sbro.emucored.ui.common.overlayDpadArrowDefault
+import com.sbro.emucored.ui.common.snapOverlayDragDelta
 import com.sbro.emucored.ui.emulation.EmulationUiState
 import com.sbro.emucored.ui.theme.neon.neonShape
 import java.util.UUID
@@ -385,6 +389,8 @@ fun ControlsEditorScreen(
     var standardComboDialogControlId by remember { mutableStateOf<String?>(null) }
     var showCreateComboDialog by remember { mutableStateOf(false) }
     var showControlAdjustDialog by remember { mutableStateOf(false) }
+    var showLayoutGrid by rememberSaveable { mutableStateOf(false) }
+    var snapToGrid by rememberSaveable { mutableStateOf(false) }
     var deleteCustomCandidate by remember { mutableStateOf<CustomTouchControl?>(null) }
     val defaultLayouts = remember(state.stickScale) { AppPreferences.defaultOverlayControlLayouts(state.stickScale) }
     val selectedLayout = selectedControlId?.let { id ->
@@ -692,6 +698,8 @@ fun ControlsEditorScreen(
             controlLayouts = editorControlLayouts,
             customControls = editorCustomControls.controls,
             selectedControlId = selectedControlId,
+            showGrid = showLayoutGrid,
+            snapToGrid = snapToGrid,
             onSelectControl = { selectedControlId = it },
             onSetControlOffset = ::setControlOffsetLocally,
             onCommitControlPosition = ::persistControlPosition,
@@ -878,6 +886,46 @@ fun ControlsEditorScreen(
                     ) {
                         Icon(Icons.Rounded.TouchApp, contentDescription = null)
                     }
+                }
+
+                OutlinedButton(
+                    onClick = { showLayoutGrid = !showLayoutGrid },
+                    shape = neonShape(16.dp),
+                    contentPadding = PaddingValues(horizontal = 14.dp, vertical = 10.dp),
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        containerColor = if (showLayoutGrid) {
+                            Color(0xFF3565FF).copy(alpha = 0.78f)
+                        } else {
+                            Color.White.copy(alpha = 0.08f)
+                        },
+                        contentColor = Color.White
+                    ),
+                    modifier = Modifier.testTag("controls_editor_grid_toggle")
+                ) {
+                    Icon(
+                        imageVector = Icons.Rounded.GridOn,
+                        contentDescription = stringResource(R.string.controls_editor_show_grid)
+                    )
+                }
+
+                OutlinedButton(
+                    onClick = { snapToGrid = !snapToGrid },
+                    shape = neonShape(16.dp),
+                    contentPadding = PaddingValues(horizontal = 14.dp, vertical = 10.dp),
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        containerColor = if (snapToGrid) {
+                            Color(0xFF3565FF).copy(alpha = 0.78f)
+                        } else {
+                            Color.White.copy(alpha = 0.08f)
+                        },
+                        contentColor = Color.White
+                    ),
+                    modifier = Modifier.testTag("controls_editor_snap_toggle")
+                ) {
+                    Icon(
+                        imageVector = Icons.Rounded.Grid4x4,
+                        contentDescription = stringResource(R.string.controls_editor_snap_grid)
+                    )
                 }
 
                 Button(
@@ -1485,6 +1533,8 @@ private fun PreviewLayout(
     controlLayouts: Map<String, OverlayControlLayout>,
     customControls: List<CustomTouchControl>,
     selectedControlId: String?,
+    showGrid: Boolean,
+    snapToGrid: Boolean,
     onSelectControl: (String) -> Unit,
     onSetControlOffset: (String, Pair<Float, Float>) -> Unit,
     onCommitControlPosition: (String) -> Unit,
@@ -1510,6 +1560,47 @@ private fun PreviewLayout(
     BoxWithConstraints(
         modifier = modifier.fillMaxSize()
     ) {
+        val gridStepDp = 24.dp
+        val snapResiduals = remember { mutableMapOf<String, Pair<Float, Float>>() }
+        val commitControl: (String) -> Unit = { id ->
+            snapResiduals.clear()
+            onCommitControlPosition(id)
+        }
+        val commitCustomControl: (String) -> Unit = { id ->
+            snapResiduals.clear()
+            onCommitCustomControlPosition(id)
+        }
+        if (showGrid) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .drawBehind {
+                        val stepPx = gridStepDp.toPx()
+                        if (stepPx <= 0f) return@drawBehind
+                        var x = stepPx
+                        while (x < size.width) {
+                            drawLine(
+                                color = Color.White.copy(alpha = 0.14f),
+                                start = androidx.compose.ui.geometry.Offset(x, 0f),
+                                end = androidx.compose.ui.geometry.Offset(x, size.height),
+                                strokeWidth = 1f
+                            )
+                            x += stepPx
+                        }
+                        var y = stepPx
+                        while (y < size.height) {
+                            drawLine(
+                                color = Color.White.copy(alpha = 0.14f),
+                                start = androidx.compose.ui.geometry.Offset(0f, y),
+                                end = androidx.compose.ui.geometry.Offset(size.width, y),
+                                strokeWidth = 1f
+                            )
+                            y += stepPx
+                        }
+                    }
+            )
+        }
+
         val layout = buildOverlayCanvasLayout(
             canvasWidth = maxWidth,
             canvasHeight = maxHeight,
@@ -1570,13 +1661,28 @@ private fun PreviewLayout(
             return (nextX - baseXPx) to (nextY - baseYPx)
         }
 
+        fun snapDelta(
+            controlId: String,
+            currentX: Dp,
+            currentY: Dp,
+            delta: Pair<Float, Float>
+        ): Pair<Float, Float> = snapOverlayDragDelta(
+            residuals = snapResiduals,
+            controlId = controlId,
+            currentX = with(density) { currentX.toPx() },
+            currentY = with(density) { currentY.toPx() },
+            delta = delta,
+            stepPx = with(density) { gridStepDp.toPx() },
+            enabled = snapToGrid
+        )
+
         fun moveButton(controlId: String, spec: OverlayCanvasButtonSpec, delta: Pair<Float, Float>) {
             val current = controlLayouts[controlId] ?: OverlayControlLayout()
             onSetControlOffset(
                 controlId,
                 clampOffset(
                     currentOffset = current.offset,
-                    delta = delta,
+                    delta = snapDelta(controlId, spec.x, spec.y, delta),
                     baseX = spec.baseX,
                     baseY = spec.baseY,
                     width = spec.width,
@@ -1613,7 +1719,7 @@ private fun PreviewLayout(
                 controlId,
                 clampOffset(
                     currentOffset = current.offset,
-                    delta = delta,
+                    delta = snapDelta(controlId, spec.x, spec.y, delta),
                     baseX = stickPanelBaseX(spec),
                     baseY = spec.baseY,
                     width = stickPanelWidth(spec),
@@ -1629,7 +1735,7 @@ private fun PreviewLayout(
                 controlId,
                 clampOffset(
                     currentOffset = current.offset,
-                    delta = delta,
+                    delta = snapDelta(controlId, spec.x, spec.y, delta),
                     baseX = spec.x + surface.offset.x,
                     baseY = spec.y + surface.offset.y,
                     width = surface.width,
@@ -1652,7 +1758,7 @@ private fun PreviewLayout(
                 controlId,
                 clampOffset(
                     currentOffset = current.offset,
-                    delta = delta,
+                    delta = snapDelta(controlId, spec.x, spec.y, delta),
                     baseX = spec.x + slot.default.first,
                     baseY = spec.y + slot.default.second,
                     width = arrowSize,
@@ -1699,6 +1805,7 @@ private fun PreviewLayout(
         }
 
         fun commitButtonGroup(specs: List<OverlayCanvasButtonSpec>) {
+            snapResiduals.clear()
             onCommitControlPositions(specs.map { it.id })
         }
 
@@ -1740,7 +1847,7 @@ private fun PreviewLayout(
                 selected = selectedControlId == spec.id,
                 onSelectControl = onSelectControl,
                 onMoveControlBy = { id, delta -> moveButton(id, spec, delta) },
-                onCommitControlPosition = onCommitControlPosition,
+                onCommitControlPosition = commitControl,
                 baseZIndex = baseZIndex
             )
         }
@@ -1753,7 +1860,7 @@ private fun PreviewLayout(
                 selected = selectedControlId == spec.id,
                 onSelectControl = onSelectControl,
                 onMoveControlBy = { id, delta -> moveDpadCluster(id, spec, delta) },
-                onCommitControlPosition = onCommitControlPosition,
+                onCommitControlPosition = commitControl,
                 showDirections = !showIndependentDpad,
                 baseZIndex = if (showIndependentDpad) 0.5f else 1.5f,
                 selectedZBoost = if (showIndependentDpad) 0.5f else 10f
@@ -1784,7 +1891,7 @@ private fun PreviewLayout(
                         onMoveControlBy = { movedId, delta ->
                             moveDpadClusterButton(movedId, spec, slot, delta)
                         },
-                        onCommitControlPosition = onCommitControlPosition,
+                        onCommitControlPosition = commitControl,
                         baseZIndex = 5f
                     )
                 }
@@ -1806,7 +1913,7 @@ private fun PreviewLayout(
                 baseZIndex = if (spec.visible) 2f else 0.5f,
                 onSelectControl = onSelectControl,
                 onMoveControlBy = { id, delta -> moveStick(id, spec, delta) },
-                onCommitControlPosition = onCommitControlPosition
+                onCommitControlPosition = commitControl
             )
         }
 
@@ -1823,7 +1930,7 @@ private fun PreviewLayout(
                 baseZIndex = if (spec.visible) 2f else 0.5f,
                 onSelectControl = onSelectControl,
                 onMoveControlBy = { id, delta -> moveStick(id, spec, delta) },
-                onCommitControlPosition = onCommitControlPosition
+                onCommitControlPosition = commitControl
             )
         }
 
@@ -1852,7 +1959,7 @@ private fun PreviewLayout(
                         (control.positionY + delta.second / travelY).coerceIn(0f, 1f)
                     )
                 },
-                onCommitControlPosition = { onCommitCustomControlPosition(control.id) },
+                onCommitControlPosition = { commitCustomControl(control.id) },
                 baseZIndex = 4f,
                 modifier = Modifier.offset {
                     IntOffset(

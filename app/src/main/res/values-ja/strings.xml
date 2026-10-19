@@ -1743,4 +1743,6 @@
     <string name="settings_control_label_extra_dpad">追加の十字キー</string>
     <string name="settings_control_label_left_stick">左スティック</string>
     <string name="settings_control_label_right_stick">右スティック</string>
+    <string name="controls_editor_show_grid">グリッドを表示</string>
+    <string name="controls_editor_snap_grid">グリッドにスナップ</string>
 </resources>

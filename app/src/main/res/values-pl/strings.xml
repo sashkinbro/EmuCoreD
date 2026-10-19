@@ -1765,4 +1765,6 @@
     <string name="settings_control_label_extra_dpad">Dodatkowy D-pad</string>
     <string name="settings_control_label_left_stick">Lewy drążek</string>
     <string name="settings_control_label_right_stick">Prawy drążek</string>
+    <string name="controls_editor_show_grid">Pokaż siatkę</string>
+    <string name="controls_editor_snap_grid">Przyciągaj do siatki</string>
 </resources>

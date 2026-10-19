@@ -1765,4 +1765,6 @@
     <string name="settings_control_label_extra_dpad">Dodatečný D-pad</string>
     <string name="settings_control_label_left_stick">Levá páčka</string>
     <string name="settings_control_label_right_stick">Pravá páčka</string>
+    <string name="controls_editor_show_grid">Zobrazit mřížku</string>
+    <string name="controls_editor_snap_grid">Přichytávat k mřížce</string>
 </resources>

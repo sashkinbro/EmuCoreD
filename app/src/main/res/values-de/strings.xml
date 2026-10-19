@@ -1746,4 +1746,6 @@
     <string name="settings_control_label_extra_dpad">Zusätzliches D-Pad</string>
     <string name="settings_control_label_left_stick">Linker Stick</string>
     <string name="settings_control_label_right_stick">Rechter Stick</string>
+    <string name="controls_editor_show_grid">Raster anzeigen</string>
+    <string name="controls_editor_snap_grid">Am Raster ausrichten</string>
 </resources>

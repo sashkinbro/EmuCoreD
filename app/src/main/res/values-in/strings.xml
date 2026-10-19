@@ -1758,4 +1758,6 @@
     <string name="settings_control_label_extra_dpad">D-pad tambahan</string>
     <string name="settings_control_label_left_stick">Stik kiri</string>
     <string name="settings_control_label_right_stick">Stik kanan</string>
+    <string name="controls_editor_show_grid">Tampilkan kisi</string>
+    <string name="controls_editor_snap_grid">Snap ke kisi</string>
 </resources>

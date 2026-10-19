@@ -1746,4 +1746,6 @@
     <string name="settings_control_label_extra_dpad">D-pad extra</string>
     <string name="settings_control_label_left_stick">Analógico esquerdo</string>
     <string name="settings_control_label_right_stick">Analógico direito</string>
+    <string name="controls_editor_show_grid">Mostrar grade</string>
+    <string name="controls_editor_snap_grid">Ajustar à grade</string>
 </resources>

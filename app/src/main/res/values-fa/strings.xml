@@ -1759,4 +1759,6 @@
     <string name="settings_control_label_extra_dpad">دی‌پد اضافی</string>
     <string name="settings_control_label_left_stick">استیک چپ</string>
     <string name="settings_control_label_right_stick">استیک راست</string>
+    <string name="controls_editor_show_grid">نمایش شبکه</string>
+    <string name="controls_editor_snap_grid">چسبیدن به شبکه</string>
 </resources>

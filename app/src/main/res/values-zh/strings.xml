@@ -1745,4 +1745,6 @@
     <string name="settings_control_label_extra_dpad">额外十字键</string>
     <string name="settings_control_label_left_stick">左摇杆</string>
     <string name="settings_control_label_right_stick">右摇杆</string>
+    <string name="controls_editor_show_grid">显示网格</string>
+    <string name="controls_editor_snap_grid">对齐到网格</string>
 </resources>

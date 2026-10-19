@@ -1744,4 +1744,6 @@
     <string name="settings_control_label_extra_dpad">D-pad aggiuntivo</string>
     <string name="settings_control_label_left_stick">Stick sinistro</string>
     <string name="settings_control_label_right_stick">Stick destro</string>
+    <string name="controls_editor_show_grid">Mostra griglia</string>
+    <string name="controls_editor_snap_grid">Aggancia alla griglia</string>
 </resources>

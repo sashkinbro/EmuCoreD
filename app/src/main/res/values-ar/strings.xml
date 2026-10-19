@@ -1752,4 +1752,6 @@
     <string name="settings_control_label_extra_dpad">لوحة اتجاهات إضافية</string>
     <string name="settings_control_label_left_stick">الذراع الأيسر</string>
     <string name="settings_control_label_right_stick">الذراع الأيمن</string>
+    <string name="controls_editor_show_grid">إظهار الشبكة</string>
+    <string name="controls_editor_snap_grid">محاذاة إلى الشبكة</string>
 </resources>

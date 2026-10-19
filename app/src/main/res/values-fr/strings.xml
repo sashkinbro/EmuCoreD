@@ -1746,4 +1746,6 @@
     <string name="settings_control_label_extra_dpad">Croix directionnelle supplémentaire</string>
     <string name="settings_control_label_left_stick">Stick gauche</string>
     <string name="settings_control_label_right_stick">Stick droit</string>
+    <string name="controls_editor_show_grid">Afficher la grille</string>
+    <string name="controls_editor_snap_grid">Aligner sur la grille</string>
 </resources>

@@ -1744,4 +1744,6 @@
     <string name="settings_control_label_extra_dpad">Ek D-pad</string>
     <string name="settings_control_label_left_stick">Sol çubuk</string>
     <string name="settings_control_label_right_stick">Sağ çubuk</string>
+    <string name="controls_editor_show_grid">Izgara göster</string>
+    <string name="controls_editor_snap_grid">Izgaraya yapıştır</string>
 </resources>
