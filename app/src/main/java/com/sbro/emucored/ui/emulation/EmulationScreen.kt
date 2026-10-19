@@ -37,7 +37,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -132,7 +131,6 @@ import androidx.compose.ui.input.pointer.pointerInteropFilter
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.layout
-import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
@@ -419,16 +417,14 @@ fun EmulationScreen(
     val secondScreenMode by preferences.secondScreenMode.collectAsState(
         initial = AppPreferences.SECOND_SCREEN_MODE_PANEL
     )
-    val secondScreenSide by preferences.secondScreenSide.collectAsState(
-        initial = AppPreferences.SECOND_SCREEN_SIDE_RIGHT
-    )
     val secondScreenWidth by preferences.secondScreenWidth.collectAsState(
         initial = AppPreferences.SECOND_SCREEN_WIDTH_DEFAULT
     )
     val secondScreenSwap by preferences.secondScreenSwap.collectAsState(initial = false)
     val secondScreenOpen by preferences.secondScreenOpen.collectAsState(initial = false)
-    val secondScreenTabPosition by preferences.secondScreenTabPosition.collectAsState(
-        initial = AppPreferences.SECOND_SCREEN_TAB_POSITION_DEFAULT
+    val secondScreenPanelPosition by preferences.secondScreenPanelPosition.collectAsState(
+        initial = AppPreferences.SECOND_SCREEN_PANEL_X_DEFAULT to
+            AppPreferences.SECOND_SCREEN_PANEL_Y_DEFAULT
     )
     val secondScreenFloatPosition by preferences.secondScreenFloatPosition.collectAsState(
         initial = AppPreferences.SECOND_SCREEN_FLOAT_X_DEFAULT to
@@ -483,7 +479,6 @@ fun EmulationScreen(
         rootNavPadding.calculateBottomPadding()
     )
 
-    val configuration = LocalConfiguration.current
     val view = LocalView.current
     var showExitDialog by remember { mutableStateOf(false) }
     var exitDispatched by remember { mutableStateOf(false) }
@@ -1399,31 +1394,6 @@ fun EmulationScreen(
         if (shouldShowOverlay && !uiState.showMenu && !showControlsEditor) {
             val scaleFactor = uiState.overlayScale / 100f
             val alpha = uiState.overlayOpacity / 100f
-            // While the second-screen panel is open on a side, keep the
-            // controls on that side clear of it by insetting that side.
-            val panelShiftDp = if (
-                secondScreenMode == AppPreferences.SECOND_SCREEN_MODE_PANEL &&
-                secondScreenOpen &&
-                (secondScreenSide == AppPreferences.SECOND_SCREEN_SIDE_LEFT ||
-                    secondScreenSide == AppPreferences.SECOND_SCREEN_SIDE_RIGHT)
-            ) {
-                (configuration.screenHeightDp * secondScreenWidth / 100f).dp
-            } else {
-                0.dp
-            }
-            val targetLeftInset = if (secondScreenSide == AppPreferences.SECOND_SCREEN_SIDE_LEFT) panelShiftDp else 0.dp
-            val targetRightInset = if (secondScreenSide == AppPreferences.SECOND_SCREEN_SIDE_RIGHT) panelShiftDp else 0.dp
-            // Glide the controls along with the panel slide instead of snapping.
-            val extraLeftInset by animateDpAsState(
-                targetValue = targetLeftInset,
-                animationSpec = tween(260),
-                label = "controlsLeftInset"
-            )
-            val extraRightInset by animateDpAsState(
-                targetValue = targetRightInset,
-                animationSpec = tween(260),
-                label = "controlsRightInset"
-            )
             // A gamepad is a physical control surface, so its layout must not mirror with
             // the app's RTL locale. The touch hit boxes use absolute screen coordinates;
             // keeping the visual overlay LTR guarantees that visible and logical buttons
@@ -1466,9 +1436,7 @@ fun EmulationScreen(
                     onPadInput = { keyCode, range, pressed ->
                         viewModel.onPadInput(overlayPadIndex, keyCode, range, pressed)
                     },
-                    onScreenDoubleTap = { secondScreenTabRevealSignal++ },
-                    extraLeftInset = extraLeftInset,
-                    extraRightInset = extraRightInset
+                    onScreenDoubleTap = { secondScreenTabRevealSignal++ }
                 )
             }
         }
@@ -1538,11 +1506,11 @@ fun EmulationScreen(
         // Pull-out second screen panel (bottom 3DS screen). Its z-index sits
         // above the full-screen touch controls layer so the docked tab stays
         // clickable, while the sidebar menu stays above the panel.
-        if (secondScreenMode == AppPreferences.SECOND_SCREEN_MODE_PANEL && !showControlsEditor) {            SecondScreenPanel(
-                side = secondScreenSide,
+        if (secondScreenMode == AppPreferences.SECOND_SCREEN_MODE_PANEL && !showControlsEditor) {
+            SecondScreenPanel(
                 widthPercent = secondScreenWidth,
+                position = secondScreenPanelPosition,
                 open = secondScreenOpen,
-                tabPosition = secondScreenTabPosition,
                 revealSignal = secondScreenTabRevealSignal,
                 onOpenChange = { open ->
                     scope.launch { preferences.setSecondScreenOpen(open) }
@@ -1550,14 +1518,11 @@ fun EmulationScreen(
                 onWidthPercentChange = { width ->
                     scope.launch { preferences.setSecondScreenWidth(width) }
                 },
-                onSideChange = { side ->
-                    scope.launch { preferences.setSecondScreenSide(side) }
-                },
                 onSwapScreens = {
                     scope.launch { preferences.setSecondScreenSwap(!secondScreenSwap) }
                 },
-                onTabPositionChange = { position ->
-                    scope.launch { preferences.setSecondScreenTabPosition(position) }
+                onPositionChange = { x, y ->
+                    scope.launch { preferences.setSecondScreenPanelPosition(x, y) }
                 },
                 modifier = Modifier
                     .fillMaxSize()
@@ -1662,13 +1627,6 @@ fun EmulationScreen(
                     onSetRenderer = { viewModel.setRenderer(it) },
                     onSetUpscale = { viewModel.setUpscale(it) },
                     onSetAspectRatio = { viewModel.setAspectRatio(it) },
-                    onSwapScreens = {
-                        viewModel.onPadInput(overlayPadIndex, PadKey.HOME, 0, true)
-                        scope.launch {
-                            delay(120)
-                            viewModel.onPadInput(overlayPadIndex, PadKey.HOME, 0, false)
-                        }
-                    },
                     onSetDisplayCrop = { viewModel.setDisplayCrop(it) },
                     onSetEnableCheats = { viewModel.setEnableCheats(it) },
                     onToggleCheat = { id, enabled -> viewModel.setCheatEnabled(id, enabled) },
@@ -2045,8 +2003,6 @@ private fun OnScreenControls(
     onToggleLeftInputMode: () -> Unit,
     onPadInput: (Int, Int, Boolean) -> Unit,
     onScreenDoubleTap: () -> Unit = {},
-    extraLeftInset: Dp = 0.dp,
-    extraRightInset: Dp = 0.dp,
     respectSystemInsets: Boolean = true
 ) {
     val density = LocalDensity.current
@@ -2168,8 +2124,6 @@ private fun OnScreenControls(
             safeRightInset = safeRight,
             safeTopInset = safeTop,
             safeBottomInset = safeBottom,
-            extraLeftInset = extraLeftInset,
-            extraRightInset = extraRightInset,
             stickToggleTarget = stickToggleTarget
         )
         var extraDpadDirections by remember { mutableStateOf(emptySet<OverlayDpadDirection>()) }
@@ -2831,7 +2785,6 @@ private fun EmulationSidebarMenu(
     onSetRenderer: (Int) -> Unit,
     onSetUpscale: (Float) -> Unit,
     onSetAspectRatio: (Int) -> Unit,
-    onSwapScreens: () -> Unit,
     onSetDisplayCrop: (DisplayCrop) -> Unit,
     onSetEnableCheats: (Boolean) -> Unit,
     onToggleCheat: (String, Boolean) -> Unit,
@@ -3754,7 +3707,6 @@ private fun EmulationSidebarMenu(
                             ),
                             currentValue = uiState.renderer,
                             onValueChange = onSetRenderer,
-                            allowWrap = false,
                             helpText = stringResource(R.string.settings_help_renderer),
                             onResetToDefault = { onSetRenderer(globalDefaults.renderer) }
                         )
@@ -3773,8 +3725,6 @@ private fun EmulationSidebarMenu(
                             ).map { (value, label) -> LiveSelectionOption(value, label) },
                             currentValue = upscaleMultiplierValue(uiState.upscale),
                             onValueChange = { onSetUpscale(upscaleKeyToMultiplier(it)) },
-                            allowWrap = false,
-                            horizontalScrolling = true,
                             helpText = stringResource(R.string.settings_help_upscale),
                             onResetToDefault = { onSetUpscale(globalDefaults.upscaleMultiplier) }
                         )
@@ -3793,15 +3743,8 @@ private fun EmulationSidebarMenu(
                             ),
                             currentValue = uiState.aspectRatio,
                             onValueChange = onSetAspectRatio,
-                            allowWrap = false,
                             helpText = stringResource(R.string.settings_help_aspect_ratio),
                             onResetToDefault = { onSetAspectRatio(globalDefaults.aspectRatio) }
-                        )
-
-                        MenuButton(
-                            icon = Icons.Rounded.SwapVert,
-                            text = stringResource(R.string.settings_gamepad_action_swap_screen),
-                            onClick = onSwapScreens
                         )
 
                         SecondScreenSettingsRows()
@@ -3813,8 +3756,6 @@ private fun EmulationSidebarMenu(
                             },
                             currentValue = uiState.displayCrop.presetPixels,
                             onValueChange = { onSetDisplayCrop(DisplayCrop.uniform(it)) },
-                            allowWrap = false,
-                            horizontalScrolling = true,
                             helpText = stringResource(R.string.settings_display_crop_desc),
                             onResetToDefault = { onSetDisplayCrop(globalDefaults.displayCrop) }
                         )
@@ -4593,9 +4534,6 @@ private fun SecondScreenSettingsRows() {
     val mode by preferences.secondScreenMode.collectAsState(
         initial = AppPreferences.SECOND_SCREEN_MODE_PANEL
     )
-    val side by preferences.secondScreenSide.collectAsState(
-        initial = AppPreferences.SECOND_SCREEN_SIDE_RIGHT
-    )
     val width by preferences.secondScreenWidth.collectAsState(
         initial = AppPreferences.SECOND_SCREEN_WIDTH_DEFAULT
     )
@@ -4619,7 +4557,6 @@ private fun SecondScreenSettingsRows() {
         ),
         currentValue = mode,
         onValueChange = { scope.launch { preferences.setSecondScreenMode(it) } },
-        allowWrap = false,
         helpText = stringResource(R.string.settings_second_screen_desc),
         onResetToDefault = {
             scope.launch { preferences.setSecondScreenMode(AppPreferences.SECOND_SCREEN_MODE_INTEGRATED) }
@@ -4628,37 +4565,11 @@ private fun SecondScreenSettingsRows() {
 
     if (mode == AppPreferences.SECOND_SCREEN_MODE_PANEL) {
         LiveSelectionRow(
-            title = stringResource(R.string.settings_second_screen_side),
-            options = listOf(
-                LiveSelectionOption(
-                    AppPreferences.SECOND_SCREEN_SIDE_RIGHT,
-                    stringResource(R.string.settings_second_screen_side_right)
-                ),
-                LiveSelectionOption(
-                    AppPreferences.SECOND_SCREEN_SIDE_LEFT,
-                    stringResource(R.string.settings_second_screen_side_left)
-                ),
-                LiveSelectionOption(
-                    AppPreferences.SECOND_SCREEN_SIDE_TOP,
-                    stringResource(R.string.settings_second_screen_side_top)
-                ),
-                LiveSelectionOption(
-                    AppPreferences.SECOND_SCREEN_SIDE_BOTTOM,
-                    stringResource(R.string.settings_second_screen_side_bottom)
-                )
-            ),
-            currentValue = side,
-            onValueChange = { scope.launch { preferences.setSecondScreenSide(it) } },
-            allowWrap = false
-        )
-        LiveSelectionRow(
             title = stringResource(R.string.settings_second_screen_width),
             options = (AppPreferences.SECOND_SCREEN_WIDTH_MIN..AppPreferences.SECOND_SCREEN_WIDTH_MAX step 2)
                 .map { LiveSelectionOption(it, "$it%") },
             currentValue = width,
             onValueChange = { scope.launch { preferences.setSecondScreenWidth(it) } },
-            allowWrap = false,
-            horizontalScrolling = true
         )
         MenuButton(
             icon = Icons.Rounded.SwapVert,
@@ -4674,8 +4585,6 @@ private fun LiveSelectionRow(
     options: List<LiveSelectionOption>,
     currentValue: Int,
     onValueChange: (Int) -> Unit,
-    allowWrap: Boolean = true,
-    horizontalScrolling: Boolean = false,
     helpText: String? = null,
     onResetToDefault: (() -> Unit)? = null
 ) {
@@ -4710,84 +4619,23 @@ private fun LiveSelectionRow(
                 SettingHelpButton(title = title, description = it)
             }
         }
-        if (allowWrap) {
-            FlowRow(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                options.forEach { option ->
-                    LiveSelectionChip(
-                        option = option,
-                        selected = option.value == currentValue,
-                        onClick = { onValueChange(option.value) }
-                    )
-                }
-            }
-        } else if (horizontalScrolling) {
-            LazyRow(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .horizontalViewportBleed(18.dp),
-                contentPadding = PaddingValues(horizontal = 18.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                items(options, key = { it.value }) { option ->
-                    LiveSelectionChip(
-                        option = option,
-                        selected = option.value == currentValue,
-                        onClick = { onValueChange(option.value) }
-                    )
-                }
-            }
-        } else {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                options.forEach { option ->
-                    val selected = option.value == currentValue
-                    Surface(
-                        modifier = Modifier.weight(1f),
-                        onClick = { onValueChange(option.value) },
-                        shape = neonShape(12.dp),
-                        color = if (selected) {
-                            MaterialTheme.colorScheme.primary.copy(alpha = 0.18f)
-                        } else {
-                            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.28f)
-                        },
-                        border = BorderStroke(
-                            1.dp,
-                            if (selected) MaterialTheme.colorScheme.primary.copy(alpha = 0.28f)
-                            else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f)
-                        )
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 6.dp, vertical = 10.dp),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            if (option.icon != null) {
-                                Icon(
-                                    imageVector = option.icon,
-                                    contentDescription = option.contentDescription,
-                                    tint = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
-                                    modifier = Modifier.size(18.dp)
-                                )
-                            } else {
-                                Text(
-                                    text = option.label.orEmpty(),
-                                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.SemiBold),
-                                    maxLines = 1,
-                                    softWrap = false,
-                                    overflow = TextOverflow.Clip,
-                                    color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
-                                )
-                            }
-                        }
-                    }
-                }
+        // Option variants always scroll horizontally instead of wrapping onto
+        // extra rows. The row bleeds past the drawer padding while the padding
+        // lives on the scrolling content, so chips can be scrolled all the way
+        // to the card edges.
+        LazyRow(
+            modifier = Modifier
+                .fillMaxWidth()
+                .horizontalViewportBleed(18.dp),
+            contentPadding = PaddingValues(horizontal = 18.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            items(options, key = { it.value }) { option ->
+                LiveSelectionChip(
+                    option = option,
+                    selected = option.value == currentValue,
+                    onClick = { onValueChange(option.value) }
+                )
             }
         }
     }
@@ -5117,9 +4965,6 @@ private fun CoreOptionRows(
         val title = localized.label
         val help = azaharCoreOptionHelpRes(option.key)?.let { stringResource(it) }
         val choiceLabels = localized.choices.map { it.label }
-        // Equal-width chips clip long labels; fall back to a horizontally
-        // scrollable row whenever the labels cannot fit their share of the row.
-        val labelsOverflow = choiceLabels.any { it.length > 30 / option.choices.size }
         if (option.isBooleanToggle) {
             SettingsToggle(
                 title = title,
@@ -5138,8 +4983,6 @@ private fun CoreOptionRows(
                 onValueChange = { index ->
                     values.getOrNull(index)?.let { onValueChange(option.key, it) }
                 },
-                allowWrap = false,
-                horizontalScrolling = option.choices.size > 4 || labelsOverflow,
                 helpText = help,
                 onResetToDefault = { onValueChange(option.key, option.defaultValue) }
             )

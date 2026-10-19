@@ -2590,17 +2590,11 @@
     <string name="settings_multiplayer_hosted_hint">同じネットワークのプレイヤーはあなたのアドレスで参加できます。</string>
     <string name="emulation_second_screen">下画面</string>
     <string name="emulation_second_screen_swap">上画面と下画面を入れ替え</string>
-    <string name="emulation_second_screen_side">パネルを反対側へ移動</string>
     <string name="emulation_second_screen_move">ドラッグしてタブを移動</string>
     <string name="settings_second_screen">セカンドスクリーン</string>
     <string name="settings_second_screen_desc">プレイ中に3DSの下画面を表示する位置。</string>
     <string name="settings_second_screen_integrated">両画面を1つの表示に</string>
     <string name="settings_second_screen_panel">引き出し式下パネル</string>
-    <string name="settings_second_screen_side">パネルの位置</string>
-    <string name="settings_second_screen_side_right">右</string>
-    <string name="settings_second_screen_side_left">左</string>
-    <string name="settings_second_screen_side_top">上</string>
-    <string name="settings_second_screen_side_bottom">下</string>
     <string name="settings_second_screen_width">パネル幅</string>
     <string name="settings_second_screen_swap_now">画面を入れ替え</string>
     <string name="settings_second_screen_floating">フローティングウィンドウ</string>

@@ -80,18 +80,12 @@
     <string name="emulation_second_screen">Нижній екран</string>
     <string name="emulation_second_screen_move">Перетягніть, щоб перемістити язичок</string>
     <string name="emulation_second_screen_swap">Поміняти верхній і нижній екрани</string>
-    <string name="emulation_second_screen_side">Перемістити панель на інший бік</string>
     <string name="emulation_second_screen_hide">Сховати панель</string>
 
     <string name="settings_second_screen">Другий екран</string>
     <string name="settings_second_screen_desc">Де показувати нижній екран 3DS під час гри.</string>
     <string name="settings_second_screen_integrated">Обидва екрани в одному вікні</string>
     <string name="settings_second_screen_panel">Висувна нижня панель</string>
-    <string name="settings_second_screen_side">Бік панелі</string>
-    <string name="settings_second_screen_side_right">Праворуч</string>
-    <string name="settings_second_screen_side_left">Ліворуч</string>
-    <string name="settings_second_screen_side_top">Зверху</string>
-    <string name="settings_second_screen_side_bottom">Знизу</string>
     <string name="settings_second_screen_width">Ширина панелі</string>
     <string name="settings_second_screen_swap_now">Поміняти екрани місцями</string>
 

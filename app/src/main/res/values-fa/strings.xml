@@ -2606,17 +2606,11 @@
     <string name="settings_multiplayer_hosted_hint">بازیکنان در همان شبکه می‌توانند با آدرس شما بپیوندند.</string>
     <string name="emulation_second_screen">صفحه پایین</string>
     <string name="emulation_second_screen_swap">جابه‌جایی صفحه بالا و پایین</string>
-    <string name="emulation_second_screen_side">انتقال پنل به سمت دیگر</string>
     <string name="emulation_second_screen_move">برای جابه‌جایی زبانه بکشید</string>
     <string name="settings_second_screen">صفحه دوم</string>
     <string name="settings_second_screen_desc">محل نمایش صفحه پایین 3DS هنگام بازی.</string>
     <string name="settings_second_screen_integrated">هر دو صفحه در یک نما</string>
     <string name="settings_second_screen_panel">پنل پایین کشویی</string>
-    <string name="settings_second_screen_side">سمت پنل</string>
-    <string name="settings_second_screen_side_right">راست</string>
-    <string name="settings_second_screen_side_left">چپ</string>
-    <string name="settings_second_screen_side_top">بالا</string>
-    <string name="settings_second_screen_side_bottom">پایین</string>
     <string name="settings_second_screen_width">عرض پنل</string>
     <string name="settings_second_screen_swap_now">جابه‌جایی صفحه‌ها</string>
     <string name="settings_second_screen_floating">پنجره شناور</string>

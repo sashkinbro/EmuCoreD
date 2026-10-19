@@ -1705,10 +1705,9 @@ private fun SettingsContent(
                         LazyRow(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(horizontal = 16.dp)
                                 .tvFocusGroup(),
                             horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            contentPadding = PaddingValues(end = 4.dp)
+                            contentPadding = PaddingValues(horizontal = 16.dp)
                         ) {
                             items(listOf(0, 1)) { padIndex ->
                                 val interactionSource = remember { MutableInteractionSource() }

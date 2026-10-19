@@ -2591,17 +2591,11 @@
     <string name="settings_multiplayer_hosted_hint">Aynı ağdaki oyuncular adresinizle katılabilir.</string>
     <string name="emulation_second_screen">Alt ekran</string>
     <string name="emulation_second_screen_swap">Üst ve alt ekranı değiştir</string>
-    <string name="emulation_second_screen_side">Paneli diğer tarafa taşı</string>
     <string name="emulation_second_screen_move">Sekmeyi taşımak için sürükleyin</string>
     <string name="settings_second_screen">İkinci ekran</string>
     <string name="settings_second_screen_desc">Oyun sırasında 3DS alt ekranının gösterileceği yer.</string>
     <string name="settings_second_screen_integrated">İki ekran tek görünümde</string>
     <string name="settings_second_screen_panel">Çekmeli alt panel</string>
-    <string name="settings_second_screen_side">Panel kenarı</string>
-    <string name="settings_second_screen_side_right">Sağ</string>
-    <string name="settings_second_screen_side_left">Sol</string>
-    <string name="settings_second_screen_side_top">Üst</string>
-    <string name="settings_second_screen_side_bottom">Alt</string>
     <string name="settings_second_screen_width">Panel genişliği</string>
     <string name="settings_second_screen_swap_now">Ekranları değiştir</string>
     <string name="settings_second_screen_floating">Yüzen pencere</string>

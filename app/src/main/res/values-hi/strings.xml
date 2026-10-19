@@ -2591,17 +2591,11 @@
     <string name="settings_multiplayer_hosted_hint">एक ही नेटवर्क के खिलाड़ी आपके पते से जुड़ सकते हैं।</string>
     <string name="emulation_second_screen">निचली स्क्रीन</string>
     <string name="emulation_second_screen_swap">ऊपरी और निचली स्क्रीन बदलें</string>
-    <string name="emulation_second_screen_side">पैनल को दूसरी तरफ ले जाएँ</string>
     <string name="emulation_second_screen_move">टैब हिलाने के लिए खींचें</string>
     <string name="settings_second_screen">दूसरी स्क्रीन</string>
     <string name="settings_second_screen_desc">खेलते समय 3DS की निचली स्क्रीन कहाँ दिखाई जाए।</string>
     <string name="settings_second_screen_integrated">दोनों स्क्रीन एक दृश्य में</string>
     <string name="settings_second_screen_panel">खींचकर खुलने वाला निचला पैनल</string>
-    <string name="settings_second_screen_side">पैनल की तरफ</string>
-    <string name="settings_second_screen_side_right">दाएँ</string>
-    <string name="settings_second_screen_side_left">बाएँ</string>
-    <string name="settings_second_screen_side_top">ऊपर</string>
-    <string name="settings_second_screen_side_bottom">नीचे</string>
     <string name="settings_second_screen_width">पैनल की चौड़ाई</string>
     <string name="settings_second_screen_swap_now">स्क्रीन बदलें</string>
     <string name="settings_second_screen_floating">फ्लोटिंग विंडो</string>

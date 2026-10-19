@@ -14,8 +14,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -161,7 +159,6 @@ private val SupportedGameSettingsManagerTabs = listOf(
 private val GameSettingsSectionContentPadding = 16.dp
 private const val SHADER_PRESET_USE_GLOBAL = "__emucored_use_global_shader__"
 
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun PerGameSettingsManagerScreen(
     initialGamePath: String? = null,
@@ -1356,50 +1353,30 @@ private fun SelectionRow(
                 SettingHelpButton(title = title, description = it)
             }
         }
-        if (options.size > 3) {
-            LazyRow(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .sectionContentFullBleed(GameSettingsSectionContentPadding)
-                    .tvFocusGroup(),
-                contentPadding = PaddingValues(horizontal = GameSettingsSectionContentPadding),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                items(options, key = { it.first }) { (value, label) ->
-                    val optionInteractionSource = remember { MutableInteractionSource() }
-                    FilterChip(
-                        modifier = Modifier.tvGamepadFocusableCard(
-                            shape = neonShape(16.dp),
-                            interactionSource = optionInteractionSource,
-                            addFocusTarget = false
-                        ),
-                        selected = selectedValue == value,
-                        onClick = { onSelected(value) },
+        // Variants always scroll horizontally; the full-bleed modifier extends
+        // the row past the section padding, while the padding stays on the
+        // scrolling content so chips reach the card edges.
+        LazyRow(
+            modifier = Modifier
+                .fillMaxWidth()
+                .sectionContentFullBleed(GameSettingsSectionContentPadding)
+                .tvFocusGroup(),
+            contentPadding = PaddingValues(horizontal = GameSettingsSectionContentPadding),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            items(options, key = { it.first }) { (value, label) ->
+                val optionInteractionSource = remember { MutableInteractionSource() }
+                FilterChip(
+                    modifier = Modifier.tvGamepadFocusableCard(
+                        shape = neonShape(16.dp),
                         interactionSource = optionInteractionSource,
-                        label = { Text(label) }
-                    )
-                }
-            }
-        } else {
-            FlowRow(
-                modifier = Modifier.tvFocusGroup(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                options.forEach { (value, label) ->
-                    val optionInteractionSource = remember { MutableInteractionSource() }
-                    FilterChip(
-                        modifier = Modifier.tvGamepadFocusableCard(
-                            shape = neonShape(16.dp),
-                            interactionSource = optionInteractionSource,
-                            addFocusTarget = false
-                        ),
-                        selected = selectedValue == value,
-                        onClick = { onSelected(value) },
-                        interactionSource = optionInteractionSource,
-                        label = { Text(label) }
-                    )
-                }
+                        addFocusTarget = false
+                    ),
+                    selected = selectedValue == value,
+                    onClick = { onSelected(value) },
+                    interactionSource = optionInteractionSource,
+                    label = { Text(label) }
+                )
             }
         }
     }

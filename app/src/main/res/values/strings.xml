@@ -113,7 +113,6 @@
     <string name="emulation_second_screen">Bottom screen</string>
     <string name="emulation_second_screen_move">Drag to move the tab</string>
     <string name="emulation_second_screen_swap">Swap top and bottom screens</string>
-    <string name="emulation_second_screen_side">Move panel to the other side</string>
     <string name="emulation_second_screen_hide">Hide panel</string>
 
     <!-- Second screen panel settings -->
@@ -121,11 +120,6 @@
     <string name="settings_second_screen_desc">Where the bottom 3DS screen is shown while playing.</string>
     <string name="settings_second_screen_integrated">Both screens in one view</string>
     <string name="settings_second_screen_panel">Pull-out bottom panel</string>
-    <string name="settings_second_screen_side">Panel side</string>
-    <string name="settings_second_screen_side_right">Right</string>
-    <string name="settings_second_screen_side_left">Left</string>
-    <string name="settings_second_screen_side_top">Top</string>
-    <string name="settings_second_screen_side_bottom">Bottom</string>
     <string name="settings_second_screen_width">Panel width</string>
     <string name="settings_second_screen_swap_now">Swap top and bottom</string>
 

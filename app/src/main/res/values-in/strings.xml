@@ -2605,17 +2605,11 @@
     <string name="settings_multiplayer_hosted_hint">Pemain di jaringan yang sama dapat bergabung dengan alamat Anda.</string>
     <string name="emulation_second_screen">Layar bawah</string>
     <string name="emulation_second_screen_swap">Tukar layar atas dan bawah</string>
-    <string name="emulation_second_screen_side">Pindahkan panel ke sisi lain</string>
     <string name="emulation_second_screen_move">Seret untuk memindahkan tab</string>
     <string name="settings_second_screen">Layar kedua</string>
     <string name="settings_second_screen_desc">Tempat layar bawah 3DS ditampilkan saat bermain.</string>
     <string name="settings_second_screen_integrated">Kedua layar dalam satu tampilan</string>
     <string name="settings_second_screen_panel">Panel bawah tarik-keluar</string>
-    <string name="settings_second_screen_side">Sisi panel</string>
-    <string name="settings_second_screen_side_right">Kanan</string>
-    <string name="settings_second_screen_side_left">Kiri</string>
-    <string name="settings_second_screen_side_top">Atas</string>
-    <string name="settings_second_screen_side_bottom">Bawah</string>
     <string name="settings_second_screen_width">Lebar panel</string>
     <string name="settings_second_screen_swap_now">Tukar layar</string>
     <string name="settings_second_screen_floating">Jendela melayang</string>

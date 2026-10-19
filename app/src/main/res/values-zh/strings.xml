@@ -2592,17 +2592,11 @@
     <string name="settings_multiplayer_hosted_hint">同一网络的玩家可通过你的地址加入。</string>
     <string name="emulation_second_screen">下屏幕</string>
     <string name="emulation_second_screen_swap">交换上下屏幕</string>
-    <string name="emulation_second_screen_side">将面板移到另一侧</string>
     <string name="emulation_second_screen_move">拖动以移动标签</string>
     <string name="settings_second_screen">第二屏幕</string>
     <string name="settings_second_screen_desc">游戏中显示 3DS 下屏幕的位置。</string>
     <string name="settings_second_screen_integrated">两个屏幕合为一屏</string>
     <string name="settings_second_screen_panel">可拉出的下方面板</string>
-    <string name="settings_second_screen_side">面板位置</string>
-    <string name="settings_second_screen_side_right">右侧</string>
-    <string name="settings_second_screen_side_left">左侧</string>
-    <string name="settings_second_screen_side_top">上方</string>
-    <string name="settings_second_screen_side_bottom">下方</string>
     <string name="settings_second_screen_width">面板宽度</string>
     <string name="settings_second_screen_swap_now">交换屏幕</string>
     <string name="settings_second_screen_floating">浮动窗口</string>

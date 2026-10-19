@@ -15,17 +15,13 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.gestures.detectDragGestures
-import androidx.compose.foundation.gestures.draggable
-import androidx.compose.foundation.gestures.rememberDraggableState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -35,14 +31,11 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.KeyboardArrowDown
 import androidx.compose.material.icons.rounded.ChevronLeft
 import androidx.compose.material.icons.rounded.ChevronRight
-import androidx.compose.material.icons.rounded.KeyboardArrowUp
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.DragIndicator
 import androidx.compose.material.icons.rounded.ScreenshotMonitor
-import androidx.compose.material.icons.rounded.SwapHoriz
 import androidx.compose.material.icons.rounded.SwapVert
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -79,36 +72,32 @@ import kotlin.math.roundToInt
 import kotlinx.coroutines.delay
 
 private const val TAB_IDLE_HIDE_MS = 3_000L
+private val TAB_WIDTH = 42.dp
+private val TAB_HEIGHT = 168.dp
+private val TAB_EDGE_MARGIN = 8.dp
 
 /**
- * Pull-out bottom screen.
+ * Free-floating bottom screen.
  *
  * The main emulation view shows only the top 3DS screen; the bottom screen
- * lives in this dockable panel, revealed from the edge tab. The panel can dock
- * on any side, the tab carries all controls (show/hide, swap top and bottom,
- * move to the next side) and fades away after a few seconds; a double tap
- * anywhere on the screen brings it back.
+ * lives in this movable panel. The tab works as a drag handle and can be
+ * parked anywhere on the screen. The panel opens beside the tab, choosing the
+ * side with enough room, and fades away after a few seconds while closed; a
+ * double tap anywhere on the screen brings it back.
  */
 @Composable
 internal fun SecondScreenPanel(
-    side: Int,
     widthPercent: Int,
+    position: Pair<Float, Float>,
     open: Boolean,
-    tabPosition: Float,
     revealSignal: Int,
     onOpenChange: (Boolean) -> Unit,
     onWidthPercentChange: (Int) -> Unit,
-    onSideChange: (Int) -> Unit,
     onSwapScreens: () -> Unit,
-    onTabPositionChange: (Float) -> Unit,
+    onPositionChange: (Float, Float) -> Unit,
     modifier: Modifier = Modifier
 ) {
     val density = LocalDensity.current
-    val isLeft = side == AppPreferences.SECOND_SCREEN_SIDE_LEFT
-    val isRight = side == AppPreferences.SECOND_SCREEN_SIDE_RIGHT
-    val isTop = side == AppPreferences.SECOND_SCREEN_SIDE_TOP
-    val isBottom = side == AppPreferences.SECOND_SCREEN_SIDE_BOTTOM
-    val horizontalDock = isLeft || isRight
 
     var tabActive by remember { mutableStateOf(true) }
     var interactionTick by remember { mutableIntStateOf(0) }
@@ -128,7 +117,7 @@ internal fun SecondScreenPanel(
         tabActive = false
     }
     val tabAlpha by animateFloatAsState(
-        targetValue = if (tabActive || open) 0.85f else 0.10f,
+        targetValue = if (tabActive || open) 1f else 0.45f,
         animationSpec = tween(durationMillis = 450),
         label = "secondScreenTabAlpha"
     )
@@ -136,119 +125,151 @@ internal fun SecondScreenPanel(
     BoxWithConstraints(modifier = modifier) {
         val maxWidthPx = with(density) { maxWidth.toPx() }
         val maxHeightPx = with(density) { maxHeight.toPx() }
-        val axisExtentPx = if (horizontalDock) maxHeightPx else maxWidthPx
-        val crossExtentPx = if (horizontalDock) maxWidthPx else maxHeightPx
-        val panelExtentPx = (axisExtentPx * widthPercent / 100f)
-            .coerceIn(axisExtentPx * 0.24f, crossExtentPx * 0.72f)
+        val tabWidth = TAB_WIDTH.coerceAtMost(maxWidth.coerceAtLeast(1.dp))
+        val tabHeight = TAB_HEIGHT.coerceAtMost(maxHeight.coerceAtLeast(1.dp))
+        val tabWidthPx = with(density) { tabWidth.toPx() }
+        val tabHeightPx = with(density) { tabHeight.toPx() }
+        val tabMarginPx = with(density) { TAB_EDGE_MARGIN.toPx() }
+        val availableX = (maxWidthPx - tabWidthPx - tabMarginPx * 2f).coerceAtLeast(1f)
+        val availableY = (maxHeightPx - tabHeightPx - tabMarginPx * 2f).coerceAtLeast(1f)
 
-        val tabExtent = 42.dp
-        val tabCrossExtent = 196.dp
-        val tabExtentPx = with(density) { tabExtent.toPx() }
-        val tabCrossExtentPx = with(density) { tabCrossExtent.toPx() }
-
-        var tabFraction by remember { mutableFloatStateOf(tabPosition.coerceIn(0.04f, 0.96f)) }
-        LaunchedEffect(tabPosition) {
-            if (abs(tabFraction - tabPosition) > 0.01f) {
-                tabFraction = tabPosition.coerceIn(0.04f, 0.96f)
+        val minExtentPx = minOf(maxWidthPx, maxHeightPx)
+        var currentWidthPercent by remember { mutableFloatStateOf(widthPercent.toFloat()) }
+        LaunchedEffect(widthPercent) {
+            if (abs(currentWidthPercent - widthPercent) > 0.01f) {
+                currentWidthPercent = widthPercent.toFloat()
             }
         }
+        val panelWidthPx = (minExtentPx * currentWidthPercent / 100f)
+            .coerceIn(
+                minExtentPx * AppPreferences.SECOND_SCREEN_WIDTH_MIN / 100f,
+                minExtentPx * AppPreferences.SECOND_SCREEN_WIDTH_MAX / 100f
+            )
+            .coerceAtLeast(1f)
+        val panelHeightPx = panelWidthPx * 3f / 4f
+        val panelWidth = with(density) { panelWidthPx.toDp() }
+        val panelHeight = with(density) { panelHeightPx.toDp() }
+
+        var tabX by remember { mutableFloatStateOf(position.first.coerceIn(0f, 1f)) }
+        var tabY by remember { mutableFloatStateOf(position.second.coerceIn(0f, 1f)) }
+        LaunchedEffect(position) {
+            if (abs(tabX - position.first) > 0.01f) tabX = position.first.coerceIn(0f, 1f)
+            if (abs(tabY - position.second) > 0.01f) tabY = position.second.coerceIn(0f, 1f)
+        }
+
+        val tabLeftPx = tabMarginPx + tabX * availableX
+        val tabTopPx = tabMarginPx + tabY * availableY
+        val tabRightPx = tabLeftPx + tabWidthPx
+
+        // Open the panel towards the side with more room. This follows the tab
+        // while it is dragged, so the panel never ends up on the wrong side of
+        // the tab near a screen edge.
+        val spaceRightPx = maxWidthPx - tabRightPx
+        val spaceLeftPx = tabLeftPx
+        val opensRight = spaceRightPx >= spaceLeftPx
+        val panelLeftPx = (if (opensRight) tabRightPx else tabLeftPx - panelWidthPx)
+            .coerceIn(0f, (maxWidthPx - panelWidthPx).coerceAtLeast(0f))
+        val panelTopPx = (tabTopPx + tabHeightPx / 2f - panelHeightPx / 2f)
+            .coerceIn(0f, (maxHeightPx - panelHeightPx).coerceAtLeast(0f))
 
         val progress = remember { Animatable(if (open) 1f else 0f) }
         LaunchedEffect(open) {
             progress.animateTo(
                 targetValue = if (open) 1f else 0f,
-                animationSpec = tween(durationMillis = 260, easing = FastOutSlowInEasing)
-            )
-        }
-
-        val hiddenOffset = when {
-            isRight -> panelExtentPx
-            isLeft -> -panelExtentPx
-            isBottom -> panelExtentPx
-            else -> -panelExtentPx
-        }
-        val panelOffset = (hiddenOffset * (1f - progress.value)).roundToInt()
-
-        // Inner-edge handle changes the panel size.
-        val dragResizeState = rememberDraggableState { delta ->
-            val grow = when {
-                isRight -> -delta
-                isLeft -> delta
-                isBottom -> -delta
-                else -> delta
-            }
-            val next = widthPercent + (grow / axisExtentPx * 100f).roundToInt()
-            onWidthPercentChange(
-                next.coerceIn(
-                    AppPreferences.SECOND_SCREEN_WIDTH_MIN,
-                    AppPreferences.SECOND_SCREEN_WIDTH_MAX
-                )
+                animationSpec = tween(durationMillis = 240, easing = FastOutSlowInEasing)
             )
         }
 
         // Panel body: the emulated bottom screen only.
-        Box(
-            modifier = Modifier
-                .align(
-                    when {
-                        isRight -> Alignment.CenterEnd
-                        isLeft -> Alignment.CenterStart
-                        isBottom -> Alignment.BottomCenter
-                        else -> Alignment.TopCenter
+        if (progress.value > 0.01f) {
+            val slideDirection = if (opensRight) -1f else 1f
+            Box(
+                modifier = Modifier
+                    .offset {
+                        val slide = slideDirection *
+                            (1f - progress.value) * panelWidthPx * 0.35f
+                        IntOffset(
+                            x = (panelLeftPx + slide).roundToInt(),
+                            y = panelTopPx.roundToInt()
+                        )
                     }
+                    .size(panelWidth, panelHeight)
+                    .alpha(progress.value)
+            ) {
+                SecondScreenBody(
+                    modifier = Modifier.fillMaxSize(),
+                    interactive = open
                 )
-                .then(if (horizontalDock) Modifier.fillMaxHeight() else Modifier.fillMaxWidth())
-                .then(
-                    if (horizontalDock) {
-                        Modifier
-                            .width(with(density) { panelExtentPx.toDp() })
-                            .offset { IntOffset(panelOffset, 0) }
-                    } else {
-                        Modifier
-                            .height(with(density) { panelExtentPx.toDp() })
-                            .offset { IntOffset(0, panelOffset) }
+                if (open) {
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.BottomEnd)
+                            .size(32.dp)
+                            .pointerInput(minExtentPx) {
+                                fun commitWidth() {
+                                    val next = currentWidthPercent.roundToInt()
+                                        .let { it - (it % 2) }
+                                        .coerceIn(
+                                            AppPreferences.SECOND_SCREEN_WIDTH_MIN,
+                                            AppPreferences.SECOND_SCREEN_WIDTH_MAX
+                                        )
+                                    currentWidthPercent = next.toFloat()
+                                    onWidthPercentChange(next)
+                                }
+                                detectDragGestures(
+                                    onDragEnd = { commitWidth() },
+                                    onDragCancel = { commitWidth() }
+                                ) { change, dragAmount ->
+                                    change.consume()
+                                    val deltaPercent =
+                                        (dragAmount.x + dragAmount.y) * 0.5f /
+                                            minExtentPx * 100f
+                                    currentWidthPercent =
+                                        (currentWidthPercent + deltaPercent).coerceIn(
+                                            AppPreferences.SECOND_SCREEN_WIDTH_MIN.toFloat(),
+                                            AppPreferences.SECOND_SCREEN_WIDTH_MAX.toFloat()
+                                        )
+                                }
+                            },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Rounded.DragIndicator,
+                            contentDescription = stringResource(
+                                R.string.settings_second_screen_width
+                            ),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.55f),
+                            modifier = Modifier.size(14.dp)
+                        )
                     }
-                )
-        ) {
-            SecondScreenBody(
-                panelExtent = with(density) { panelExtentPx.toDp() },
-                horizontalDock = horizontalDock,
-                isLeft = isLeft,
-                isTop = isTop,
-                dragResizeState = dragResizeState
-            )
+                }
+            }
         }
 
-        // Docked toolbar tab.
+        // Floating toolbar tab. The whole tab is a drag handle; taps still
+        // reach the buttons because the parent handler only consumes drags.
         Box(
             modifier = Modifier
-                .align(
-                    when {
-                        isRight -> Alignment.CenterEnd
-                        isLeft -> Alignment.CenterStart
-                        isBottom -> Alignment.BottomCenter
-                        else -> Alignment.TopCenter
-                    }
-                )
-                .padding(
-                    start = if (isLeft) 6.dp else 0.dp,
-                    end = if (isRight) 6.dp else 0.dp,
-                    top = if (isTop) 6.dp else 0.dp,
-                    bottom = if (isBottom) 6.dp else 0.dp
-                )
-                .offset {
-                    val available = (axisExtentPx - tabCrossExtentPx).coerceAtLeast(0f)
-                    val cross = ((tabFraction * available) - available / 2f).roundToInt()
-                    if (horizontalDock) IntOffset(0, cross) else IntOffset(cross, 0)
-                }
+                .offset { IntOffset(tabLeftPx.roundToInt(), tabTopPx.roundToInt()) }
                 .alpha(tabAlpha)
+                .pointerInput(availableX, availableY) {
+                    detectDragGestures(
+                        onDragEnd = { onPositionChange(tabX, tabY) },
+                        onDragCancel = { onPositionChange(tabX, tabY) }
+                    ) { change, dragAmount ->
+                        change.consume()
+                        interactionTick++
+                        tabActive = true
+                        tabX = (tabX + dragAmount.x / availableX).coerceIn(0f, 1f)
+                        tabY = (tabY + dragAmount.y / availableY).coerceIn(0f, 1f)
+                    }
+                }
         ) {
             SecondScreenToolbarTab(
                 open = open,
-                side = side,
-                horizontalDock = horizontalDock,
-                tabExtent = tabExtent,
-                tabCrossExtent = tabCrossExtent,
+                opensRight = opensRight,
+                width = tabWidth,
+                height = tabHeight,
                 onToggle = {
                     interactionTick++
                     tabActive = true
@@ -258,29 +279,10 @@ internal fun SecondScreenPanel(
                     interactionTick++
                     tabActive = true
                     onSwapScreens()
-                },
-                onSwitchSide = {
-                    interactionTick++
-                    tabActive = true
-                    onSideChange(nextSecondScreenSide(side))
-                },
-                onMoveBy = { delta ->
-                    interactionTick++
-                    tabActive = true
-                    val available = (axisExtentPx - tabCrossExtentPx).coerceAtLeast(1f)
-                    tabFraction = (tabFraction + delta / available).coerceIn(0.04f, 0.96f)
-                },
-                onMoveEnd = { onTabPositionChange(tabFraction) }
+                }
             )
         }
     }
-}
-
-internal fun nextSecondScreenSide(side: Int): Int = when (side) {
-    AppPreferences.SECOND_SCREEN_SIDE_RIGHT -> AppPreferences.SECOND_SCREEN_SIDE_TOP
-    AppPreferences.SECOND_SCREEN_SIDE_TOP -> AppPreferences.SECOND_SCREEN_SIDE_LEFT
-    AppPreferences.SECOND_SCREEN_SIDE_LEFT -> AppPreferences.SECOND_SCREEN_SIDE_BOTTOM
-    else -> AppPreferences.SECOND_SCREEN_SIDE_RIGHT
 }
 
 /**
@@ -303,7 +305,17 @@ internal fun FloatingSecondScreen(
     BoxWithConstraints(modifier = modifier) {
         val maxWidthPx = with(density) { maxWidth.toPx() }
         val maxHeightPx = with(density) { maxHeight.toPx() }
-        val windowWidthPx = (maxHeightPx * sizePercent / 100f).coerceIn(220f, maxWidthPx * 0.8f)
+        val referenceExtentPx = minOf(maxWidthPx, maxHeightPx)
+        var currentSizePercent by remember { mutableFloatStateOf(sizePercent.toFloat()) }
+        LaunchedEffect(sizePercent) {
+            if (abs(currentSizePercent - sizePercent) > 0.01f) {
+                currentSizePercent = sizePercent.toFloat()
+            }
+        }
+        val maxWindowWidthPx = (maxWidthPx * 0.8f).coerceAtLeast(1f)
+        val minWindowWidthPx = 220f.coerceAtMost(maxWindowWidthPx)
+        val windowWidthPx = (referenceExtentPx * currentSizePercent / 100f)
+            .coerceIn(minWindowWidthPx, maxWindowWidthPx)
         val windowWidth = with(density) { windowWidthPx.toDp() }
         val handleHeight = 30.dp
         val screenHeight = windowWidth * 3f / 4f
@@ -315,7 +327,7 @@ internal fun FloatingSecondScreen(
             if (abs(currentY - position.second) > 0.01f) currentY = position.second.coerceIn(0f, 1f)
         }
 
-        val windowWidthPxDp = with(density) { windowWidth.toPx() + 0f }
+        val windowWidthPxDp = windowWidthPx
         val windowHeightPx = with(density) { (screenHeight + handleHeight).toPx() }
         val availableX = (maxWidthPx - windowWidthPxDp).coerceAtLeast(1f)
         val availableY = (maxHeightPx - windowHeightPx).coerceAtLeast(1f)
@@ -344,7 +356,7 @@ internal fun FloatingSecondScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(handleHeight)
-                        .pointerInput(Unit) {
+                        .pointerInput(availableX, availableY) {
                             detectDragGestures(
                                 onDragEnd = { onPositionChange(currentX, currentY) },
                                 onDragCancel = { onPositionChange(currentX, currentY) }
@@ -396,21 +408,29 @@ internal fun FloatingSecondScreen(
                     Box(
                         modifier = Modifier
                             .align(Alignment.BottomEnd)
-                            .size(26.dp)
-                            .pointerInput(Unit) {
+                            .size(32.dp)
+                            .pointerInput(referenceExtentPx) {
+                                fun commitSize() {
+                                    val size = currentSizePercent.roundToInt().coerceIn(
+                                        AppPreferences.SECOND_SCREEN_FLOAT_SIZE_MIN,
+                                        AppPreferences.SECOND_SCREEN_FLOAT_SIZE_MAX
+                                    )
+                                    currentSizePercent = size.toFloat()
+                                    onSizePercentChange(size)
+                                }
                                 detectDragGestures(
-                                    onDragEnd = { onSizePercentChange(sizePercent) },
-                                    onDragCancel = { onSizePercentChange(sizePercent) }
+                                    onDragEnd = { commitSize() },
+                                    onDragCancel = { commitSize() }
                                 ) { change, dragAmount ->
                                     change.consume()
-                                    val next = sizePercent +
-                                        (dragAmount.x / maxHeightPx * 100f).roundToInt()
-                                    onSizePercentChange(
-                                        next.coerceIn(
-                                            AppPreferences.SECOND_SCREEN_FLOAT_SIZE_MIN,
-                                            AppPreferences.SECOND_SCREEN_FLOAT_SIZE_MAX
+                                    val deltaPercent =
+                                        (dragAmount.x + dragAmount.y) * 0.5f /
+                                            referenceExtentPx * 100f
+                                    currentSizePercent = (currentSizePercent + deltaPercent)
+                                        .coerceIn(
+                                            AppPreferences.SECOND_SCREEN_FLOAT_SIZE_MIN.toFloat(),
+                                            AppPreferences.SECOND_SCREEN_FLOAT_SIZE_MAX.toFloat()
                                         )
-                                    )
                                 }
                             },
                         contentAlignment = Alignment.Center
@@ -453,81 +473,52 @@ private fun FloatingWindowButton(
 @Composable
 private fun SecondScreenToolbarTab(
     open: Boolean,
-    side: Int,
-    horizontalDock: Boolean,
-    tabExtent: Dp,
-    tabCrossExtent: Dp,
+    opensRight: Boolean,
+    width: Dp,
+    height: Dp,
     onToggle: () -> Unit,
-    onSwapScreens: () -> Unit,
-    onSwitchSide: () -> Unit,
-    onMoveBy: (Float) -> Unit,
-    onMoveEnd: () -> Unit
+    onSwapScreens: () -> Unit
 ) {
-    val chevron = when (side) {
-        AppPreferences.SECOND_SCREEN_SIDE_RIGHT ->
-            if (open) Icons.Rounded.ChevronRight else Icons.Rounded.ChevronLeft
-        AppPreferences.SECOND_SCREEN_SIDE_LEFT ->
-            if (open) Icons.Rounded.ChevronLeft else Icons.Rounded.ChevronRight
-        AppPreferences.SECOND_SCREEN_SIDE_TOP ->
-            if (open) Icons.Rounded.KeyboardArrowUp else Icons.Rounded.KeyboardArrowDown
-        else ->
-            if (open) Icons.Rounded.KeyboardArrowDown else Icons.Rounded.KeyboardArrowUp
-    }
-    val tabModifier = if (horizontalDock) {
-        Modifier.width(tabExtent).height(tabCrossExtent)
+    val chevron = if (open == opensRight) {
+        Icons.Rounded.ChevronLeft
     } else {
-        Modifier.height(tabExtent).width(tabCrossExtent)
+        Icons.Rounded.ChevronRight
     }
     val tabShape = RoundedCornerShape(16.dp)
     Box(
-        modifier = tabModifier
+        modifier = Modifier
+            .size(width = width, height = height)
             .clip(tabShape)
             .background(
-                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.72f),
+                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.92f),
                 tabShape
             )
             .border(
-                BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.30f)),
+                BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.45f)),
                 tabShape
             )
-            // The whole tab is a drag handle; taps still reach the buttons
-            // because a parent pointer handler only consumes drags.
-            .pointerInput(horizontalDock) {
-                detectDragGestures(
-                    onDragEnd = { onMoveEnd() },
-                    onDragCancel = { onMoveEnd() }
-                ) { change, dragAmount ->
-                    change.consume()
-                    onMoveBy(if (horizontalDock) dragAmount.y else dragAmount.x)
-                }
-            }
     ) {
-        val content: @Composable () -> Unit = {
+        Column(
+            modifier = Modifier.fillMaxSize(),
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
             TabActionIcon(
                 icon = Icons.Rounded.SwapVert,
                 description = R.string.emulation_second_screen_swap,
                 onClick = onSwapScreens
             )
-            Spacer(if (horizontalDock) Modifier.height(2.dp) else Modifier.width(2.dp))
+            Spacer(Modifier.height(4.dp))
             Icon(
                 imageVector = Icons.Rounded.DragIndicator,
                 contentDescription = stringResource(R.string.emulation_second_screen_move),
                 tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
                 modifier = Modifier.size(20.dp)
             )
-            Spacer(if (horizontalDock) Modifier.height(2.dp) else Modifier.width(2.dp))
-            TabActionIcon(
-                icon = Icons.Rounded.SwapHoriz,
-                description = R.string.emulation_second_screen_side,
-                onClick = onSwitchSide
-            )
-            Spacer(if (horizontalDock) Modifier.height(6.dp) else Modifier.width(6.dp))
+            Spacer(Modifier.height(4.dp))
             Box(
-                modifier = (if (horizontalDock) {
-                    Modifier.size(width = 34.dp, height = 46.dp)
-                } else {
-                    Modifier.size(width = 46.dp, height = 34.dp)
-                })
+                modifier = Modifier
+                    .size(width = 34.dp, height = 46.dp)
                     .clip(RoundedCornerShape(12.dp))
                     .background(
                         MaterialTheme.colorScheme.surface.copy(alpha = 0.35f),
@@ -556,19 +547,6 @@ private fun SecondScreenToolbarTab(
                 }
             }
         }
-        if (horizontalDock) {
-            Column(
-                modifier = Modifier.fillMaxSize(),
-                verticalArrangement = Arrangement.Center,
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) { content() }
-        } else {
-            Row(
-                modifier = Modifier.fillMaxSize(),
-                horizontalArrangement = Arrangement.Center,
-                verticalAlignment = Alignment.CenterVertically
-            ) { content() }
-        }
     }
 }
 
@@ -596,81 +574,22 @@ private fun TabActionIcon(
 
 @Composable
 private fun SecondScreenBody(
-    panelExtent: Dp,
-    horizontalDock: Boolean,
-    isLeft: Boolean,
-    isTop: Boolean,
-    dragResizeState: androidx.compose.foundation.gestures.DraggableState
+    modifier: Modifier = Modifier,
+    interactive: Boolean
 ) {
-    val innerShape = when {
-        isLeft -> RoundedCornerShape(topEnd = 18.dp, bottomEnd = 18.dp)
-        isTop -> RoundedCornerShape(bottomStart = 18.dp, bottomEnd = 18.dp)
-        horizontalDock -> RoundedCornerShape(topStart = 18.dp, bottomStart = 18.dp)
-        else -> RoundedCornerShape(topStart = 18.dp, topEnd = 18.dp)
-    }
-    val resizeHandle = @Composable {
-        Box(
+    val shape = RoundedCornerShape(16.dp)
+    Surface(
+        shape = shape,
+        color = Color.Black,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.22f)),
+        modifier = modifier
+    ) {
+        SecondaryScreenSurface(
             modifier = Modifier
-                .then(
-                    if (horizontalDock) {
-                        Modifier.width(18.dp).fillMaxHeight()
-                    } else {
-                        Modifier.height(18.dp).fillMaxWidth()
-                    }
-                )
-                .draggable(
-                    orientation = if (horizontalDock) Orientation.Horizontal else Orientation.Vertical,
-                    state = dragResizeState
-                )
+                .fillMaxSize()
+                .clip(shape),
+            interactive = interactive
         )
-    }
-
-    if (horizontalDock) {
-        Row(
-            modifier = Modifier
-                .width(panelExtent)
-                .fillMaxHeight()
-        ) {
-            if (!isLeft) resizeHandle()
-            Surface(
-                shape = innerShape,
-                color = Color.Black,
-                border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.22f)),
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxHeight()
-            ) {
-                SecondaryScreenSurface(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .clip(innerShape)
-                )
-            }
-            if (isLeft) resizeHandle()
-        }
-    } else {
-        Column(
-            modifier = Modifier
-                .height(panelExtent)
-                .fillMaxWidth()
-        ) {
-            if (isTop) resizeHandle()
-            Surface(
-                shape = innerShape,
-                color = Color.Black,
-                border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.22f)),
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxWidth()
-            ) {
-                SecondaryScreenSurface(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .clip(innerShape)
-                )
-            }
-            if (!isTop) resizeHandle()
-        }
     }
 }
 
@@ -680,7 +599,10 @@ private fun SecondScreenBody(
  * of the Compose UI.
  */
 @Composable
-private fun SecondaryScreenSurface(modifier: Modifier = Modifier) {
+private fun SecondaryScreenSurface(
+    modifier: Modifier = Modifier,
+    interactive: Boolean = true
+) {
     val holder = remember { mutableStateOf<Surface?>(null) }
     AndroidView(
         factory = { ctx ->
@@ -721,7 +643,11 @@ private fun SecondaryScreenSurface(modifier: Modifier = Modifier) {
                 }
             }
         },
-        modifier = modifier.pointerInteropFilter { event -> forwardSecondaryTouch(event) }
+        modifier = if (interactive) {
+            modifier.pointerInteropFilter { event -> forwardSecondaryTouch(event) }
+        } else {
+            modifier
+        }
     )
 }
 

@@ -2612,17 +2612,11 @@
     <string name="settings_multiplayer_hosted_hint">Gracze w tej samej sieci mogą dołączyć za pomocą twojego adresu.</string>
     <string name="emulation_second_screen">Dolny ekran</string>
     <string name="emulation_second_screen_swap">Zamień górny i dolny ekran</string>
-    <string name="emulation_second_screen_side">Przenieś panel na drugą stronę</string>
     <string name="emulation_second_screen_move">Przeciągnij, aby przenieść zakładkę</string>
     <string name="settings_second_screen">Drugi ekran</string>
     <string name="settings_second_screen_desc">Gdzie ma być wyświetlany dolny ekran 3DS podczas gry.</string>
     <string name="settings_second_screen_integrated">Oba ekrany w jednym widoku</string>
     <string name="settings_second_screen_panel">Wysuwany dolny panel</string>
-    <string name="settings_second_screen_side">Strona panelu</string>
-    <string name="settings_second_screen_side_right">Prawo</string>
-    <string name="settings_second_screen_side_left">Lewo</string>
-    <string name="settings_second_screen_side_top">Góra</string>
-    <string name="settings_second_screen_side_bottom">Dół</string>
     <string name="settings_second_screen_width">Szerokość panelu</string>
     <string name="settings_second_screen_swap_now">Zamień ekrany</string>
     <string name="settings_second_screen_floating">Okno pływające</string>
