@@ -208,7 +208,6 @@ data class EmulationUiState(
     val autoSaveLastModified: Long = 0L,
     val isAutoSaveInProgress: Boolean = false,
     val activePlayTimeMs: Long = 0L,
-    val showDebugOptions: Boolean = false,
     val audioVolume: Int = AudioDefaults.VOLUME_DEFAULT,
     val audioMuted: Boolean = false,
 )
@@ -498,14 +497,6 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
                 val updated = _uiState.value.copy(fpsOverlayMetrics = metrics)
                 _uiState.value = updated
                 syncNativePerformanceOverlayState(updated)
-            }
-        }
-        viewModelScope.launch {
-            preferences.showDebugOptions.collect { enabled ->
-                val state = _uiState.value
-                _uiState.value = state.copy(showDebugOptions = enabled)
-                if (!enabled) {
-                            }
             }
         }
         viewModelScope.launch {
