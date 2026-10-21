@@ -13,6 +13,7 @@
 #include <cryptopp/modes.h>
 #include <cryptopp/sha.h>
 #include "common/alignment.h"
+#include "common/archives.h"
 #include "common/common_types.h"
 #include "common/file_derived.h"
 #include "common/logging/log.h"
@@ -38,8 +39,6 @@ u64 GetModId(u64 program_id) {
     return program_id;
 }
 
-namespace {
-
 struct NCCHCryptoRegion {
     enum class Key : u8 {
         Primary,
@@ -56,6 +55,16 @@ struct NCCHCryptoRegion {
     u64 seek_from = 0;
     Key key = Key::Primary;
     Counter counter = Counter::ExHeader;
+
+    template <class Archive>
+    void serialize(Archive& ar, const unsigned int) {
+        ar& offset;
+        ar& size;
+        ar& seek_from;
+        ar& key;
+        ar& counter;
+    }
+    friend class boost::serialization::access;
 };
 
 struct NCCHCryptoContext {
@@ -65,14 +74,25 @@ struct NCCHCryptoContext {
     std::array<u8, 16> exefs_ctr{};
     std::array<u8, 16> romfs_ctr{};
     std::vector<NCCHCryptoRegion> regions;
+
+    template <class Archive>
+    void serialize(Archive& ar, const unsigned int) {
+        ar& primary_key;
+        ar& secondary_key;
+        ar& exheader_ctr;
+        ar& exefs_ctr;
+        ar& romfs_ctr;
+        ar& regions;
+    }
+    friend class boost::serialization::access;
 };
 
-const std::array<u8, 16>& RegionKey(const NCCHCryptoContext& context, NCCHCryptoRegion::Key key) {
+static const std::array<u8, 16>& RegionKey(const NCCHCryptoContext& context, NCCHCryptoRegion::Key key) {
     return key == NCCHCryptoRegion::Key::Primary ? context.primary_key : context.secondary_key;
 }
 
-const std::array<u8, 16>& RegionCounter(const NCCHCryptoContext& context,
-                                        NCCHCryptoRegion::Counter counter) {
+static const std::array<u8, 16>& RegionCounter(const NCCHCryptoContext& context,
+                                               NCCHCryptoRegion::Counter counter) {
     switch (counter) {
     case NCCHCryptoRegion::Counter::ExHeader:
         return context.exheader_ctr;
@@ -84,8 +104,8 @@ const std::array<u8, 16>& RegionCounter(const NCCHCryptoContext& context,
     return context.exheader_ctr;
 }
 
-void DecryptRange(u8* data, std::size_t size, u64 offset, u64 seek_from,
-                  const std::array<u8, 16>& key, const std::array<u8, 16>& ctr) {
+static void DecryptRange(u8* data, std::size_t size, u64 offset, u64 seek_from,
+                         const std::array<u8, 16>& key, const std::array<u8, 16>& ctr) {
     if (size == 0) {
         return;
     }
@@ -227,10 +247,20 @@ protected:
     }
 
 private:
+    NCCHCryptoFile() = default;
+
     NCCHCryptoFile(std::unique_ptr<FileUtil::IOFileBase> child, NCCHCryptoContext context)
         : context(std::move(context)) {
         Child() = std::move(child);
     }
+
+    template <class Archive>
+    void serialize(Archive& ar, const unsigned int) {
+        ar& boost::serialization::base_object<FileUtil::IOFileBase>(*this);
+        ar& context;
+        ar& position;
+    }
+    friend class boost::serialization::access;
 
     static std::optional<NCCHCryptoContext> BuildContext(FileUtil::IOFileBase& file,
                                                          const NCCH_Header& header) {
@@ -378,8 +408,6 @@ private:
     NCCHCryptoContext context;
     u64 position = 0;
 };
-
-} // namespace
 
 /**
  * Get the decompressed size of an LZSS compressed ExeFS file
@@ -1098,3 +1126,6 @@ bool NCCHContainer::HasExHeader() {
     return has_exheader;
 }
 } // namespace FileSys
+
+BOOST_CLASS_EXPORT_KEY2(FileSys::NCCHCryptoFile, "FileSys::NCCHCryptoFile")
+SERIALIZE_EXPORT_IMPL(FileSys::NCCHCryptoFile)

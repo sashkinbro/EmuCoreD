@@ -187,6 +187,11 @@ void System::SaveState(u32 slot) const {
     std::memcpy(header.build_name.data(), build_fullname.c_str(),
                 std::min(build_fullname.length(), sizeof(header.build_name) - 1));
 
+    const std::string build_version = Common::g_build_version;
+    std::memset(header.build_version.data(), 0, sizeof(header.build_version));
+    std::memcpy(header.build_version.data(), build_version.c_str(),
+                std::min(build_version.length(), sizeof(header.build_version) - 1));
+
     if (file.WriteBytes(&header, sizeof(header)) != sizeof(header) ||
         file.WriteBytes(buffer.data(), buffer.size()) != buffer.size()) {
         throw std::runtime_error("Could not write to file " + path);
