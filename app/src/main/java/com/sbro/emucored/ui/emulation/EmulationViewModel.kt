@@ -829,7 +829,8 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
     private suspend fun saveAutoSaveSlot(
         allowWhileMenu: Boolean,
         allowPaused: Boolean,
-        showActionProgress: Boolean
+        showActionProgress: Boolean,
+        allowDuringShutdown: Boolean = false
     ): Boolean {
         val path = currentGamePath ?: return false
         val previousModified = saveStateLastModified(path, AUTO_SAVE_SLOT)
@@ -841,8 +842,8 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
         )
         val scheduled = lifecycleMutex.withLock {
             val state = _uiState.value
-            if (isShuttingDown ||
-                !state.isRunning ||
+            if ((isShuttingDown && !allowDuringShutdown) ||
+                (!state.isRunning && !allowDuringShutdown) ||
                 (!allowPaused && state.isPaused) ||
                 (!allowWhileMenu && state.showMenu)
             ) {
@@ -2883,20 +2884,65 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
     fun stopEmulation(onExit: (() -> Unit)? = null) {
         cancelPendingStart = true
         pausedForBackground = false
-        viewModelScope.launch(Dispatchers.IO) {
-            if (_uiState.value.shouldAutoSaveOnExit(currentGamePath, EmulatorBridge.runtimeFailure.value)) {
-                saveAutoSaveSlot(
-                    allowWhileMenu = true,
-                    allowPaused = true,
-                    showActionProgress = true
-                )
-            }
+        val app = getApplication<EmuCoreDApp>()
+        app.applicationScope.launch(Dispatchers.IO) {
+            val shouldAutoSave = _uiState.value.shouldAutoSaveOnExit(
+                currentGamePath,
+                EmulatorBridge.runtimeFailure.value
+            )
             cachePendingPlayTime()
-            performShutdown()
-            syncCachedPlayTimeInBackground()
+
+            val shouldStop = lifecycleMutex.withLock {
+                if (isShuttingDown) return@withLock false
+                isShuttingDown = true
+                try {
+                    EmulatorBridge.resetKeyStatus()
+                } catch (_: Exception) { }
+                try {
+                    GamepadManager.clearPerGameOverrides()
+                } catch (_: Exception) { }
+                if (!shouldAutoSave) EmulatorBridge.requestShutdown()
+                _uiState.value = _uiState.value.copy(
+                    isRunning = false,
+                    isStarting = false,
+                    isPaused = false,
+                    showMenu = false,
+                    isActionInProgress = false,
+                    actionLabel = null,
+                    statusMessage = null
+                )
+                _performanceState.value = EmulationPerformanceState(fps = "0")
+                syncNativePerformanceOverlayState(_uiState.value)
+                true
+            }
+            if (!shouldStop) return@launch
+
             if (onExit != null) {
                 withContext(Dispatchers.Main) {
                     onExit.invoke()
+                }
+            }
+
+            if (shouldAutoSave) {
+                runCatching {
+                    saveAutoSaveSlot(
+                        allowWhileMenu = true,
+                        allowPaused = true,
+                        showActionProgress = false,
+                        allowDuringShutdown = true
+                    )
+                }
+                EmulatorBridge.requestShutdown()
+            }
+            val teardown = EmulatorBridge.shutdownAsync()
+            syncCachedPlayTimeInBackground()
+            try {
+                teardown.join()
+            } finally {
+                lifecycleMutex.withLock {
+                    clearCrashContext()
+                    RetroAchievementsRepository.get(getApplication()).onGameStopped()
+                    isShuttingDown = false
                 }
             }
         }
@@ -3061,7 +3107,7 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
         DiscordIntegration.clearGame()
         androidGamePerformance.update(AndroidGamePhase.Idle)
         NativeApp.setPerformanceMetricsEnabled(visible = false, detailed = false)
-        if (_uiState.value.isRunning) {
+        if (_uiState.value.isRunning && !isShuttingDown) {
             EmulatorBridge.resetKeyStatus()
             runCatching {
                 kotlinx.coroutines.runBlocking(Dispatchers.IO) {

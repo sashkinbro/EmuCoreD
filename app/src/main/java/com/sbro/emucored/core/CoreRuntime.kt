@@ -232,6 +232,22 @@ internal object CoreRuntime {
     }
 
     fun shutdown() {
+        if (!running && !starting && !EmuCoreNative.isRunning() && sessionThread?.isAlive != true) return
+        requestShutdown()
+        running = false
+        paused = false
+        currentGamePath = null
+        resetPadState()
+        while (sessionThread?.isAlive == true) {
+            joinSessionThread(SESSION_JOIN_TIMEOUT_MS)
+            if (sessionThread?.isAlive == true) {
+                Log.w(TAG, "Emulation thread is still releasing the previous session")
+            }
+        }
+    }
+
+    /** Signals the core to stop without waiting for its renderer and session thread to tear down. */
+    fun requestShutdown() {
         if (!running && !starting && !EmuCoreNative.isRunning()) return
         stopping = true
         starting = false
@@ -241,7 +257,6 @@ internal object CoreRuntime {
         paused = false
         currentGamePath = null
         resetPadState()
-        joinSessionThread(SESSION_JOIN_TIMEOUT_MS)
     }
 
     /** Re-asserts the stored renderer for a fresh session. */

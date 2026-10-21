@@ -3082,10 +3082,11 @@ private fun SaveSlotPreview(
     modifier: Modifier = Modifier
 ) {
     val shape = neonShape(14.dp)
+    var previewAspectRatio by remember(previewPath) { mutableFloatStateOf(16f / 9f) }
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .aspectRatio(16f / 9f)
+            .aspectRatio(previewAspectRatio)
             .clip(shape)
             .background(
                 Brush.linearGradient(
@@ -3101,7 +3102,10 @@ private fun SaveSlotPreview(
                 coverPath = previewPath,
                 fallbackTitle = gameTitle,
                 modifier = Modifier.fillMaxSize(),
-                contentScale = ContentScale.Crop
+                contentScale = ContentScale.Fit,
+                onAspectRatioResolved = { ratio ->
+                    if (ratio.isFinite() && ratio > 0f) previewAspectRatio = ratio
+                }
             )
         } else {
             Box(
@@ -3183,8 +3187,10 @@ private fun SaveSlotThumbnail(
     contentDescription: String,
     modifier: Modifier = Modifier
 ) {
+    var previewAspectRatio by remember(previewPath) { mutableFloatStateOf(16f / 9f) }
     Box(
         modifier = modifier
+            .aspectRatio(previewAspectRatio)
             .clip(neonShape(10.dp))
             .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.32f)),
         contentAlignment = Alignment.Center
@@ -3194,7 +3200,10 @@ private fun SaveSlotThumbnail(
                 coverPath = previewPath,
                 fallbackTitle = contentDescription,
                 modifier = Modifier.fillMaxSize(),
-                contentScale = ContentScale.Crop
+                contentScale = ContentScale.Fit,
+                onAspectRatioResolved = { ratio ->
+                    if (ratio.isFinite() && ratio > 0f) previewAspectRatio = ratio
+                }
             )
         } else {
             Icon(
@@ -3562,7 +3571,6 @@ private fun EmulationSidebarMenu(
                                         contentDescription = stringResource(R.string.emulation_auto_save_title),
                                         modifier = Modifier
                                             .width(74.dp)
-                                            .aspectRatio(16f / 9f)
                                     )
                                     Column(modifier = Modifier.weight(1f)) {
                                         Text(
@@ -3658,8 +3666,7 @@ private fun EmulationSidebarMenu(
                                     lastModified = uiState.autoSaveLastModified,
                                     contentDescription = stringResource(R.string.emulation_auto_save_restore_title),
                                     modifier = Modifier
-                                        .width(64.dp)
-                                        .aspectRatio(16f / 9f)
+                                            .width(64.dp)
                                 )
                                 Column(modifier = Modifier.weight(1f)) {
                                     Text(

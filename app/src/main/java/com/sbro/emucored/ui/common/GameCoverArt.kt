@@ -65,6 +65,18 @@ fun gameCoverContentScale(coverPath: String?, defaultScale: ContentScale): Conte
     if (isGenerated3dCover(coverPath)) ContentScale.Fit else defaultScale
 
 private val imageLoadingSemaphore = Semaphore(4)
+
+/** Loads a cover into the shared bitmap cache before a screen displays its card. */
+suspend fun preloadGameCoverArt(context: android.content.Context, coverPath: String?): Boolean {
+    if (coverPath.isNullOrBlank()) return false
+    if (getCachedBitmap(coverPath) != null) return true
+    val bitmap = withContext(Dispatchers.IO) {
+        imageLoadingSemaphore.withPermit { loadBitmap(context, coverPath) }
+    } ?: return false
+    putCachedBitmap(coverPath, bitmap)
+    return true
+}
+
 @Composable
 fun GameCoverArt(
     coverPath: String?,

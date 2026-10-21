@@ -12,6 +12,7 @@ import com.sbro.emucored.data.DisplayCrop
 import com.sbro.emucored.ui.common.invalidateCoverImage
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -291,25 +292,37 @@ object EmulatorBridge {
         }
     }
 
-    suspend fun shutdown() {
+    /** Requests native stop immediately; renderer teardown continues asynchronously. */
+    fun requestShutdown() {
         if (!isNativeLoaded) return
-        runSerial {
-            if (shutdownRequested) return@runSerial
-            shutdownRequested = true
-            try {
-                NativeApp.shutdown()
-                isVmActive = false
-            } finally {
-                // A failed teardown must retain ownership and its descriptors.
-                shutdownRequested = false
-            }
+        runCatching { NativeApp.requestShutdown() }
+            .onFailure { Log.e(TAG, "Unable to request emulator shutdown", it) }
+    }
+
+    /** Queues full teardown behind any active core operation without blocking the caller. */
+    fun shutdownAsync(): Job = serialScope.launch {
+        if (!isNativeLoaded) return@launch
+        if (shutdownRequested) return@launch
+        shutdownRequested = true
+        try {
+            NativeApp.shutdown()
+            isVmActive = false
+        } finally {
+            // A failed teardown must retain ownership and its descriptors.
+            shutdownRequested = false
         }
         // A failed native shutdown must never unlock save-state backup while
         // the session still owns it.
-        if (!runCatching { NativeApp.hasValidVm() }.getOrDefault(true)) {
+        val sessionReleased = !runCatching { NativeApp.hasValidVm() || NativeApp.hasOwnedVm() }
+            .getOrDefault(true)
+        if (sessionReleased) {
             BackupSessionGate.stopped()
             getContext()?.let { com.sbro.emucored.data.drive.DriveBackupWork.afterGame(it) }
         }
+    }
+
+    suspend fun shutdown() {
+        shutdownAsync().join()
     }
 
     fun hasValidVm(): Boolean {

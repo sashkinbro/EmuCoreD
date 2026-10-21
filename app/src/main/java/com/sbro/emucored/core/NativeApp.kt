@@ -222,6 +222,8 @@ object NativeApp {
 
     @JvmStatic fun shutdown() = CoreRuntime.shutdown()
 
+    @JvmStatic fun requestShutdown() = CoreRuntime.requestShutdown()
+
     @JvmStatic fun hasValidVm(): Boolean = CoreRuntime.isRunning()
 
     @JvmStatic fun hasOwnedVm(): Boolean = CoreRuntime.hasSession()

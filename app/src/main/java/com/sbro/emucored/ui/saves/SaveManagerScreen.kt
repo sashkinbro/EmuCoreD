@@ -66,6 +66,7 @@ import com.sbro.emucored.data.SaveStateImportFormat
 import com.sbro.emucored.data.SaveStateImportPreview
 import com.sbro.emucored.data.SaveStateRepository
 import com.sbro.emucored.ui.common.GameCoverArt
+import com.sbro.emucored.ui.common.preloadGameCoverArt
 import com.sbro.emucored.ui.common.ScreenTopBar
 import com.sbro.emucored.ui.common.appScreenTopPadding
 import com.sbro.emucored.ui.common.navigationBarsHorizontalPaddingValues
@@ -109,7 +110,6 @@ fun SaveManagerScreen(
     var previewPaths by remember(gamePath, gameTitle, gameSerial) { mutableStateOf<Map<String, String>>(emptyMap()) }
     var isWorking by remember { mutableStateOf(false) }
     var isPreparingEntries by remember(gamePath, gameTitle, gameSerial) { mutableStateOf(true) }
-    var isResolvingEntries by remember(gamePath, gameTitle, gameSerial) { mutableStateOf(false) }
     val pendingDelete = remember { mutableStateOf<SaveStateEntryInfo?>(null) }
     var importPreview by remember { mutableStateOf<SaveStateImportPreview?>(null) }
     var refreshGeneration by remember(gamePath, gameTitle, gameSerial) { mutableIntStateOf(0) }
@@ -132,43 +132,31 @@ fun SaveManagerScreen(
             isPreparingEntries = true
             entries = emptyList()
             previewPaths = emptyMap()
-            val initialEntries = withContext(Dispatchers.IO) {
-                repository.listEntries(
+            val prepared = withContext(Dispatchers.IO) {
+                val listedEntries = repository.listEntries(
                     filterGamePath = gamePath,
                     filterGameTitle = gameTitle,
                     filterGameSerial = gameSerial
                 )
+                val resolvedEntries = if (gamePath.isNullOrBlank() && listedEntries.isNotEmpty()) {
+                    runCatching { repository.enrichGlobalEntries(listedEntries) }.getOrDefault(listedEntries)
+                } else {
+                    listedEntries
+                }
+                val previews = resolvedEntries.mapNotNull { entry ->
+                    val imagePath = runCatching { repository.getPreviewImagePath(entry) }
+                        .getOrNull() ?: entry.coverArtPath
+                    if (imagePath.isNullOrBlank()) return@mapNotNull null
+                    runCatching { preloadGameCoverArt(context.applicationContext, imagePath) }
+                    entry.absolutePath to imagePath
+                }.toMap()
+                resolvedEntries to previews
             }
             if (refreshGeneration != generation) return@launch
-
-            entries = initialEntries
+            entries = prepared.first
+            previewPaths = prepared.second
             isPreparingEntries = false
             isWorking = false
-
-            val resolvedEntries = if (gamePath.isNullOrBlank() && initialEntries.isNotEmpty()) {
-                isResolvingEntries = true
-                withContext(Dispatchers.IO) {
-                    repository.enrichGlobalEntries(initialEntries)
-                }
-            } else {
-                initialEntries
-            }
-            if (refreshGeneration != generation) return@launch
-            if (resolvedEntries !== initialEntries) {
-                entries = resolvedEntries
-            }
-            isResolvingEntries = false
-
-            scope.launch(Dispatchers.IO) {
-                resolvedEntries.forEach { entry ->
-                    val previewPath = repository.getPreviewImagePath(entry) ?: return@forEach
-                    withContext(Dispatchers.Main) {
-                        if (refreshGeneration != generation) return@withContext
-                        if (previewPaths[entry.absolutePath] == previewPath) return@withContext
-                        previewPaths = previewPaths + (entry.absolutePath to previewPath)
-                    }
-                }
-            }
         }
     }
 
@@ -314,7 +302,7 @@ fun SaveManagerScreen(
                 start = ScreenHorizontalPadding,
                 end = ScreenHorizontalPadding,
                 top = 0.dp,
-                bottom = 24.dp + bottomInset
+                bottom = 36.dp + bottomInset
             ),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
@@ -405,7 +393,7 @@ fun SaveManagerScreen(
                         SaveEntryCard(
                             entry = entry,
                             previewPath = previewPaths[entry.absolutePath],
-                            showLoadUnavailable = !isResolvingEntries,
+                            showLoadUnavailable = true,
                             onLoadClick = {
                                 val path = entry.gamePath ?: return@SaveEntryCard
                                 onLoadClick(path, entry.slot)
@@ -702,18 +690,19 @@ private fun SaveEntryCard(
                         overflow = TextOverflow.Ellipsis
                     )
                     Text(
+                        text = entry.serial,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    Text(
                         text = if (entry.isAutoSave) {
-                            stringResource(
-                                R.string.save_manager_entry_meta_auto,
-                                entry.serial,
-                                stringResource(R.string.save_manager_auto_save_label)
-                            )
+                            stringResource(R.string.save_manager_auto_save_label)
                         } else {
-                            stringResource(
-                                R.string.save_manager_entry_meta,
-                                entry.serial,
-                                entry.slot
-                            )
+                            stringResource(R.string.save_manager_entry_meta, entry.serial, entry.slot)
+                                .substringAfter('•')
+                                .trim()
                         },
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
