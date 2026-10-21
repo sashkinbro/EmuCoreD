@@ -71,6 +71,9 @@ object EmulatorBridge {
     @Volatile
     private var shutdownRequested: Boolean = false
 
+    private val shutdownLock = Any()
+    @Volatile private var shutdownJob: Job? = null
+
     private var contextRef: WeakReference<Context>? = null
 
     init {
@@ -209,6 +212,12 @@ object EmulatorBridge {
             Log.e(TAG, "startEmulation rejected blank game path")
             return false
         }
+        awaitPendingShutdown()
+        if (isVmActive()) {
+            NativeApp.logCrashBreadcrumb("startEmulation blocked: previous session still owns the core")
+            Log.e(TAG, "startEmulation blocked because the previous session still owns the core")
+            return false
+        }
         if (!awaitPresentationSurface()) {
             // The core blocks in System::Init without a window, so a session
             // started before the SurfaceView is ready would never boot.
@@ -299,30 +308,44 @@ object EmulatorBridge {
             .onFailure { Log.e(TAG, "Unable to request emulator shutdown", it) }
     }
 
-    /** Queues full teardown behind any active core operation without blocking the caller. */
-    fun shutdownAsync(): Job = serialScope.launch {
-        if (!isNativeLoaded) return@launch
-        if (shutdownRequested) return@launch
-        shutdownRequested = true
-        try {
-            NativeApp.shutdown()
-            isVmActive = false
-        } finally {
-            // A failed teardown must retain ownership and its descriptors.
-            shutdownRequested = false
-        }
-        // A failed native shutdown must never unlock save-state backup while
-        // the session still owns it.
-        val sessionReleased = !runCatching { NativeApp.hasValidVm() || NativeApp.hasOwnedVm() }
-            .getOrDefault(true)
-        if (sessionReleased) {
-            BackupSessionGate.stopped()
-            getContext()?.let { com.sbro.emucored.data.drive.DriveBackupWork.afterGame(it) }
+    /** Queues one teardown operation and lets all callers await the same session release. */
+    fun shutdownAsync(): Job = synchronized(shutdownLock) {
+        shutdownJob?.takeIf { it.isActive }?.let { return@synchronized it }
+
+        serialScope.launch {
+            if (!isNativeLoaded) return@launch
+            shutdownRequested = true
+            try {
+                NativeApp.shutdown()
+            } finally {
+                // A failed teardown must retain ownership and its descriptors.
+                shutdownRequested = false
+                val sessionReleased = !runCatching {
+                    NativeApp.hasValidVm() || NativeApp.hasOwnedVm()
+                }.getOrDefault(true)
+                isVmActive = !sessionReleased
+                if (sessionReleased) {
+                    BackupSessionGate.stopped()
+                    getContext()?.let { com.sbro.emucored.data.drive.DriveBackupWork.afterGame(it) }
+                }
+            }
+        }.also { job ->
+            shutdownJob = job
+            job.invokeOnCompletion {
+                synchronized(shutdownLock) {
+                    if (shutdownJob === job) shutdownJob = null
+                }
+            }
         }
     }
 
     suspend fun shutdown() {
         shutdownAsync().join()
+    }
+
+    private suspend fun awaitPendingShutdown() {
+        val pending = synchronized(shutdownLock) { shutdownJob }
+        pending?.join()
     }
 
     fun hasValidVm(): Boolean {

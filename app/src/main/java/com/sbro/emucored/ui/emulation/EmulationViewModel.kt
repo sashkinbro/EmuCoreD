@@ -968,9 +968,12 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
                 statusMessage = "status_preparing"
             )
 
-            if (_uiState.value.isRunning || EmulatorBridge.hasValidVm()) {
+            if (_uiState.value.isRunning || EmulatorBridge.isVmActive()) {
+                _uiState.value = _uiState.value.copy(
+                    isStarting = true,
+                    statusMessage = "status_waiting_vm"
+                )
                 performShutdown()
-                delay(300.milliseconds)
             }
 
             var finalLaunchPath: String? = null
@@ -2890,7 +2893,6 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
                 currentGamePath,
                 EmulatorBridge.runtimeFailure.value
             )
-            cachePendingPlayTime()
 
             val shouldStop = lifecycleMutex.withLock {
                 if (isShuttingDown) return@withLock false
@@ -2922,6 +2924,8 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
                     onExit.invoke()
                 }
             }
+
+            cachePendingPlayTime()
 
             if (shouldAutoSave) {
                 runCatching {
@@ -3009,11 +3013,6 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
                 } catch (_: Exception) { }
                 try {
                     EmulatorBridge.shutdown()
-                    var waitTime = 0
-                    while (EmulatorBridge.isVmActive() && waitTime < 2000) {
-                        delay(50.milliseconds)
-                        waitTime += 50
-                    }
                 } catch (_: Exception) { }
                 _uiState.value = _uiState.value.copy(
                     isRunning = false,

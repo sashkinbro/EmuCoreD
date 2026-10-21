@@ -77,6 +77,12 @@ suspend fun preloadGameCoverArt(context: android.content.Context, coverPath: Str
     return true
 }
 
+/** Returns the decoded image ratio after [preloadGameCoverArt] has populated the shared cache. */
+fun cachedImageAspectRatio(path: String?): Float? {
+    val bitmap = path?.let(::getCachedBitmap) ?: return null
+    return bitmap.height.takeIf { it > 0 }?.let { bitmap.width.toFloat() / it }
+}
+
 @Composable
 fun GameCoverArt(
     coverPath: String?,

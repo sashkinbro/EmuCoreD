@@ -238,11 +238,9 @@ internal object CoreRuntime {
         paused = false
         currentGamePath = null
         resetPadState()
-        while (sessionThread?.isAlive == true) {
-            joinSessionThread(SESSION_JOIN_TIMEOUT_MS)
-            if (sessionThread?.isAlive == true) {
-                Log.w(TAG, "Emulation thread is still releasing the previous session")
-            }
+        joinSessionThread(SESSION_JOIN_TIMEOUT_MS)
+        if (sessionThread?.isAlive == true) {
+            Log.e(TAG, "Timed out releasing the previous emulation session")
         }
     }
 

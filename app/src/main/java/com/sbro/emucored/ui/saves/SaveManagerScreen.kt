@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -66,6 +67,7 @@ import com.sbro.emucored.data.SaveStateImportFormat
 import com.sbro.emucored.data.SaveStateImportPreview
 import com.sbro.emucored.data.SaveStateRepository
 import com.sbro.emucored.ui.common.GameCoverArt
+import com.sbro.emucored.ui.common.cachedImageAspectRatio
 import com.sbro.emucored.ui.common.preloadGameCoverArt
 import com.sbro.emucored.ui.common.ScreenTopBar
 import com.sbro.emucored.ui.common.appScreenTopPadding
@@ -107,7 +109,7 @@ fun SaveManagerScreen(
     val deleteFailureMessage = stringResource(R.string.save_manager_delete_failed)
 
     var entries by remember(gamePath, gameTitle, gameSerial) { mutableStateOf<List<SaveStateEntryInfo>>(emptyList()) }
-    var previewPaths by remember(gamePath, gameTitle, gameSerial) { mutableStateOf<Map<String, String>>(emptyMap()) }
+    var previewPaths by remember(gamePath, gameTitle, gameSerial) { mutableStateOf<Map<String, SaveStatePreview>>(emptyMap()) }
     var isWorking by remember { mutableStateOf(false) }
     var isPreparingEntries by remember(gamePath, gameTitle, gameSerial) { mutableStateOf(true) }
     val pendingDelete = remember { mutableStateOf<SaveStateEntryInfo?>(null) }
@@ -145,10 +147,12 @@ fun SaveManagerScreen(
                 }
                 val previews = resolvedEntries.mapNotNull { entry ->
                     val imagePath = runCatching { repository.getPreviewImagePath(entry) }
-                        .getOrNull() ?: entry.coverArtPath
-                    if (imagePath.isNullOrBlank()) return@mapNotNull null
-                    runCatching { preloadGameCoverArt(context.applicationContext, imagePath) }
-                    entry.absolutePath to imagePath
+                        .getOrNull()
+                    if (imagePath.isNullOrBlank() || !preloadGameCoverArt(context.applicationContext, imagePath)) {
+                        return@mapNotNull null
+                    }
+                    val aspectRatio = cachedImageAspectRatio(imagePath) ?: return@mapNotNull null
+                    entry.absolutePath to SaveStatePreview(imagePath, aspectRatio)
                 }.toMap()
                 resolvedEntries to previews
             }
@@ -392,7 +396,7 @@ fun SaveManagerScreen(
                     items(entries, key = { it.absolutePath }) { entry ->
                         SaveEntryCard(
                             entry = entry,
-                            previewPath = previewPaths[entry.absolutePath],
+                            preview = previewPaths[entry.absolutePath],
                             showLoadUnavailable = true,
                             onLoadClick = {
                                 val path = entry.gamePath ?: return@SaveEntryCard
@@ -633,7 +637,7 @@ private fun SaveManagerActionsSkeleton() {
 @Composable
 private fun SaveEntryCard(
     entry: SaveStateEntryInfo,
-    previewPath: String?,
+    preview: SaveStatePreview?,
     showLoadUnavailable: Boolean,
     onLoadClick: () -> Unit,
     onDeleteClick: () -> Unit
@@ -660,20 +664,37 @@ private fun SaveEntryCard(
                 verticalAlignment = Alignment.Top
             ) {
                 Surface(
-                    modifier = Modifier
-                        .width(152.dp),
+                    modifier = if (preview == null) {
+                        Modifier.size(48.dp)
+                    } else {
+                        Modifier
+                            .width(152.dp)
+                            .aspectRatio(preview.aspectRatio)
+                    },
                     shape = neonShape(4.dp),
                     color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.42f),
                     tonalElevation = 0.dp,
                     shadowElevation = 0.dp
                 ) {
-                    GameCoverArt(
-                        coverPath = previewPath,
-                        fallbackTitle = entry.gameTitle,
-                        modifier = Modifier.fillMaxWidth(),
-                        contentScale = ContentScale.Fit,
-                        matchImageAspectRatio = true
-                    )
+                    if (preview == null) {
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Rounded.Save,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    } else {
+                        GameCoverArt(
+                            coverPath = preview.path,
+                            fallbackTitle = "",
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = ContentScale.Fit
+                        )
+                    }
                 }
 
                 Column(
@@ -789,6 +810,11 @@ private fun SaveEntryCard(
         }
     }
 }
+
+private data class SaveStatePreview(
+    val path: String,
+    val aspectRatio: Float
+)
 
 @Composable
 private fun SaveEntrySkeletonCard() {

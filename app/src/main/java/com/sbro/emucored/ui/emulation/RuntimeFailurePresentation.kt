@@ -4,7 +4,7 @@ package com.sbro.emucored.ui.emulation
 import com.sbro.emucored.core.RuntimeFailure
 
 internal fun EmulationUiState.shouldAutoSaveOnExit(gamePath: String?, failure: RuntimeFailure?): Boolean =
-    autoSaveOnExit && gamePath != null && failure == null
+    autoSaveEnabled && autoSaveOnExit && gamePath != null && failure == null
 
 internal fun EmulationUiState.withRuntimeFailure(failure: RuntimeFailure?): EmulationUiState =
     if (failure == null) this else copy(
