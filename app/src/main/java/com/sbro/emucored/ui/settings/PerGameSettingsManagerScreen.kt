@@ -42,12 +42,16 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.DeleteOutline
 import androidx.compose.material.icons.rounded.FolderOpen
+import androidx.compose.material.icons.rounded.Keyboard
 import androidx.compose.material.icons.rounded.MoreVert
+import androidx.compose.material.icons.rounded.Mouse
 import androidx.compose.material.icons.rounded.Restore
 import androidx.compose.material.icons.rounded.Save
 import com.sbro.emucored.core.AudioDefaults
 import com.sbro.emucored.core.EmulatorBridge
 import com.sbro.emucored.core.GpuHardwareProfiles
+import com.sbro.emucored.core.KeyboardMouseBindings
+import com.sbro.emucored.core.KeyboardMouseManager
 import com.sbro.emucored.core.RendererDefaults
 import com.sbro.emucored.core.buildUpscaleOptions
 import com.sbro.emucored.core.upscaleKeyToMultiplier
@@ -113,6 +117,7 @@ import com.sbro.emucored.data.DisplayCrop
 import com.sbro.emucored.data.GameLibraryCacheRepository
 import com.sbro.emucored.data.GameItem
 import com.sbro.emucored.data.GameRepository
+import com.sbro.emucored.data.KeyboardMouseSettings
 import com.sbro.emucored.data.PerGameSettings
 import com.sbro.emucored.data.PerGameSettingsRepository
 import com.sbro.emucored.data.RetroArchShaderPreset
@@ -867,6 +872,11 @@ private fun GameSettingsTabContent(
     onDraftChange: (PerGameSettings) -> Unit
 ) {
     val nativeUpscaleLabel = stringResource(R.string.settings_upscale_native)
+    val context = LocalContext.current
+    val preferences = remember(context) { AppPreferences(context) }
+    val globalKeyboardMouseSettings by preferences.keyboardMouseSettings.collectAsState(
+        initial = KeyboardMouseSettings()
+    )
     Column(
         modifier = Modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(16.dp)
@@ -1289,6 +1299,14 @@ private fun GameSettingsTabContent(
                         onDraftChange = onDraftChange
                     )
                 }
+
+                PerGameKeyboardMouseSettingsSection(
+                    override = draft.keyboardMouse,
+                    globalSettings = globalKeyboardMouseSettings,
+                    onOverrideChange = { keyboardMouse ->
+                        onDraftChange(draft.copy(keyboardMouse = keyboardMouse))
+                    }
+                )
             }
         }
     }
@@ -1573,6 +1591,223 @@ private fun SliderRow(
 }
 
 @Composable
+private fun PerGameKeyboardMouseSettingsSection(
+    override: KeyboardMouseSettings?,
+    globalSettings: KeyboardMouseSettings,
+    onOverrideChange: (KeyboardMouseSettings?) -> Unit
+) {
+    val settings = override ?: globalSettings
+    val connection by KeyboardMouseManager.connection.collectAsState()
+    var mappingSource by remember { mutableStateOf<KeyboardMouseMappingSource?>(null) }
+
+    EditorSection(title = stringResource(R.string.settings_keyboard_mouse_section)) {
+        ToggleRow(
+            title = stringResource(R.string.settings_keyboard_input),
+            checked = settings.keyboardEnabled,
+            onCheckedChange = { onOverrideChange(settings.copy(keyboardEnabled = it)) },
+            helpText = stringResource(R.string.settings_keyboard_input_desc)
+        )
+        if (settings.keyboardEnabled) {
+            SelectionRow(
+                title = stringResource(R.string.settings_keyboard_target_player),
+                options = listOf(
+                    0 to stringResource(R.string.settings_gamepad_player_1),
+                    1 to stringResource(R.string.settings_gamepad_player_2)
+                ),
+                selectedValue = settings.keyboardTargetPad,
+                onSelected = { onOverrideChange(settings.copy(keyboardTargetPad = it)) }
+            )
+            ManagerActionButton(
+                icon = Icons.Rounded.Keyboard,
+                title = stringResource(R.string.settings_keyboard_mapping_title),
+                onClick = { mappingSource = KeyboardMouseMappingSource.KEYBOARD }
+            )
+        }
+        ToggleRow(
+            title = stringResource(R.string.settings_mouse_input),
+            checked = settings.mouseEnabled,
+            onCheckedChange = { onOverrideChange(settings.copy(mouseEnabled = it)) },
+            helpText = stringResource(R.string.settings_mouse_input_desc)
+        )
+        if (settings.mouseEnabled) {
+            SelectionRow(
+                title = stringResource(R.string.settings_mouse_target_player),
+                options = listOf(
+                    0 to stringResource(R.string.settings_gamepad_player_1),
+                    1 to stringResource(R.string.settings_gamepad_player_2)
+                ),
+                selectedValue = settings.mouseTargetPad,
+                onSelected = { onOverrideChange(settings.copy(mouseTargetPad = it)) }
+            )
+            ManagerActionButton(
+                icon = Icons.Rounded.Mouse,
+                title = stringResource(R.string.settings_mouse_mapping_title),
+                onClick = { mappingSource = KeyboardMouseMappingSource.MOUSE }
+            )
+            ToggleRow(
+                title = stringResource(R.string.settings_mouse_capture),
+                checked = settings.mouseCaptureCursor,
+                onCheckedChange = { onOverrideChange(settings.copy(mouseCaptureCursor = it)) },
+                helpText = stringResource(R.string.settings_mouse_capture_desc)
+            )
+            ToggleRow(
+                title = stringResource(R.string.settings_mouse_left_handed),
+                checked = settings.mouseLeftHanded,
+                onCheckedChange = { onOverrideChange(settings.copy(mouseLeftHanded = it)) },
+                helpText = stringResource(R.string.settings_mouse_left_handed_desc)
+            )
+            SelectionRow(
+                title = stringResource(R.string.settings_mouse_wheel),
+                options = listOf(
+                    AppPreferences.MOUSE_WHEEL_OFF to stringResource(R.string.settings_mouse_wheel_off),
+                    AppPreferences.MOUSE_WHEEL_DPAD to stringResource(R.string.settings_mouse_wheel_dpad),
+                    AppPreferences.MOUSE_WHEEL_TRIGGERS to stringResource(R.string.settings_mouse_wheel_triggers),
+                    AppPreferences.MOUSE_WHEEL_LEFT_STICK to stringResource(R.string.settings_mouse_wheel_left_stick),
+                    AppPreferences.MOUSE_WHEEL_RIGHT_STICK to stringResource(R.string.settings_mouse_wheel_right_stick),
+                    AppPreferences.MOUSE_WHEEL_SHOULDERS to stringResource(R.string.settings_mouse_wheel_shoulders)
+                ),
+                selectedValue = settings.mouseWheelMode,
+                onSelected = { onOverrideChange(settings.copy(mouseWheelMode = it)) }
+            )
+            if (settings.mouseWheelMode != AppPreferences.MOUSE_WHEEL_OFF) {
+                SliderRow(
+                    title = stringResource(R.string.settings_mouse_wheel_pulse),
+                    value = settings.mouseWheelPulseMs.toFloat(),
+                    valueLabel = "${settings.mouseWheelPulseMs} ms",
+                    range = AppPreferences.MOUSE_WHEEL_PULSE_MIN_MS.toFloat()..
+                        AppPreferences.MOUSE_WHEEL_PULSE_MAX_MS.toFloat(),
+                    steps = 0,
+                    onValueChange = {
+                        onOverrideChange(settings.copy(mouseWheelPulseMs = it.roundToInt()))
+                    }
+                )
+            }
+            SelectionRow(
+                title = stringResource(R.string.settings_mouse_aim_mode),
+                options = listOf(
+                    AppPreferences.MOUSE_AIM_OFF to stringResource(R.string.settings_mouse_aim_off),
+                    AppPreferences.MOUSE_AIM_RIGHT_STICK to stringResource(R.string.settings_mouse_aim_right_stick),
+                    AppPreferences.MOUSE_AIM_LEFT_STICK to stringResource(R.string.settings_mouse_aim_left_stick)
+                ),
+                selectedValue = settings.mouseAimMode,
+                onSelected = { onOverrideChange(settings.copy(mouseAimMode = it)) },
+                helpText = stringResource(R.string.settings_mouse_aim_mode_desc)
+            )
+            if (settings.mouseAimMode != KeyboardMouseBindings.MOUSE_AIM_OFF) {
+                SliderRow(
+                    title = stringResource(R.string.settings_mouse_sensitivity),
+                    value = settings.mouseSensitivity.toFloat(),
+                    valueLabel = "${settings.mouseSensitivity}%",
+                    range = AppPreferences.MOUSE_SENSITIVITY_MIN.toFloat()..
+                        AppPreferences.MOUSE_SENSITIVITY_MAX.toFloat(),
+                    steps = 0,
+                    onValueChange = {
+                        onOverrideChange(settings.copy(mouseSensitivity = it.roundToInt()))
+                    }
+                )
+                SliderRow(
+                    title = stringResource(R.string.settings_mouse_vertical_sensitivity),
+                    value = settings.mouseVerticalSensitivity.toFloat(),
+                    valueLabel = "${settings.mouseVerticalSensitivity}%",
+                    range = AppPreferences.MOUSE_VERTICAL_SENSITIVITY_MIN.toFloat()..
+                        AppPreferences.MOUSE_VERTICAL_SENSITIVITY_MAX.toFloat(),
+                    steps = 0,
+                    onValueChange = {
+                        onOverrideChange(settings.copy(mouseVerticalSensitivity = it.roundToInt()))
+                    }
+                )
+                SliderRow(
+                    title = stringResource(R.string.settings_mouse_smoothing),
+                    value = settings.mouseSmoothing.toFloat(),
+                    valueLabel = "${settings.mouseSmoothing}%",
+                    range = AppPreferences.MOUSE_SMOOTHING_MIN.toFloat()..
+                        AppPreferences.MOUSE_SMOOTHING_MAX.toFloat(),
+                    steps = 0,
+                    onValueChange = {
+                        onOverrideChange(settings.copy(mouseSmoothing = it.roundToInt()))
+                    }
+                )
+                SliderRow(
+                    title = stringResource(R.string.settings_mouse_deadzone),
+                    value = settings.mouseAimDeadzone.toFloat(),
+                    valueLabel = "${settings.mouseAimDeadzone}%",
+                    range = AppPreferences.MOUSE_DEADZONE_MIN.toFloat()..
+                        AppPreferences.MOUSE_DEADZONE_MAX.toFloat(),
+                    steps = 0,
+                    onValueChange = {
+                        onOverrideChange(settings.copy(mouseAimDeadzone = it.roundToInt()))
+                    }
+                )
+                ToggleRow(
+                    title = stringResource(R.string.settings_mouse_invert_x),
+                    checked = settings.mouseInvertX,
+                    onCheckedChange = { onOverrideChange(settings.copy(mouseInvertX = it)) },
+                    helpText = stringResource(R.string.settings_mouse_invert_x_desc)
+                )
+                ToggleRow(
+                    title = stringResource(R.string.settings_mouse_invert_y),
+                    checked = settings.mouseInvertY,
+                    onCheckedChange = { onOverrideChange(settings.copy(mouseInvertY = it)) },
+                    helpText = stringResource(R.string.settings_mouse_invert_y_desc)
+                )
+            }
+        }
+        if (settings.keyboardEnabled || settings.mouseEnabled) {
+            Text(
+                text = stringResource(R.string.settings_keyboard_mouse_game_desc),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(horizontal = 4.dp)
+            )
+        }
+        if (connection.keyboardConnected) {
+            Text(
+                text = stringResource(R.string.settings_keyboard_connected),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(horizontal = 4.dp)
+            )
+        }
+        if (connection.mouseConnected) {
+            Text(
+                text = stringResource(R.string.settings_mouse_connected),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(horizontal = 4.dp)
+            )
+        }
+        ManagerActionButton(
+            icon = Icons.Rounded.Restore,
+            title = stringResource(R.string.settings_keyboard_mouse_mapping_reset_title),
+            onClick = {
+                onOverrideChange(
+                    settings.copy(
+                        keyboardBindingsByPad = settings.keyboardBindingsByPad - settings.keyboardTargetPad,
+                        mouseBindingsByPad = settings.mouseBindingsByPad - settings.mouseTargetPad
+                    )
+                )
+            }
+        )
+        if (override != null) {
+            ManagerActionButton(
+                icon = Icons.Rounded.Restore,
+                title = stringResource(R.string.settings_keyboard_mouse_use_global),
+                onClick = { onOverrideChange(null) }
+            )
+        }
+    }
+
+    mappingSource?.let { source ->
+        KeyboardMouseMappingDialog(
+            settings = settings,
+            onSettingsChange = onOverrideChange,
+            initialSource = source,
+            onDismiss = { mappingSource = null }
+        )
+    }
+}
+
+@Composable
 @Suppress("unused")
 private fun ManagerActionButton(
     modifier: Modifier = Modifier,
@@ -1727,6 +1962,7 @@ private fun PerGameSettings.resolveAgainst(defaultProfile: PerGameSettings): Per
         gameKey = gameKey,
         gameTitle = gameTitle,
         gameSerial = gameSerial,
+        keyboardMouse = pick("keyboardMouse", keyboardMouse, defaultProfile.keyboardMouse),
         renderer = pick("renderer", renderer, defaultProfile.renderer),
         mediatekAngleOpenGl = pick("mediatekAngleOpenGl", mediatekAngleOpenGl, defaultProfile.mediatekAngleOpenGl),
         upscaleMultiplier = pick("upscaleMultiplier", upscaleMultiplier, defaultProfile.upscaleMultiplier),

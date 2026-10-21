@@ -43,6 +43,18 @@ object NativeApp {
     private val padButtons = intArrayOf(0xFFFF, 0xFFFF)
     private val derivedDpadButtons = intArrayOf(0xFFFF, 0xFFFF)
     private val padAnalogHalfAxes = Array(2) { IntArray(8) }
+    // Keyboard and mouse keep their own active-low masks and analog axes. The core
+    // receives the merged state, so releasing one source cannot clear another.
+    private val padSourceButtons = Array(2) {
+        IntArray(KEYBOARD_MOUSE_SOURCE_COUNT) { 0xFFFF }
+    }
+    private val padSourceAnalogHalfAxes = Array(2) {
+        Array(KEYBOARD_MOUSE_SOURCE_COUNT) { IntArray(8) }
+    }
+    private val sourceTimeControlHeld = Array(2) {
+        Array(KEYBOARD_MOUSE_SOURCE_COUNT) { BooleanArray(2) }
+    }
+    private val combinedAnalogHalfAxes = IntArray(8)
     private val timeControlHandler = android.os.Handler(android.os.Looper.getMainLooper())
     private val timeControlButtons = Array(2) { Array(4) { HoldButton() } }
     private val timeControlTapPulse = Array(2) { BooleanArray(2) }
@@ -123,6 +135,45 @@ object NativeApp {
         CoreRuntime.setPadButtons(padIndex, effectivePadButtons(padIndex))
     }
 
+    @JvmStatic @Synchronized fun setPadButtonFromSource(
+        padIndex: Int,
+        index: Int,
+        range: Int,
+        pressed: Boolean,
+        source: Int
+    ) {
+        if (padIndex !in 0..1) return
+        val sourceSlot = keyboardMouseSourceSlot(source)
+        if (sourceSlot == null) {
+            setPadButton(padIndex, index, range, pressed)
+            return
+        }
+        if (index == PAD_FAST_FORWARD || index == PAD_REWIND) {
+            val controlSlot = if (index == PAD_FAST_FORWARD) 0 else 1
+            val held = sourceTimeControlHeld[padIndex][sourceSlot]
+            if (held[controlSlot] == pressed) return
+            held[controlSlot] = pressed
+            updateTimeControl()
+            return
+        }
+        val halfAxis = analogHalfAxisIndex(index)
+        if (halfAxis != null) {
+            val axes = padSourceAnalogHalfAxes[padIndex][sourceSlot]
+            val value = if (pressed) range.coerceIn(0, 255) else 0
+            if (axes[halfAxis] == value) return
+            axes[halfAxis] = value
+            dispatchPadAnalog(padIndex)
+            return
+        }
+        val bit = n3dsButtonBit(index) ?: return
+        val mask = 1 shl bit
+        val buttons = padSourceButtons[padIndex][sourceSlot]
+        val updated = if (pressed) buttons and mask.inv() else buttons or mask
+        if (updated == buttons) return
+        padSourceButtons[padIndex][sourceSlot] = updated
+        CoreRuntime.setPadButtons(padIndex, effectivePadButtons(padIndex))
+    }
+
     @JvmStatic fun setTouchState(x: Int, y: Int, pressed: Boolean) =
         CoreRuntime.setTouchState(x, y, pressed)
 
@@ -140,10 +191,13 @@ object NativeApp {
         if (padIndex !in 0..1) return
         timeControlButtons[padIndex].forEach { it.reset() }
         timeControlTapPulse[padIndex].fill(false)
+        sourceTimeControlHeld[padIndex].forEach { it.fill(false) }
         updateTimeControl()
         padButtons[padIndex] = 0xFFFF
         derivedDpadButtons[padIndex] = 0xFFFF
         padAnalogHalfAxes[padIndex].fill(0)
+        padSourceButtons[padIndex].fill(0xFFFF)
+        padSourceAnalogHalfAxes[padIndex].forEach { it.fill(0) }
         CoreRuntime.setPadButtons(padIndex, 0xFFFF)
         CoreRuntime.setPadAnalog(padIndex, 128, 128, 128, 128)
     }
@@ -360,14 +414,24 @@ object NativeApp {
 
     private fun updateTimeControl() {
         val rewind = (0..1).any { pad ->
-            timeControlButtons[pad][1].active || timeControlButtons[pad][3].active
+            timeControlButtons[pad][1].active ||
+                timeControlButtons[pad][3].active ||
+                sourceTimeControlHeld[pad].any { it[1] }
         }
         val fastForward = (0..1).any { pad ->
-            timeControlButtons[pad][0].active || timeControlButtons[pad][2].active
+            timeControlButtons[pad][0].active ||
+                timeControlButtons[pad][2].active ||
+                sourceTimeControlHeld[pad].any { it[0] }
         }
         val mode = if (rewind) 2 else if (fastForward) 1 else 0
         _timeControlMode.value = mode
         CoreRuntime.setTimeControl(mode)
+    }
+
+    private fun keyboardMouseSourceSlot(source: Int): Int? = when (source) {
+        KeyboardMouseBindings.PAD_SOURCE_KEYBOARD -> 0
+        KeyboardMouseBindings.PAD_SOURCE_MOUSE -> 1
+        else -> null
     }
 
     /**
@@ -413,7 +477,14 @@ object NativeApp {
     }
 
     private fun dispatchPadAnalog(padIndex: Int) {
-        val axes = padAnalogHalfAxes[padIndex]
+        val axes = combinedAnalogHalfAxes
+        for (axis in 0 until axes.size) {
+            var value = padAnalogHalfAxes[padIndex][axis]
+            for (sourceSlot in 0 until KEYBOARD_MOUSE_SOURCE_COUNT) {
+                value = maxOf(value, padSourceAnalogHalfAxes[padIndex][sourceSlot][axis])
+            }
+            axes[axis] = value
+        }
         val lx = mergeHalfAxes(axes[3], axes[1])
         val ly = mergeHalfAxes(axes[0], axes[2])
         val rx = mergeHalfAxes(axes[7], axes[5])
@@ -429,7 +500,7 @@ object NativeApp {
      */
     private fun updateDerivedDpadButtons(padIndex: Int, lx: Int, ly: Int) {
         var derived = DPAD_ALL_RELEASED
-            if (isAnalogDpadInDigitalModeEnabled()) {
+        if (isAnalogDpadInDigitalModeEnabled()) {
             when {
                 ly < 128 - ANALOG_DPAD_THRESHOLD -> derived = derived and (1 shl N3DS_BUTTON_UP).inv()
                 ly > 128 + ANALOG_DPAD_THRESHOLD -> derived = derived and (1 shl N3DS_BUTTON_DOWN).inv()
@@ -445,8 +516,13 @@ object NativeApp {
         }
     }
 
-    private fun effectivePadButtons(padIndex: Int): Int =
-        padButtons[padIndex] and derivedDpadButtons[padIndex]
+    private fun effectivePadButtons(padIndex: Int): Int {
+        var buttons = padButtons[padIndex] and derivedDpadButtons[padIndex]
+        for (sourceSlot in 0 until KEYBOARD_MOUSE_SOURCE_COUNT) {
+            buttons = buttons and padSourceButtons[padIndex][sourceSlot]
+        }
+        return buttons
+    }
 
     private fun isAnalogDpadInDigitalModeEnabled(): Boolean {
         val key = "analog_dpad_in_digital_mode"
@@ -471,6 +547,7 @@ object NativeApp {
         .joinToString("") { byte -> "%02x".format(byte) }
 }
 
+private const val KEYBOARD_MOUSE_SOURCE_COUNT = 2
 private const val PAD_FAST_FORWARD = 126
 private const val PAD_REWIND = 127
 private const val PAD_START = 108

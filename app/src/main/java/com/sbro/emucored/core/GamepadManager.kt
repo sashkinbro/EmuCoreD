@@ -432,6 +432,10 @@ object GamepadManager {
     fun mappableButtonActions(): List<MappableButtonAction> =
         mappableActions.filterNot { it.id in setOf("zl", "zr", "home", "touch") }
 
+    /** Keyboard/mouse mapping exposes every 3DS action with a core input. */
+    fun keyboardMouseMappableActions(): List<MappableButtonAction> =
+        mappableActions.filterNot { it.id == "touch" }
+
     fun resolveBindingForAction(actionId: String, customBindings: Map<String, Int>): Int? {
         return customBindings[actionId] ?: actionsById[actionId]?.defaultKeyCodes?.firstOrNull()
     }
@@ -498,6 +502,10 @@ object GamepadManager {
         if (device == null) return false
         if (device.isVirtual) return false
         if (isFingerprintUinputDevice(device)) return false
+        val deviceName = device.name.lowercase(Locale.ROOT)
+        if (deviceName.contains("system control") || deviceName.contains("consumer control")) {
+            return false
+        }
         val sources = device.sources
         val hasControllerSource =
             (sources and InputDevice.SOURCE_GAMEPAD) == InputDevice.SOURCE_GAMEPAD ||
@@ -525,6 +533,14 @@ object GamepadManager {
             stopAllGamepadVibrations()
             EmulatorBridge.resetKeyStatus()
         }
+        KeyboardMouseManager.setEmulationInputEnabled(enabled)
+    }
+
+    /** Routes keyboard/mouse shortcut bindings through the existing quick-action flow. */
+    fun triggerShortcutAction(padIndex: Int, actionId: String) {
+        if (!emulationInputEnabled) return
+        if (actionId !in shortcutActionIds) return
+        _gamepadShortcutActions.tryEmit(GamepadShortcutAction(normalizePadIndex(padIndex), actionId))
     }
 
     fun setRightStickTriggerMapping(upToR2: Boolean, downToL2: Boolean) {

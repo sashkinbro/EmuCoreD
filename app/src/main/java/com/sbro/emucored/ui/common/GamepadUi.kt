@@ -26,6 +26,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.sbro.emucored.core.GamepadManager
+import com.sbro.emucored.core.KeyboardMouseManager
 import com.sbro.emucored.core.LocalTvUiEnvironment
 import com.sbro.emucored.ui.theme.neon.neonShape
 
@@ -46,10 +47,12 @@ fun Modifier.gamepadFocusableCard(
     val focusInteractionSource = interactionSource ?: remember { MutableInteractionSource() }
     val isFocused by focusInteractionSource.collectIsFocusedAsState()
     val connectedGamepadCount by GamepadManager.connectedGamepadCountState.collectAsState()
+    val keyboardMouseConnection by KeyboardMouseManager.connection.collectAsState()
     val tvUiEnabled = LocalTvUiEnvironment.current.enabled
     val shouldShowFocusHighlight = isFocused && enabled && (
         focusHighlightMode == GamepadFocusHighlightMode.Always ||
             connectedGamepadCount > 0 ||
+            keyboardMouseConnection.keyboardConnected ||
             tvUiEnabled
     )
     val scale by animateFloatAsState(
