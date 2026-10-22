@@ -99,6 +99,30 @@ Java_com_sbro_emucored_core_ds_EmuCoreDsNative_nativeReleaseTouch(JNIEnv*, jobje
     EmuCoreDS::Emulator().ReleaseTouch();
 }
 
+JNIEXPORT void JNICALL
+Java_com_sbro_emucored_core_ds_EmuCoreDsNative_nativeSetRenderScale(JNIEnv*, jobject,
+                                                                    jint scale) {
+    EmuCoreDS::Emulator().SetRenderScale(static_cast<int>(scale));
+}
+
+JNIEXPORT jboolean JNICALL
+Java_com_sbro_emucored_core_ds_EmuCoreDsNative_nativeSaveState(JNIEnv* env, jobject,
+                                                               jstring path) {
+    const char* state_path = env->GetStringUTFChars(path, nullptr);
+    const bool result = EmuCoreDS::Emulator().SaveState(state_path);
+    env->ReleaseStringUTFChars(path, state_path);
+    return result ? JNI_TRUE : JNI_FALSE;
+}
+
+JNIEXPORT jboolean JNICALL
+Java_com_sbro_emucored_core_ds_EmuCoreDsNative_nativeLoadState(JNIEnv* env, jobject,
+                                                               jstring path) {
+    const char* state_path = env->GetStringUTFChars(path, nullptr);
+    const bool result = EmuCoreDS::Emulator().LoadState(state_path);
+    env->ReleaseStringUTFChars(path, state_path);
+    return result ? JNI_TRUE : JNI_FALSE;
+}
+
 jint JNI_OnLoad(JavaVM*, void*) {
     return JNI_VERSION_1_6;
 }

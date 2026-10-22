@@ -12,6 +12,11 @@
 
 #include "Args.h"
 #include "GPU.h"
+#include "GPU3D_Vulkan.h"
+#include "GPU2D_Soft.h"
+#include "renderer/FrameQueue.h"
+#include "renderer/VulkanOutput.h"
+#include "renderer/VulkanSurfacePresenter.h"
 #include "NDS.h"
 #include "NDSCart.h"
 #include "SPI_Firmware.h"
@@ -112,7 +117,7 @@ bool DsEmulator::Start(const std::string& rom_path, const std::string& sram_path
     }
 
     melonDS::NDSArgs args;
-    args.Renderer3D = std::make_unique<melonDS::SoftRenderer>();
+    args.Renderer3D = melonDS::VulkanRenderer3D::New();
     args.JIT = melonDS::JITArgs{};
     args.JIT->FastMemory = false;
     frame_count_ = 0;
@@ -126,9 +131,37 @@ bool DsEmulator::Start(const std::string& rom_path, const std::string& sram_path
         return false;
     }
     nds_->SetNDSCart(std::move(cart));
+    const int scale = std::clamp(requested_scale_.load(std::memory_order_relaxed), 1, 8);
+    active_scale_.store(scale, std::memory_order_relaxed);
+    if (auto* renderer3d = dynamic_cast<melonDS::VulkanRenderer3D*>(&nds_->GPU.GetRenderer3D())) {
+        renderer3d->SetRenderSettings(false, true, scale, false, 0.0f, 0.0f, false, false, false,
+                                      nds_->GPU);
+    }
+    vulkan_output_ = std::make_unique<MelonDSAndroid::VulkanOutput>();
+    if (!vulkan_output_->init()) {
+        __android_log_print(ANDROID_LOG_ERROR, "EmuCoreDS",
+                            "VulkanOutput initialization failed; falling back to software");
+        vulkan_output_.reset();
+        nds_->GPU.SetRenderer3D(std::make_unique<melonDS::SoftRenderer>());
+    } else {
+        vulkan_frame_ = std::make_unique<Frame>();
+        vulkan_readback_.assign(static_cast<size_t>(256 * scale) * static_cast<size_t>(386 * scale),
+                                0u);
+        surface_presenter_ = std::make_unique<MelonDSAndroid::VulkanSurfacePresenter>(true);
+        if (!surface_presenter_->init()) {
+            __android_log_print(ANDROID_LOG_WARN, "EmuCoreDS",
+                                "VulkanSurfacePresenter initialization failed; using readback");
+            surface_presenter_.reset();
+        }
+    }
     nds_->Reset();
     nds_->SetupDirectBoot(rom_path_);
     nds_->Start();
+
+    {
+        std::lock_guard lock(surface_mutex_);
+        AttachVulkanSurfaceLocked();
+    }
 
     running_ = true;
     thread_ = std::thread(&DsEmulator::Run, this);
@@ -137,6 +170,13 @@ bool DsEmulator::Start(const std::string& rom_path, const std::string& sram_path
 
 void DsEmulator::Stop() {
     if (!running_.exchange(false)) {
+        {
+            std::lock_guard lock(surface_mutex_);
+            DetachVulkanSurfaceLocked();
+            surface_presenter_.reset();
+        }
+        vulkan_output_.reset();
+        vulkan_frame_.reset();
         if (nds_) nds_.reset();
         return;
     }
@@ -144,6 +184,13 @@ void DsEmulator::Stop() {
     g_stop_requested = true;
     if (thread_.joinable()) thread_.join();
     stop_requested_ = false;
+    {
+        std::lock_guard lock(surface_mutex_);
+        DetachVulkanSurfaceLocked();
+        surface_presenter_.reset();
+    }
+    vulkan_output_.reset();
+    vulkan_frame_.reset();
     if (nds_) {
         nds_->Stop();
         nds_.reset();
@@ -167,10 +214,43 @@ void DsEmulator::Run() {
     using clock = std::chrono::steady_clock;
     auto next_frame = clock::now();
     while (running_.load() && !stop_requested_.load()) {
+        const int pending_state = state_pending_.exchange(0, std::memory_order_acquire);
+        if (pending_state != 0 && nds_) {
+            const bool state_ok = pending_state == 1 ? WriteStateFile(state_path_)
+                                                     : ReadStateFile(state_path_);
+            {
+                std::lock_guard state_lock(state_mutex_);
+                state_success_ = state_ok;
+                state_finished_ = true;
+            }
+            state_cv_.notify_all();
+        }
+        if (pending_scale_.load(std::memory_order_relaxed) != 0) {
+            ApplyRenderScaleLocked();
+        }
         if (nds_ && nds_->IsRunning()) {
+            if (vulkan_output_) {
+                if (auto* renderer2d =
+                        dynamic_cast<melonDS::GPU2D::SoftRenderer*>(&nds_->GPU.GetRenderer2D())) {
+                    renderer2d->BeginStructuredVulkan2DFrame();
+                }
+                if (vulkan_output_->ensureFaithfulAtlas()) {
+                    vulkan_output_->uploadFaithfulAtlasPreFrame(nds_->GPU);
+                    vulkan_output_->publishFaithfulCertifiedCaptureTerminals(nds_->GPU, 1);
+                }
+            }
             nds_->RunFrame();
             frame_count_.fetch_add(1, std::memory_order_relaxed);
-            PresentFrame();
+            if (vulkan_output_) {
+                if (auto* renderer2d =
+                        dynamic_cast<melonDS::GPU2D::SoftRenderer*>(&nds_->GPU.GetRenderer2D())) {
+                    renderer2d->PublishCompletedFaithfulFrame();
+                }
+                vulkan_output_->uploadFaithfulAtlas(nds_->GPU);
+                PresentVulkanFrame();
+            } else {
+                PresentFrame();
+            }
         }
         next_frame += std::chrono::microseconds(16683);
         const auto now = clock::now();
@@ -231,11 +311,178 @@ void DsEmulator::PresentFrame() {
     }
 }
 
+void DsEmulator::PresentVulkanFrame() {
+    if (!nds_ || !vulkan_output_ || !vulkan_frame_) return;
+
+    auto* renderer3d = dynamic_cast<melonDS::VulkanRenderer3D*>(&nds_->GPU.GetRenderer3D());
+    if (renderer3d == nullptr) return;
+
+    const int scale = std::clamp(active_scale_.load(std::memory_order_relaxed), 1, 8);
+    const uint32_t frame_width = static_cast<uint32_t>(256 * scale);
+    const uint32_t frame_height = static_cast<uint32_t>(386 * scale);
+
+    vulkan_frame_->backend = FrameBackend::VulkanImage;
+    vulkan_frame_->width = frame_width;
+    vulkan_frame_->height = frame_height;
+    vulkan_frame_->frameId++;
+    vulkan_frame_->publicationGeneration = vulkan_frame_->frameId;
+
+    static int vulkan_log = 0;
+    const bool log_now = (vulkan_log++ % 120) == 0;
+    if (!vulkan_output_->ensureFrameResources(vulkan_frame_.get(), frame_width, frame_height)) {
+        if (log_now) __android_log_print(ANDROID_LOG_WARN, "EmuCoreDS", "Vulkan frame resources failed");
+        return;
+    }
+
+    MelonDSAndroid::VulkanCompositionInputs inputs{};
+    if (!vulkan_output_->buildCompositionInputs(
+            vulkan_frame_.get(), *renderer3d, scale, MelonDSAndroid::VulkanFilterMode::Nearest,
+            false, false, false, inputs)) {
+        if (log_now) {
+            __android_log_print(ANDROID_LOG_WARN, "EmuCoreDS", "Vulkan composition inputs failed");
+        }
+        return;
+    }
+
+    bool presented = false;
+    {
+        std::unique_lock present_lock(vulkan_present_mutex_, std::try_to_lock);
+        if (present_lock.owns_lock() && surface_presenter_ && vulkan_surface_id_ != 0) {
+            const auto wait_runner = [](const char*,
+                                        const MelonDSAndroid::VulkanCausalWaitOperation& operation) {
+                return operation() ? MelonDSAndroid::VulkanCausalWaitResult::Ready
+                                   : MelonDSAndroid::VulkanCausalWaitResult::TimedOut;
+            };
+            const auto result = surface_presenter_->presentFrame(
+                vulkan_frame_.get(), *vulkan_output_, inputs, 100'000'000ull, 16'000'000ull,
+                wait_runner);
+            presented = result == MelonDSAndroid::VulkanPresentationResult::Presented;
+            if (!presented) {
+                static int presenter_log = 0;
+                if ((presenter_log++ % 120) == 0) {
+                    __android_log_print(ANDROID_LOG_WARN, "EmuCoreDS",
+                                        "VulkanSurfacePresenter result=%d frame=%llu",
+                                        static_cast<int>(result),
+                                        (unsigned long long)vulkan_frame_->frameId);
+                }
+            }
+        }
+    }
+    if (presented) return;
+
+    if (!presenter_) return;
+    const size_t readback_size = static_cast<size_t>(frame_width) * frame_height;
+    if (vulkan_readback_.size() != readback_size) vulkan_readback_.assign(readback_size, 0u);
+    inputs.needsReadback = true;
+    if (!vulkan_output_->composeAndSubmitFrame(vulkan_frame_.get(), inputs)) {
+        if (log_now) {
+            __android_log_print(ANDROID_LOG_WARN, "EmuCoreDS", "Vulkan compose failed frame=%llu",
+                                (unsigned long long)vulkan_frame_->frameId);
+        }
+        return;
+    }
+    if (!vulkan_output_->readFramePixels(vulkan_frame_.get(), vulkan_readback_.data(),
+                                         vulkan_readback_.size(), 100'000'000ull)) {
+        if (log_now) {
+            __android_log_print(ANDROID_LOG_WARN, "EmuCoreDS", "Vulkan readback failed frame=%llu",
+                                (unsigned long long)vulkan_frame_->frameId);
+        }
+        return;
+    }
+    if (log_now) {
+        __android_log_print(ANDROID_LOG_WARN, "EmuCoreDS",
+                            "Vulkan readback present frame=%llu scale=%d px=%08X",
+                            (unsigned long long)vulkan_frame_->frameId, scale,
+                            vulkan_readback_.empty() ? 0u : vulkan_readback_[0]);
+    }
+    presenter_->Present(vulkan_readback_.data(), static_cast<int>(frame_width),
+                        static_cast<int>(frame_height));
+}
+
+void DsEmulator::ApplyRenderScaleLocked() {
+    const int requested = std::clamp(pending_scale_.exchange(0, std::memory_order_relaxed), 1, 8);
+    if (requested == active_scale_.load(std::memory_order_relaxed) || !nds_) return;
+
+    auto* renderer3d = dynamic_cast<melonDS::VulkanRenderer3D*>(&nds_->GPU.GetRenderer3D());
+    if (renderer3d == nullptr) return;
+
+    renderer3d->SetRenderSettings(false, true, requested, false, 0.0f, 0.0f, false, false, false,
+                                  nds_->GPU);
+    active_scale_.store(requested, std::memory_order_relaxed);
+    const size_t readback_size = static_cast<size_t>(256 * requested) *
+        static_cast<size_t>(386 * requested);
+    vulkan_readback_.assign(readback_size, 0u);
+    __android_log_print(ANDROID_LOG_WARN, "EmuCoreDS", "DS render scale set to %dx", requested);
+}
+
+void DsEmulator::AttachVulkanSurfaceLocked() {
+    if (!surface_presenter_ || !window_ || vulkan_surface_id_ != 0) return;
+
+    ANativeWindow_acquire(window_);
+    const uint32_t width = static_cast<uint32_t>(std::max(1, ANativeWindow_getWidth(window_)));
+    const uint32_t height = static_cast<uint32_t>(std::max(1, ANativeWindow_getHeight(window_)));
+    vulkan_surface_id_ = surface_presenter_->attachSurface(window_, width, height);
+    if (vulkan_surface_id_ == 0) {
+        __android_log_print(ANDROID_LOG_WARN, "EmuCoreDS", "Vulkan presenter surface attach failed");
+        return;
+    }
+    ConfigureVulkanSurfaceLocked();
+    __android_log_print(ANDROID_LOG_INFO, "EmuCoreDS", "Vulkan presenter surface=%d %ux%u",
+                        vulkan_surface_id_, width, height);
+}
+
+void DsEmulator::DetachVulkanSurfaceLocked() {
+    if (!surface_presenter_ || vulkan_surface_id_ == 0) return;
+    {
+        std::lock_guard present_lock(vulkan_present_mutex_);
+        surface_presenter_->detachSurface(vulkan_surface_id_);
+    }
+    vulkan_surface_id_ = 0;
+}
+
+void DsEmulator::ConfigureVulkanSurfaceLocked() {
+    if (!surface_presenter_ || !window_ || vulkan_surface_id_ == 0) return;
+
+    const int window_width = std::max(1, ANativeWindow_getWidth(window_));
+    const int window_height = std::max(1, ANativeWindow_getHeight(window_));
+    const float content_aspect = 256.0f / 386.0f;
+    const float window_aspect = static_cast<float>(window_width) / static_cast<float>(window_height);
+
+    int content_width = window_width;
+    int content_height = window_height;
+    if (window_aspect > content_aspect) {
+        content_width = static_cast<int>(static_cast<float>(window_height) * content_aspect + 0.5f);
+    } else {
+        content_height = static_cast<int>(static_cast<float>(window_width) / content_aspect + 0.5f);
+    }
+    content_width = std::max(2, content_width);
+    content_height = std::max(2, content_height);
+    const int left = (window_width - content_width) / 2;
+    const int top = (window_height - content_height) / 2;
+    const int top_height = content_height / 2;
+    const int bottom_height = content_height - top_height;
+
+    MelonDSAndroid::VulkanSurfaceConfig config{};
+    config.topScreen = {true, left, top, content_width, top_height};
+    config.bottomScreen = {true, left, top + top_height, content_width, bottom_height};
+    config.filtering = MelonDSAndroid::VulkanFilterMode::Linear;
+    const MelonDSAndroid::VulkanBackgroundImage background{};
+    surface_presenter_->configureSurface(vulkan_surface_id_, config, background);
+}
+
 void DsEmulator::SetSurface(ANativeWindow* window) {
     std::lock_guard lock(surface_mutex_);
+    if (window) ANativeWindow_acquire(window);
+    ANativeWindow* previous = window_;
     window_ = window;
+
+    DetachVulkanSurfaceLocked();
+    AttachVulkanSurfaceLocked();
+
     if (!presenter_) presenter_ = std::make_unique<DsPresenter>();
     presenter_->SetSurface(window);
+
+    if (previous) ANativeWindow_release(previous);
 }
 
 void DsEmulator::SetSwapScreens(bool swap) {
@@ -264,6 +511,70 @@ void DsEmulator::TouchScreen(uint16_t x, uint16_t y) {
 
 void DsEmulator::ReleaseTouch() {
     if (nds_) nds_->ReleaseScreen();
+}
+
+void DsEmulator::SetRenderScale(int scale) {
+    const int normalized = std::clamp(scale, 1, 8);
+    requested_scale_.store(normalized, std::memory_order_relaxed);
+    pending_scale_.store(normalized, std::memory_order_relaxed);
+}
+
+bool DsEmulator::SaveState(const std::string& path) {
+    return PerformStateRequest(path, true);
+}
+
+bool DsEmulator::LoadState(const std::string& path) {
+    return PerformStateRequest(path, false);
+}
+
+bool DsEmulator::PerformStateRequest(const std::string& path, bool save) {
+    std::lock_guard call_lock(state_call_mutex_);
+    if (path.empty() || !running_.load() || !nds_) return false;
+
+    std::unique_lock state_lock(state_mutex_);
+    if (state_pending_.load(std::memory_order_relaxed) != 0) return false;
+    state_path_ = path;
+    state_finished_ = false;
+    state_success_ = false;
+    state_pending_.store(save ? 1 : 2, std::memory_order_release);
+    state_cv_.wait(state_lock, [&] { return state_finished_; });
+    return state_success_;
+}
+
+bool DsEmulator::WriteStateFile(const std::string& path) {
+    if (!nds_) return false;
+
+    melonDS::Savestate state;
+    if (!nds_->DoSavestate(&state)) return false;
+    state.Finish();
+    if (state.Error || state.Length() == 0 || state.Buffer() == nullptr) return false;
+
+    std::ofstream file(path, std::ios::binary | std::ios::trunc);
+    if (!file) return false;
+    file.write(reinterpret_cast<const char*>(state.Buffer()), state.Length());
+    return file.good();
+}
+
+bool DsEmulator::ReadStateFile(const std::string& path) {
+    if (!nds_) return false;
+
+    std::vector<u8> buffer;
+    if (!ReadFile(path, buffer, kMaxRomSize) || buffer.empty()) return false;
+
+    melonDS::Savestate state(buffer.data(), static_cast<u32>(buffer.size()), false);
+    if (!nds_->DoSavestate(&state)) return false;
+    state.Finish();
+    if (state.Error) return false;
+
+    nds_->SetKeyMask(pending_key_mask_);
+    if (vulkan_output_) {
+        vulkan_output_->invalidateTemporalHistory();
+        vulkan_output_->clearStructuredCaptureHistory();
+    }
+    if (auto* renderer3d = dynamic_cast<melonDS::VulkanRenderer3D*>(&nds_->GPU.GetRenderer3D())) {
+        renderer3d->Reset(nds_->GPU);
+    }
+    return true;
 }
 
 } // namespace EmuCoreDS

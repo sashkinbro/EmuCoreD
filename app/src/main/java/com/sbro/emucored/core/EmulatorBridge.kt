@@ -204,7 +204,8 @@ object EmulatorBridge {
 
     suspend fun startEmulation(
         path: String,
-        saveStateIdentityPath: String? = null
+        saveStateIdentityPath: String? = null,
+        dsRenderScale: Int = 1
     ): Boolean {
         if (!isNativeLoaded) {
             Log.e(TAG, "startEmulation skipped: native library is not loaded")
@@ -219,7 +220,12 @@ object EmulatorBridge {
             if (isVmActive()) return false
             val context = getContext() ?: return false
             return withContext(Dispatchers.IO) {
-                DsSession.start(context, path, saveStateIdentityPath ?: path)
+                DsSession.start(
+                    context,
+                    path,
+                    saveStateIdentityPath ?: path,
+                    renderScale = dsRenderScale
+                )
             }
         }
         awaitPendingShutdown()
@@ -515,6 +521,9 @@ object EmulatorBridge {
     }
 
     suspend fun saveState(slot: Int): Boolean {
+        if (DsSession.isActive) {
+            return withContext(Dispatchers.IO) { DsSession.saveState(slot) }
+        }
         if (!isNativeLoaded || !isVmActive) return false
         val saved = runSerial {
             try {
@@ -527,6 +536,9 @@ object EmulatorBridge {
     }
 
     suspend fun loadState(slot: Int): Boolean {
+        if (DsSession.isActive) {
+            return withContext(Dispatchers.IO) { DsSession.loadState(slot) }
+        }
         if (!isNativeLoaded || !isVmActive) return false
         return runSerial {
             try {
@@ -565,6 +577,9 @@ object EmulatorBridge {
     suspend fun setUpscaleMultiplier(multiplier: Float) {
         val normalized = normalizeUpscale(multiplier)
         CoreOptionStore.set("resolution_factor", Math.round(normalized).toString())
+        if (DsSession.isActive) {
+            DsSession.setRenderScale(Math.round(normalized).coerceIn(1, 8))
+        }
     }
 
     suspend fun setAspectRatio(type: Int) {

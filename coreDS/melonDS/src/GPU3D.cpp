@@ -183,6 +183,8 @@ void GPU3D::ResetRenderingState() noexcept
 
     RenderClearAttr1 = 0x3F000000;
     RenderClearAttr2 = 0x00007FFF;
+
+    RenderScreenSwapAt3D = false;
 }
 
 void GPU3D::Reset() noexcept
@@ -556,6 +558,8 @@ void GPU3D::DoSavestate(Savestate* file) noexcept
     file->Var32(&TexParam);
     file->Var32(&TexPalette);
     RenderFrameIdentical = false;
+    if (!file->Saving && CurrentRenderer != nullptr)
+        CurrentRenderer->InvalidateRenderProductIdentities();
     if (softRenderer && softRenderer->IsThreaded())
     {
         softRenderer->EnableRenderThread();
@@ -1150,6 +1154,11 @@ void GPU3D::SubmitPolygon() noexcept
 
             vtx->HiresPosition[0] = posX & 0x1FFF;
             vtx->HiresPosition[1] = posY & 0xFFF;
+        }
+        else
+        {
+            vtx->HiresPosition[0] = 0;
+            vtx->HiresPosition[1] = 0;
         }
     }
 
@@ -2487,6 +2496,7 @@ void GPU3D::VBlank() noexcept
 
                 RenderNumPolygons = NumPolygons;
                 RenderFrameIdentical = false;
+
             }
             else
             {
@@ -2535,6 +2545,7 @@ void GPU3D::VBlank() noexcept
 
 void GPU3D::VCount215(GPU& gpu) noexcept
 {
+    RenderScreenSwapAt3D = (NDS.PowerControl9 & (1u << 15)) != 0;
     CurrentRenderer->RenderFrame(gpu);
 }
 
@@ -2579,6 +2590,29 @@ u32* GPU3D::GetLine(int line) noexcept
     }
 
     return ScrolledLine;
+}
+
+bool GPU3D::GetLastServedCaptureSourceIdentity(
+    CaptureSourceIdentity& outIdentity) const noexcept
+{
+    if (AbortFrame || CurrentRenderer == nullptr || RenderXPos != 0u)
+    {
+        outIdentity = {};
+        return false;
+    }
+    return CurrentRenderer->GetLastServedCaptureSourceIdentity(outIdentity);
+}
+
+bool GPU3D::GetLiveRenderProductIdentity(
+    LiveRenderProductIdentity& outIdentity) const noexcept
+{
+    if (AbortFrame || CurrentRenderer == nullptr)
+    {
+        outIdentity = {};
+        return false;
+    }
+
+    return CurrentRenderer->GetLiveRenderProductIdentity(outIdentity);
 }
 
 bool GPU3D::IsRendererAccelerated() const noexcept
@@ -3006,4 +3040,3 @@ Renderer3D::Renderer3D(bool Accelerated)
 { }
 
 }
-

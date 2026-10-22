@@ -39,4 +39,7 @@ object EmuCoreDsNative {
     external fun nativeSetKeyMask(mask: Int)
     external fun nativeTouch(x: Int, y: Int)
     external fun nativeReleaseTouch()
+    external fun nativeSetRenderScale(scale: Int)
+    external fun nativeSaveState(path: String): Boolean
+    external fun nativeLoadState(path: String): Boolean
 }

@@ -123,29 +123,28 @@ class GameRepository {
         serial: String? = null,
         title: String? = null
     ): String? {
-        if (GamePlatform.fromFileName(path) == GamePlatform.NDS) {
-            return CustomGameCoverRepository(context).findCustomCoverPath(path)
-        }
+        val platform = GamePlatform.fromFileName(path) ?: GamePlatform.N3DS
         val candidate = if (path.startsWith("content://")) {
-            runCatching { findDocumentCover(path, context, serial, title) }
+            runCatching { findDocumentCover(path, context, serial, title, platform) }
                 .onFailure { error -> Log.w(TAG, "Unable to find cover for document URI: $path", error) }
                 .getOrNull()
         } else {
-            findLocalCover(path, context, serial, title)
+            findLocalCover(path, context, serial, title, platform)
         }
-        return CoverArtRepository(context).displayCoverPath(serial, title, candidate)
+        return CoverArtRepository(context).displayCoverPath(serial, title, candidate, platform)
     }
 
     fun downloadCoverForGame(game: GameItem, context: Context): String? {
         CustomGameCoverRepository(context).findCustomCoverPath(game.path)?.let { return it }
         // A loose homebrew ELF has no retail identity; do not guess its artwork from a short filename.
         val serial = game.serial?.takeIf(String::isNotBlank)
+        val platform = game.platform ?: GamePlatform.fromFileName(game.path) ?: GamePlatform.N3DS
         val covers = CoverArtRepository(context)
-        val downloaded = covers.downloadCover(serial, title = game.title)
-        if (covers.hasIndexedCover(serial, game.title)) return downloaded
+        val downloaded = covers.downloadCover(serial, title = game.title, platform = platform)
+        if (covers.hasIndexedCover(serial, game.title, platform)) return downloaded
         return downloaded
             ?: game.coverArtPath?.takeIf { File(it).isFile }
-            ?: N3dsGameMetadataReader.extractIcon(context, game.path)
+            ?: if (platform == GamePlatform.N3DS) N3dsGameMetadataReader.extractIcon(context, game.path) else null
     }
 
     private fun scanLocalDirectory(
@@ -213,6 +212,11 @@ class GameRepository {
                         lastModified = file.lastModified(),
                         coverArtPath = if (platform == GamePlatform.NDS) {
                             customCoverRepository.findCustomCoverPath(file.absolutePath)
+                                ?: coverRepository.findCachedCoverPath(
+                                    serial,
+                                    title = title,
+                                    platform = GamePlatform.NDS
+                                )
                                 ?: cachedGame?.coverArtPath?.takeIf { File(it).exists() }
                                 ?: coverCandidates[normalizeBaseName(file.nameWithoutExtension)]?.absolutePath
                                 ?: coverCandidates[normalizeBaseName(cleanGameName(title))]?.absolutePath
@@ -315,6 +319,11 @@ class GameRepository {
                         lastModified = lastModified,
                         coverArtPath = if (platform == GamePlatform.NDS) {
                             customCoverRepository.findCustomCoverPath(uriPath)
+                                ?: coverRepository.findCachedCoverUri(
+                                    serial,
+                                    title = title,
+                                    platform = GamePlatform.NDS
+                                )
                                 ?: cachedGame?.coverArtPath
                                 ?: coverCandidates[normalizeBaseName(name.substringBeforeLast('.'))]?.uri?.toString()
                                 ?: coverCandidates[normalizeBaseName(cleanGameName(title))]?.uri?.toString()
@@ -348,7 +357,13 @@ class GameRepository {
             ?.let { it.title to it.serial } ?: (null to null)
     }
 
-    private fun findLocalCover(path: String, context: Context, serial: String?, title: String?): String? {
+    private fun findLocalCover(
+        path: String,
+        context: Context,
+        serial: String?,
+        title: String?,
+        platform: GamePlatform = GamePlatform.N3DS
+    ): String? {
         val file = File(path)
         val parent = file.parentFile ?: return null
         val baseName = normalizeBaseName(file.nameWithoutExtension)
@@ -356,17 +371,27 @@ class GameRepository {
         val coverCandidates = buildLocalCoverCandidates(parent.listFiles().orEmpty())
         val coverRepo = CoverArtRepository(context)
         return CustomGameCoverRepository(context).findCustomCoverPath(path)
-            ?: coverRepo.findCachedCoverPath(serial, title = title)
-            ?: (if (!coverRepo.hasIndexedCover(serial, title)) N3dsGameMetadataReader.extractIcon(context, path) else null)
+            ?: coverRepo.findCachedCoverPath(serial, title = title, platform = platform)
+            ?: (if (platform == GamePlatform.N3DS && !coverRepo.hasIndexedCover(serial, title, platform)) {
+                N3dsGameMetadataReader.extractIcon(context, path)
+            } else {
+                null
+            })
             ?: coverCandidates[baseName]?.absolutePath
             ?: coverCandidates[titleKey]?.absolutePath
     }
 
-    private fun findDocumentCover(path: String, context: Context, serial: String?, title: String?): String? {
+    private fun findDocumentCover(
+        path: String,
+        context: Context,
+        serial: String?,
+        title: String?,
+        platform: GamePlatform = GamePlatform.N3DS
+    ): String? {
         val coverRepo = CoverArtRepository(context)
         CustomGameCoverRepository(context).findCustomCoverPath(path)?.let { return it }
-        coverRepo.findCachedCoverUri(serial, title = title)?.let { return it }
-        if (!coverRepo.hasIndexedCover(serial, title)) {
+        coverRepo.findCachedCoverUri(serial, title = title, platform = platform)?.let { return it }
+        if (platform == GamePlatform.N3DS && !coverRepo.hasIndexedCover(serial, title, platform)) {
             N3dsGameMetadataReader.extractIcon(context, path)?.let { return it }
         }
 

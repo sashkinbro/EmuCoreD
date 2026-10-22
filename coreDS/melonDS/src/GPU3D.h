@@ -85,6 +85,24 @@ struct Polygon
 class Renderer3D;
 class NDS;
 
+struct CaptureSourceIdentity
+{
+    bool Valid = false;
+
+    u64 RenderProductEpoch = 0;
+    u64 Sequence = 0;
+    u32 PolygonCount = 0;
+    u32 CaptureCnt = 0;
+    bool ScreenSwap = false;
+};
+
+struct LiveRenderProductIdentity
+{
+    u64 Epoch = 0;
+    u64 Sequence = 0;
+    bool Valid = false;
+};
+
 class GPU3D
 {
 public:
@@ -113,6 +131,10 @@ public:
     void SetRenderXPos(u16 xpos) noexcept;
     [[nodiscard]] u16 GetRenderXPos() const noexcept { return RenderXPos; }
     u32* GetLine(int line) noexcept;
+    [[nodiscard]] bool GetLiveRenderProductIdentity(
+        LiveRenderProductIdentity& outIdentity) const noexcept;
+    [[nodiscard]] bool GetLastServedCaptureSourceIdentity(
+        CaptureSourceIdentity& outIdentity) const noexcept;
 
     void WriteToGXFIFO(u32 val) noexcept;
 
@@ -273,6 +295,8 @@ public:
 
     bool RenderFrameIdentical = false; // not part of the hardware state, don't serialize
 
+    bool RenderScreenSwapAt3D = false;
+
     bool AbortFrame = false;
 
     u64 Timestamp = 0;
@@ -347,12 +371,38 @@ public:
     virtual void VCount144(GPU& gpu) {};
     virtual void Stop(const GPU& gpu) {}
     virtual void RenderFrame(GPU& gpu) = 0;
+
+    [[nodiscard]] virtual bool FrameskipPlaceholderServido() const noexcept { return false; }
     virtual void RestartFrame(GPU& gpu) {};
     virtual u32* GetLine(int line) = 0;
     virtual void Blit(const GPU& gpu) {};
 
     virtual void SetupAccelFrame() {}
     virtual void PrepareCaptureFrame() {}
+    virtual void BeginCaptureFrame() {}
+    virtual void SetCaptureScreenSwapHint(bool screenSwap, u32 captureCnt, u32 displayCnt)
+    {
+        (void)screenSwap;
+        (void)captureCnt;
+        (void)displayCnt;
+    }
+
+    virtual void SetFaithfulComposeActiveHint(bool active) { (void)active; }
+
+    virtual void InvalidateRenderProductIdentities() noexcept {}
+    [[nodiscard]] virtual bool GetLastServedCaptureSourceIdentity(
+        CaptureSourceIdentity& outIdentity) const noexcept
+    {
+        outIdentity = {};
+        return false;
+    }
+    [[nodiscard]] virtual bool GetLiveRenderProductIdentity(
+        LiveRenderProductIdentity& outIdentity) const noexcept
+    {
+        outIdentity = {};
+        return false;
+    }
+    [[nodiscard]] virtual bool UsesStructured2DMetadata() const noexcept { return false; }
     virtual void SetOutputTexture(int buffer, u32 texture) {}
     virtual void BindOutputTexture(int buffer) {}
 

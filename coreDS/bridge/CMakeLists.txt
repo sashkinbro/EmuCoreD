@@ -3,10 +3,15 @@ add_library(emucored_ds SHARED
     ds_emulator.cpp
     ds_presenter.cpp
     platform_android.cpp
+    melonds_android_stubs.cpp
+    renderer/VulkanOutput.cpp
+    renderer/VulkanSurfacePresenter.cpp
+    renderer/VulkanRetroArchFilterChainStub.cpp
 )
 
 target_include_directories(emucored_ds PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}
+    ${CMAKE_CURRENT_SOURCE_DIR}/renderer
 )
 
 target_compile_definitions(emucored_ds PRIVATE

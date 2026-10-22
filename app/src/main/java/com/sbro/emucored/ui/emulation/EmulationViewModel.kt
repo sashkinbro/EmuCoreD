@@ -987,6 +987,7 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
             }
 
             var finalLaunchPath: String? = null
+            var dsRenderScale = 1
             lifecycleMutex.withLock {
                 if (isShuttingDown || cancelPendingStart) return@launch
 
@@ -996,6 +997,7 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
                 )
 
                 val config = loadLaunchConfig()
+                dsRenderScale = config.upscaleMultiplier.roundToInt().coerceIn(1, 8)
                 val renderer = rendererOverride ?: config.renderer
                 Log.i(TAG, "Launch config loaded renderer=$renderer override=${rendererOverride != null}")
                 _uiState.value = _uiState.value.copy(
@@ -1288,7 +1290,11 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
             }
 
             val started = try {
-                EmulatorBridge.startEmulation(pathToLaunch)
+                EmulatorBridge.startEmulation(
+                    pathToLaunch,
+                    saveStateIdentityPath = path,
+                    dsRenderScale = dsRenderScale
+                )
             } catch (error: Exception) {
                 Log.e(TAG, "EmulatorBridge.startEmulation failed", error)
                 false
@@ -2733,6 +2739,14 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
             ?.takeIf { it.exists() }
         val autoSaveFile = resolveSaveStateFile(path, AUTO_SAVE_SLOT)
             ?.takeIf { it.exists() }
+        if (DsSession.isActive) {
+            _uiState.value = _uiState.value.copy(
+                currentSlotLastModified = currentSlotFile?.lastModified() ?: 0L,
+                autoSaveLastModified = autoSaveFile?.lastModified() ?: 0L
+            )
+            refreshSaveStatePreviews(currentSlotFile, autoSaveFile)
+            return
+        }
         _uiState.value = _uiState.value.copy(
             currentSlotLastModified = currentSlotFile?.lastModified() ?: 0L,
             autoSaveLastModified = autoSaveFile?.lastModified() ?: 0L
@@ -2785,6 +2799,9 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
     }
 
     private fun resolveSaveStateFile(gamePath: String, slot: Int): File? {
+        if (DsSession.isActive) {
+            return DsSession.statePath(slot)?.let(::File)
+        }
         // The identity path is what the native writer actually uses; fall back
         // to the caller's path and finally to a serial-named scan.
         val identityFile = runCatching { NativeApp.getCurrentSaveStatePath(slot) }
@@ -2836,7 +2853,11 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
                     } catch (_: Exception) { false }
                 }
             }
-            val success = scheduled && path != null && waitForSaveStateUpdate(path, slot, previousModified)
+            val success = if (DsSession.isActive) {
+                scheduled
+            } else {
+                scheduled && path != null && waitForSaveStateUpdate(path, slot, previousModified)
+            }
             _uiState.value = _uiState.value.copy(
                 isActionInProgress = false,
                 actionLabel = null,
