@@ -1654,8 +1654,12 @@ private fun RecentGameCard(
                             modifier = Modifier.fillMaxSize(),
                             contentScale = gameCoverContentScale(game.coverArtPath, ContentScale.Fit),
                             shape = coverShape,
-                            onAspectRatioResolved = { ratio ->
-                                if (ratio.isFinite() && ratio > 0f) coverAspectRatio = ratio
+                            onAspectRatioResolved = if (is3dCover) {
+                                null
+                            } else {
+                                { ratio ->
+                                    if (ratio.isFinite() && ratio > 0f) coverAspectRatio = ratio
+                                }
                             }
                         )
                     }
@@ -1791,8 +1795,12 @@ private fun GameCard(
                         modifier = Modifier.fillMaxSize(),
                         contentScale = gameCoverContentScale(game.coverArtPath, ContentScale.Fit),
                         shape = coverShape,
-                        onAspectRatioResolved = { ratio ->
-                            if (ratio.isFinite() && ratio > 0f) coverAspectRatio = ratio
+                        onAspectRatioResolved = if (is3dCover) {
+                            null
+                        } else {
+                            { ratio ->
+                                if (ratio.isFinite() && ratio > 0f) coverAspectRatio = ratio
+                            }
                         }
                     )
                 }

@@ -161,15 +161,16 @@ fun GameCoverArt(
     }
 
     val currentBitmap = bitmap
+    val imageBitmap = remember(currentBitmap) { currentBitmap?.asImageBitmap() }
     val imageModifier = if (matchImageAspectRatio) {
         modifier.aspectRatio(currentBitmap?.let { it.width.toFloat() / it.height } ?: (16f / 9f))
     } else modifier
-    if (currentBitmap != null) {
+    if (imageBitmap != null) {
         Image(
-            bitmap = currentBitmap.asImageBitmap(),
+            bitmap = imageBitmap,
             contentDescription = fallbackTitle,
             contentScale = gameCoverContentScale(coverPath, contentScale),
-            filterQuality = androidx.compose.ui.graphics.FilterQuality.Medium,
+            filterQuality = androidx.compose.ui.graphics.FilterQuality.Low,
             modifier = imageModifier.clip(gameCoverShape(coverPath, shape))
         )
     } else {
@@ -196,7 +197,7 @@ fun GameCoverArt(
     }
 }
 
-private val coverBitmapCache = object : LruCache<String, Bitmap>(100 * 1024 * 1024) { // 100 MB cache
+private val coverBitmapCache = object : LruCache<String, Bitmap>(32 * 1024 * 1024) { // 32 MB cache
     override fun sizeOf(key: String, value: Bitmap): Int = value.allocationByteCount
 }
 
@@ -222,8 +223,8 @@ private fun putCachedBitmap(path: String, bitmap: Bitmap) {
 private fun loadBitmap(context: android.content.Context, coverPath: String?): Bitmap? {
     if (coverPath.isNullOrBlank()) return null
 
-    val reqWidth = 1080
-    val reqHeight = 1600
+    val reqWidth = 540
+    val reqHeight = 810
 
     return runCatching {
         fun openStream() = when {
