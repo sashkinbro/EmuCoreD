@@ -61,10 +61,10 @@ internal fun isGenerated3dCover(coverPath: String?): Boolean =
     } == true
 
 fun gameCoverAspectRatio(coverPath: String?, default: Float): Float =
-    if (isGenerated3dCover(coverPath)) 1f else default
+    if (isGenerated3dCover(coverPath)) 0.70f else default
 
 fun gameCoverThumbnailSize(coverPath: String?, width: Dp, height: Dp): DpSize =
-    if (isGenerated3dCover(coverPath)) DpSize(height, height) else DpSize(width, height)
+    if (isGenerated3dCover(coverPath)) DpSize(height * 0.70f, height) else DpSize(width, height)
 
 /** 3D covers render with transparent padding, so rounding would cut their corners. */
 fun gameCoverShape(coverPath: String?, roundedShape: androidx.compose.ui.graphics.Shape) =
@@ -72,7 +72,7 @@ fun gameCoverShape(coverPath: String?, roundedShape: androidx.compose.ui.graphic
 
 /** 3D covers must be fitted whole; regular covers fill and crop their frame. */
 fun gameCoverContentScale(coverPath: String?, defaultScale: ContentScale): ContentScale =
-    if (isGenerated3dCover(coverPath)) ContentScale.Fit else defaultScale
+    if (isGenerated3dCover(coverPath)) ContentScale.Crop else defaultScale
 
 private val imageLoadingSemaphore = Semaphore(4)
 

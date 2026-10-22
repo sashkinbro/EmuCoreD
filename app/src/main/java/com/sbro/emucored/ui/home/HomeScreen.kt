@@ -108,6 +108,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
 import com.sbro.emucored.ui.common.gameCoverAspectRatio
+import com.sbro.emucored.ui.common.gameCoverContentScale
 import com.sbro.emucored.ui.common.isGenerated3dCover
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -541,7 +542,7 @@ fun HomeScreen(
                                 top = topInset,
                                 bottom = 76.dp + bottomInset
                             ),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            horizontalArrangement = Arrangement.spacedBy(4.dp),
                             verticalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
                             item(span = { androidx.compose.foundation.lazy.grid.GridItemSpan(maxLineSpan) }) {
@@ -661,7 +662,7 @@ fun HomeScreen(
                                         uiState.games.chunked(if (isListView) 1 else columnsCount).forEach { rowGames ->
                                             Row(
                                                 modifier = Modifier.fillMaxWidth(),
-                                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                                horizontalArrangement = Arrangement.spacedBy(4.dp)
                                             ) {
                                                 rowGames.forEach { game ->
                                                     val showCoverPlaceholder = uiState.isCoverArtDisabled &&
@@ -1601,7 +1602,7 @@ private fun RecentGameCard(
         neonShape(16.dp)
     }
     val resolvedCoverAspectRatio = if (is3dCover) {
-        1f
+        gameCoverAspectRatio(game.coverArtPath, GameCoverAspectRatio)
     } else if (showCenteredTitlePlaceholder) {
         GameCoverAspectRatio
     } else {
@@ -1651,7 +1652,7 @@ private fun RecentGameCard(
                             coverPath = game.coverArtPath,
                             fallbackTitle = game.title,
                             modifier = Modifier.fillMaxSize(),
-                            contentScale = ContentScale.Fit,
+                            contentScale = gameCoverContentScale(game.coverArtPath, ContentScale.Fit),
                             shape = coverShape,
                             onAspectRatioResolved = { ratio ->
                                 if (ratio.isFinite() && ratio > 0f) coverAspectRatio = ratio
@@ -1733,7 +1734,7 @@ private fun GameCard(
         neonShape(16.dp)
     }
     val resolvedCoverAspectRatio = if (is3dCover) {
-        1f
+        gameCoverAspectRatio(game.coverArtPath, GameCoverAspectRatio)
     } else if (showCenteredTitlePlaceholder) {
         GameCoverAspectRatio
     } else {
@@ -1788,7 +1789,7 @@ private fun GameCard(
                         coverPath = game.coverArtPath,
                         fallbackTitle = game.title,
                         modifier = Modifier.fillMaxSize(),
-                        contentScale = ContentScale.Fit,
+                        contentScale = gameCoverContentScale(game.coverArtPath, ContentScale.Fit),
                         shape = coverShape,
                         onAspectRatioResolved = { ratio ->
                             if (ratio.isFinite() && ratio > 0f) coverAspectRatio = ratio
@@ -1913,7 +1914,7 @@ private fun GameListCard(
                         coverPath = game.coverArtPath,
                         fallbackTitle = game.title,
                         modifier = Modifier.fillMaxSize(),
-                        contentScale = ContentScale.Fit,
+                        contentScale = gameCoverContentScale(game.coverArtPath, ContentScale.Fit),
                         shape = listCoverShape
                     )
                 }

@@ -128,6 +128,7 @@ import com.sbro.emucored.data.TouchControlPressEffect
 import com.sbro.emucored.data.TouchControlVisualStyle
 import com.sbro.emucored.ui.common.GameCoverArt
 import com.sbro.emucored.ui.common.gameCoverAspectRatio
+import com.sbro.emucored.ui.common.gameCoverContentScale
 import com.sbro.emucored.ui.common.isGenerated3dCover
 import com.sbro.emucored.ui.common.ScreenTopBar
 import com.sbro.emucored.ui.common.StickyTabHeader
@@ -733,7 +734,7 @@ private fun GamePickerCard(
                     modifier = Modifier
                         .fillMaxSize()
                         .clip(if (is3dCover) RectangleShape else neonShape(16.dp)),
-                    contentScale = ContentScale.Fit
+                    contentScale = gameCoverContentScale(game.coverArtPath, ContentScale.Fit)
                 )
             }
             Column(

@@ -111,6 +111,7 @@ import com.sbro.emucored.core.LocalTvUiEnvironment
 import com.sbro.emucored.ui.common.BitmapPathImage
 import com.sbro.emucored.ui.common.GameCoverArt
 import com.sbro.emucored.ui.common.gameCoverAspectRatio
+import com.sbro.emucored.ui.common.gameCoverContentScale
 import com.sbro.emucored.ui.common.isGenerated3dCover
 import com.sbro.emucored.ui.common.NavigationBackButton
 import com.sbro.emucored.ui.common.RequestFocusOnResume
@@ -239,7 +240,7 @@ fun GameDetailScreen(
                         coverPath = heroImage,
                         fallbackTitle = title,
                         modifier = Modifier.fillMaxSize(),
-                        contentScale = if (is3dHero) ContentScale.Fit else ContentScale.FillHeight,
+                        contentScale = gameCoverContentScale(heroImage, ContentScale.FillHeight),
                         shape = if (is3dHero) RectangleShape else neonShape(28.dp)
                     )
                 }

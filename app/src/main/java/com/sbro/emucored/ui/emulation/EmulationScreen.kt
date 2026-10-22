@@ -202,6 +202,7 @@ import com.sbro.emucored.data.GameMenuLayoutStyle
 import com.sbro.emucored.data.gameMenuSectionsForTab
 import com.sbro.emucored.ui.common.CustomControlVisual
 import com.sbro.emucored.ui.common.gameCoverAspectRatio
+import com.sbro.emucored.ui.common.gameCoverContentScale
 import com.sbro.emucored.ui.common.isGenerated3dCover
 import com.sbro.emucored.ui.common.actionDrawableRes
 import com.sbro.emucored.ui.common.composeShape
@@ -3455,7 +3456,7 @@ private fun EmulationSidebarMenu(
                             GameCoverArt(
                                 coverPath = uiState.currentGameCoverPath,
                                 fallbackTitle = menuTitle,
-                                contentScale = ContentScale.Fit,
+                                contentScale = gameCoverContentScale(uiState.currentGameCoverPath, ContentScale.Fit),
                                 shape = if (is3dMenuCover) RectangleShape else neonShape(12.dp),
                                 modifier = Modifier.fillMaxSize()
                             )

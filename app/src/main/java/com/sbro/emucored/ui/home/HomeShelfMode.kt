@@ -45,6 +45,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.graphics.RectangleShape
 import com.sbro.emucored.ui.common.gameCoverAspectRatio
+import com.sbro.emucored.ui.common.gameCoverContentScale
 import com.sbro.emucored.ui.common.isGenerated3dCover
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
@@ -552,7 +553,7 @@ private fun ShelfCoverCard(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(horizontal = horizontalCoverPadding, vertical = verticalCoverPadding),
-                contentScale = ContentScale.Fit,
+                contentScale = gameCoverContentScale(game.coverArtPath, ContentScale.Fit),
                 shape = shape
             )
         } else {
