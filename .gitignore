@@ -9,6 +9,9 @@
 /core-android/build/
 /core-android/.cxx/
 /core-android/.externalNativeBuild/
+/coreDS/build/
+/coreDS/.cxx/
+/coreDS/.externalNativeBuild/
 /.gradle/
 /.kotlin/
 /out/
