@@ -1256,21 +1256,12 @@ void CompatibilitySoftRenderer::VBlankEnd(Unit* unitA, Unit* unitB)
             return;
         }
 
-        const bool captureUsesDirect3D = (captureCnt & (1u << 24u)) != 0u;
-        const bool sourceAContributes = captureMode == 0u
-            || ((captureMode >= 2u) && ((captureCnt & 0x1Fu) != 0u));
-        const bool bg0Uses3D = (unitA->DispCnt & 0x0108u) == 0x0108u;
-        if (captureEnabled
-            && captureMode != 1u
-            && (captureUsesDirect3D || (bg0Uses3D && sourceAContributes)))
-        {
-            renderer3d.SetCaptureScreenSwapHint(
-                (GPU.NDS.PowerControl9 & (1u << 15u)) != 0u,
-                captureCnt,
-                unitA->DispCnt);
-            renderer3d.BeginCaptureFrame();
-            renderer3d.PrepareCaptureFrame();
-        }
+        renderer3d.SetCaptureScreenSwapHint(
+            (GPU.NDS.PowerControl9 & (1u << 15u)) != 0u,
+            captureCnt,
+            unitA->DispCnt);
+        renderer3d.BeginCaptureFrame();
+        renderer3d.PrepareCaptureFrame();
     }
 #endif
 }

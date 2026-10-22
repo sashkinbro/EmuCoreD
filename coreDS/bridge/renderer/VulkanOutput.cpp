@@ -8227,6 +8227,26 @@ bool VulkanOutput::buildCompositionInputs(
             outInputs.rendererWidth = 256u;
             outInputs.rendererHeight = 384u;
         }
+
+        outInputs.capture3dBuffer = renderer3D.GetReadyCaptureLineBuffer();
+        outInputs.capture3dBufferSize = renderer3D.GetReadyCaptureLineBufferSize();
+        if (outInputs.capture3dBuffer == VK_NULL_HANDLE)
+        {
+            outInputs.capture3dBuffer = renderer3D.GetActiveCaptureLineBuffer();
+            outInputs.capture3dBufferSize = renderer3D.GetActiveCaptureLineBufferSize();
+        }
+        melonDS::CaptureSourceIdentity captureIdentity{};
+        const bool captureIdentityValid =
+            renderer3D.GetLastServedCaptureSourceIdentity(captureIdentity)
+            && captureIdentity.Valid;
+        if (captureIdentityValid || outInputs.capture3dBuffer != VK_NULL_HANDLE)
+        {
+            outInputs.capture3dSourceValid = outInputs.capture3dBuffer != VK_NULL_HANDLE;
+            outInputs.capture3dSourceScreenSwapValid = true;
+            outInputs.capture3dSourceScreenSwap = captureIdentity.ScreenSwap;
+            outInputs.liveSourceScreenSwap = captureIdentity.ScreenSwap;
+            outInputs.currentSourceHasHighres3d = renderer3D.GetColorTargetWidth() > 256u;
+        }
         return outInputs.sourceImage != VK_NULL_HANDLE
             && outInputs.sourceImageView != VK_NULL_HANDLE;
     }

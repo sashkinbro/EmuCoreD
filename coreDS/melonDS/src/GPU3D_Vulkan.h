@@ -204,6 +204,23 @@ public:
     [[nodiscard]] std::vector<u32> CaptureTopCoverageForDebug();
     void requestPostFastForwardDrain();
     void InvalidatePresentationState(bool discardColorTarget) noexcept;
+    [[nodiscard]] VkBuffer GetReadyCaptureLineBuffer() const noexcept
+    {
+        return ReadyCaptureLineBufferSlot >= 0
+            ? CaptureLineBuffers[static_cast<size_t>(ReadyCaptureLineBufferSlot)]
+            : VK_NULL_HANDLE;
+    }
+    [[nodiscard]] VkDeviceSize GetReadyCaptureLineBufferSize() const noexcept
+    {
+        return ReadyCaptureLineBufferSlot >= 0
+            ? CaptureLineBufferSizes[static_cast<size_t>(ReadyCaptureLineBufferSlot)]
+            : 0u;
+    }
+    [[nodiscard]] VkBuffer GetActiveCaptureLineBuffer() const noexcept { return CaptureLineBuffer; }
+    [[nodiscard]] VkDeviceSize GetActiveCaptureLineBufferSize() const noexcept
+    {
+        return CaptureLineBufferSize;
+    }
 
 private:
     static constexpr u32 TextureDescriptorStorageCapacity =

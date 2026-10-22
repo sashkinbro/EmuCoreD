@@ -4,7 +4,7 @@
 [![Join the EmuCoreD Discord](https://img.shields.io/badge/Discord-Join%20the%20server-5865F2?logo=discord&logoColor=white)](https://discord.com/invite/c5EBeNRpz2)
 [![Website](https://img.shields.io/badge/Website-emucored.web.app-1f6feb?logo=googlechrome&logoColor=white)](https://emucored.web.app/)
 
-EmuCoreD is a Nintendo 3DS library, launcher, and emulator frontend for Android. It pairs a purpose-built Compose interface with a vendored [Azahar](https://github.com/azahar-emu/azahar) core that is built together with the app, so no separate core download is needed.
+EmuCoreD is a Nintendo 3DS and Nintendo DS library, launcher, and emulator frontend for Android. It pairs a purpose-built Compose interface with vendored [Azahar](https://github.com/azahar-emu/azahar) (3DS) and [melonDS](https://github.com/melonDS-emu/melonDS) (DS) cores that are built together with the app, so no separate core download is needed.
 
 Official website: [https://emucored.web.app/](https://emucored.web.app/)
 
@@ -14,11 +14,12 @@ The project is under active development. Use your own legally obtained games.
 
 ## Highlights
 
-- Azahar-based emulation core built together with the app for ARM64 devices
+- Azahar-based Nintendo 3DS and melonDS-based Nintendo DS emulation cores built together with the app for ARM64 devices
 - Vulkan, OpenGL ES, and software rendering with internal resolution controls
 - Game library with 3DS title and ID extraction, IGDB cover art, search, and per-game settings
+- Nintendo DS library support with cover art, touch controls, screen swapping, and save states
 - Home screen with shelves, recently played titles, and quick resume
-- Screen layout controls for the dual-screen 3DS display
+- Screen layout controls for the dual-screen 3DS and DS displays
 - In-game overlay with rendering, speed, and save state controls
 - Touch controls with a layout editor, screen-swap action, and physical gamepad support
 - Save states, SD card (sdmc) and NAND managers
@@ -29,14 +30,14 @@ The project is under active development. Use your own legally obtained games.
 
 ## What This Repository Contains
 
-This repository contains the Android application, its Kotlin UI, the JNI frontend, the vendored Azahar sources, and the Gradle module that builds the emulation core for Android. No games, save data, or account credentials are included.
+This repository contains the Android application, its Kotlin UI, the JNI frontend, the vendored Azahar and melonDS sources, and the Gradle modules that build both emulation cores for Android. No games, save data, or account credentials are included.
 
 ## Tech Stack
 
 - Kotlin + Jetpack Compose
 - Android DataStore and Room
 - JNI bridge to native C++ built with CMake and the Android NDK
-- Vendored Azahar core built as a libretro library and driven by the app's own frontend
+- Vendored Azahar (3DS) and melonDS (DS) cores built as native libraries and driven by the app's own frontend
 - Vulkan and OpenGL ES rendering paths with a shader chain runtime
 - RetroAchievements integration through rcheevos
 - Optional Discord Social SDK integration
@@ -83,13 +84,16 @@ Discord support is built when a compatible Discord Social SDK directory is suppl
 - `app/` Android application, Kotlin UI, and JNI frontend sources
 - `app/src/main/cpp` Native bridge and core integration
 - `app/src/main/res` Android resources and translations
-- `core/` Vendored Azahar sources
-- `core-android/` Gradle module that builds the Azahar core for Android
+- `core/` Vendored Azahar 3DS sources
+- `core-android/` Gradle module that builds the Azahar 3DS core for Android
+- `coreDS/` Nintendo DS bridge, Vulkan/software renderers, and vendored melonDS sources
 - `IGDB/` Local catalog tooling (not part of the app build)
 
 ## Supported Content
 
-CIA installers are extracted and decrypted on device, and the library reads the title, title ID, and icon from 3DS metadata. CCI, CXI, APP, 3DSX, ELF, and AXF content is supported depending on the bundled core. The bundled 3DS catalog supplies additional cover art. No games, save data, or account credentials are included here.
+CIA installers are extracted and decrypted on device, and the library reads the title, title ID, and icon from 3DS metadata. CCI, CXI, APP, 3DSX, ELF, and AXF content is supported depending on the bundled core. The bundled 3DS catalog supplies additional cover art.
+
+Nintendo DS ROMs (`.nds`) are supported through the melonDS-based core, including DS save states, on-screen controls, screen swapping, and DS cover art. DSi catalog entries are listed for discovery; DSi-mode execution is not implemented yet and requires DSi BIOS/NAND files. No games, save data, or account credentials are included here.
 
 ## Content Catalogs
 
@@ -106,11 +110,11 @@ The catalogs credit the original sources. Redistributable files are mirrored in 
 
 ## Credits and license
 
-EmuCoreD builds on Azahar, which is based on Citra. The root [LICENSE.TXT](LICENSE.TXT) is an exact copy of Azahar's upstream license file (GPLv2 or later). The vendored core and its dependencies retain their copyright and license notices in `core/`.
+EmuCoreD builds on Azahar, which is based on Citra, and on melonDS for Nintendo DS emulation. The root [LICENSE.TXT](LICENSE.TXT) is an exact copy of Azahar's upstream license file (GPLv2 or later). The vendored cores and their dependencies retain their copyright and license notices in `core/` and `coreDS/`.
 
-Thanks to the Azahar and Citra contributors, and to the RetroAchievements team for rcheevos.
+Thanks to the Azahar, Citra, and melonDS contributors, and to the RetroAchievements team for rcheevos.
 
-EmuCoreD is independent of Nintendo, Azahar, Citra, IGDB, Discord, and RetroAchievements. Nintendo 3DS is a trademark of Nintendo. Game artwork and game data belong to their respective owners.
+EmuCoreD is independent of Nintendo, Azahar, Citra, melonDS, IGDB, Discord, and RetroAchievements. Nintendo 3DS and Nintendo DS are trademarks of Nintendo. Game artwork and game data belong to their respective owners.
 
 ## Support
 
