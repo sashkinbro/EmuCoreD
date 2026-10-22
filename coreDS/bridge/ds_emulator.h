@@ -73,7 +73,9 @@ private:
     std::unique_ptr<melonDS::NDS> nds_;
     std::unique_ptr<MelonDSAndroid::VulkanOutput> vulkan_output_;
     std::unique_ptr<MelonDSAndroid::VulkanSurfacePresenter> surface_presenter_;
-    std::unique_ptr<Frame> vulkan_frame_;
+    std::array<std::unique_ptr<Frame>, 3> vulkan_frames_;
+    size_t vulkan_frame_cursor_ = 0;
+    uint64_t vulkan_frame_id_ = 0;
     std::vector<uint32_t> vulkan_readback_;
     AAudioStream* audio_stream_ = nullptr;
     std::vector<int16_t> audio_buffer_;

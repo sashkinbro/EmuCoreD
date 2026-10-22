@@ -151,7 +151,9 @@ bool DsEmulator::Start(const std::string& rom_path, const std::string& sram_path
             vulkan_output_.reset();
             nds_->GPU.SetRenderer3D(std::make_unique<melonDS::SoftRenderer>());
         } else {
-            vulkan_frame_ = std::make_unique<Frame>();
+            for (auto& frame : vulkan_frames_) frame = std::make_unique<Frame>();
+            vulkan_frame_cursor_ = 0;
+            vulkan_frame_id_ = 0;
             vulkan_readback_.assign(
                 static_cast<size_t>(256 * scale) * static_cast<size_t>(386 * scale), 0u);
             surface_presenter_ = std::make_unique<MelonDSAndroid::VulkanSurfacePresenter>(true);
@@ -189,7 +191,7 @@ void DsEmulator::Stop() {
         }
         StopAudio();
         vulkan_output_.reset();
-        vulkan_frame_.reset();
+        for (auto& frame : vulkan_frames_) frame.reset();
         if (nds_) nds_.reset();
         return;
     }
@@ -204,7 +206,7 @@ void DsEmulator::Stop() {
         surface_presenter_.reset();
     }
     vulkan_output_.reset();
-    vulkan_frame_.reset();
+    for (auto& frame : vulkan_frames_) frame.reset();
     if (nds_) {
         nds_->Stop();
         nds_.reset();
@@ -332,7 +334,10 @@ void DsEmulator::PresentFrame() {
 }
 
 void DsEmulator::PresentVulkanFrame() {
-    if (!nds_ || !vulkan_output_ || !vulkan_frame_) return;
+    if (!nds_ || !vulkan_output_) return;
+    Frame* frame = vulkan_frames_[vulkan_frame_cursor_].get();
+    if (frame == nullptr) return;
+    vulkan_frame_cursor_ = (vulkan_frame_cursor_ + 1) % vulkan_frames_.size();
 
     auto* renderer3d = dynamic_cast<melonDS::VulkanRenderer3D*>(&nds_->GPU.GetRenderer3D());
     if (renderer3d == nullptr) return;
@@ -341,22 +346,23 @@ void DsEmulator::PresentVulkanFrame() {
     const uint32_t frame_width = static_cast<uint32_t>(256 * scale);
     const uint32_t frame_height = static_cast<uint32_t>(386 * scale);
 
-    vulkan_frame_->backend = FrameBackend::VulkanImage;
-    vulkan_frame_->width = frame_width;
-    vulkan_frame_->height = frame_height;
-    vulkan_frame_->frameId++;
-    vulkan_frame_->publicationGeneration = vulkan_frame_->frameId;
+    frame->backend = FrameBackend::VulkanImage;
+    frame->width = frame_width;
+    frame->height = frame_height;
+    frame->frameId = ++vulkan_frame_id_;
+    frame->publicationGeneration = frame->frameId;
 
     static int vulkan_log = 0;
     const bool log_now = (vulkan_log++ % 120) == 0;
-    if (!vulkan_output_->ensureFrameResources(vulkan_frame_.get(), frame_width, frame_height)) {
+    if (!vulkan_output_->ensureFrameResources(frame, frame_width, frame_height)) {
         if (log_now) __android_log_print(ANDROID_LOG_WARN, "EmuCoreDS", "Vulkan frame resources failed");
         return;
     }
 
+    vulkan_output_->captureRenderer3dSnapshot(frame, *renderer3d, false);
     MelonDSAndroid::VulkanCompositionInputs inputs{};
     if (!vulkan_output_->buildCompositionInputs(
-            vulkan_frame_.get(), *renderer3d, scale, MelonDSAndroid::VulkanFilterMode::Nearest,
+            frame, *renderer3d, scale, MelonDSAndroid::VulkanFilterMode::Nearest,
             false, false, false, inputs)) {
         if (log_now) {
             __android_log_print(ANDROID_LOG_WARN, "EmuCoreDS", "Vulkan composition inputs failed");
@@ -374,7 +380,7 @@ void DsEmulator::PresentVulkanFrame() {
                                    : MelonDSAndroid::VulkanCausalWaitResult::TimedOut;
             };
             const auto result = surface_presenter_->presentFrame(
-                vulkan_frame_.get(), *vulkan_output_, inputs, 100'000'000ull, 16'000'000ull,
+                frame, *vulkan_output_, inputs, 100'000'000ull, 16'000'000ull,
                 wait_runner);
             presented = result == MelonDSAndroid::VulkanPresentationResult::Presented;
             if (!presented) {
@@ -383,7 +389,7 @@ void DsEmulator::PresentVulkanFrame() {
                     __android_log_print(ANDROID_LOG_WARN, "EmuCoreDS",
                                         "VulkanSurfacePresenter result=%d frame=%llu",
                                         static_cast<int>(result),
-                                        (unsigned long long)vulkan_frame_->frameId);
+                                        (unsigned long long)frame->frameId);
                 }
             }
         }
@@ -394,25 +400,25 @@ void DsEmulator::PresentVulkanFrame() {
     const size_t readback_size = static_cast<size_t>(frame_width) * frame_height;
     if (vulkan_readback_.size() != readback_size) vulkan_readback_.assign(readback_size, 0u);
     inputs.needsReadback = true;
-    if (!vulkan_output_->composeAndSubmitFrame(vulkan_frame_.get(), inputs)) {
+    if (!vulkan_output_->composeAndSubmitFrame(frame, inputs)) {
         if (log_now) {
             __android_log_print(ANDROID_LOG_WARN, "EmuCoreDS", "Vulkan compose failed frame=%llu",
-                                (unsigned long long)vulkan_frame_->frameId);
+                                (unsigned long long)frame->frameId);
         }
         return;
     }
-    if (!vulkan_output_->readFramePixels(vulkan_frame_.get(), vulkan_readback_.data(),
+    if (!vulkan_output_->readFramePixels(frame, vulkan_readback_.data(),
                                          vulkan_readback_.size(), 100'000'000ull)) {
         if (log_now) {
             __android_log_print(ANDROID_LOG_WARN, "EmuCoreDS", "Vulkan readback failed frame=%llu",
-                                (unsigned long long)vulkan_frame_->frameId);
+                                (unsigned long long)frame->frameId);
         }
         return;
     }
     if (log_now) {
         __android_log_print(ANDROID_LOG_WARN, "EmuCoreDS",
                             "Vulkan readback present frame=%llu scale=%d px=%08X",
-                            (unsigned long long)vulkan_frame_->frameId, scale,
+                            (unsigned long long)frame->frameId, scale,
                             vulkan_readback_.empty() ? 0u : vulkan_readback_[0]);
     }
     presenter_->Present(vulkan_readback_.data(), static_cast<int>(frame_width),
