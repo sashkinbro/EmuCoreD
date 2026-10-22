@@ -1,0 +1,14 @@
+{
+	"backtraceGraph" : 
+	{
+		"commands" : [],
+		"files" : [],
+		"nodes" : []
+	},
+	"installers" : [],
+	"paths" : 
+	{
+		"build" : "melonDS/src/teakra/externals",
+		"source" : "melonDS/src/teakra/externals"
+	}
+}

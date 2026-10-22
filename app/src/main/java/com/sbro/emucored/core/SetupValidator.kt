@@ -123,7 +123,7 @@ object SetupValidator {
             return DocumentEntryKind.DIRECTORY
         }
         val extension = displayName.orEmpty().substringAfterLast('.', "").lowercase()
-        if (N3dsGameFormats.isSupportedName(displayName.orEmpty())) {
+        if (N3dsGameFormats.isSupportedName(displayName.orEmpty()) || NdsGameFormats.isSupportedName(displayName.orEmpty())) {
             return DocumentEntryKind.GAME_FILE
         }
         return if (mimeType == null) DocumentEntryKind.UNKNOWN else DocumentEntryKind.OTHER

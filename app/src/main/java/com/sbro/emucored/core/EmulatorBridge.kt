@@ -8,6 +8,8 @@ import android.os.SystemClock
 import android.util.Log
 import android.view.Surface
 import com.sbro.emucored.data.AppPreferences
+import com.sbro.emucored.data.GamePlatform
+import com.sbro.emucored.core.ds.DsSession
 import com.sbro.emucored.data.DisplayCrop
 import com.sbro.emucored.ui.common.invalidateCoverImage
 import kotlinx.coroutines.CoroutineScope
@@ -212,6 +214,14 @@ object EmulatorBridge {
             Log.e(TAG, "startEmulation rejected blank game path")
             return false
         }
+        if (GamePlatform.fromFileName(path) == GamePlatform.NDS) {
+            awaitPendingShutdown()
+            if (isVmActive()) return false
+            val context = getContext() ?: return false
+            return withContext(Dispatchers.IO) {
+                DsSession.start(context, path, saveStateIdentityPath ?: path)
+            }
+        }
         awaitPendingShutdown()
         if (isVmActive()) {
             NativeApp.logCrashBreadcrumb("startEmulation blocked: previous session still owns the core")
@@ -283,6 +293,10 @@ object EmulatorBridge {
     }
 
     suspend fun pause() {
+        if (DsSession.isActive) {
+            DsSession.pause()
+            return
+        }
         if (!isNativeLoaded || !isVmActive) return
         runSerial {
             try {
@@ -292,6 +306,10 @@ object EmulatorBridge {
     }
 
     suspend fun resume() {
+        if (DsSession.isActive) {
+            DsSession.resume()
+            return
+        }
         if (!isNativeLoaded || !isVmActive) return
         runSerial {
             try {
@@ -303,13 +321,24 @@ object EmulatorBridge {
 
     /** Requests native stop immediately; renderer teardown continues asynchronously. */
     fun requestShutdown() {
+        if (DsSession.isActive) {
+            DsSession.stop()
+            return
+        }
         if (!isNativeLoaded) return
         runCatching { NativeApp.requestShutdown() }
             .onFailure { Log.e(TAG, "Unable to request emulator shutdown", it) }
     }
 
     /** Queues one teardown operation and lets all callers await the same session release. */
-    fun shutdownAsync(): Job = synchronized(shutdownLock) {
+    fun shutdownAsync(): Job {
+        if (DsSession.isActive) {
+            return serialScope.launch {
+                DsSession.stop()
+                BackupSessionGate.stopped()
+            }
+        }
+        return synchronized(shutdownLock) {
         shutdownJob?.takeIf { it.isActive }?.let { return@synchronized it }
 
         serialScope.launch {
@@ -337,6 +366,7 @@ object EmulatorBridge {
                 }
             }
         }
+        }
     }
 
     suspend fun shutdown() {
@@ -349,6 +379,7 @@ object EmulatorBridge {
     }
 
     fun hasValidVm(): Boolean {
+        if (DsSession.isActive) return true
         if (!isNativeLoaded) return false
         return try {
             NativeApp.hasValidVm()
@@ -360,7 +391,7 @@ object EmulatorBridge {
     fun isVmActive(): Boolean {
         // A status read never performs teardown. The core can still own its
         // window after a failed worker and needs an explicit shutdown.
-        return isVmActive || (isNativeLoaded && NativeApp.hasOwnedVm())
+        return DsSession.isActive || isVmActive || (isNativeLoaded && NativeApp.hasOwnedVm())
     }
 
     fun getGameTitle(path: String): String = getGameMetadata(path).title
@@ -390,13 +421,25 @@ object EmulatorBridge {
         if (!readDiscMetadata || !isNativeLoaded) return inferredMetadata
         if (isVmActive) return inferredMetadata
         getContext()?.let { context ->
-            runCatching { N3dsGameMetadataReader.read(context, path) }.getOrNull()?.let { metadata ->
-                return GameMetadata(
-                    title = metadata.title?.let { normalizeNativeGameTitle(it, inferredMetadata.title) }
-                        ?: inferredMetadata.title,
-                    serial = metadata.serial ?: inferredMetadata.serial,
-                    serialWithCrc = metadata.serial ?: inferredMetadata.serialWithCrc
-                )
+            if (NdsGameFormats.isSupportedName(path)) {
+                runCatching { NdsGameMetadataReader.read(context, path) }.getOrNull()?.let { metadata ->
+                    return GameMetadata(
+                        title = metadata.title?.let { normalizeNativeGameTitle(it, inferredMetadata.title) }
+                            ?: inferredMetadata.title,
+                        serial = metadata.serial ?: inferredMetadata.serial,
+                        serialWithCrc = metadata.serial ?: inferredMetadata.serialWithCrc
+                    )
+                }
+            }
+            if (!NdsGameFormats.isSupportedName(path)) {
+                runCatching { N3dsGameMetadataReader.read(context, path) }.getOrNull()?.let { metadata ->
+                    return GameMetadata(
+                        title = metadata.title?.let { normalizeNativeGameTitle(it, inferredMetadata.title) }
+                            ?: inferredMetadata.title,
+                        serial = metadata.serial ?: inferredMetadata.serial,
+                        serialWithCrc = metadata.serial ?: inferredMetadata.serialWithCrc
+                    )
+                }
             }
         }
         return inferredMetadata
@@ -564,6 +607,10 @@ object EmulatorBridge {
     }
 
     fun setPadButton(padIndex: Int, index: Int, range: Int, pressed: Boolean) {
+        if (DsSession.isActive) {
+            DsSession.setPadButton(index, pressed)
+            return
+        }
         if (!isNativeLoaded) return
         try {
             NativeApp.setPadButton(padIndex, index, range, pressed)
@@ -584,6 +631,10 @@ object EmulatorBridge {
     }
 
     fun resetKeyStatus() {
+        if (DsSession.isActive) {
+            DsSession.resetKeys()
+            return
+        }
         if (!isNativeLoaded || !isVmActive) return
         launchSerial {
             if (!isVmActive || !runCatching { NativeApp.hasValidVm() }.getOrDefault(false)) return@launchSerial
@@ -633,6 +684,8 @@ object EmulatorBridge {
         // Publish the window synchronously so a session that is already
         // booting can hand it to the core before System::Init blocks.
         runCatching { NativeApp.rememberSurface(surface, width, height) }
+        DsSession.setSurface(surface)
+        if (DsSession.isActive) return
         NativeApp.setCrashContextString("emu_surface_state", "changed")
         NativeApp.setCrashContextInt("emu_surface_width", width)
         NativeApp.setCrashContextInt("emu_surface_height", height)
@@ -655,6 +708,8 @@ object EmulatorBridge {
     /** Attaches (or replaces) the second screen surface for the bottom screen panel. */
     fun onSecondarySurfaceChanged(surface: Surface, width: Int, height: Int) {
         if (!isNativeLoaded) return
+        DsSession.setSecondarySurface(surface)
+        if (DsSession.isActive) return
         Log.i(TAG, "onSecondarySurfaceChanged: width=$width height=$height valid=${surface.isValid}")
         NativeApp.setCrashContextInt("emu_secondary_surface_width", width)
         NativeApp.setCrashContextInt("emu_secondary_surface_height", height)
@@ -671,6 +726,8 @@ object EmulatorBridge {
     /** Detaches the second screen surface; the panel was closed. */
     fun onSecondarySurfaceDestroyed() {
         if (!isNativeLoaded) return
+        DsSession.setSecondarySurface(null)
+        if (DsSession.isActive) return
         Log.i(TAG, "onSecondarySurfaceDestroyed")
         NativeApp.logCrashBreadcrumb("secondarySurfaceDestroyed")
         launchSerial {
@@ -688,6 +745,7 @@ object EmulatorBridge {
      * own layout choice; this only affects the running session.
      */
     fun setScreenLayout(option: Int) {
+        if (DsSession.isActive) return
         if (!isNativeLoaded) return
         NativeApp.logCrashBreadcrumb("screen layout requested option=$option")
         launchSerial {
@@ -706,6 +764,10 @@ object EmulatorBridge {
 
     /** Swaps which 3DS screen is counted as the prominent one. */
     fun setSwapScreens(swap: Boolean) {
+        if (DsSession.isActive) {
+            DsSession.setSwapScreens(swap)
+            return
+        }
         if (!isNativeLoaded) return
         NativeApp.logCrashBreadcrumb("swap screens requested swap=$swap")
         launchSerial {
@@ -742,6 +804,8 @@ object EmulatorBridge {
         lastSurfaceWidth = 0
         lastSurfaceHeight = 0
         Log.i(TAG, "onSurfaceDestroyed: called, version $oldVersion -> $surfaceEventVersion")
+        DsSession.setSurface(null)
+        if (DsSession.isActive) return
         NativeApp.setCrashContextString("emu_surface_state", "destroyed")
         NativeApp.logCrashBreadcrumb("surfaceDestroyed")
         runCatching { NativeApp.pause() }

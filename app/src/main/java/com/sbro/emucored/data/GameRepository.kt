@@ -19,7 +19,8 @@ data class GameItem(
     val fileSize: Long,
     val lastModified: Long,
     val coverArtPath: String? = null,
-    val serial: String? = null
+    val serial: String? = null,
+    val platform: GamePlatform = GamePlatform.N3DS
 )
 
 class GameRepository {
@@ -122,6 +123,9 @@ class GameRepository {
         serial: String? = null,
         title: String? = null
     ): String? {
+        if (GamePlatform.fromFileName(path) == GamePlatform.NDS) {
+            return CustomGameCoverRepository(context).findCustomCoverPath(path)
+        }
         val candidate = if (path.startsWith("content://")) {
             runCatching { findDocumentCover(path, context, serial, title) }
                 .onFailure { error -> Log.w(TAG, "Unable to find cover for document URI: $path", error) }
@@ -172,11 +176,13 @@ class GameRepository {
                     )
                 }
 
-                file.isFile && com.sbro.emucored.core.N3dsGameFormats.isSupportedName(file.name) -> {
-                    if (file.extension.equals("zip", true) && N3dsGameMetadataReader.read(context, file.absolutePath) == null) return@forEach
+                file.isFile && GamePlatform.isSupportedName(file.name) -> {
+                    val platform = GamePlatform.fromFileName(file.name) ?: return@forEach
+                    if (platform == GamePlatform.N3DS && file.extension.equals("zip", true) && N3dsGameMetadataReader.read(context, file.absolutePath) == null) return@forEach
                     val entrySize = file.length()
                     val cachedGame = cachedGamesByPath[file.absolutePath]
                     val canReuseCachedMetadata = cachedGame != null &&
+                        cachedGame.platform == platform &&
                         cachedGame.fileSize == entrySize &&
                         cachedGame.lastModified == file.lastModified() &&
                         cachedGame.fileName == file.name
@@ -186,12 +192,14 @@ class GameRepository {
                         val sourcePath = file.absolutePath
                         val sourceMetadata = EmulatorBridge.getGameMetadata(
                             sourcePath,
-                            readDiscMetadata = false
+                            readDiscMetadata = platform == GamePlatform.NDS
                         )
-                        val n3dsMetadata = N3dsGameMetadataReader.read(context, sourcePath)
+                        val (containerTitle, containerSerial) = readContainerMetadata(
+                            platform, context, sourcePath
+                        )
                         sourceMetadata.copy(
-                            title = n3dsMetadata?.title ?: sourceMetadata.title,
-                            serial = n3dsMetadata?.serial ?: sourceMetadata.serial
+                            title = containerTitle ?: sourceMetadata.title,
+                            serial = containerSerial ?: sourceMetadata.serial
                         )
                     }
                     val cleanTitle = EmulatorBridge.cleanGameDisplayTitle(metadata.title, file.name)
@@ -203,13 +211,21 @@ class GameRepository {
                         fileName = file.name,
                         fileSize = entrySize,
                         lastModified = file.lastModified(),
-                        coverArtPath = customCoverRepository.findCustomCoverPath(file.absolutePath)
-                            ?: coverRepository.findCachedCoverPath(serial, title = title)
-                            ?: (if (!coverRepository.hasIndexedCover(serial, title)) N3dsGameMetadataReader.extractIcon(context, file.absolutePath) else null)
-                            ?: cachedGame?.coverArtPath?.takeIf { File(it).exists() }
-                            ?: coverCandidates[normalizeBaseName(file.nameWithoutExtension)]?.absolutePath
-                            ?: coverCandidates[normalizeBaseName(cleanGameName(title))]?.absolutePath,
-                        serial = serial
+                        coverArtPath = if (platform == GamePlatform.NDS) {
+                            customCoverRepository.findCustomCoverPath(file.absolutePath)
+                                ?: cachedGame?.coverArtPath?.takeIf { File(it).exists() }
+                                ?: coverCandidates[normalizeBaseName(file.nameWithoutExtension)]?.absolutePath
+                                ?: coverCandidates[normalizeBaseName(cleanGameName(title))]?.absolutePath
+                        } else {
+                            customCoverRepository.findCustomCoverPath(file.absolutePath)
+                                ?: coverRepository.findCachedCoverPath(serial, title = title)
+                                ?: (if (!coverRepository.hasIndexedCover(serial, title)) N3dsGameMetadataReader.extractIcon(context, file.absolutePath) else null)
+                                ?: cachedGame?.coverArtPath?.takeIf { File(it).exists() }
+                                ?: coverCandidates[normalizeBaseName(file.nameWithoutExtension)]?.absolutePath
+                                ?: coverCandidates[normalizeBaseName(cleanGameName(title))]?.absolutePath
+                        },
+                        serial = serial,
+                        platform = platform
                     )
                 }
             }
@@ -259,13 +275,15 @@ class GameRepository {
                 }
                 SetupValidator.DocumentEntryKind.GAME_FILE -> {
                     val uriPath = file.uri.toString()
+                    val platform = GamePlatform.fromFileName(name) ?: continue
                     val fileSize = runCatching { file.length() }.getOrDefault(0L)
-                    if (name.endsWith(".zip", true) && N3dsGameMetadataReader.read(context, uriPath) == null) continue
+                    if (platform == GamePlatform.N3DS && name.endsWith(".zip", true) && N3dsGameMetadataReader.read(context, uriPath) == null) continue
                     val entrySize = fileSize
                     val lastModified = runCatching { file.lastModified() }.getOrDefault(0L)
 
                     val cachedGame = cachedGamesByPath[uriPath]
                     val canReuseCachedMetadata = cachedGame != null &&
+                        cachedGame.platform == platform &&
                         cachedGame.fileSize == entrySize &&
                         cachedGame.lastModified == lastModified &&
                         cachedGame.fileName == name
@@ -275,12 +293,14 @@ class GameRepository {
                         val sourcePath = uriPath
                         val sourceMetadata = EmulatorBridge.getGameMetadata(
                             sourcePath,
-                            readDiscMetadata = false
+                            readDiscMetadata = platform == GamePlatform.NDS
                         )
-                        val n3dsMetadata = N3dsGameMetadataReader.read(context, sourcePath)
+                        val (containerTitle, containerSerial) = readContainerMetadata(
+                            platform, context, sourcePath
+                        )
                         sourceMetadata.copy(
-                            title = n3dsMetadata?.title ?: sourceMetadata.title,
-                            serial = n3dsMetadata?.serial ?: sourceMetadata.serial
+                            title = containerTitle ?: sourceMetadata.title,
+                            serial = containerSerial ?: sourceMetadata.serial
                         )
                     }
 
@@ -293,13 +313,21 @@ class GameRepository {
                         fileName = name,
                         fileSize = entrySize,
                         lastModified = lastModified,
-                        coverArtPath = customCoverRepository.findCustomCoverPath(uriPath)
-                            ?: coverRepository.findCachedCoverUri(serial, title = title)
-                            ?: (if (!coverRepository.hasIndexedCover(serial, title)) N3dsGameMetadataReader.extractIcon(context, uriPath) else null)
-                            ?: cachedGame?.coverArtPath
-                            ?: coverCandidates[normalizeBaseName(name.substringBeforeLast('.'))]?.uri?.toString()
-                            ?: coverCandidates[normalizeBaseName(cleanGameName(title))]?.uri?.toString(),
-                        serial = serial
+                        coverArtPath = if (platform == GamePlatform.NDS) {
+                            customCoverRepository.findCustomCoverPath(uriPath)
+                                ?: cachedGame?.coverArtPath
+                                ?: coverCandidates[normalizeBaseName(name.substringBeforeLast('.'))]?.uri?.toString()
+                                ?: coverCandidates[normalizeBaseName(cleanGameName(title))]?.uri?.toString()
+                        } else {
+                            customCoverRepository.findCustomCoverPath(uriPath)
+                                ?: coverRepository.findCachedCoverUri(serial, title = title)
+                                ?: (if (!coverRepository.hasIndexedCover(serial, title)) N3dsGameMetadataReader.extractIcon(context, uriPath) else null)
+                                ?: cachedGame?.coverArtPath
+                                ?: coverCandidates[normalizeBaseName(name.substringBeforeLast('.'))]?.uri?.toString()
+                                ?: coverCandidates[normalizeBaseName(cleanGameName(title))]?.uri?.toString()
+                        },
+                        serial = serial,
+                        platform = platform
                     )
                 }
                 SetupValidator.DocumentEntryKind.OTHER -> Unit
@@ -307,6 +335,17 @@ class GameRepository {
         }
 
         return items
+    }
+
+    private fun readContainerMetadata(
+        platform: GamePlatform,
+        context: Context,
+        path: String
+    ): Pair<String?, String?> = when (platform) {
+        GamePlatform.N3DS -> N3dsGameMetadataReader.read(context, path)
+            ?.let { it.title to it.serial } ?: (null to null)
+        GamePlatform.NDS -> com.sbro.emucored.core.NdsGameMetadataReader.read(context, path)
+            ?.let { it.title to it.serial } ?: (null to null)
     }
 
     private fun findLocalCover(path: String, context: Context, serial: String?, title: String?): String? {

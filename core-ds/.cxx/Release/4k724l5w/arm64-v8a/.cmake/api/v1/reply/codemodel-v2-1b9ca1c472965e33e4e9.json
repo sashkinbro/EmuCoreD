@@ -1,0 +1,211 @@
+{
+	"configurations" : 
+	[
+		{
+			"directories" : 
+			[
+				{
+					"build" : ".",
+					"childIndexes" : 
+					[
+						1,
+						6
+					],
+					"jsonFile" : "directory-.-Release-d0094a50bb2071803777.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.10.0"
+					},
+					"projectIndex" : 0,
+					"source" : "."
+				},
+				{
+					"build" : "melonDS",
+					"childIndexes" : 
+					[
+						2
+					],
+					"jsonFile" : "directory-melonDS-Release-fd11ad1ba85929544fa9.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.16"
+					},
+					"parentIndex" : 0,
+					"projectIndex" : 1,
+					"source" : "melonDS"
+				},
+				{
+					"build" : "melonDS/src",
+					"childIndexes" : 
+					[
+						3
+					],
+					"jsonFile" : "directory-melonDS.src-Release-60aa5ad4bc8388520725.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.16"
+					},
+					"parentIndex" : 1,
+					"projectIndex" : 1,
+					"source" : "melonDS/src",
+					"targetIndexes" : 
+					[
+						0
+					]
+				},
+				{
+					"build" : "melonDS/src/teakra",
+					"childIndexes" : 
+					[
+						4,
+						5
+					],
+					"jsonFile" : "directory-melonDS.src.teakra-Release-defa91f55a01278d2fac.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.8"
+					},
+					"parentIndex" : 2,
+					"projectIndex" : 2,
+					"source" : "melonDS/src/teakra"
+				},
+				{
+					"build" : "melonDS/src/teakra/externals",
+					"jsonFile" : "directory-melonDS.src.teakra.externals-Release-9678e4b37c414c60974c.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.8"
+					},
+					"parentIndex" : 3,
+					"projectIndex" : 2,
+					"source" : "melonDS/src/teakra/externals"
+				},
+				{
+					"build" : "melonDS/src/teakra/src",
+					"jsonFile" : "directory-melonDS.src.teakra.src-Release-9198fde35da05112b673.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.8"
+					},
+					"parentIndex" : 3,
+					"projectIndex" : 2,
+					"source" : "melonDS/src/teakra/src",
+					"targetIndexes" : 
+					[
+						2,
+						3
+					]
+				},
+				{
+					"build" : "bridge",
+					"jsonFile" : "directory-bridge-Release-8cd7cb34bc633f70d3de.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.10.0"
+					},
+					"parentIndex" : 0,
+					"projectIndex" : 0,
+					"source" : "bridge",
+					"targetIndexes" : 
+					[
+						1
+					]
+				}
+			],
+			"name" : "Release",
+			"projects" : 
+			[
+				{
+					"childIndexes" : 
+					[
+						1
+					],
+					"directoryIndexes" : 
+					[
+						0,
+						6
+					],
+					"name" : "EmuCoreDS",
+					"targetIndexes" : 
+					[
+						1
+					]
+				},
+				{
+					"childIndexes" : 
+					[
+						2
+					],
+					"directoryIndexes" : 
+					[
+						1,
+						2
+					],
+					"name" : "melonDS",
+					"parentIndex" : 0,
+					"targetIndexes" : 
+					[
+						0
+					]
+				},
+				{
+					"directoryIndexes" : 
+					[
+						3,
+						4,
+						5
+					],
+					"name" : "teakra",
+					"parentIndex" : 1,
+					"targetIndexes" : 
+					[
+						2,
+						3
+					]
+				}
+			],
+			"targets" : 
+			[
+				{
+					"directoryIndex" : 2,
+					"id" : "core::@458b67ac9602ce4c3148",
+					"jsonFile" : "target-core-Release-e3a7efaf15e54c75b84b.json",
+					"name" : "core",
+					"projectIndex" : 1
+				},
+				{
+					"directoryIndex" : 6,
+					"id" : "emucored_ds::@5d86fe588f3a0996b685",
+					"jsonFile" : "target-emucored_ds-Release-ebae831add9c135754fb.json",
+					"name" : "emucored_ds",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 5,
+					"id" : "teakra::@4ebcb0bfb894ba71da4b",
+					"jsonFile" : "target-teakra-Release-1f4963667e03bf9509f2.json",
+					"name" : "teakra",
+					"projectIndex" : 2
+				},
+				{
+					"directoryIndex" : 5,
+					"id" : "teakra_c::@4ebcb0bfb894ba71da4b",
+					"jsonFile" : "target-teakra_c-Release-f8a458aa473b74f3ce30.json",
+					"name" : "teakra_c",
+					"projectIndex" : 2
+				}
+			]
+		}
+	],
+	"kind" : "codemodel",
+	"paths" : 
+	{
+		"build" : "C:/Users/SBRO/AndroidStudioProjects/EmuCoreD/core-ds/.cxx/Release/4k724l5w/arm64-v8a",
+		"source" : "C:/Users/SBRO/AndroidStudioProjects/EmuCoreD/coreDS"
+	},
+	"version" : 
+	{
+		"major" : 2,
+		"minor" : 7
+	}
+}

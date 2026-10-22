@@ -12,5 +12,4 @@ add_compile_definitions(MELONDS_GL_HEADER=<GLES3/gl32.h>)
 
 add_subdirectory(melonDS)
 
-# The Android bridge is added here once the JNI/platform layer lands.
-# add_subdirectory(bridge)
+add_subdirectory(bridge)

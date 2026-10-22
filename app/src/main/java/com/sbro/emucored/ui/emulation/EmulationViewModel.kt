@@ -15,6 +15,7 @@ import com.sbro.emucored.core.AndroidGamePhase
 import com.sbro.emucored.core.AudioDefaults
 import com.sbro.emucored.core.DocumentPathResolver
 import com.sbro.emucored.core.EmulatorBridge
+import com.sbro.emucored.core.ds.DsSession
 import com.sbro.emucored.core.RendererDefaults
 import com.sbro.emucored.core.SetupValidator
 import com.sbro.emucored.core.EmulatorStorage
@@ -876,7 +877,11 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
     private fun pollNativePerformanceMetrics() {
         val state = _uiState.value
         if (!state.isRunning || isShuttingDown || state.isPaused || !state.showFps) return
-        val raw = NativeApp.getPerformanceMetricsSnapshot().orEmpty()
+        val raw = if (DsSession.isActive) {
+            DsSession.performanceMetricsSnapshot().orEmpty()
+        } else {
+            NativeApp.getPerformanceMetricsSnapshot().orEmpty()
+        }
         if (raw.isBlank()) return
 
         val parts = raw.split('\n', limit = 3)

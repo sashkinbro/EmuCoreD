@@ -25,3 +25,4 @@ dependencyResolutionManagement {
 rootProject.name = "EmuCoreD"
 include(":app")
 include(":core-android")
+include(":core-ds")
