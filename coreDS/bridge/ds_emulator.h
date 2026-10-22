@@ -14,6 +14,12 @@ namespace melonDS {
 class NDS;
 }
 
+struct Frame;
+
+namespace MelonDSAndroid {
+class VulkanOutput;
+}
+
 namespace EmuCoreDS {
 
 class DsPresenter;
@@ -43,8 +49,12 @@ private:
     void Run();
     void ApplyDefaultBios();
     void PresentFrame();
+    void PresentVulkanFrame();
 
     std::unique_ptr<melonDS::NDS> nds_;
+    std::unique_ptr<MelonDSAndroid::VulkanOutput> vulkan_output_;
+    std::unique_ptr<Frame> vulkan_frame_;
+    std::vector<uint32_t> vulkan_readback_;
     std::unique_ptr<DsPresenter> presenter_;
     std::unique_ptr<DsPresenter> secondary_presenter_;
     std::thread thread_;

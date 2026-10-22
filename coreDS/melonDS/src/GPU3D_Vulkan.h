@@ -75,7 +75,7 @@ public:
         LiveRenderProductIdentity& outIdentity) const noexcept override;
     [[nodiscard]] bool GetLastServedCaptureSourceIdentity(
         CaptureSourceIdentity& outIdentity) const noexcept override;
-    [[nodiscard]] bool UsesStructured2DMetadata() const noexcept override { return false; }
+    [[nodiscard]] bool UsesStructured2DMetadata() const noexcept override { return true; }
     void Blit(const GPU& gpu) override;
     void Stop(const GPU& gpu) override;
 

@@ -161,10 +161,10 @@ object DsSession {
         96 -> 1   // B
         109 -> 2  // Select
         108 -> 3  // Start
-        19 -> 4   // Up
-        22 -> 5   // Right
-        20 -> 6   // Down
-        21 -> 7   // Left
+        19 -> 6   // Up
+        22 -> 4   // Right
+        20 -> 7   // Down
+        21 -> 5   // Left
         103 -> 8  // R
         102 -> 9  // L
         100 -> 10 // X

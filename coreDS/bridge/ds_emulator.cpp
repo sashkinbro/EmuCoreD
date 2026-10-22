@@ -13,6 +13,9 @@
 #include "Args.h"
 #include "GPU.h"
 #include "GPU3D_Vulkan.h"
+#include "GPU2D_Soft.h"
+#include "renderer/FrameQueue.h"
+#include "renderer/VulkanOutput.h"
 #include "NDS.h"
 #include "NDSCart.h"
 #include "SPI_Firmware.h"
@@ -131,6 +134,16 @@ bool DsEmulator::Start(const std::string& rom_path, const std::string& sram_path
         renderer3d->SetRenderSettings(false, true, 1, false, 0.0f, 0.0f, false, false, false,
                                       nds_->GPU);
     }
+    vulkan_output_ = std::make_unique<MelonDSAndroid::VulkanOutput>();
+    if (!vulkan_output_->init()) {
+        __android_log_print(ANDROID_LOG_ERROR, "EmuCoreDS",
+                            "VulkanOutput initialization failed; falling back to software");
+        vulkan_output_.reset();
+        nds_->GPU.SetRenderer3D(std::make_unique<melonDS::SoftRenderer>());
+    } else {
+        vulkan_frame_ = std::make_unique<Frame>();
+        vulkan_readback_.assign(256ull * 386ull, 0u);
+    }
     nds_->Reset();
     nds_->SetupDirectBoot(rom_path_);
     nds_->Start();
@@ -142,6 +155,8 @@ bool DsEmulator::Start(const std::string& rom_path, const std::string& sram_path
 
 void DsEmulator::Stop() {
     if (!running_.exchange(false)) {
+        vulkan_output_.reset();
+        vulkan_frame_.reset();
         if (nds_) nds_.reset();
         return;
     }
@@ -149,6 +164,8 @@ void DsEmulator::Stop() {
     g_stop_requested = true;
     if (thread_.joinable()) thread_.join();
     stop_requested_ = false;
+    vulkan_output_.reset();
+    vulkan_frame_.reset();
     if (nds_) {
         nds_->Stop();
         nds_.reset();
@@ -173,9 +190,26 @@ void DsEmulator::Run() {
     auto next_frame = clock::now();
     while (running_.load() && !stop_requested_.load()) {
         if (nds_ && nds_->IsRunning()) {
+            if (vulkan_output_) {
+                if (auto* renderer2d =
+                        dynamic_cast<melonDS::GPU2D::SoftRenderer*>(&nds_->GPU.GetRenderer2D())) {
+                    renderer2d->BeginStructuredVulkan2DFrame();
+                }
+                if (vulkan_output_->ensureFaithfulAtlas()) {
+                    vulkan_output_->uploadFaithfulAtlasPreFrame(nds_->GPU);
+                }
+            }
             nds_->RunFrame();
             frame_count_.fetch_add(1, std::memory_order_relaxed);
-            PresentFrame();
+            if (vulkan_output_) {
+                if (auto* renderer2d =
+                        dynamic_cast<melonDS::GPU2D::SoftRenderer*>(&nds_->GPU.GetRenderer2D())) {
+                    renderer2d->PublishCompletedFaithfulFrame();
+                }
+                PresentVulkanFrame();
+            } else {
+                PresentFrame();
+            }
         }
         next_frame += std::chrono::microseconds(16683);
         const auto now = clock::now();
@@ -234,6 +268,35 @@ void DsEmulator::PresentFrame() {
         presenter_->Present(first, kWidth, kHeight);
         break;
     }
+}
+
+void DsEmulator::PresentVulkanFrame() {
+    if (!nds_ || !presenter_ || !vulkan_output_ || !vulkan_frame_) return;
+
+    auto* renderer3d = dynamic_cast<melonDS::VulkanRenderer3D*>(&nds_->GPU.GetRenderer3D());
+    if (renderer3d == nullptr) return;
+
+    vulkan_frame_->backend = FrameBackend::VulkanImage;
+    vulkan_frame_->width = 256;
+    vulkan_frame_->height = 386;
+    vulkan_frame_->frameId++;
+    vulkan_frame_->publicationGeneration = vulkan_frame_->frameId;
+
+    if (!vulkan_output_->ensureFrameResources(vulkan_frame_.get(), 256, 386)) return;
+
+    MelonDSAndroid::VulkanCompositionInputs inputs{};
+    if (!vulkan_output_->buildCompositionInputs(
+            vulkan_frame_.get(), *renderer3d, 1, MelonDSAndroid::VulkanFilterMode::Nearest,
+            true, false, false, inputs)) {
+        return;
+    }
+    inputs.needsReadback = true;
+    if (!vulkan_output_->composeAndSubmitFrame(vulkan_frame_.get(), inputs)) return;
+    if (!vulkan_output_->readFramePixels(vulkan_frame_.get(), vulkan_readback_.data(),
+                                         vulkan_readback_.size())) {
+        return;
+    }
+    presenter_->Present(vulkan_readback_.data(), 256, 386);
 }
 
 void DsEmulator::SetSurface(ANativeWindow* window) {
