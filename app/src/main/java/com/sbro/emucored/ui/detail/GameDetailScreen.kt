@@ -79,6 +79,7 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalConfiguration
@@ -109,6 +110,8 @@ import com.sbro.emucored.core.GamepadManager
 import com.sbro.emucored.core.LocalTvUiEnvironment
 import com.sbro.emucored.ui.common.BitmapPathImage
 import com.sbro.emucored.ui.common.GameCoverArt
+import com.sbro.emucored.ui.common.gameCoverAspectRatio
+import com.sbro.emucored.ui.common.isGenerated3dCover
 import com.sbro.emucored.ui.common.NavigationBackButton
 import com.sbro.emucored.ui.common.RequestFocusOnResume
 import com.sbro.emucored.ui.common.gamepadFocusableCard
@@ -215,19 +218,29 @@ fun GameDetailScreen(
                     .padding(horizontal = horizontalInset),
                 contentAlignment = Alignment.Center
             ) {
+                val is3dHero = isGenerated3dCover(heroImage)
                 Box(
                     modifier = Modifier
                         .fillMaxWidth(if (isLandscape) 0.4f else 1f)
                         .widthIn(max = heroMaxWidth)
-                        .aspectRatio(com.sbro.emucored.ui.common.GameCoverAspectRatio)
-                        .clip(neonShape(28.dp))
-                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f))
+                        .aspectRatio(
+                            gameCoverAspectRatio(
+                                heroImage,
+                                com.sbro.emucored.ui.common.GameCoverAspectRatio
+                            )
+                        )
+                        .clip(if (is3dHero) RectangleShape else neonShape(28.dp))
+                        .background(
+                            if (is3dHero) Color.Transparent
+                            else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
+                        )
                 ) {
                     GameCoverArt(
                         coverPath = heroImage,
                         fallbackTitle = title,
                         modifier = Modifier.fillMaxSize(),
-                        contentScale = ContentScale.FillHeight
+                        contentScale = if (is3dHero) ContentScale.Fit else ContentScale.FillHeight,
+                        shape = if (is3dHero) RectangleShape else neonShape(28.dp)
                     )
                 }
             }

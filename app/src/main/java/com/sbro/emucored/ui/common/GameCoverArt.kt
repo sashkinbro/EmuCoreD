@@ -24,6 +24,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
@@ -31,6 +32,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
 import kotlinx.coroutines.Dispatchers
@@ -51,10 +54,17 @@ val GameCoverAspectRatio: Float
 
 internal fun isGenerated3dCover(coverPath: String?): Boolean =
     coverPath?.replace('\\', '/')?.let { path ->
-        path.endsWith("_3d.webp") || (path.contains("/3d/") && path.endsWith(".webp")) ||
-            path.startsWith("https://raw.githubusercontent.com/sashkinbro/EmuCoreD-Covers/") &&
-            path.contains("/covers/3d/") && path.endsWith(".webp")
+        path.endsWith("_3d.webp") || path.endsWith("_3d_dark.webp") ||
+            (path.contains("/covers/3d/") && path.endsWith(".webp")) ||
+            (path.startsWith("https://raw.githubusercontent.com/sashkinbro/EmuCoreD-Covers/") &&
+                path.contains("/covers/3d/") && path.endsWith(".webp"))
     } == true
+
+fun gameCoverAspectRatio(coverPath: String?, default: Float): Float =
+    if (isGenerated3dCover(coverPath)) 1f else default
+
+fun gameCoverThumbnailSize(coverPath: String?, width: Dp, height: Dp): DpSize =
+    if (isGenerated3dCover(coverPath)) DpSize(height, height) else DpSize(width, height)
 
 /** 3D covers render with transparent padding, so rounding would cut their corners. */
 fun gameCoverShape(coverPath: String?, roundedShape: androidx.compose.ui.graphics.Shape) =
@@ -91,6 +101,7 @@ fun GameCoverArt(
     contentScale: ContentScale = ContentScale.Fit,
     loadEnabled: Boolean = true,
     matchImageAspectRatio: Boolean = false,
+    shape: Shape = neonShape(20.dp),
     onAspectRatioResolved: ((Float) -> Unit)? = null
 ) {
     val context = LocalContext.current
@@ -159,7 +170,7 @@ fun GameCoverArt(
             contentDescription = fallbackTitle,
             contentScale = gameCoverContentScale(coverPath, contentScale),
             filterQuality = androidx.compose.ui.graphics.FilterQuality.Medium,
-            modifier = imageModifier.clip(gameCoverShape(coverPath, neonShape(20.dp)))
+            modifier = imageModifier.clip(gameCoverShape(coverPath, shape))
         )
     } else {
         Box(

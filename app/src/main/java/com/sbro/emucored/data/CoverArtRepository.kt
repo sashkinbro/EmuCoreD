@@ -40,8 +40,12 @@ class CoverArtRepository(context: Context) {
     private val coverCacheDirectory = File(this.context.cacheDir, "game-covers")
     private val remoteImageCacheDirectory = File(this.context.cacheDir, "remote-image-cache")
 
+    private val darkTheme: Boolean by lazy {
+        AppPreferences(context).getIsDarkThemeSync()
+    }
+
     private val cacheDirectory by lazy {
-        File(coverCacheDirectory, "igdb-n3ds-v1").apply {
+        File(coverCacheDirectory, "emucored-n3ds-v2").apply {
             if (!exists()) mkdirs()
             Log.d(TAG, "Cover cache directory created: $absolutePath")
         }
@@ -57,6 +61,9 @@ class CoverArtRepository(context: Context) {
 
     fun isManagedCoverCachePath(path: String?): Boolean =
         CoverCachePolicy.isPathInside(path, coverCacheDirectory)
+
+    fun isCurrentCoverCachePath(path: String?): Boolean =
+        CoverCachePolicy.isPathInside(path, cacheDirectory)
 
     fun isMissingManagedCover(path: String?): Boolean =
         isManagedCoverCachePath(path) && !path.isNullOrBlank() && !isUsableCoverFile(File(path))
@@ -89,10 +96,11 @@ class CoverArtRepository(context: Context) {
             return null
         }
         val preferredFiles = if (style == AppPreferences.COVER_ART_STYLE_3D) {
+            val suffix = if (darkTheme) "_3d_dark" else "_3d"
             listOf(
-                File(cacheDirectory, "${normalizedSerial}_3d.webp"),
-                File(cacheDirectory, "${normalizedSerial}_3d.png"),
-                File(cacheDirectory, "${normalizedSerial}_3d.jpg")
+                File(cacheDirectory, "$normalizedSerial$suffix.webp"),
+                File(cacheDirectory, "$normalizedSerial$suffix.png"),
+                File(cacheDirectory, "$normalizedSerial$suffix.jpg")
             )
         } else {
             listOf(
@@ -137,7 +145,7 @@ class CoverArtRepository(context: Context) {
             return null
         }
         val coverBaseUrl = resolveCoverBaseUrl(style)
-        val flightKey = "$style|$coverBaseUrl|$coverKey"
+        val flightKey = "$style|$darkTheme|$coverBaseUrl|$coverKey"
         lateinit var flight: PendingCoverDownload
         var ownsDownload = false
         synchronized(downloadFlightsLock) {
@@ -206,7 +214,7 @@ class CoverArtRepository(context: Context) {
                 if (result != null) break
             }
         } else {
-            val cover = com.sbro.emucored.data.n3ds.N3dsCoverIndexRepository(context).find(originalSerial, title, style == AppPreferences.COVER_ART_STYLE_3D)
+            val cover = com.sbro.emucored.data.n3ds.N3dsCoverIndexRepository(context).find(originalSerial, title, style == AppPreferences.COVER_ART_STYLE_3D, darkTheme)
             if (cover != null) {
                 result = downloadFromUrl(cover.url, coverFile, missFile, "IGDB catalog", cover.sha256)
                 if (result == null && style != AppPreferences.COVER_ART_STYLE_3D && cover.sourceUrl.isNotBlank()) {
@@ -229,9 +237,9 @@ class CoverArtRepository(context: Context) {
         val style = resolveCoverArtStyle(styleOverride)
         if (style == AppPreferences.COVER_ART_STYLE_DISABLED) return null
         val baseUrl = resolveCoverBaseUrl(style)
-        if (baseUrl != null && normalizedSerial != null) return "$baseUrl/$normalizedSerial.${if (style == AppPreferences.COVER_ART_STYLE_3D) "png" else "jpg"}"
+        if (baseUrl != null && normalizedSerial != null) return "$baseUrl/$normalizedSerial.${if (style == AppPreferences.COVER_ART_STYLE_3D) "webp" else "jpg"}"
         return com.sbro.emucored.data.n3ds.N3dsCoverIndexRepository(context)
-            .find(serial, title, style == AppPreferences.COVER_ART_STYLE_3D)?.url
+            .find(serial, title, style == AppPreferences.COVER_ART_STYLE_3D, darkTheme)?.url
     }
 
     private fun downloadFromUrl(
@@ -415,7 +423,7 @@ class CoverArtRepository(context: Context) {
 
     private fun cacheFileName(serial: String, style: Int, extension: String): String {
         return if (style == AppPreferences.COVER_ART_STYLE_3D) {
-            "${serial}_3d.$extension"
+            "${serial}_3d${if (darkTheme) "_dark" else ""}.$extension"
         } else {
             "$serial.$extension"
         }
@@ -423,7 +431,7 @@ class CoverArtRepository(context: Context) {
 
     private fun cacheMissFileName(serial: String, style: Int): String {
         return if (style == AppPreferences.COVER_ART_STYLE_3D) {
-            "${serial}_3d.miss"
+            "${serial}_3d${if (darkTheme) "_dark" else ""}.miss"
         } else {
             "$serial.miss"
         }

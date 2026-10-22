@@ -44,6 +44,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.graphics.RectangleShape
+import com.sbro.emucored.ui.common.gameCoverAspectRatio
 import com.sbro.emucored.ui.common.isGenerated3dCover
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
@@ -482,7 +483,7 @@ private fun ShelfCoverCard(
     val interactionSource = remember { MutableInteractionSource() }
     val showMenu = remember(game.path) { mutableStateOf(false) }
     val shape = if (isGenerated3dCover(game.coverArtPath)) RectangleShape else neonShape(24.dp)
-    val coverAspectRatio = GameCoverAspectRatio
+    val coverAspectRatio = gameCoverAspectRatio(game.coverArtPath, GameCoverAspectRatio)
     val horizontalCoverPadding = if (isActive) 6.dp else 8.dp
     val verticalCoverPadding = if (isActive) 6.dp else 4.dp
     val shelfCoverPath = rememberShelfCoverPath(game, isCoverArtDisabled)
@@ -551,7 +552,8 @@ private fun ShelfCoverCard(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(horizontal = horizontalCoverPadding, vertical = verticalCoverPadding),
-                contentScale = ContentScale.Fit
+                contentScale = ContentScale.Fit,
+                shape = shape
             )
         } else {
             ShelfMissingCoverCard(

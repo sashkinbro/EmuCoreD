@@ -91,6 +91,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.layout
@@ -126,6 +127,8 @@ import com.sbro.emucored.data.SettingsSnapshot
 import com.sbro.emucored.data.TouchControlPressEffect
 import com.sbro.emucored.data.TouchControlVisualStyle
 import com.sbro.emucored.ui.common.GameCoverArt
+import com.sbro.emucored.ui.common.gameCoverAspectRatio
+import com.sbro.emucored.ui.common.isGenerated3dCover
 import com.sbro.emucored.ui.common.ScreenTopBar
 import com.sbro.emucored.ui.common.StickyTabHeader
 import com.sbro.emucored.ui.common.appScreenTopPadding
@@ -712,17 +715,24 @@ private fun GamePickerCard(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
+            val is3dCover = isGenerated3dCover(game.coverArtPath)
             Surface(
-                modifier = Modifier.width(48.dp).aspectRatio(com.sbro.emucored.ui.common.GameCoverAspectRatio),
-                shape = neonShape(16.dp),
-                color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.26f)
+                modifier = Modifier.width(48.dp).aspectRatio(
+                    gameCoverAspectRatio(
+                        game.coverArtPath,
+                        com.sbro.emucored.ui.common.GameCoverAspectRatio
+                    )
+                ),
+                shape = if (is3dCover) RectangleShape else neonShape(16.dp),
+                color = if (is3dCover) androidx.compose.ui.graphics.Color.Transparent
+                else MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.26f)
             ) {
                 GameCoverArt(
                     coverPath = game.coverArtPath,
                     fallbackTitle = game.title,
                     modifier = Modifier
                         .fillMaxSize()
-                        .clip(neonShape(16.dp)),
+                        .clip(if (is3dCover) RectangleShape else neonShape(16.dp)),
                     contentScale = ContentScale.Fit
                 )
             }

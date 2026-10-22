@@ -107,6 +107,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
+import com.sbro.emucored.ui.common.gameCoverAspectRatio
 import com.sbro.emucored.ui.common.isGenerated3dCover
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -190,6 +191,8 @@ fun HomeScreen(
     viewModel: HomeViewModel = viewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val darkTheme = MaterialTheme.colorScheme.background.luminance() < 0.5f
+    LaunchedEffect(darkTheme) { viewModel.onCoverThemeChanged(darkTheme) }
     val configuration = LocalConfiguration.current
     val density = LocalDensity.current
     val windowSize = LocalWindowInfo.current.containerSize
@@ -1599,7 +1602,9 @@ private fun RecentGameCard(
     } else {
         neonShape(16.dp)
     }
-    val resolvedCoverAspectRatio = if (is3dCover || showCenteredTitlePlaceholder) {
+    val resolvedCoverAspectRatio = if (is3dCover) {
+        1f
+    } else if (showCenteredTitlePlaceholder) {
         GameCoverAspectRatio
     } else {
         (coverAspectRatio ?: GameCoverAspectRatio).coerceIn(0.62f, 1.0f)
@@ -1649,6 +1654,7 @@ private fun RecentGameCard(
                             fallbackTitle = game.title,
                             modifier = Modifier.fillMaxSize(),
                             contentScale = ContentScale.Fit,
+                            shape = coverShape,
                             onAspectRatioResolved = { ratio ->
                                 if (ratio.isFinite() && ratio > 0f) coverAspectRatio = ratio
                             }
@@ -1728,7 +1734,9 @@ private fun GameCard(
     } else {
         neonShape(16.dp)
     }
-    val resolvedCoverAspectRatio = if (is3dCover || showCenteredTitlePlaceholder) {
+    val resolvedCoverAspectRatio = if (is3dCover) {
+        1f
+    } else if (showCenteredTitlePlaceholder) {
         GameCoverAspectRatio
     } else {
         (coverAspectRatio ?: GameCoverAspectRatio).coerceIn(0.62f, 1.0f)
@@ -1783,6 +1791,7 @@ private fun GameCard(
                         fallbackTitle = game.title,
                         modifier = Modifier.fillMaxSize(),
                         contentScale = ContentScale.Fit,
+                        shape = coverShape,
                         onAspectRatioResolved = { ratio ->
                             if (ratio.isFinite() && ratio > 0f) coverAspectRatio = ratio
                         }
@@ -1886,7 +1895,8 @@ private fun GameListCard(
             verticalAlignment = Alignment.Top
         ) {
             if (showCoverArt) {
-                val listCoverShape = if (isGenerated3dCover(game.coverArtPath) || !game.coverArtPath.isNullOrBlank()) {
+                val is3dListCover = isGenerated3dCover(game.coverArtPath)
+                val listCoverShape = if (is3dListCover) {
                     RectangleShape
                 } else {
                     neonShape(10.dp)
@@ -1894,15 +1904,19 @@ private fun GameListCard(
                 Box(
                     modifier = Modifier
                         .width(52.dp)
-                        .aspectRatio(GameCoverAspectRatio)
+                        .aspectRatio(gameCoverAspectRatio(game.coverArtPath, GameCoverAspectRatio))
                         .clip(listCoverShape)
-                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f))
+                        .background(
+                            if (is3dListCover) Color.Transparent
+                            else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
+                        )
                 ) {
                     GameCoverArt(
                         coverPath = game.coverArtPath,
                         fallbackTitle = game.title,
                         modifier = Modifier.fillMaxSize(),
-                        contentScale = ContentScale.Fit
+                        contentScale = ContentScale.Fit,
+                        shape = listCoverShape
                     )
                 }
             }

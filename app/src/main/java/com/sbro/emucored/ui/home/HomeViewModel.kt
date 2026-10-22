@@ -153,6 +153,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     private var customCoversRevisionInitialized = false
     private var currentCoverArtStyle = AppPreferences.COVER_ART_STYLE_3D
     private var currentCoverDownloadBaseUrl: String? = null
+    private var coverThemeDark: Boolean? = null
     private val scanMutex = Mutex()
     private var deferredLibraryScan: DeferredLibraryScan? = null
     private var deferredWorkJob: Job? = null
@@ -914,6 +915,16 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         )
     }
 
+    fun onCoverThemeChanged(darkTheme: Boolean) {
+        if (coverThemeDark == null) {
+            coverThemeDark = darkTheme
+            return
+        }
+        if (coverThemeDark == darkTheme) return
+        coverThemeDark = darkTheme
+        handleCoverSourceChanged()
+    }
+
     private fun syncMissingCovers() {
         if (EmulatorBridge.isVmActive()) {
             deferredCoverSync = true
@@ -949,8 +960,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
             if (removedStalePaths) publishVisibleGames()
             val gamesToProcess = allGames.filter {
                 it.coverArtPath == null || it.coverArtPath.startsWith("http") ||
-                    (coverRepository.isManagedCoverCachePath(it.coverArtPath) &&
-                        !it.coverArtPath.contains("/igdb-n3ds-v1/"))
+                    !coverRepository.isCurrentCoverCachePath(it.coverArtPath)
             }
             if (gamesToProcess.isEmpty()) {
                 if (removedStalePaths) {

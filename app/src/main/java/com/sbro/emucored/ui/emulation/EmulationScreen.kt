@@ -1,4 +1,4 @@
-﻿
+
 package com.sbro.emucored.ui.emulation
 
 import android.annotation.SuppressLint
@@ -129,6 +129,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.graphics.graphicsLayer
@@ -200,6 +201,8 @@ import com.sbro.emucored.data.GameMenuSectionId
 import com.sbro.emucored.data.GameMenuLayoutStyle
 import com.sbro.emucored.data.gameMenuSectionsForTab
 import com.sbro.emucored.ui.common.CustomControlVisual
+import com.sbro.emucored.ui.common.gameCoverAspectRatio
+import com.sbro.emucored.ui.common.isGenerated3dCover
 import com.sbro.emucored.ui.common.actionDrawableRes
 import com.sbro.emucored.ui.common.composeShape
 import com.sbro.emucored.ui.common.BitmapPathImage
@@ -3433,18 +3436,27 @@ private fun EmulationSidebarMenu(
                         horizontalArrangement = Arrangement.spacedBy(14.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
+                        val is3dMenuCover = isGenerated3dCover(uiState.currentGameCoverPath)
                         Surface(
-                            shape = neonShape(12.dp),
-                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
-                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f)),
+                            shape = if (is3dMenuCover) RectangleShape else neonShape(12.dp),
+                            color = if (is3dMenuCover) Color.Transparent
+                            else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
+                            border = if (is3dMenuCover) null
+                            else BorderStroke(1.dp, MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f)),
                             modifier = Modifier
                                 .width(64.dp)
-                                .aspectRatio(com.sbro.emucored.ui.common.GameCoverAspectRatio)
+                                .aspectRatio(
+                                    gameCoverAspectRatio(
+                                        uiState.currentGameCoverPath,
+                                        com.sbro.emucored.ui.common.GameCoverAspectRatio
+                                    )
+                                )
                         ) {
                             GameCoverArt(
                                 coverPath = uiState.currentGameCoverPath,
                                 fallbackTitle = menuTitle,
                                 contentScale = ContentScale.Fit,
+                                shape = if (is3dMenuCover) RectangleShape else neonShape(12.dp),
                                 modifier = Modifier.fillMaxSize()
                             )
                         }

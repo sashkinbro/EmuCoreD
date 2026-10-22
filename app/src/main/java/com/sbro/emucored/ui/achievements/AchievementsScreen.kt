@@ -66,6 +66,7 @@ import com.sbro.emucored.data.RetroAchievementsGameData
 import com.sbro.emucored.data.RetroAchievementsLibraryGame
 import com.sbro.emucored.data.RetroAchievementsState
 import com.sbro.emucored.ui.common.GameCoverArt
+import com.sbro.emucored.ui.common.gameCoverAspectRatio
 import com.sbro.emucored.ui.common.gameCoverContentScale
 import com.sbro.emucored.ui.common.gameCoverShape
 import com.sbro.emucored.ui.common.GameCoverAspectRatio
@@ -456,7 +457,7 @@ private fun LibraryGameCard(game: RetroAchievementsLibraryGame, onClick: () -> U
                 contentScale = gameCoverContentScale(coverPath, ContentScale.Fit),
                 modifier = Modifier
                     .width(120.dp)
-                    .aspectRatio(GameCoverAspectRatio)
+                    .aspectRatio(gameCoverAspectRatio(coverPath, GameCoverAspectRatio))
                     .clip(gameCoverShape(coverPath, neonShape(12.dp)))
             )
             Column(

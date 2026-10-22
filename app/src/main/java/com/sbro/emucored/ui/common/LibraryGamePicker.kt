@@ -118,8 +118,9 @@ fun LibraryGamePicker(
                             coverPath = game.coverArtPath,
                             fallbackTitle = game.title,
                             contentScale = gameCoverContentScale(game.coverArtPath, ContentScale.Fit),
+                            shape = gameCoverShape(game.coverArtPath, neonShape(12.dp)),
                             modifier = Modifier
-                                .width(56.dp).aspectRatio(GameCoverAspectRatio)
+                                .width(56.dp).aspectRatio(gameCoverAspectRatio(game.coverArtPath, GameCoverAspectRatio))
                                 .clip(gameCoverShape(game.coverArtPath, neonShape(12.dp)))
                         )
                         Spacer(Modifier.width(12.dp))

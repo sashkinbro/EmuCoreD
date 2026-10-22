@@ -1,6 +1,7 @@
 package com.sbro.emucored.data
 
 import android.content.Context
+import android.content.res.Configuration
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.MutablePreferences
 import androidx.datastore.preferences.core.Preferences
@@ -1294,6 +1295,17 @@ class AppPreferences(private val context: Context) {
                 readCoverArtStyle(prefs)
             }.first()
         }.also { coverArtStyleCache = SyncValueCache(it) }
+    }
+
+    fun getIsDarkThemeSync(): Boolean {
+        val mode = kotlinx.coroutines.runBlocking { themeMode.first() }
+        return when (mode) {
+            ThemeMode.LIGHT -> false
+            ThemeMode.SYSTEM -> (context.resources.configuration.uiMode and
+                Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES
+            ThemeMode.CUSTOM -> kotlinx.coroutines.runBlocking { customTheme.first().dark }
+            else -> true
+        }
     }
 
     val onboardingCompleted: Flow<Boolean> = context.dataStore.data.map { prefs ->

@@ -142,6 +142,7 @@ import com.sbro.emucored.data.ProfileFeedEvent
 import com.sbro.emucored.data.PublicPlayerDevice
 import com.sbro.emucored.ui.common.BitmapPathImage
 import com.sbro.emucored.ui.common.GameCoverArt
+import com.sbro.emucored.ui.common.gameCoverThumbnailSize
 import com.sbro.emucored.ui.common.gameCoverContentScale
 import com.sbro.emucored.ui.common.gameCoverShape
 import com.sbro.emucored.ui.common.ScreenTopBar
@@ -1966,7 +1967,7 @@ private fun FavoriteGamesShowcase(
                         coverPath = game.coverArtPath,
                         fallbackTitle = game.title,
                         modifier = Modifier
-                            .size(width = 48.dp, height = 68.dp)
+                            .size(gameCoverThumbnailSize(game.coverArtPath, 48.dp, 68.dp))
                             .clip(gameCoverShape(game.coverArtPath, neonShape(9.dp))),
                         contentScale = gameCoverContentScale(game.coverArtPath, ContentScale.Crop)
                     )
@@ -2313,7 +2314,7 @@ private fun ProShowcaseGameChoice(
                 coverPath = game.coverArtPath,
                 fallbackTitle = game.title,
                 modifier = Modifier
-                    .size(width = 42.dp, height = 58.dp)
+                    .size(gameCoverThumbnailSize(game.coverArtPath, 42.dp, 58.dp))
                     .clip(gameCoverShape(game.coverArtPath, neonShape(10.dp))),
                 contentScale = gameCoverContentScale(game.coverArtPath, ContentScale.Crop)
             )
@@ -2801,7 +2802,7 @@ private fun GamePlayStatRow(
                 coverPath = game.coverArtPath,
                 fallbackTitle = game.title,
                 modifier = Modifier
-                    .size(width = 54.dp, height = 78.dp)
+                    .size(gameCoverThumbnailSize(game.coverArtPath, 54.dp, 78.dp))
                     .clip(gameCoverShape(game.coverArtPath, neonShape(10.dp))),
                 contentScale = gameCoverContentScale(game.coverArtPath, ContentScale.Crop)
             )
