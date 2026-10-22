@@ -29,7 +29,7 @@ internal fun calculateHomeGridColumnCount(
     val isWide = smallestScreenWidthDp >= 600 && screenWidthDp >= 900
     val reservedWidthDp = contentReservedWidthDp ?: if (isWide) 332 else 0
     val contentWidthDp = (screenWidthDp - reservedWidthDp).coerceAtLeast(1)
-    val baseCellSizeDp = if (isLandscape) 94 else 102
+    val baseCellSizeDp = if (isLandscape) 88 else 92
     val minCellSizeDp = (baseCellSizeDp * gridScale).toInt().coerceAtLeast(1)
-    return maxOf(1, (contentWidthDp + 12) / (minCellSizeDp + 12))
+    return maxOf(1, (contentWidthDp + 8) / (minCellSizeDp + 8))
 }

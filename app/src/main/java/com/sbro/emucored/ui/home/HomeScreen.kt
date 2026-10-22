@@ -231,8 +231,6 @@ fun HomeScreen(
     val horizontalInset = ScreenHorizontalPadding
     val sectionTopSpacing = 2.dp
     val sectionInnerSpacing = 4.dp
-    val baseCellSize = if (isLandscape) 94.dp else 102.dp
-    val minCellSize = baseCellSize * uiState.homeGridScale
     val columnsCount = calculateHomeGridColumnCount(
         screenWidthDp = windowMetrics.widthDp,
         screenHeightDp = windowMetrics.heightDp,
@@ -532,7 +530,7 @@ fun HomeScreen(
                         onLongClickRestoreCover = { game -> restoreCustomCover(game) }
                     )
                 } else {
-                    val columns = if (isListView) GridCells.Fixed(1) else GridCells.Adaptive(minSize = minCellSize)
+                    val columns = if (isListView) GridCells.Fixed(1) else GridCells.Fixed(columnsCount)
 
                     Box(modifier = Modifier.fillMaxSize()) {
                         LazyVerticalGrid(
@@ -543,8 +541,8 @@ fun HomeScreen(
                                 top = topInset,
                                 bottom = 76.dp + bottomInset
                             ),
-                            horizontalArrangement = Arrangement.spacedBy(12.dp),
-                            verticalArrangement = Arrangement.spacedBy(10.dp)
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
                             item(span = { androidx.compose.foundation.lazy.grid.GridItemSpan(maxLineSpan) }) {
                                 HomeHeader(
@@ -658,12 +656,12 @@ fun HomeScreen(
                                         modifier = Modifier
                                             .fillMaxWidth()
                                             .padding(horizontal = horizontalInset),
-                                        verticalArrangement = Arrangement.spacedBy(10.dp)
+                                        verticalArrangement = Arrangement.spacedBy(8.dp)
                                     ) {
                                         uiState.games.chunked(if (isListView) 1 else columnsCount).forEach { rowGames ->
                                             Row(
                                                 modifier = Modifier.fillMaxWidth(),
-                                                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                                                horizontalArrangement = Arrangement.spacedBy(8.dp)
                                             ) {
                                                 rowGames.forEach { game ->
                                                     val showCoverPlaceholder = uiState.isCoverArtDisabled &&
