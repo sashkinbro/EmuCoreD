@@ -339,7 +339,7 @@ private fun mapDsTouch(position: Offset, size: IntSize): Offset? {
     }
     val left = (width - contentWidth) / 2f
     val top = (height - contentHeight) / 2f
-    val bottomTop = top + contentHeight * (194f / 386f)
+    val bottomTop = top
     val bottomHeight = contentHeight * (192f / 386f)
     if (position.x !in left..(left + contentWidth) ||
         position.y !in bottomTop..(bottomTop + bottomHeight)

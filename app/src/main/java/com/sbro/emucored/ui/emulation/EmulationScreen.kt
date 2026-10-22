@@ -4429,17 +4429,27 @@ private fun EmulationSidebarMenu(
                             horizontalInset = sectionLabelInset
                         )
 
+                        val dsCoreActive = DsSession.isActive
                         LiveSelectionRow(
                             title = stringResource(R.string.settings_renderer),
-                            options = listOf(
-                                LiveSelectionOption(12, stringResource(R.string.settings_renderer_opengl)),
-                                LiveSelectionOption(14, stringResource(R.string.settings_renderer_vulkan)),
-                                LiveSelectionOption(13, stringResource(R.string.settings_renderer_software))
-                            ),
+                            options = if (dsCoreActive) {
+                                listOf(
+                                    LiveSelectionOption(14, stringResource(R.string.settings_renderer_vulkan)),
+                                    LiveSelectionOption(13, stringResource(R.string.settings_renderer_software))
+                                )
+                            } else {
+                                listOf(
+                                    LiveSelectionOption(12, stringResource(R.string.settings_renderer_opengl)),
+                                    LiveSelectionOption(14, stringResource(R.string.settings_renderer_vulkan)),
+                                    LiveSelectionOption(13, stringResource(R.string.settings_renderer_software))
+                                )
+                            },
                             currentValue = uiState.renderer,
                             onValueChange = onSetRenderer,
                             helpText = stringResource(R.string.settings_help_renderer),
-                            onResetToDefault = { onSetRenderer(globalDefaults.renderer) }
+                            onResetToDefault = {
+                                onSetRenderer(if (dsCoreActive) 14 else globalDefaults.renderer)
+                            }
                         )
 
                         // Internal resolution belongs to the app-level per-game

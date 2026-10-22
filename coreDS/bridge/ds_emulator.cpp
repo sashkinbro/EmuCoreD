@@ -117,8 +117,13 @@ bool DsEmulator::Start(const std::string& rom_path, const std::string& sram_path
         cart_args.SRAMLength = static_cast<u32>(save.size());
     }
 
+    const bool use_vulkan = requested_renderer_.load(std::memory_order_relaxed) != 0;
     melonDS::NDSArgs args;
-    args.Renderer3D = melonDS::VulkanRenderer3D::New();
+    if (use_vulkan) {
+        args.Renderer3D = melonDS::VulkanRenderer3D::New();
+    } else {
+        args.Renderer3D = std::make_unique<melonDS::SoftRenderer>();
+    }
     args.JIT = melonDS::JITArgs{};
     args.JIT->FastMemory = false;
     frame_count_ = 0;
@@ -138,22 +143,26 @@ bool DsEmulator::Start(const std::string& rom_path, const std::string& sram_path
         renderer3d->SetRenderSettings(false, true, scale, false, 0.0f, 0.0f, false, false, false,
                                       nds_->GPU);
     }
-    vulkan_output_ = std::make_unique<MelonDSAndroid::VulkanOutput>();
-    if (!vulkan_output_->init()) {
-        __android_log_print(ANDROID_LOG_ERROR, "EmuCoreDS",
-                            "VulkanOutput initialization failed; falling back to software");
-        vulkan_output_.reset();
-        nds_->GPU.SetRenderer3D(std::make_unique<melonDS::SoftRenderer>());
-    } else {
-        vulkan_frame_ = std::make_unique<Frame>();
-        vulkan_readback_.assign(static_cast<size_t>(256 * scale) * static_cast<size_t>(386 * scale),
-                                0u);
-        surface_presenter_ = std::make_unique<MelonDSAndroid::VulkanSurfacePresenter>(true);
-        if (!surface_presenter_->init()) {
-            __android_log_print(ANDROID_LOG_WARN, "EmuCoreDS",
-                                "VulkanSurfacePresenter initialization failed; using readback");
-            surface_presenter_.reset();
+    if (use_vulkan) {
+        vulkan_output_ = std::make_unique<MelonDSAndroid::VulkanOutput>();
+        if (!vulkan_output_->init()) {
+            __android_log_print(ANDROID_LOG_ERROR, "EmuCoreDS",
+                                "VulkanOutput initialization failed; falling back to software");
+            vulkan_output_.reset();
+            nds_->GPU.SetRenderer3D(std::make_unique<melonDS::SoftRenderer>());
+        } else {
+            vulkan_frame_ = std::make_unique<Frame>();
+            vulkan_readback_.assign(
+                static_cast<size_t>(256 * scale) * static_cast<size_t>(386 * scale), 0u);
+            surface_presenter_ = std::make_unique<MelonDSAndroid::VulkanSurfacePresenter>(true);
+            if (!surface_presenter_->init()) {
+                __android_log_print(ANDROID_LOG_WARN, "EmuCoreDS",
+                                    "VulkanSurfacePresenter initialization failed; using readback");
+                surface_presenter_.reset();
+            }
         }
+    } else {
+        __android_log_print(ANDROID_LOG_INFO, "EmuCoreDS", "Using DS software renderer");
     }
     nds_->Reset();
     nds_->SetupDirectBoot(rom_path_);
@@ -289,8 +298,8 @@ void DsEmulator::PresentFrame() {
     switch (screen_layout_.load()) {
     case 0: {
         composite_.resize(kScreenPixels * 2);
-        std::memcpy(composite_.data(), first, kScreenPixels * sizeof(uint32_t));
-        std::memcpy(composite_.data() + kScreenPixels, second,
+        std::memcpy(composite_.data(), second, kScreenPixels * sizeof(uint32_t));
+        std::memcpy(composite_.data() + kScreenPixels, first,
                     kScreenPixels * sizeof(uint32_t));
         presenter_->Present(composite_.data(), kWidth, kHeight * 2);
         break;
@@ -474,8 +483,8 @@ void DsEmulator::ConfigureVulkanSurfaceLocked() {
     const int bottom_height = content_height - top_height;
 
     MelonDSAndroid::VulkanSurfaceConfig config{};
-    config.topScreen = {true, left, top, content_width, top_height};
-    config.bottomScreen = {true, left, top + top_height, content_width, bottom_height};
+    config.bottomScreen = {true, left, top, content_width, top_height};
+    config.topScreen = {true, left, top + top_height, content_width, bottom_height};
     config.filtering = MelonDSAndroid::VulkanFilterMode::Linear;
     const MelonDSAndroid::VulkanBackgroundImage background{};
     surface_presenter_->configureSurface(vulkan_surface_id_, config, background);
@@ -572,6 +581,10 @@ void DsEmulator::DrainAudio() {
         }
     }
     AAudioStream_write(audio_stream_, audio_buffer_.data(), read, 2'000'000);
+}
+
+void DsEmulator::SetRenderer(int renderer) {
+    requested_renderer_.store(renderer != 0 ? 1 : 0, std::memory_order_relaxed);
 }
 
 void DsEmulator::SetPaused(bool paused) {

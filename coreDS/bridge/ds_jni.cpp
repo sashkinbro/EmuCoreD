@@ -111,6 +111,12 @@ Java_com_sbro_emucored_core_ds_EmuCoreDsNative_nativeSetPaused(JNIEnv*, jobject,
     EmuCoreDS::Emulator().SetPaused(paused == JNI_TRUE);
 }
 
+JNIEXPORT void JNICALL
+Java_com_sbro_emucored_core_ds_EmuCoreDsNative_nativeSetRenderer(JNIEnv*, jobject,
+                                                                 jint renderer) {
+    EmuCoreDS::Emulator().SetRenderer(static_cast<int>(renderer));
+}
+
 JNIEXPORT jboolean JNICALL
 Java_com_sbro_emucored_core_ds_EmuCoreDsNative_nativeSaveState(JNIEnv* env, jobject,
                                                                jstring path) {

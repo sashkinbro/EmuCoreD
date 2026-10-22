@@ -47,6 +47,7 @@ public:
     void ReleaseTouch();
     void SetRenderScale(int scale);
     void SetPaused(bool paused);
+    void SetRenderer(int renderer);
     bool SaveState(const std::string& path);
     bool LoadState(const std::string& path);
 
@@ -90,6 +91,7 @@ private:
     std::atomic<bool> paused_{false};
     std::atomic<bool> swap_screens_{false};
     std::atomic<int> screen_layout_{0};
+    std::atomic<int> requested_renderer_{1};
     std::atomic<int> requested_scale_{1};
     std::atomic<int> active_scale_{1};
     std::atomic<int> pending_scale_{0};

@@ -35,17 +35,22 @@ object DsSession {
     private var lastSampleFrames: Long = 0L
 
     private var renderScale: Int = 1
+    private var renderer: Int = 14
 
     private var stateDirectory: File? = null
     private var stateGamePath: String? = null
     private var stateGameTitle: String = ""
     private var stateGameSerial: String? = null
+    private var appContext: Context? = null
+    private var launchPath: String? = null
+    private var launchIdentityPath: String? = null
 
     fun start(
         context: Context,
         path: String,
         identityPath: String = path,
-        renderScale: Int = 1
+        renderScale: Int = 1,
+        renderer: Int = 14
     ): Boolean {
         if (!EmuCoreDsNative.isLoaded) return false
         if (isActive) return false
@@ -53,6 +58,10 @@ object DsSession {
         if (GamePlatform.fromFileName(path) != GamePlatform.NDS) return false
 
         val appContext = context.applicationContext
+        this.appContext = appContext
+        this.launchPath = path
+        this.launchIdentityPath = identityPath
+        this.renderer = if (renderer == 13) 13 else 14
         trace(appContext, "start path=$path")
         val romFile = materializeRom(appContext, path) ?: run {
             trace(appContext, "materialize failed")
@@ -76,7 +85,7 @@ object DsSession {
 
         this.renderScale = renderScale.coerceIn(1, 8)
         EmuCoreDsNative.nativeSetRenderScale(this.renderScale)
-        trace(appContext, "calling nativeStart scale=${this.renderScale}")
+        EmuCoreDsNative.nativeSetRenderer(if (this.renderer == 13) 0 else 1)
         val started = EmuCoreDsNative.nativeStart(
             romFile.absolutePath,
             saveFile.absolutePath,
@@ -132,6 +141,27 @@ object DsSession {
     }
 
     fun currentRenderScale(): Int = renderScale
+
+    fun setRenderer(renderer: Int): Boolean {
+        val normalized = if (renderer == 13) 13 else 14
+        if (!isActive) {
+            this.renderer = normalized
+            return true
+        }
+        if (normalized == this.renderer) return true
+        val context = appContext ?: return false
+        val path = launchPath ?: return false
+        val identity = launchIdentityPath ?: path
+        val scale = renderScale
+        val surface = this.surface
+        val secondary = this.secondarySurface
+        stop()
+        this.surface = surface
+        this.secondarySurface = secondary
+        return start(context, path, identity, scale, normalized)
+    }
+
+    fun currentRenderer(): Int = renderer
 
     const val LAYOUT_STACKED = 0
     const val LAYOUT_SEPARATE = 1

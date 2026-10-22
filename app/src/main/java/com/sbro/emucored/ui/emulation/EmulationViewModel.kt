@@ -16,6 +16,7 @@ import com.sbro.emucored.core.AudioDefaults
 import com.sbro.emucored.core.DocumentPathResolver
 import com.sbro.emucored.core.EmulatorBridge
 import com.sbro.emucored.core.ds.DsSession
+import com.sbro.emucored.core.ds.EmuCoreDsNative
 import com.sbro.emucored.core.RendererDefaults
 import com.sbro.emucored.core.SetupValidator
 import com.sbro.emucored.core.EmulatorStorage
@@ -897,13 +898,18 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
     }
 
     private fun buildPerformanceOverlayText(metrics: String, state: EmulationUiState): String {
-        val rendererName = RendererDefaults.coreRendererName(
-            RendererDefaults.toCoreRenderer(state.renderer)
-        )
+        val dsActive = DsSession.isActive
+        val rendererName = if (dsActive) {
+            if (DsSession.currentRenderer() == 13) "Software" else "Vulkan"
+        } else {
+            RendererDefaults.coreRendererName(
+                RendererDefaults.toCoreRenderer(state.renderer)
+            )
+        }
         val upscale = normalizeUpscale(state.upscale)
         val upscaleLabel = if (upscale <= 1f) "Native" else "${upscale.roundToInt()}x"
-        val width = (400f * upscale).toInt()
-        val height = (240f * upscale).toInt()
+        val width = if (dsActive) (256f * upscale).toInt() else (400f * upscale).toInt()
+        val height = if (dsActive) (386f * upscale).toInt() else (240f * upscale).toInt()
         return buildString {
             append(metrics)
             if (performanceCpuName.isNotBlank()) {
@@ -1300,6 +1306,12 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
                 false
             }
             Log.i(TAG, "EmulatorBridge.startEmulation returned $started path=$pathToLaunch")
+            if (started && DsSession.isActive) {
+                _uiState.value = _uiState.value.copy(
+                    performanceOverlayHeader = buildPerformanceOverlayHeader(getApplication())
+                        .substringBefore(" | ") + " | " + EmuCoreDsNative.nativeGetVersion()
+                )
+            }
             if (started) {
                 RetroAchievementsRepository.get(getApplication()).onGameStarted(pathToLaunch)
                 syncCheatsForCurrentGame()

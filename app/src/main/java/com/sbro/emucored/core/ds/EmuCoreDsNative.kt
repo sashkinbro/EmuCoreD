@@ -41,6 +41,7 @@ object EmuCoreDsNative {
     external fun nativeReleaseTouch()
     external fun nativeSetRenderScale(scale: Int)
     external fun nativeSetPaused(paused: Boolean)
+    external fun nativeSetRenderer(renderer: Int)
     external fun nativeSaveState(path: String): Boolean
     external fun nativeLoadState(path: String): Boolean
 }

@@ -555,6 +555,9 @@ object EmulatorBridge {
     }
 
     suspend fun setRenderer(gpuType: Int): Boolean {
+        if (DsSession.isActive) {
+            return withContext(Dispatchers.IO) { DsSession.setRenderer(gpuType) }
+        }
         val resolvedRenderer = normalizeRenderer(gpuType)
         NativeApp.logCrashBreadcrumb(
             "renderer change requested renderer=${rendererName(resolvedRenderer)}($resolvedRenderer) vmActive=$isVmActive"
