@@ -73,6 +73,12 @@ Java_com_sbro_emucored_core_ds_EmuCoreDsNative_nativeSetSwapScreens(JNIEnv*, job
     EmuCoreDS::Emulator().SetSwapScreens(swap == JNI_TRUE);
 }
 
+JNIEXPORT void JNICALL
+Java_com_sbro_emucored_core_ds_EmuCoreDsNative_nativeSetScreenLayout(JNIEnv*, jobject,
+                                                                     jint mode) {
+    EmuCoreDS::Emulator().SetScreenLayout(static_cast<int>(mode));
+}
+
 JNIEXPORT jlong JNICALL
 Java_com_sbro_emucored_core_ds_EmuCoreDsNative_nativeGetFrameCount(JNIEnv*, jobject) {
     return static_cast<jlong>(EmuCoreDS::Emulator().FrameCount());

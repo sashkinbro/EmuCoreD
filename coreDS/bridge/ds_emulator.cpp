@@ -184,13 +184,51 @@ void DsEmulator::Run() {
 
 void DsEmulator::PresentFrame() {
     if (!nds_ || !presenter_) return;
+    constexpr int kWidth = 256;
+    constexpr int kHeight = 192;
+    constexpr size_t kScreenPixels = static_cast<size_t>(kWidth) * kHeight;
+
     const int front = nds_->GPU.FrontBuffer;
     auto* top = nds_->GPU.Framebuffer[front][0].get();
     auto* bottom = nds_->GPU.Framebuffer[front][1].get();
-    auto* main_pixels = swap_screens_.load() ? bottom : top;
-    auto* secondary_pixels = swap_screens_.load() ? top : bottom;
-    presenter_->Present(main_pixels, 256, 192);
-    if (secondary_presenter_) secondary_presenter_->Present(secondary_pixels, 256, 192);
+    const bool swap = swap_screens_.load();
+    auto* first = swap ? bottom : top;
+    auto* second = swap ? top : bottom;
+
+    switch (screen_layout_.load()) {
+    case 0: {
+        composite_.resize(kScreenPixels * 2);
+        std::memcpy(composite_.data(), first, kScreenPixels * sizeof(uint32_t));
+        std::memcpy(composite_.data() + kScreenPixels, second,
+                    kScreenPixels * sizeof(uint32_t));
+        presenter_->Present(composite_.data(), kWidth, kHeight * 2);
+        break;
+    }
+    case 1:
+        presenter_->Present(first, kWidth, kHeight);
+        if (secondary_presenter_) secondary_presenter_->Present(second, kWidth, kHeight);
+        break;
+    case 2:
+        presenter_->Present(first, kWidth, kHeight);
+        break;
+    case 3:
+        presenter_->Present(second, kWidth, kHeight);
+        break;
+    case 4: {
+        composite_.resize(kScreenPixels * 2);
+        for (int y = 0; y < kHeight; y++) {
+            std::memcpy(composite_.data() + static_cast<size_t>(y) * kWidth * 2,
+                        first + static_cast<size_t>(y) * kWidth, kWidth * sizeof(uint32_t));
+            std::memcpy(composite_.data() + static_cast<size_t>(y) * kWidth * 2 + kWidth,
+                        second + static_cast<size_t>(y) * kWidth, kWidth * sizeof(uint32_t));
+        }
+        presenter_->Present(composite_.data(), kWidth * 2, kHeight);
+        break;
+    }
+    default:
+        presenter_->Present(first, kWidth, kHeight);
+        break;
+    }
 }
 
 void DsEmulator::SetSurface(ANativeWindow* window) {
@@ -202,6 +240,10 @@ void DsEmulator::SetSurface(ANativeWindow* window) {
 
 void DsEmulator::SetSwapScreens(bool swap) {
     swap_screens_ = swap;
+}
+
+void DsEmulator::SetScreenLayout(int mode) {
+    screen_layout_ = mode;
 }
 
 void DsEmulator::SetSecondarySurface(ANativeWindow* window) {

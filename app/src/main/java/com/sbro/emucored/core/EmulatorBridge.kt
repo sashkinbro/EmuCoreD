@@ -762,6 +762,13 @@ object EmulatorBridge {
         }
     }
 
+    /** Changes how the DS top and bottom screens are presented. */
+    fun setDsScreenLayout(mode: Int) {
+        if (DsSession.isActive) {
+            DsSession.setLayout(mode)
+        }
+    }
+
     /** Swaps which 3DS screen is counted as the prominent one. */
     fun setSwapScreens(swap: Boolean) {
         if (DsSession.isActive) {

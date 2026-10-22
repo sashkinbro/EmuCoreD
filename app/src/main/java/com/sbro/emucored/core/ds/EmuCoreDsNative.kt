@@ -34,6 +34,7 @@ object EmuCoreDsNative {
     external fun nativeSecondarySurfaceChanged(surface: Surface)
     external fun nativeSecondarySurfaceDestroyed()
     external fun nativeSetSwapScreens(swap: Boolean)
+    external fun nativeSetScreenLayout(mode: Int)
     external fun nativeGetFrameCount(): Long
     external fun nativeSetKeyMask(mask: Int)
     external fun nativeTouch(x: Int, y: Int)

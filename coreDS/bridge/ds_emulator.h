@@ -6,6 +6,7 @@
 #include <mutex>
 #include <string>
 #include <thread>
+#include <vector>
 
 struct ANativeWindow;
 
@@ -28,6 +29,7 @@ public:
 
     void SetSurface(ANativeWindow* window);
     void SetSwapScreens(bool swap);
+    void SetScreenLayout(int mode);
     uint64_t FrameCount() const { return frame_count_.load(); }
     void SetSecondarySurface(ANativeWindow* window);
     void SetKeyMask(uint32_t mask);
@@ -52,10 +54,12 @@ private:
     std::atomic<bool> running_{false};
     std::atomic<bool> stop_requested_{false};
     std::atomic<bool> swap_screens_{false};
+    std::atomic<int> screen_layout_{0};
     std::atomic<uint64_t> frame_count_{0};
     std::string rom_path_;
     std::string sram_path_;
     std::string user_dir_;
+    std::vector<uint32_t> composite_;
     uint32_t pending_key_mask_ = 0xFFF;
 };
 

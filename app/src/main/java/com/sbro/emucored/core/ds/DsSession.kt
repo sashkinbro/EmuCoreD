@@ -4,6 +4,7 @@ package com.sbro.emucored.core.ds
 
 import android.content.Context
 import android.os.SystemClock
+import android.util.Log
 import android.net.Uri
 import android.view.Surface
 import com.sbro.emucored.data.GamePlatform
@@ -25,6 +26,8 @@ object DsSession {
     private var keyMask: Int = 0xFFF
 
     private var swapScreens: Boolean = false
+
+    private var layoutMode: Int = LAYOUT_STACKED
 
     private var lastSampleAtMs: Long = 0L
     private var lastSampleFrames: Long = 0L
@@ -52,6 +55,10 @@ object DsSession {
         if (!started) return false
         isActive = true
         keyMask = 0xFFF
+        swapScreens = false
+        lastSampleAtMs = 0L
+        lastSampleFrames = 0L
+        EmuCoreDsNative.nativeSetScreenLayout(layoutMode)
         EmuCoreDsNative.nativeSetSwapScreens(swapScreens)
         surface?.let { EmuCoreDsNative.nativeSurfaceChanged(it) }
         secondarySurface?.let { EmuCoreDsNative.nativeSecondarySurfaceChanged(it) }
@@ -81,6 +88,17 @@ object DsSession {
         swapScreens = swap
         if (isActive) EmuCoreDsNative.nativeSetSwapScreens(swap)
     }
+
+    fun setLayout(mode: Int) {
+        layoutMode = mode.coerceIn(LAYOUT_STACKED, LAYOUT_SIDE_BY_SIDE)
+        if (isActive) EmuCoreDsNative.nativeSetScreenLayout(layoutMode)
+    }
+
+    const val LAYOUT_STACKED = 0
+    const val LAYOUT_SEPARATE = 1
+    const val LAYOUT_TOP_ONLY = 2
+    const val LAYOUT_BOTTOM_ONLY = 3
+    const val LAYOUT_SIDE_BY_SIDE = 4
 
     fun performanceMetricsSnapshot(): String? {
         if (!isActive) return null

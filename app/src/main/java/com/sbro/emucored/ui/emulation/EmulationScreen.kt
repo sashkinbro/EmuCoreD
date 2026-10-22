@@ -177,6 +177,7 @@ import com.sbro.emucored.core.AndroidTouchHaptics.ButtonPhase
 import com.sbro.emucored.core.CoreOptionStore
 import com.sbro.emucored.core.EmulatorBridge
 import com.sbro.emucored.core.NativeApp
+import com.sbro.emucored.core.ds.DsSession
 import com.sbro.emucored.core.GamepadManager
 import com.sbro.emucored.core.KeyboardMouseManager
 import com.sbro.emucored.core.LocalTvUiEnvironment
@@ -188,6 +189,7 @@ import com.sbro.emucored.data.AppPreferences
 import com.sbro.emucored.data.AppPreferences.Companion.FPS_OVERLAY_MODE_DETAILED
 import com.sbro.emucored.data.AppPreferences.Companion.FPS_OVERLAY_MODE_SIMPLE
 import com.sbro.emucored.data.DisplayCrop
+import com.sbro.emucored.data.GamePlatform
 import com.sbro.emucored.data.OverlayControlLayout
 import com.sbro.emucored.data.OverlayLayoutSnapshot
 import com.sbro.emucored.data.PerformanceOverlayMetrics
@@ -453,6 +455,14 @@ fun EmulationScreen(
     val secondScreenMode by preferences.secondScreenMode.collectAsState(
         initial = AppPreferences.SECOND_SCREEN_MODE_PANEL
     )
+    val isNds = remember(gamePath) {
+        gamePath?.let { GamePlatform.fromFileName(it) == GamePlatform.NDS } == true
+    }
+    val effectiveSecondScreenMode = if (isNds) {
+        AppPreferences.SECOND_SCREEN_MODE_INTEGRATED
+    } else {
+        secondScreenMode
+    }
     val secondScreenWidth by preferences.secondScreenWidth.collectAsState(
         initial = AppPreferences.SECOND_SCREEN_WIDTH_DEFAULT
     )
@@ -818,9 +828,13 @@ fun EmulationScreen(
     // Keep the running core in sync with the second-screen presentation mode:
     // panel mode shows only the top screen in the main view and lets the
     // secondary window render the bottom screen.
-    LaunchedEffect(secondScreenMode, secondScreenSwap, uiState.isRunning) {
+    LaunchedEffect(isNds, effectiveSecondScreenMode, secondScreenSwap, uiState.isRunning) {
         if (!uiState.isRunning) return@LaunchedEffect
-        if (secondScreenMode != AppPreferences.SECOND_SCREEN_MODE_INTEGRATED) {
+        if (isNds) {
+            EmulatorBridge.setDsScreenLayout(DsSession.LAYOUT_STACKED)
+            return@LaunchedEffect
+        }
+        if (effectiveSecondScreenMode != AppPreferences.SECOND_SCREEN_MODE_INTEGRATED) {
             EmulatorBridge.setScreenLayout(AppPreferences.SECOND_SCREEN_PANEL_LAYOUT)
             EmulatorBridge.setSwapScreens(secondScreenSwap)
         } else {
@@ -1564,7 +1578,9 @@ fun EmulationScreen(
         // Pull-out second screen panel (bottom 3DS screen). Its z-index sits
         // above the full-screen touch controls layer so the docked tab stays
         // clickable, while the sidebar menu stays above the panel.
-        if (secondScreenMode == AppPreferences.SECOND_SCREEN_MODE_PANEL && !showControlsEditor) {
+        if (!isNds && effectiveSecondScreenMode == AppPreferences.SECOND_SCREEN_MODE_PANEL &&
+            !showControlsEditor
+        ) {
             SecondScreenPanel(
                 widthPercent = secondScreenWidth,
                 position = secondScreenPanelPosition,
@@ -1589,7 +1605,9 @@ fun EmulationScreen(
         }
 
         // Free-floating bottom screen window.
-        if (secondScreenMode == AppPreferences.SECOND_SCREEN_MODE_FLOATING && !showControlsEditor) {
+        if (!isNds && effectiveSecondScreenMode == AppPreferences.SECOND_SCREEN_MODE_FLOATING &&
+            !showControlsEditor
+        ) {
             FloatingSecondScreen(
                 position = secondScreenFloatPosition,
                 sizePercent = secondScreenFloatSize,
@@ -4386,7 +4404,9 @@ private fun EmulationSidebarMenu(
                             onResetToDefault = { onSetAspectRatio(globalDefaults.aspectRatio) }
                         )
 
-                        SecondScreenSettingsRows()
+                        if (currentGamePath?.let { GamePlatform.fromFileName(it) } != GamePlatform.NDS) {
+                            SecondScreenSettingsRows()
+                        }
 
                         CoreOptionRows(
                             options = AzaharCoreOptions.gameMenuGraphicsOptions(),
