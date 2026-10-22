@@ -1808,4 +1808,15 @@
     <string name="settings_mouse_vertical_sensitivity">Vertikale Empfindlichkeit</string>
     <string name="settings_mouse_wheel_shoulders">L / R</string>
     <string name="settings_gamepad_mapping_use_global_desc">Entfernt die Gamepad-Tastenbelegung für dieses Spiel.</string>
+
+    <string name="software_keyboard_title">Softwaretastatur</string>
+    <string name="software_keyboard_hint">Text eingeben</string>
+    <string name="software_keyboard_ok">OK</string>
+    <string name="software_keyboard_cancel">Abbrechen</string>
+    <string name="software_keyboard_forgot">Vergessen</string>
+    <string name="software_keyboard_fixed_length">Geben Sie genau %1$d Zeichen ein.</string>
+    <string name="software_keyboard_max_length">Geben Sie höchstens %1$d Zeichen ein.</string>
+    <string name="software_keyboard_blank_input">Leere Eingabe ist nicht erlaubt.</string>
+    <string name="software_keyboard_empty_input">Die Eingabe darf nicht leer sein.</string>
+    <string name="software_keyboard_invalid_input">Ungültige Eingabe.</string>
 </resources>

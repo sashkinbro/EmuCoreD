@@ -5,10 +5,10 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -137,6 +137,7 @@ fun CustomControlVisual(
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun ActionSelector(
     selectedActionId: String?,
@@ -148,28 +149,27 @@ fun ActionSelector(
     val actions = CustomTouchControl.ALLOWED_ACTION_IDS
         .filterNot { it in CreatorExcludedActionIds }
         .filterNot { it == excludedActionId }
-    LazyRow(
+    FlowRow(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         if (allowNone) {
-            item(key = "none") {
-                FilterChip(
-                    selected = selectedActionId == null,
-                    onClick = { onSelect(null) },
-                    label = { Text(stringResource(R.string.touch_control_creator_none)) },
-                    leadingIcon = if (selectedActionId == null) {
-                        { Icon(Icons.Rounded.Check, contentDescription = null) }
-                    } else {
-                        null
-                    },
-                    shape = neonShape(14.dp),
-                    colors = premiumFilterChipColors(),
-                    modifier = Modifier.actionChipTestTag(testTagPrefix, "none")
-                )
-            }
+            FilterChip(
+                selected = selectedActionId == null,
+                onClick = { onSelect(null) },
+                label = { Text(stringResource(R.string.touch_control_creator_none)) },
+                leadingIcon = if (selectedActionId == null) {
+                    { Icon(Icons.Rounded.Check, contentDescription = null) }
+                } else {
+                    null
+                },
+                shape = neonShape(14.dp),
+                colors = premiumFilterChipColors(),
+                modifier = Modifier.actionChipTestTag(testTagPrefix, "none")
+            )
         }
-        items(actions, key = { it }) { action ->
+        actions.forEach { action ->
             FilterChip(
                 selected = selectedActionId == action,
                 onClick = { onSelect(action) },

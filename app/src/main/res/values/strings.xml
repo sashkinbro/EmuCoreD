@@ -1830,4 +1830,15 @@
     <string name="settings_mouse_vertical_sensitivity">Vertical sensitivity</string>
     <string name="settings_mouse_wheel_shoulders">L / R</string>
     <string name="settings_gamepad_mapping_use_global_desc">Remove this game\'s gamepad button overrides.</string>
+
+    <string name="software_keyboard_title">Software Keyboard</string>
+    <string name="software_keyboard_hint">Enter text</string>
+    <string name="software_keyboard_ok">OK</string>
+    <string name="software_keyboard_cancel">Cancel</string>
+    <string name="software_keyboard_forgot">I Forgot</string>
+    <string name="software_keyboard_fixed_length">Enter exactly %1$d characters.</string>
+    <string name="software_keyboard_max_length">Enter at most %1$d characters.</string>
+    <string name="software_keyboard_blank_input">Blank input is not allowed.</string>
+    <string name="software_keyboard_empty_input">Input cannot be empty.</string>
+    <string name="software_keyboard_invalid_input">Invalid input.</string>
 </resources>

@@ -1805,4 +1805,15 @@
     <string name="settings_mouse_vertical_sensitivity">縦方向の感度</string>
     <string name="settings_mouse_wheel_shoulders">L / R</string>
     <string name="settings_gamepad_mapping_use_global_desc">このゲームのゲームパッドボタン割り当てを削除します。</string>
+
+    <string name="software_keyboard_title">ソフトウェアキーボード</string>
+    <string name="software_keyboard_hint">テキストを入力</string>
+    <string name="software_keyboard_ok">OK</string>
+    <string name="software_keyboard_cancel">キャンセル</string>
+    <string name="software_keyboard_forgot">忘れました</string>
+    <string name="software_keyboard_fixed_length">%1$d文字を正確に入力してください。</string>
+    <string name="software_keyboard_max_length">%1$d文字以内で入力してください。</string>
+    <string name="software_keyboard_blank_input">空白の入力は許可されていません。</string>
+    <string name="software_keyboard_empty_input">入力は空にできません。</string>
+    <string name="software_keyboard_invalid_input">無効な入力です。</string>
 </resources>

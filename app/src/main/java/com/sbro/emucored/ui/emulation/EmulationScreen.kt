@@ -179,6 +179,7 @@ import com.sbro.emucored.core.NativeApp
 import com.sbro.emucored.core.GamepadManager
 import com.sbro.emucored.core.KeyboardMouseManager
 import com.sbro.emucored.core.LocalTvUiEnvironment
+import com.sbro.emucored.core.SoftwareKeyboard
 import com.sbro.emucored.core.buildUpscaleOptions
 import com.sbro.emucored.core.upscaleKeyToMultiplier
 import com.sbro.emucored.core.upscaleMultiplierValue
@@ -535,6 +536,7 @@ fun EmulationScreen(
     var lastTapTimestamp by remember { mutableLongStateOf(0L) }
     var lastTapX by remember { mutableFloatStateOf(0f) }
     var lastTapY by remember { mutableFloatStateOf(0f) }
+    val softwareKeyboardRequest by SoftwareKeyboard.request.collectAsState()
     val connectedGamepadCount by GamepadManager.connectedGamepadCountState.collectAsState()
     val gamepadConnected = connectedGamepadCount > 0
     val keyboardMouseConnection by KeyboardMouseManager.connection.collectAsState()
@@ -935,6 +937,7 @@ fun EmulationScreen(
 
     DisposableEffect(Unit) {
         onDispose {
+            SoftwareKeyboard.cancelPending()
             GamepadManager.setEmulationInputEnabled(false)
             viewModel.stopEmulation()
         }
@@ -1836,6 +1839,10 @@ fun EmulationScreen(
                 }
             }
         )
+    }
+
+    softwareKeyboardRequest?.let { request ->
+        SoftwareKeyboardDialog(request)
     }
 
     if (showGamepadMappingDialog && uiState.runtimeFailure == null) {

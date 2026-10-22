@@ -1806,4 +1806,15 @@
     <string name="settings_mouse_vertical_sensitivity">वर्टिकल संवेदनशीलता</string>
     <string name="settings_mouse_wheel_shoulders">L / R</string>
     <string name="settings_gamepad_mapping_use_global_desc">इस गेम के गेमपैड बटन ओवरराइड हटाएँ।</string>
+
+    <string name="software_keyboard_title">सॉफ़्टवेयर कीबोर्ड</string>
+    <string name="software_keyboard_hint">पाठ दर्ज करें</string>
+    <string name="software_keyboard_ok">ठीक है</string>
+    <string name="software_keyboard_cancel">रद्द करें</string>
+    <string name="software_keyboard_forgot">मैं भूल गया</string>
+    <string name="software_keyboard_fixed_length">ठीक %1$d वर्ण दर्ज करें।</string>
+    <string name="software_keyboard_max_length">अधिकतम %1$d वर्ण दर्ज करें।</string>
+    <string name="software_keyboard_blank_input">रिक्त इनपुट की अनुमति नहीं है।</string>
+    <string name="software_keyboard_empty_input">इनपुट खाली नहीं हो सकता।</string>
+    <string name="software_keyboard_invalid_input">अमान्य इनपुट।</string>
 </resources>

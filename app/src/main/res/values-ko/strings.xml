@@ -1805,4 +1805,15 @@
     <string name="settings_mouse_vertical_sensitivity">세로 민감도</string>
     <string name="settings_mouse_wheel_shoulders">L / R</string>
     <string name="settings_gamepad_mapping_use_global_desc">이 게임의 게임패드 버튼 재정의를 제거합니다.</string>
+
+    <string name="software_keyboard_title">소프트웨어 키보드</string>
+    <string name="software_keyboard_hint">텍스트 입력</string>
+    <string name="software_keyboard_ok">확인</string>
+    <string name="software_keyboard_cancel">취소</string>
+    <string name="software_keyboard_forgot">잊어버렸습니다</string>
+    <string name="software_keyboard_fixed_length">%1$d자를 정확히 입력하세요.</string>
+    <string name="software_keyboard_max_length">최대 %1$d자까지 입력하세요.</string>
+    <string name="software_keyboard_blank_input">공백 입력은 허용되지 않습니다.</string>
+    <string name="software_keyboard_empty_input">입력은 비워 둘 수 없습니다.</string>
+    <string name="software_keyboard_invalid_input">잘못된 입력입니다.</string>
 </resources>

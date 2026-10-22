@@ -1827,4 +1827,15 @@
     <string name="settings_mouse_vertical_sensitivity">Vertikální citlivost</string>
     <string name="settings_mouse_wheel_shoulders">L / R</string>
     <string name="settings_gamepad_mapping_use_global_desc">Odstraní přepisy tlačítek ovladače pro tuto hru.</string>
+
+    <string name="software_keyboard_title">Softwarová klávesnice</string>
+    <string name="software_keyboard_hint">Zadejte text</string>
+    <string name="software_keyboard_ok">OK</string>
+    <string name="software_keyboard_cancel">Zrušit</string>
+    <string name="software_keyboard_forgot">Zapomněl jsem</string>
+    <string name="software_keyboard_fixed_length">Zadejte přesně %1$d znaků.</string>
+    <string name="software_keyboard_max_length">Zadejte nejvýše %1$d znaků.</string>
+    <string name="software_keyboard_blank_input">Prázdný vstup není povolen.</string>
+    <string name="software_keyboard_empty_input">Vstup nesmí být prázdný.</string>
+    <string name="software_keyboard_invalid_input">Neplatný vstup.</string>
 </resources>

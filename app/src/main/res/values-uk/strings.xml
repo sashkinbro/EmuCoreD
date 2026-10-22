@@ -1811,4 +1811,15 @@
     <string name="settings_mouse_vertical_sensitivity">Вертикальна чутливість</string>
     <string name="settings_mouse_wheel_shoulders">L / R</string>
     <string name="settings_gamepad_mapping_use_global_desc">Прибрати перевизначення кнопок геймпада для цієї гри.</string>
+
+    <string name="software_keyboard_title">Екранна клавіатура</string>
+    <string name="software_keyboard_hint">Введіть текст</string>
+    <string name="software_keyboard_ok">OK</string>
+    <string name="software_keyboard_cancel">Скасувати</string>
+    <string name="software_keyboard_forgot">Я забув</string>
+    <string name="software_keyboard_fixed_length">Введіть рівно %1$d символів.</string>
+    <string name="software_keyboard_max_length">Введіть не більше %1$d символів.</string>
+    <string name="software_keyboard_blank_input">Порожнє введення не дозволено.</string>
+    <string name="software_keyboard_empty_input">Введення не може бути порожнім.</string>
+    <string name="software_keyboard_invalid_input">Неприпустиме введення.</string>
 </resources>

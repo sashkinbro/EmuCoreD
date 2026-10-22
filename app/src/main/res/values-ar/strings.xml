@@ -1814,4 +1814,15 @@
     <string name="settings_mouse_vertical_sensitivity">حساسية عمودية</string>
     <string name="settings_mouse_wheel_shoulders">L / R</string>
     <string name="settings_gamepad_mapping_use_global_desc">إزالة تجاوزات أزرار ذراع التحكم لهذه اللعبة.</string>
+
+    <string name="software_keyboard_title">لوحة المفاتيح البرمجية</string>
+    <string name="software_keyboard_hint">أدخل النص</string>
+    <string name="software_keyboard_ok">موافق</string>
+    <string name="software_keyboard_cancel">إلغاء</string>
+    <string name="software_keyboard_forgot">نسيت</string>
+    <string name="software_keyboard_fixed_length">أدخل %1$d أحرف بالضبط.</string>
+    <string name="software_keyboard_max_length">أدخل %1$d أحرف كحد أقصى.</string>
+    <string name="software_keyboard_blank_input">الإدخال الفارغ غير مسموح.</string>
+    <string name="software_keyboard_empty_input">لا يمكن أن يكون الإدخال فارغًا.</string>
+    <string name="software_keyboard_invalid_input">إدخال غير صالح.</string>
 </resources>

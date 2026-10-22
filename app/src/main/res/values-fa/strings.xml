@@ -1821,4 +1821,15 @@
     <string name="settings_mouse_vertical_sensitivity">حساسیت عمودی</string>
     <string name="settings_mouse_wheel_shoulders">L / R</string>
     <string name="settings_gamepad_mapping_use_global_desc">بازنویسی‌های دکمه‌های دسته بازی برای این بازی حذف می‌شود.</string>
+
+    <string name="software_keyboard_title">صفحه‌کلید نرم‌افزاری</string>
+    <string name="software_keyboard_hint">متن را وارد کنید</string>
+    <string name="software_keyboard_ok">تأیید</string>
+    <string name="software_keyboard_cancel">لغو</string>
+    <string name="software_keyboard_forgot">فراموش کردم</string>
+    <string name="software_keyboard_fixed_length">دقیقاً %1$d نویسه وارد کنید.</string>
+    <string name="software_keyboard_max_length">حداکثر %1$d نویسه وارد کنید.</string>
+    <string name="software_keyboard_blank_input">ورودی خالی مجاز نیست.</string>
+    <string name="software_keyboard_empty_input">ورودی نمی‌تواند خالی باشد.</string>
+    <string name="software_keyboard_invalid_input">ورودی نامعتبر.</string>
 </resources>

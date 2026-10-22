@@ -1807,4 +1807,15 @@
     <string name="settings_mouse_vertical_sensitivity">垂直灵敏度</string>
     <string name="settings_mouse_wheel_shoulders">L / R</string>
     <string name="settings_gamepad_mapping_use_global_desc">移除此游戏的游戏手柄按键覆盖。</string>
+
+    <string name="software_keyboard_title">软件键盘</string>
+    <string name="software_keyboard_hint">输入文本</string>
+    <string name="software_keyboard_ok">确定</string>
+    <string name="software_keyboard_cancel">取消</string>
+    <string name="software_keyboard_forgot">我忘了</string>
+    <string name="software_keyboard_fixed_length">请输入恰好 %1$d 个字符。</string>
+    <string name="software_keyboard_max_length">最多输入 %1$d 个字符。</string>
+    <string name="software_keyboard_blank_input">不允许空白输入。</string>
+    <string name="software_keyboard_empty_input">输入不能为空。</string>
+    <string name="software_keyboard_invalid_input">输入无效。</string>
 </resources>

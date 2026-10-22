@@ -1806,4 +1806,15 @@
     <string name="settings_mouse_vertical_sensitivity">Dikey hassasiyet</string>
     <string name="settings_mouse_wheel_shoulders">L / R</string>
     <string name="settings_gamepad_mapping_use_global_desc">Bu oyun için denetleyici düğmesi atamalarını kaldırır.</string>
+
+    <string name="software_keyboard_title">Yazılım Klavyesi</string>
+    <string name="software_keyboard_hint">Metin girin</string>
+    <string name="software_keyboard_ok">Tamam</string>
+    <string name="software_keyboard_cancel">İptal</string>
+    <string name="software_keyboard_forgot">Unuttum</string>
+    <string name="software_keyboard_fixed_length">Tam olarak %1$d karakter girin.</string>
+    <string name="software_keyboard_max_length">En fazla %1$d karakter girin.</string>
+    <string name="software_keyboard_blank_input">Boş girişe izin verilmez.</string>
+    <string name="software_keyboard_empty_input">Giriş boş olamaz.</string>
+    <string name="software_keyboard_invalid_input">Geçersiz giriş.</string>
 </resources>

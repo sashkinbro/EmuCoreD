@@ -1809,4 +1809,15 @@
     <string name="settings_mouse_vertical_sensitivity">Вертикальная чувствительность</string>
     <string name="settings_mouse_wheel_shoulders">L / R</string>
     <string name="settings_gamepad_mapping_use_global_desc">Убрать переопределения кнопок геймпада для этой игры.</string>
+
+    <string name="software_keyboard_title">Экранная клавиатура</string>
+    <string name="software_keyboard_hint">Введите текст</string>
+    <string name="software_keyboard_ok">ОК</string>
+    <string name="software_keyboard_cancel">Отмена</string>
+    <string name="software_keyboard_forgot">Я забыл</string>
+    <string name="software_keyboard_fixed_length">Введите ровно %1$d символов.</string>
+    <string name="software_keyboard_max_length">Введите не более %1$d символов.</string>
+    <string name="software_keyboard_blank_input">Пустой ввод не разрешён.</string>
+    <string name="software_keyboard_empty_input">Ввод не может быть пустым.</string>
+    <string name="software_keyboard_invalid_input">Недопустимый ввод.</string>
 </resources>

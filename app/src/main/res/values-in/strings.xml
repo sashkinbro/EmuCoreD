@@ -1820,4 +1820,15 @@
     <string name="settings_mouse_vertical_sensitivity">Sensitivitas vertikal</string>
     <string name="settings_mouse_wheel_shoulders">L / R</string>
     <string name="settings_gamepad_mapping_use_global_desc">Hapus penggantian tombol gamepad untuk game ini.</string>
+
+    <string name="software_keyboard_title">Keyboard Perangkat Lunak</string>
+    <string name="software_keyboard_hint">Masukkan teks</string>
+    <string name="software_keyboard_ok">OK</string>
+    <string name="software_keyboard_cancel">Batal</string>
+    <string name="software_keyboard_forgot">Saya Lupa</string>
+    <string name="software_keyboard_fixed_length">Masukkan tepatnya %1$d karakter.</string>
+    <string name="software_keyboard_max_length">Masukkan maksimal %1$d karakter.</string>
+    <string name="software_keyboard_blank_input">Masukan kosong tidak diizinkan.</string>
+    <string name="software_keyboard_empty_input">Masukan tidak boleh kosong.</string>
+    <string name="software_keyboard_invalid_input">Masukan tidak valid.</string>
 </resources>

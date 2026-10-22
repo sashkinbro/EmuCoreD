@@ -1827,4 +1827,15 @@
     <string name="settings_mouse_vertical_sensitivity">Czułość pionowa</string>
     <string name="settings_mouse_wheel_shoulders">L / R</string>
     <string name="settings_gamepad_mapping_use_global_desc">Usuwa przypisania przycisków pada dla tej gry.</string>
+
+    <string name="software_keyboard_title">Klawiatura programowa</string>
+    <string name="software_keyboard_hint">Wprowadź tekst</string>
+    <string name="software_keyboard_ok">OK</string>
+    <string name="software_keyboard_cancel">Anuluj</string>
+    <string name="software_keyboard_forgot">Zapomniałem</string>
+    <string name="software_keyboard_fixed_length">Wprowadź dokładnie %1$d znaków.</string>
+    <string name="software_keyboard_max_length">Wprowadź maksymalnie %1$d znaków.</string>
+    <string name="software_keyboard_blank_input">Puste dane wejściowe są niedozwolone.</string>
+    <string name="software_keyboard_empty_input">Dane wejściowe nie mogą być puste.</string>
+    <string name="software_keyboard_invalid_input">Nieprawidłowe dane wejściowe.</string>
 </resources>
