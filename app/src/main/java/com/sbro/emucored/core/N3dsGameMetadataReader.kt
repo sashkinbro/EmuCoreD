@@ -122,9 +122,9 @@ object N3dsGameMetadataReader {
             val structure = analyze(context, path, image)
             val smdh = structure.smdh ?: nativeSmdh(identity, path)
             val title = smdh?.let { decodeTitle(slice(it, TITLE_ENGLISH_OFFSET, TITLE_LENGTH)) }
-            val serial = structure.titleId.takeIf { it != 0L }
-                ?.let { String.format(Locale.US, "%016x", it) }
-                ?: structure.productCode
+            val serial = structure.productCode?.takeIf { it.isNotBlank() }
+                ?: structure.titleId.takeIf { it != 0L }
+                    ?.let { String.format(Locale.US, "%016x", it) }
             if (title == null && serial == null) null else N3dsGameMetadata(title, serial)
         }
         if (metadata != null && metadataCache.size < CACHE_LIMIT) {

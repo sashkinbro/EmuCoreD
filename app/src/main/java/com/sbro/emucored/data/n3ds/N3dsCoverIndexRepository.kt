@@ -16,7 +16,9 @@ class N3dsCoverIndexRepository(private val context: Context) {
         darkTheme: Boolean = false
     ): Cover? {
         val index = load() ?: return null
-        val id = resolveGameId(index, serial, title) ?: return null
+        val id = resolveGameId(index, serial, title)
+            ?: N3dsCatalogRepository.getInstance(context).findBestMatchId(serial, title)?.toString()
+            ?: return null
         val game = index.optJSONObject("games")?.optJSONObject(id) ?: return null
         val path = when {
             threeDimensional && darkTheme -> firstPath(
