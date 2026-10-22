@@ -375,10 +375,10 @@ VkSurfaceFormatKHR chooseSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& fo
 VkPresentModeKHR choosePresentMode(const std::vector<VkPresentModeKHR>& presentModes)
 {
     constexpr std::array<VkPresentModeKHR, 4> preferredPresentModes = {
-        VK_PRESENT_MODE_IMMEDIATE_KHR,
-        VK_PRESENT_MODE_MAILBOX_KHR,
-        VK_PRESENT_MODE_FIFO_RELAXED_KHR,
         VK_PRESENT_MODE_FIFO_KHR,
+        VK_PRESENT_MODE_FIFO_RELAXED_KHR,
+        VK_PRESENT_MODE_MAILBOX_KHR,
+        VK_PRESENT_MODE_IMMEDIATE_KHR,
     };
 
     for (const VkPresentModeKHR preferredPresentMode : preferredPresentModes)
@@ -487,10 +487,10 @@ std::vector<VkPresentModeKHR> rankPresentModes(const std::vector<VkPresentModeKH
         }
     };
 
-    consumeValue(VK_PRESENT_MODE_IMMEDIATE_KHR);
-    consumeValue(VK_PRESENT_MODE_MAILBOX_KHR);
-    consumeValue(VK_PRESENT_MODE_FIFO_RELAXED_KHR);
     consumeValue(VK_PRESENT_MODE_FIFO_KHR);
+    consumeValue(VK_PRESENT_MODE_FIFO_RELAXED_KHR);
+    consumeValue(VK_PRESENT_MODE_MAILBOX_KHR);
+    consumeValue(VK_PRESENT_MODE_IMMEDIATE_KHR);
 
     for (size_t i = 0; i < presentModes.size(); i++)
     {
