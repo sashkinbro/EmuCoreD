@@ -97,8 +97,53 @@ class CoverIndexRepository(private val context: Context) {
             idFromTableValue(index.optJSONObject("titles")?.optString(normalizedTitle))
                 ?.let { return it }
         }
-        return null
+        return findFuzzyGameId(index, title)
     }
+
+    private fun findFuzzyGameId(index: JSONObject, title: String?): String? {
+        val queryTokens = titleTokens(title.orEmpty())
+        if (queryTokens.isEmpty()) return null
+        val games = index.optJSONObject("games") ?: return null
+        var bestId: String? = null
+        var bestScore = 0
+        val ids = games.keys()
+        while (ids.hasNext()) {
+            val id = ids.next()
+            val game = games.optJSONObject(id) ?: continue
+            val gameTokens = titleTokens(game.optString("name"))
+            if (gameTokens.isEmpty()) continue
+            val score = tokenMatchScore(queryTokens, gameTokens)
+            if (score > bestScore) {
+                bestScore = score
+                bestId = id
+            }
+        }
+        return bestId
+    }
+
+    private fun tokenMatchScore(query: List<String>, game: List<String>): Int {
+        val querySet = query.toSet()
+        val gameSet = game.toSet()
+        if (querySet == gameSet) return 100
+        fun tokensMatch(left: String, right: String): Boolean {
+            if (left == right) return true
+            if (left.length < 5 || right.length < 5) return false
+            return left.contains(right) || right.contains(left)
+        }
+        val queryInGame = query.all { q -> game.any { tokensMatch(q, it) } }
+        val gameInQuery = game.all { g -> query.any { tokensMatch(g, it) } }
+        return if (queryInGame || gameInQuery) 50 else 0
+    }
+
+    private fun titleTokens(value: String): List<String> =
+        normalizeTitle(value)
+            .replace(Regex("\\b(the|a|an|game|nintendo|edition|version)\\b"), " ")
+            .replace(Regex("ds$"), " ")
+            .replace(Regex("\\s+"), " ")
+            .trim()
+            .split(' ')
+            .filter { it.isNotBlank() }
+            .sorted()
 
     private fun idFromTableValue(value: String?): String? {
         if (value.isNullOrBlank()) return null
