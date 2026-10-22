@@ -75,3 +75,8 @@ ui-debug.log
 # Release signing material
 *.jks
 *.keystore
+
+# Vendored DS core build output
+/core-ds/build/
+/core-ds/.cxx/
+/coreDS/.cxx/
