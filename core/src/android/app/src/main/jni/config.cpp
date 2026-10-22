@@ -92,6 +92,21 @@ void Config::ReadSetting(const std::string& group, Settings::Setting<bool>& sett
     setting = android_config->GetBoolean(group, setting.GetLabel(), setting.GetDefault());
 }
 
+void Config::ReadSetting(const std::string& group,
+                         Settings::SwitchableSetting<Settings::GraphicsAPI, true>& setting) {
+    const std::string value = android_config->GetString(group, setting.GetLabel(), "");
+    if (value == "Vulkan") {
+        setting = Settings::GraphicsAPI::Vulkan;
+    } else if (value == "OpenGL") {
+        setting = Settings::GraphicsAPI::OpenGL;
+    } else if (value == "Software") {
+        setting = Settings::GraphicsAPI::Software;
+    } else {
+        setting = static_cast<Settings::GraphicsAPI>(android_config->GetInteger(
+            group, setting.GetLabel(), static_cast<long>(setting.GetDefault())));
+    }
+}
+
 template <typename Type, bool ranged>
 void Config::ReadSetting(const std::string& group, Settings::Setting<Type, ranged>& setting) {
     if constexpr (std::is_floating_point_v<Type>) {
