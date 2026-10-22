@@ -11,7 +11,8 @@ data class N3dsCatalogSummary(
     val coverUrl: String?,
     val heroUrl: String?,
     val genres: List<String> = emptyList(),
-    val primarySerial: String? = null
+    val primarySerial: String? = null,
+    val platform: String = "3DS"
 )
 
 data class N3dsCatalogDetails(
@@ -27,5 +28,6 @@ data class N3dsCatalogDetails(
     val videos: List<String>,
     val coverUrl: String?,
     val heroUrl: String?,
-    val primarySerial: String? = null
+    val primarySerial: String? = null,
+    val platform: String = "3DS"
 )

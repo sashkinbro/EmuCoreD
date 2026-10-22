@@ -105,11 +105,15 @@ fun CatalogSearchScreen(
     }
     val scope = rememberCoroutineScope()
     val showScrollToTop = gridState.firstVisibleItemIndex > 2 || gridState.firstVisibleItemScrollOffset > 900
+    var showPlatformMenu by remember { mutableStateOf(false) }
     var showGenreMenu by remember { mutableStateOf(false) }
     var showYearMenu by remember { mutableStateOf(false) }
     var showRatingMenu by remember { mutableStateOf(false) }
     val guardedBackClick = rememberDebouncedClick(onClick = onBackClick)
-    val hasActiveFilters = uiState.selectedGenre != null || uiState.selectedYear != null || uiState.minRating != null
+    val hasActiveFilters = uiState.selectedPlatform != null ||
+        uiState.selectedGenre != null ||
+        uiState.selectedYear != null ||
+        uiState.minRating != null
     val backFocusRequester = remember { FocusRequester() }
     val firstResultFocusRequester = remember { FocusRequester() }
     val shouldRequestGamepadFocus =
@@ -251,6 +255,30 @@ fun CatalogSearchScreen(
                                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                                 verticalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
+                                FilterMenuChip(
+                                    label = stringResource(R.string.catalog_filter_platform),
+                                    value = platformFilterLabel(uiState.selectedPlatform),
+                                    expanded = showPlatformMenu,
+                                    onExpandedChange = { showPlatformMenu = it }
+                                ) {
+                                    DropdownMenuItem(
+                                        text = { Text(stringResource(R.string.catalog_filter_all_platforms)) },
+                                        onClick = {
+                                            showPlatformMenu = false
+                                            viewModel.updatePlatform(null)
+                                        }
+                                    )
+                                    uiState.availablePlatforms.forEach { platform ->
+                                        DropdownMenuItem(
+                                            text = { Text(platformDisplayName(platform)) },
+                                            onClick = {
+                                                showPlatformMenu = false
+                                                viewModel.updatePlatform(platform)
+                                            }
+                                        )
+                                    }
+                                }
+
                                 FilterMenuChip(
                                     label = stringResource(R.string.catalog_filter_genre),
                                     value = uiState.selectedGenre ?: stringResource(R.string.catalog_filter_all_genres),
@@ -481,6 +509,21 @@ private fun formatRatingFilter(value: Double): String {
 }
 
 @Composable
+private fun platformFilterLabel(platform: String?): String =
+    if (platform.isNullOrBlank()) {
+        stringResource(R.string.catalog_filter_all_platforms)
+    } else {
+        platformDisplayName(platform)
+    }
+
+private fun platformDisplayName(platform: String): String = when (platform.uppercase(Locale.ROOT)) {
+    "3DS" -> "Nintendo 3DS"
+    "DS" -> "Nintendo DS"
+    "DSI" -> "Nintendo DSi"
+    else -> platform
+}
+
+@Composable
 private fun CatalogGameCard(
     modifier: Modifier = Modifier,
     game: N3dsCatalogSummary,
@@ -539,9 +582,13 @@ private fun CatalogGameCard(
                     color = MaterialTheme.colorScheme.onSurface
                 )
                 val meta = buildString {
-                    game.year?.let { append(it) }
+                    append(platformDisplayName(game.platform))
+                    game.year?.let {
+                        if (isNotBlank()) append(" · ")
+                        append(it)
+                    }
                     game.rating?.let {
-                        if (isNotBlank()) append(" • ")
+                        if (isNotBlank()) append(" · ")
                         append(String.format(Locale.US, "%.1f", it / 10.0))
                     }
                 }

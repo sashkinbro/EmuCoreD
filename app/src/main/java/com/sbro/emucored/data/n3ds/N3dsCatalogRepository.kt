@@ -84,6 +84,7 @@ class N3dsCatalogRepository(private val context: Context) {
         genre: String?,
         year: Int?,
         minRating: Double?,
+        platform: String? = null,
         limit: Int = 60,
         offset: Int = 0
     ): List<N3dsCatalogSummary> {
@@ -94,6 +95,7 @@ class N3dsCatalogRepository(private val context: Context) {
                 genre = genre,
                 year = year,
                 minRating = minRating,
+                platform = platform,
                 limit = limit,
                 offset = offset
             )
@@ -109,6 +111,7 @@ class N3dsCatalogRepository(private val context: Context) {
             genre = genre,
             year = year,
             minRating = minRating,
+            platform = platform,
             limit = fetchWindow
         ).forEach { summary ->
             if (seen.add(summary.igdbId)) {
@@ -123,6 +126,7 @@ class N3dsCatalogRepository(private val context: Context) {
                 genre = genre,
                 year = year,
                 minRating = minRating,
+                platform = platform,
                 limit = fetchWindow
             ).forEach { summary ->
                 if (seen.add(summary.igdbId)) {
@@ -139,7 +143,7 @@ class N3dsCatalogRepository(private val context: Context) {
         val db = getDatabase() ?: return null
         return db.rawQuery(
             """
-            SELECT igdb_id, name, normalized_name, year, rating, summary, storyline, cover_url, hero_url
+            SELECT igdb_id, name, normalized_name, year, rating, summary, storyline, cover_url, hero_url, platform
             FROM games
             WHERE igdb_id = ?
             LIMIT 1
@@ -275,6 +279,7 @@ class N3dsCatalogRepository(private val context: Context) {
         genre: String?,
         year: Int?,
         minRating: Double?,
+        platform: String? = null,
         limit: Int = 60,
         offset: Int = 0
     ): List<N3dsCatalogSummary> {
@@ -286,6 +291,7 @@ class N3dsCatalogRepository(private val context: Context) {
             genre = genre,
             year = year,
             minRating = minRating,
+            platform = platform,
             includeOffset = true
         ).let { (sql, args) ->
             db.rawQuery(sql, (args + limit.toString() + offset.toString()).toTypedArray()).use { cursor ->
@@ -314,6 +320,19 @@ class N3dsCatalogRepository(private val context: Context) {
             while (cursor.moveToNext()) {
                 items += cursor.getString(0)
             }
+        }
+        return items
+    }
+
+    fun getAvailablePlatforms(): List<String> {
+        if (!ensureDatabaseReady()) return emptyList()
+        val db = getDatabase() ?: return emptyList()
+        val items = ArrayList<String>(3)
+        db.rawQuery(
+            "SELECT DISTINCT platform FROM games WHERE platform IS NOT NULL ORDER BY platform",
+            null
+        ).use { cursor ->
+            while (cursor.moveToNext()) items += cursor.getString(0)
         }
         return items
     }
@@ -368,6 +387,7 @@ class N3dsCatalogRepository(private val context: Context) {
         genre: String?,
         year: Int?,
         minRating: Double?,
+        platform: String?,
         limit: Int
     ): List<N3dsCatalogSummary> {
         val out = ArrayList<N3dsCatalogSummary>(limit)
@@ -376,6 +396,7 @@ class N3dsCatalogRepository(private val context: Context) {
             genre = genre,
             year = year,
             minRating = minRating,
+            platform = platform,
             includeOffset = false
         ).let { (sql, args) ->
             db.rawQuery(sql, (args + limit.toString()).toTypedArray()).use { cursor ->
@@ -392,10 +413,11 @@ class N3dsCatalogRepository(private val context: Context) {
         genre: String?,
         year: Int?,
         minRating: Double?,
+        platform: String?,
         includeOffset: Boolean
     ): Pair<String, List<String>> {
-        val where = ArrayList<String>(4)
-        val args = ArrayList<String>(4)
+        val where = ArrayList<String>(5)
+        val args = ArrayList<String>(5)
 
         if (!namePattern.isNullOrBlank()) {
             where += "normalized_name LIKE ?"
@@ -420,11 +442,15 @@ class N3dsCatalogRepository(private val context: Context) {
             where += "rating >= ?"
             args += it.toString()
         }
+        if (!platform.isNullOrBlank()) {
+            where += "platform = ?"
+            args += platform
+        }
 
         val whereClause = if (where.isEmpty()) "" else "WHERE ${where.joinToString(" AND ")}"
         val limitClause = if (includeOffset) "LIMIT ? OFFSET ?" else "LIMIT ?"
         return """
-            SELECT igdb_id, name, normalized_name, year, rating, summary, storyline, cover_url, hero_url
+            SELECT igdb_id, name, normalized_name, year, rating, summary, storyline, cover_url, hero_url, platform
             FROM games
             $whereClause
             ORDER BY $defaultSortOrder
@@ -495,7 +521,8 @@ class N3dsCatalogRepository(private val context: Context) {
             videos = videos,
             coverUrl = toHighResImageUrl(summary.coverUrl),
             heroUrl = toHighResImageUrl(summary.heroUrl),
-            primarySerial = summary.primarySerial
+            primarySerial = summary.primarySerial,
+            platform = summary.platform
         )
     }
 
@@ -513,7 +540,8 @@ class N3dsCatalogRepository(private val context: Context) {
             coverUrl = cursor.getStringOrNull(7),
             heroUrl = cursor.getStringOrNull(8),
             genres = loadGenresPreview(db, igdbId),
-            primarySerial = loadPrimarySerial(db, igdbId)
+            primarySerial = loadPrimarySerial(db, igdbId),
+            platform = cursor.getStringOrNull(9) ?: "3DS"
         )
     }
 

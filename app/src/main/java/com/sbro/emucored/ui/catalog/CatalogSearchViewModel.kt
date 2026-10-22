@@ -23,8 +23,10 @@ data class CatalogSearchUiState(
     val results: List<N3dsCatalogSummary> = emptyList(),
     val availableGenres: List<String> = emptyList(),
     val availableYears: List<Int> = emptyList(),
+    val availablePlatforms: List<String> = emptyList(),
     val selectedGenre: String? = null,
     val selectedYear: Int? = null,
+    val selectedPlatform: String? = null,
     val minRating: Double? = null
 )
 
@@ -75,10 +77,16 @@ class CatalogSearchViewModel(application: Application) : AndroidViewModel(applic
         refresh(showFullscreenLoader = false)
     }
 
+    fun updatePlatform(platform: String?) {
+        _uiState.value = _uiState.value.copy(selectedPlatform = platform)
+        refresh(showFullscreenLoader = false)
+    }
+
     fun clearFilters() {
         _uiState.value = _uiState.value.copy(
             selectedGenre = null,
             selectedYear = null,
+            selectedPlatform = null,
             minRating = null
         )
         refresh(showFullscreenLoader = false)
@@ -113,12 +121,18 @@ class CatalogSearchViewModel(application: Application) : AndroidViewModel(applic
             } else {
                 snapshot.availableYears
             }
+            val availablePlatforms = if (hasCatalog && snapshot.availablePlatforms.isEmpty()) {
+                repository.getAvailablePlatforms()
+            } else {
+                snapshot.availablePlatforms
+            }
             val results = if (hasCatalog) {
                 repository.search(
                     query = snapshot.query,
                     genre = snapshot.selectedGenre,
                     year = snapshot.selectedYear,
                     minRating = snapshot.minRating,
+                    platform = snapshot.selectedPlatform,
                     limit = PAGE_SIZE,
                     offset = 0
                 )
@@ -131,7 +145,8 @@ class CatalogSearchViewModel(application: Application) : AndroidViewModel(applic
                 hasMore = hasCatalog && results.size >= PAGE_SIZE,
                 results = results,
                 availableGenres = availableGenres,
-                availableYears = availableYears
+                availableYears = availableYears,
+                availablePlatforms = availablePlatforms
             )
         }
     }
@@ -150,6 +165,7 @@ class CatalogSearchViewModel(application: Application) : AndroidViewModel(applic
                 genre = snapshot.selectedGenre,
                 year = snapshot.selectedYear,
                 minRating = snapshot.minRating,
+                platform = snapshot.selectedPlatform,
                 limit = PAGE_SIZE,
                 offset = snapshot.results.size
             )
