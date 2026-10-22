@@ -1,24 +1,24 @@
-package com.sbro.emucored.data.n3ds
+package com.sbro.emucored.data.covers
 
 import android.content.Context
+import com.sbro.emucored.data.GamePlatform
 import org.json.JSONObject
 import java.text.Normalizer
 import java.util.Locale
 
-/** Bundled snapshot of the EmuCoreD-Covers index. */
-class N3dsCoverIndexRepository(private val context: Context) {
+/** Unified EmuCoreD-Covers resolver for 3DS and DS serials/titles. */
+class CoverIndexRepository(private val context: Context) {
     data class Cover(val url: String, val sourceUrl: String, val sha256: String)
 
     fun find(
         serial: String?,
         title: String?,
+        platform: GamePlatform = GamePlatform.N3DS,
         threeDimensional: Boolean = false,
         darkTheme: Boolean = false
     ): Cover? {
         val index = load() ?: return null
-        val id = resolveGameId(index, serial, title)
-            ?: N3dsCatalogRepository.getInstance(context).findBestMatchId(serial, title)?.toString()
-            ?: return null
+        val id = resolveGameId(index, serial, title, platform) ?: return null
         val game = index.optJSONObject("games")?.optJSONObject(id) ?: return null
         val path = when {
             threeDimensional && darkTheme -> firstPath(
@@ -26,16 +26,27 @@ class N3dsCoverIndexRepository(private val context: Context) {
                 "cover_3d_dark",
                 "path_3d_dark",
                 "cover_3d",
-                "path_3d"
+                "path_3d",
+                "cover",
+                "path"
             )
-            threeDimensional -> firstPath(game, "cover_3d", "path_3d", "cover_3d_dark", "path_3d_dark")
+            threeDimensional -> firstPath(
+                game,
+                "cover_3d",
+                "path_3d",
+                "cover_3d_dark",
+                "path_3d_dark",
+                "cover",
+                "path"
+            )
             else -> firstPath(game, "cover", "path")
         } ?: return null
         if (!COVER_PATH.matches(path)) return null
+        val threeDimensionalPath = path.contains("/3d/")
         val sha256 = when {
-            !threeDimensional -> game.optString("sha256")
-            darkTheme -> game.optString("sha256_3d_dark").ifBlank { "" }
-            else -> game.optString("sha256_3d")
+            !threeDimensionalPath -> game.optString("sha256")
+            darkTheme -> game.optString("sha256_3d_dark").ifBlank { game.optString("sha256") }
+            else -> game.optString("sha256_3d").ifBlank { game.optString("sha256") }
         }
         return Cover(
             "$BASE_URL/$path",
@@ -44,16 +55,37 @@ class N3dsCoverIndexRepository(private val context: Context) {
         )
     }
 
-    private fun resolveGameId(index: JSONObject, serial: String?, title: String?): String? {
+    fun hasCover(serial: String?, title: String?, platform: GamePlatform = GamePlatform.N3DS): Boolean =
+        find(serial, title, platform) != null
+
+    private fun resolveGameId(
+        index: JSONObject,
+        serial: String?,
+        title: String?,
+        platform: GamePlatform
+    ): String? {
         val serials = index.optJSONObject("serials")
-        val cleanUpper = serial.orEmpty().uppercase(Locale.ROOT).replace(Regex("[-_.\\s]"), "")
-        val cleanLower = cleanUpper.lowercase(Locale.ROOT)
+        val cleanSerial = serial.orEmpty().uppercase(Locale.ROOT)
+            .replace(Regex("[-_.\\s]"), "")
+            .trim()
         val serialCandidates = buildList {
-            if (cleanUpper.isNotBlank()) {
-                add(cleanUpper)
-                add(cleanLower)
-                if (cleanUpper.startsWith("CTRP") && cleanUpper.length == 8) {
-                    add(cleanUpper.substring(4))
+            if (cleanSerial.isNotBlank()) {
+                add(cleanSerial)
+                add(cleanSerial.lowercase(Locale.ROOT))
+                when (platform) {
+                    GamePlatform.N3DS -> {
+                        if (cleanSerial.startsWith("CTRP") && cleanSerial.length >= 8) {
+                            add(cleanSerial.substring(4))
+                        }
+                        if (cleanSerial.startsWith("CTR") && cleanSerial.length >= 7) {
+                            add(cleanSerial.substring(3))
+                        }
+                    }
+                    GamePlatform.NDS -> {
+                        if (cleanSerial.startsWith("NTR") && cleanSerial.length >= 7) {
+                            add(cleanSerial.substring(3))
+                        }
+                    }
                 }
             }
         }

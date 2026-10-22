@@ -1258,7 +1258,7 @@ VulkanPresentationResult VulkanSurfacePresenter::presentFrame(
         && !inputs.needsReadback && !inputs.validationMode
         && !postProcessFilterRequested && !hasRequiredDirectHandles
         && output.getFramePresentationDependency(frame, sourceReadySemaphore, sourceReadyValue);
-    if (!preparedGpuDependency)
+    if (!preparedGpuDependency && frame != nullptr && frame->renderTimelineValue != 0)
     {
         const VulkanCausalWaitResult frameWaitResult = waitRunner(
             "VulkanPump.WaitRenderProduct",

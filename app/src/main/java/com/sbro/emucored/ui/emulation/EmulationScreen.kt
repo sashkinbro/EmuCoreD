@@ -616,6 +616,8 @@ fun EmulationScreen(
     val shouldShowOverlay = !tvUiEnabled && uiState.controlsVisible && (
         touchPadIndex != null || !gamepadConnected || !uiState.hideOverlayOnGamepad
     )
+    val dsControlsScale = (uiState.overlayScale / 100f).coerceIn(0.8f, 1.4f)
+    val dsControlsHeight = 300.dp * dsControlsScale
 
     val toggleMenuClick = rememberDebouncedClick(onClick = { viewModel.toggleMenu() })
     val toggleControlsClick = rememberDebouncedClick(onClick = { viewModel.toggleControlsVisibility() })
@@ -974,11 +976,14 @@ fun EmulationScreen(
     LaunchedEffect(viewModel) {
         viewModel.saveStatePreviewRequests.collect { slot ->
             val surfaceView = gameSurfaceView.value ?: return@collect
-            val savePath = runCatching { NativeApp.getCurrentSaveStatePath(slot) }
-                .getOrNull()
-                ?.takeIf { it.isNotBlank() }
-                ?: return@collect
-            if (captureSaveStatePreview(surfaceView, savePath)) {
+            val dsActive = DsSession.isActive
+            val savePath = if (dsActive) {
+                DsSession.statePath(slot)
+            } else {
+                runCatching { NativeApp.getCurrentSaveStatePath(slot) }
+                    .getOrNull()
+            }?.takeIf { it.isNotBlank() } ?: return@collect
+            if (captureSaveStatePreview(surfaceView, savePath, dsActive)) {
                 viewModel.refreshSaveStateMetadataNow()
             }
         }
@@ -1010,66 +1015,79 @@ fun EmulationScreen(
         // Game surface
         val surfaceGeneration = presentationSurfaceGeneration
         key(surfaceGeneration) {
-            AndroidView(
-                factory = { ctx ->
-                    SurfaceView(ctx).apply {
-                        gameSurfaceView.value = this
-                        isClickable = false
-                        isFocusable = false
-                        isFocusableInTouchMode = false
-                        setZOrderOnTop(false)
-                        setZOrderMediaOverlay(false)
-                        holder.setFormat(PixelFormat.OPAQUE)
-                        holder.addCallback(object : SurfaceHolder.Callback {
-                            override fun surfaceCreated(holder: SurfaceHolder) {
-                                try { EmulatorBridge.onSurfaceCreated(surfaceGeneration) } catch (_: Exception) { }
-                            }
-
-                            override fun surfaceChanged(
-                                holder: SurfaceHolder,
-                                format: Int,
-                                width: Int,
-                                height: Int
-                            ) {
-                                try {
-                                    EmulatorBridge.onSurfaceChanged(
-                                        holder.surface,
-                                        width,
-                                        height,
-                                        surfaceGeneration
-                                    )
-                                } catch (_: Exception) { }
-                            }
-
-                            override fun surfaceDestroyed(holder: SurfaceHolder) {
-                                try { EmulatorBridge.onSurfaceDestroyed(surfaceGeneration) } catch (_: Exception) { }
-                            }
-                        })
-                    }
-                },
+            Box(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(gameCutoutPadding)
-                    .pointerInteropFilter { event ->
-                        if (!showControlsEditor && !uiState.showMenu && event.actionMasked == MotionEvent.ACTION_DOWN) {
-                            val timestamp = event.eventTime
-                            val dx = event.x - lastTapX
-                            val dy = event.y - lastTapY
-                            val distanceSquared = (dx * dx) + (dy * dy)
-                            val isDoubleTap = timestamp - lastTapTimestamp in 40L..300L && distanceSquared <= 14400f
-                            if (isDoubleTap) {
-                                showOverlayShortcut = true
-                                secondScreenTabRevealSignal++
-                                lastTapTimestamp = 0L
-                            } else {
-                                lastTapTimestamp = timestamp
-                                lastTapX = event.x
-                                lastTapY = event.y
-                            }
+                    .padding(bottom = if (isNds) dsControlsHeight else 0.dp)
+            ) {
+                AndroidView(
+                    factory = { ctx ->
+                        SurfaceView(ctx).apply {
+                            gameSurfaceView.value = this
+                            isClickable = false
+                            isFocusable = false
+                            isFocusableInTouchMode = false
+                            setZOrderOnTop(false)
+                            setZOrderMediaOverlay(false)
+                            holder.setFormat(PixelFormat.OPAQUE)
+                            holder.addCallback(object : SurfaceHolder.Callback {
+                                override fun surfaceCreated(holder: SurfaceHolder) {
+                                    try { EmulatorBridge.onSurfaceCreated(surfaceGeneration) } catch (_: Exception) { }
+                                }
+
+                                override fun surfaceChanged(
+                                    holder: SurfaceHolder,
+                                    format: Int,
+                                    width: Int,
+                                    height: Int
+                                ) {
+                                    try {
+                                        EmulatorBridge.onSurfaceChanged(
+                                            holder.surface,
+                                            width,
+                                            height,
+                                            surfaceGeneration
+                                        )
+                                    } catch (_: Exception) { }
+                                }
+
+                                override fun surfaceDestroyed(holder: SurfaceHolder) {
+                                    try { EmulatorBridge.onSurfaceDestroyed(surfaceGeneration) } catch (_: Exception) { }
+                                }
+                            })
                         }
-                        false
-                    }
-            )
+                    },
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .pointerInteropFilter { event ->
+                            if (!isNds && !showControlsEditor && !uiState.showMenu && event.actionMasked == MotionEvent.ACTION_DOWN) {
+                                val timestamp = event.eventTime
+                                val dx = event.x - lastTapX
+                                val dy = event.y - lastTapY
+                                val distanceSquared = (dx * dx) + (dy * dy)
+                                val isDoubleTap = timestamp - lastTapTimestamp in 40L..300L && distanceSquared <= 14400f
+                                if (isDoubleTap) {
+                                    showOverlayShortcut = true
+                                    secondScreenTabRevealSignal++
+                                    lastTapTimestamp = 0L
+                                } else {
+                                    lastTapTimestamp = timestamp
+                                    lastTapX = event.x
+                                    lastTapY = event.y
+                                }
+                            }
+                            false
+                        }
+                )
+                if (isNds) {
+                    DsTouchscreenLayer(
+                        modifier = Modifier.fillMaxSize(),
+                        enabled = !showControlsEditor && !uiState.showMenu,
+                        onTouch = { x, y, pressed -> DsSession.touch(x, y, pressed) }
+                    )
+                }
+            }
         }
 
         // SurfaceView can retain the previous game's final buffer across a fast restart.
@@ -1461,6 +1479,26 @@ fun EmulationScreen(
             // keeping the visual overlay LTR guarantees that visible and logical buttons
             // stay aligned in Arabic, Persian, and every other RTL language.
             CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
+                if (isNds) {
+                    DsOnScreenControls(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .align(Alignment.BottomCenter)
+                            .zIndex(20f)
+                            .graphicsLayer(alpha = alpha),
+                        scaleFactor = dsControlsScale,
+                        alpha = alpha,
+                        safeInsets = PaddingValues(
+                            start = overlayLeftSafeInset,
+                            top = overlayTopSafeInset,
+                            end = overlayRightSafeInset,
+                            bottom = overlayBottomSafeInset
+                        ),
+                        onPadInput = { keyCode, range, pressed ->
+                            viewModel.onPadInput(overlayPadIndex, keyCode, range, pressed)
+                        }
+                    )
+                } else {
                 OnScreenControls(
                     modifier = Modifier
                         .fillMaxSize()
@@ -1511,6 +1549,7 @@ fun EmulationScreen(
                     ),
                     onScreenDoubleTap = { secondScreenTabRevealSignal++ }
                 )
+                }
             }
         }
         }
@@ -1657,6 +1696,7 @@ fun EmulationScreen(
 
                 EmulationSidebarMenu(
                     uiState = uiState,
+                    isNds = isNds,
                     gamepadConnected = gamepadConnected,
                     currentGamePath = gamePath,
                     globalDefaults = globalDefaults,
@@ -3090,7 +3130,11 @@ private fun formatSaveTimestamp(timestamp: Long): String {
     return DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT).format(Date(timestamp))
 }
 
-private suspend fun captureSaveStatePreview(surfaceView: SurfaceView, savePath: String): Boolean {
+private suspend fun captureSaveStatePreview(
+    surfaceView: SurfaceView,
+    savePath: String,
+    dualScreenPortrait: Boolean = false
+): Boolean {
     val width = surfaceView.width
     val height = surfaceView.height
     if (width <= 0 || height <= 0 || !surfaceView.holder.surface.isValid) return false
@@ -3113,18 +3157,25 @@ private suspend fun captureSaveStatePreview(surfaceView: SurfaceView, savePath: 
         bitmap.recycle()
         return false
     }
+    val previewBitmap = if (dualScreenPortrait) {
+        cropNdsTopScreen(bitmap)
+    } else {
+        scaleSavePreview(bitmap)
+    }
     return withContext(Dispatchers.IO) {
         val target = File("$savePath.png")
+        target.parentFile?.mkdirs()
         val temporary = runCatching {
             File.createTempFile(".preview-", ".tmp", target.parentFile)
         }.getOrNull()
         if (temporary == null) {
+            if (previewBitmap !== bitmap) previewBitmap.recycle()
             bitmap.recycle()
             return@withContext false
         }
         try {
             FileOutputStream(temporary).use { output ->
-                bitmap.compress(Bitmap.CompressFormat.PNG, 100, output)
+                previewBitmap.compress(Bitmap.CompressFormat.PNG, 100, output)
             }
             if (!temporary.renameTo(target)) {
                 temporary.copyTo(target, overwrite = true)
@@ -3134,9 +3185,46 @@ private suspend fun captureSaveStatePreview(surfaceView: SurfaceView, savePath: 
             false
         } finally {
             temporary.delete()
+            if (previewBitmap !== bitmap) previewBitmap.recycle()
             bitmap.recycle()
         }
     }
+}
+
+private fun scaleSavePreview(source: Bitmap, targetWidth: Int = 512): Bitmap {
+    if (source.width <= targetWidth) return source
+    val targetHeight = (source.height * targetWidth / source.width.toFloat()).toInt()
+        .coerceAtLeast(1)
+    return runCatching {
+        Bitmap.createScaledBitmap(source, targetWidth, targetHeight, true)
+    }.getOrElse { source }
+}
+
+private fun cropNdsTopScreen(source: Bitmap): Bitmap {
+    val sourceWidth = source.width
+    val sourceHeight = source.height
+    val contentAspect = 256f / 386f
+    var contentWidth = sourceWidth
+    var contentHeight = (sourceWidth / contentAspect).toInt()
+    if (contentHeight > sourceHeight) {
+        contentHeight = sourceHeight
+        contentWidth = (sourceHeight * contentAspect).toInt()
+    }
+    if (contentWidth <= 0 || contentHeight <= 0) return source
+    val left = (sourceWidth - contentWidth) / 2
+    val top = (sourceHeight - contentHeight) / 2
+    val screenHeight = (contentHeight * 192f / 386f).toInt().coerceAtLeast(1)
+    val cropped = runCatching {
+        Bitmap.createBitmap(source, left, top, contentWidth, screenHeight)
+    }.getOrElse { return source }
+    val targetWidth = 512
+    val targetHeight = (cropped.height * targetWidth / cropped.width.toFloat()).toInt()
+        .coerceAtLeast(1)
+    val scaled = runCatching {
+        Bitmap.createScaledBitmap(cropped, targetWidth, targetHeight, true)
+    }.getOrElse { cropped }
+    if (scaled !== cropped) cropped.recycle()
+    return scaled
 }
 
 private fun formatPlayTime(milliseconds: Long): String {
@@ -3161,11 +3249,10 @@ private fun SaveSlotPreview(
     modifier: Modifier = Modifier
 ) {
     val shape = neonShape(14.dp)
-    var previewAspectRatio by remember(previewPath) { mutableFloatStateOf(16f / 9f) }
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .aspectRatio(previewAspectRatio)
+            .aspectRatio(16f / 9f)
             .clip(shape)
             .background(
                 Brush.linearGradient(
@@ -3181,10 +3268,7 @@ private fun SaveSlotPreview(
                 coverPath = previewPath,
                 fallbackTitle = gameTitle,
                 modifier = Modifier.fillMaxSize(),
-                contentScale = ContentScale.Fit,
-                onAspectRatioResolved = { ratio ->
-                    if (ratio.isFinite() && ratio > 0f) previewAspectRatio = ratio
-                }
+                contentScale = ContentScale.Fit
             )
         } else {
             Box(
@@ -3266,10 +3350,9 @@ private fun SaveSlotThumbnail(
     contentDescription: String,
     modifier: Modifier = Modifier
 ) {
-    var previewAspectRatio by remember(previewPath) { mutableFloatStateOf(16f / 9f) }
     Box(
         modifier = modifier
-            .aspectRatio(previewAspectRatio)
+            .aspectRatio(16f / 9f)
             .clip(neonShape(10.dp))
             .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.32f)),
         contentAlignment = Alignment.Center
@@ -3279,10 +3362,7 @@ private fun SaveSlotThumbnail(
                 coverPath = previewPath,
                 fallbackTitle = contentDescription,
                 modifier = Modifier.fillMaxSize(),
-                contentScale = ContentScale.Fit,
-                onAspectRatioResolved = { ratio ->
-                    if (ratio.isFinite() && ratio > 0f) previewAspectRatio = ratio
-                }
+                contentScale = ContentScale.Fit
             )
         } else {
             Icon(
@@ -3300,6 +3380,7 @@ private fun SaveSlotThumbnail(
 @Composable
 private fun EmulationSidebarMenu(
     uiState: EmulationUiState,
+    isNds: Boolean,
     gamepadConnected: Boolean,
     currentGamePath: String?,
     globalDefaults: SettingsSnapshot,
@@ -4431,7 +4512,8 @@ private fun EmulationSidebarMenu(
     }
 
     GameMenuLayoutHost(
-        style = uiState.gameMenuLayoutStyle,
+        style = if (isNds) GameMenuLayoutStyle.COMPACT else uiState.gameMenuLayoutStyle,
+        compactForNds = isNds,
         modifier = modifier,
         menuTabs = menuTabs,
         selectedMenuTab = selectedMenuTab,
@@ -4449,6 +4531,7 @@ private fun EmulationSidebarMenu(
 @Composable
 private fun GameMenuLayoutHost(
     style: GameMenuLayoutStyle,
+    compactForNds: Boolean,
     modifier: Modifier,
     menuTabs: List<EmulationMenuTab>,
     selectedMenuTab: EmulationMenuTab,
@@ -4580,16 +4663,24 @@ private fun GameMenuLayoutHost(
         }
 
         GameMenuLayoutStyle.COMPACT -> {
-            Box(
-                modifier = safeModifier
-                    .fillMaxSize()
-                    .padding(end = 12.dp + rightInset, top = 16.dp, bottom = 16.dp),
-                contentAlignment = Alignment.CenterEnd
-            ) {
-                Surface(
-                    modifier = Modifier
-                        .fillMaxHeight()
-                        .widthIn(min = 300.dp, max = 352.dp),
+                Box(
+                    modifier = safeModifier
+                        .fillMaxSize()
+                        .padding(
+                            start = if (compactForNds) 12.dp else 0.dp,
+                            end = 12.dp + rightInset,
+                            top = 16.dp,
+                            bottom = 16.dp
+                        ),
+                    contentAlignment = if (compactForNds) Alignment.Center else Alignment.CenterEnd
+                ) {
+                    Surface(
+                        modifier = Modifier
+                            .fillMaxHeight()
+                            .widthIn(
+                                min = 300.dp,
+                                max = if (compactForNds) 420.dp else 352.dp
+                            ),
                     shape = neonShape(18.dp),
                     color = MaterialTheme.colorScheme.surface.copy(alpha = 0.95f),
                     border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.18f)),

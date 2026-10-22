@@ -3,6 +3,7 @@ package com.sbro.emucored.data
 import android.content.Context
 import android.graphics.BitmapFactory
 import android.util.Log
+import com.sbro.emucored.data.covers.CoverIndexRepository
 import java.io.File
 import java.net.HttpURLConnection
 import java.net.URL
@@ -68,13 +69,23 @@ class CoverArtRepository(context: Context) {
     fun isMissingManagedCover(path: String?): Boolean =
         isManagedCoverCachePath(path) && !path.isNullOrBlank() && !isUsableCoverFile(File(path))
 
-    fun hasIndexedCover(serial: String?, title: String?): Boolean =
-        com.sbro.emucored.data.n3ds.N3dsCoverIndexRepository(context).find(serial, title) != null
+    fun hasIndexedCover(
+        serial: String?,
+        title: String?,
+        platform: GamePlatform = GamePlatform.N3DS
+    ): Boolean = CoverIndexRepository(context).hasCover(serial, title, platform)
 
     /** Never flash an embedded icon or a previous style before the selected artwork loads. */
-    fun displayCoverPath(serial: String?, title: String?, candidate: String?): String? {
+    fun displayCoverPath(
+        serial: String?,
+        title: String?,
+        candidate: String?,
+        platform: GamePlatform = GamePlatform.N3DS
+    ): String? {
         if (candidate != null && !isManagedCoverCachePath(candidate)) return candidate
-        if (hasIndexedCover(serial, title)) return findCachedCoverPath(serial, title = title)
+        if (hasIndexedCover(serial, title, platform)) {
+            return findCachedCoverPath(serial, title = title, platform = platform)
+        }
         return candidate
     }
 
@@ -82,7 +93,8 @@ class CoverArtRepository(context: Context) {
         serial: String?,
         styleOverride: Int? = null,
         ignoreDisabled: Boolean = false,
-        title: String? = null
+        title: String? = null,
+        platform: GamePlatform = GamePlatform.N3DS
     ): String? {
         val style = resolveCoverArtStyle(styleOverride)
         if (!ignoreDisabled && style == AppPreferences.COVER_ART_STYLE_DISABLED) {
@@ -123,16 +135,18 @@ class CoverArtRepository(context: Context) {
         serial: String?,
         styleOverride: Int? = null,
         ignoreDisabled: Boolean = false,
-        title: String? = null
+        title: String? = null,
+        platform: GamePlatform = GamePlatform.N3DS
     ): String? {
-        return findCachedCoverPath(serial, styleOverride, ignoreDisabled, title)
+        return findCachedCoverPath(serial, styleOverride, ignoreDisabled, title, platform)
     }
 
     fun downloadCover(
         serial: String?,
         styleOverride: Int? = null,
         ignoreDisabled: Boolean = false,
-        title: String? = null
+        title: String? = null,
+        platform: GamePlatform = GamePlatform.N3DS
     ): String? {
         val style = resolveCoverArtStyle(styleOverride)
         if (!ignoreDisabled && style == AppPreferences.COVER_ART_STYLE_DISABLED) {
@@ -144,8 +158,8 @@ class CoverArtRepository(context: Context) {
             Log.w(TAG, "Cannot download cover: no serial or title")
             return null
         }
-        val coverBaseUrl = resolveCoverBaseUrl(style)
-        val flightKey = "$style|$darkTheme|$coverBaseUrl|$coverKey"
+        val coverBaseUrl = if (platform == GamePlatform.NDS) null else resolveCoverBaseUrl(style)
+        val flightKey = "$platform|$style|$darkTheme|$coverBaseUrl|$coverKey"
         lateinit var flight: PendingCoverDownload
         var ownsDownload = false
         synchronized(downloadFlightsLock) {
@@ -164,7 +178,7 @@ class CoverArtRepository(context: Context) {
             return flight.result
         }
         return try {
-            downloadCoverResolved(serial, coverKey, style, coverBaseUrl, title).also {
+            downloadCoverResolved(serial, coverKey, style, coverBaseUrl, title, platform).also {
                 flight.result = it
             }
         } finally {
@@ -180,7 +194,8 @@ class CoverArtRepository(context: Context) {
         normalizedSerial: String,
         style: Int,
         coverBaseUrl: String?,
-        title: String?
+        title: String?,
+        platform: GamePlatform
     ): String? {
         val targetExtension = if (style == AppPreferences.COVER_ART_STYLE_3D) "webp" else "jpg"
 
@@ -214,7 +229,13 @@ class CoverArtRepository(context: Context) {
                 if (result != null) break
             }
         } else {
-            val cover = com.sbro.emucored.data.n3ds.N3dsCoverIndexRepository(context).find(originalSerial, title, style == AppPreferences.COVER_ART_STYLE_3D, darkTheme)
+            val cover = CoverIndexRepository(context).find(
+                originalSerial,
+                title,
+                platform,
+                style == AppPreferences.COVER_ART_STYLE_3D,
+                darkTheme
+            )
             if (cover != null) {
                 result = downloadFromUrl(cover.url, coverFile, missFile, "IGDB catalog", cover.sha256)
                 if (result == null && style != AppPreferences.COVER_ART_STYLE_3D && cover.sourceUrl.isNotBlank()) {
@@ -231,15 +252,21 @@ class CoverArtRepository(context: Context) {
     fun buildPublicCoverUrl(
         serial: String?,
         styleOverride: Int? = null,
-        title: String? = null
+        title: String? = null,
+        platform: GamePlatform = GamePlatform.N3DS
     ): String? {
         val normalizedSerial = normalizeSerial(serial)
         val style = resolveCoverArtStyle(styleOverride)
         if (style == AppPreferences.COVER_ART_STYLE_DISABLED) return null
-        val baseUrl = resolveCoverBaseUrl(style)
+        val baseUrl = if (platform == GamePlatform.NDS) null else resolveCoverBaseUrl(style)
         if (baseUrl != null && normalizedSerial != null) return "$baseUrl/$normalizedSerial.${if (style == AppPreferences.COVER_ART_STYLE_3D) "webp" else "jpg"}"
-        return com.sbro.emucored.data.n3ds.N3dsCoverIndexRepository(context)
-            .find(serial, title, style == AppPreferences.COVER_ART_STYLE_3D, darkTheme)?.url
+        return CoverIndexRepository(context).find(
+            serial,
+            title,
+            platform,
+            style == AppPreferences.COVER_ART_STYLE_3D,
+            darkTheme
+        )?.url
     }
 
     private fun downloadFromUrl(

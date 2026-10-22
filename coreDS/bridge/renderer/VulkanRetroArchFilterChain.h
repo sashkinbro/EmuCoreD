@@ -6,7 +6,13 @@
 #include <vector>
 #include <vulkan/vulkan.h>
 
+#ifdef EMUCORED_HAVE_LIBRASHADER
 #include "renderer/LibrashaderApi.h"
+#else
+struct libra_error_info;
+using libra_error_t = libra_error_info*;
+using libra_vk_filter_chain_t = void*;
+#endif
 #include "types.h"
 
 namespace MelonDSAndroid

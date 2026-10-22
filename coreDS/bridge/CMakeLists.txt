@@ -5,6 +5,8 @@ add_library(emucored_ds SHARED
     platform_android.cpp
     melonds_android_stubs.cpp
     renderer/VulkanOutput.cpp
+    renderer/VulkanSurfacePresenter.cpp
+    renderer/VulkanRetroArchFilterChainStub.cpp
 )
 
 target_include_directories(emucored_ds PRIVATE

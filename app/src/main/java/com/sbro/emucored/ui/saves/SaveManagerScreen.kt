@@ -669,7 +669,7 @@ private fun SaveEntryCard(
                     } else {
                         Modifier
                             .width(152.dp)
-                            .aspectRatio(preview.aspectRatio)
+                            .aspectRatio(16f / 9f)
                     },
                     shape = neonShape(4.dp),
                     color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.42f),
