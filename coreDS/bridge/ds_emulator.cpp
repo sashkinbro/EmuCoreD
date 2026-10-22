@@ -197,6 +197,7 @@ void DsEmulator::Run() {
                 }
                 if (vulkan_output_->ensureFaithfulAtlas()) {
                     vulkan_output_->uploadFaithfulAtlasPreFrame(nds_->GPU);
+                    vulkan_output_->publishFaithfulCertifiedCaptureTerminals(nds_->GPU, 1);
                 }
             }
             nds_->RunFrame();
@@ -206,6 +207,7 @@ void DsEmulator::Run() {
                         dynamic_cast<melonDS::GPU2D::SoftRenderer*>(&nds_->GPU.GetRenderer2D())) {
                     renderer2d->PublishCompletedFaithfulFrame();
                 }
+                vulkan_output_->uploadFaithfulAtlas(nds_->GPU);
                 PresentVulkanFrame();
             } else {
                 PresentFrame();
@@ -282,19 +284,42 @@ void DsEmulator::PresentVulkanFrame() {
     vulkan_frame_->frameId++;
     vulkan_frame_->publicationGeneration = vulkan_frame_->frameId;
 
-    if (!vulkan_output_->ensureFrameResources(vulkan_frame_.get(), 256, 386)) return;
+    static int vulkan_log = 0;
+    const bool log_now = (vulkan_log++ % 120) == 0;
+    if (!vulkan_output_->ensureFrameResources(vulkan_frame_.get(), 256, 386)) {
+        if (log_now) __android_log_print(ANDROID_LOG_WARN, "EmuCoreDS", "Vulkan frame resources failed");
+        return;
+    }
 
     MelonDSAndroid::VulkanCompositionInputs inputs{};
     if (!vulkan_output_->buildCompositionInputs(
             vulkan_frame_.get(), *renderer3d, 1, MelonDSAndroid::VulkanFilterMode::Nearest,
             true, false, false, inputs)) {
+        if (log_now) {
+            __android_log_print(ANDROID_LOG_WARN, "EmuCoreDS", "Vulkan composition inputs failed");
+        }
         return;
     }
     inputs.needsReadback = true;
-    if (!vulkan_output_->composeAndSubmitFrame(vulkan_frame_.get(), inputs)) return;
+    if (!vulkan_output_->composeAndSubmitFrame(vulkan_frame_.get(), inputs)) {
+        if (log_now) {
+            __android_log_print(ANDROID_LOG_WARN, "EmuCoreDS", "Vulkan compose failed frame=%llu",
+                                (unsigned long long)vulkan_frame_->frameId);
+        }
+        return;
+    }
     if (!vulkan_output_->readFramePixels(vulkan_frame_.get(), vulkan_readback_.data(),
                                          vulkan_readback_.size())) {
+        if (log_now) {
+            __android_log_print(ANDROID_LOG_WARN, "EmuCoreDS", "Vulkan readback failed frame=%llu",
+                                (unsigned long long)vulkan_frame_->frameId);
+        }
         return;
+    }
+    if (log_now) {
+        __android_log_print(ANDROID_LOG_WARN, "EmuCoreDS", "Vulkan present frame=%llu px=%08X",
+                            (unsigned long long)vulkan_frame_->frameId,
+                            vulkan_readback_.empty() ? 0u : vulkan_readback_[0]);
     }
     presenter_->Present(vulkan_readback_.data(), 256, 386);
 }
