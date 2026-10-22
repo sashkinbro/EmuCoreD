@@ -754,6 +754,7 @@ fun EmulationScreen(
     }
 
     val emulationOrientation: Int? = when {
+        isNds -> ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
         orientationLockPreference == null || emulationAllowsBothOrientations == null -> null
         tvUiEnabled -> ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
         orientationLockPreference == AppPreferences.ORIENTATION_LOCK_PORTRAIT ->
