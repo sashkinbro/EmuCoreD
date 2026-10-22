@@ -1,6 +1,6 @@
 // Copyright 2023-2026 Citra Emulator Project / Azahar Emulator Project
 // Licensed under GPLv2 or any later version
-// Refer to the license.txt file included.
+// Refer to the misc/licenses/gplv2.txt file included.
 
 #include "video_core/renderer_vulkan/vk_texture_runtime.h"
 
@@ -95,7 +95,7 @@ u32 UnpackDepthStencil(const VideoCore::StagingData& data, vk::Format dest) {
     case vk::Format::eD24UnormS8Uint: {
         for (; stencil_offset < data.size; depth_offset += 4) {
             u8* ptr = mapped.data() + depth_offset;
-            const u32 d24s8 = VideoCore::MakeInt<u32>(ptr);
+            const u32 d24s8 = VideoCore::LoadFromBytes<u32>(ptr);
             const u32 d24 = d24s8 >> 8;
             mapped[stencil_offset] = d24s8 & 0xFF;
             std::memcpy(ptr, &d24, 4);
@@ -106,7 +106,7 @@ u32 UnpackDepthStencil(const VideoCore::StagingData& data, vk::Format dest) {
     case vk::Format::eD32SfloatS8Uint: {
         for (; stencil_offset < data.size; depth_offset += 4) {
             u8* ptr = mapped.data() + depth_offset;
-            const u32 d24s8 = VideoCore::MakeInt<u32>(ptr);
+            const u32 d24s8 = VideoCore::LoadFromBytes<u32>(ptr);
             const float d32 = (d24s8 >> 8) / 16777215.f;
             mapped[stencil_offset] = d24s8 & 0xFF;
             std::memcpy(ptr, &d32, 4);
@@ -336,9 +336,9 @@ bool TextureRuntime::Reinterpret(Surface& source, Surface& dest,
     if (src_format == PixelFormat::D24S8 && dst_format == PixelFormat::RGBA8) {
         blit_helper.ConvertDS24S8ToRGBA8(source, dest, copy);
     } else {
-        LOG_WARNING(Render_Vulkan, "Unimplemented reinterpretation {} -> {}",
-                    VideoCore::PixelFormatAsString(src_format),
-                    VideoCore::PixelFormatAsString(dst_format));
+        LOG_WARNING(Render_Vulkan, "Unimplemented reinterpretation {}({}) -> {}({})",
+                    VideoCore::PixelFormatAsString(src_format), vk::to_string(source.traits.native),
+                    VideoCore::PixelFormatAsString(dst_format), vk::to_string(dest.traits.native));
         return false;
     }
     return true;
@@ -607,7 +607,7 @@ bool TextureRuntime::BlitTextures(Surface& source, Surface& dest,
 
     const RecordParams params = {
         .aspect = source.Aspect(),
-        .filter = MakeFilter(source.pixel_format),
+        .filter = vk::Filter::eNearest,
         .pipeline_flags = source.PipelineStageFlags() | dest.PipelineStageFlags(),
         .src_access = source.AccessFlags(),
         .dst_access = dest.AccessFlags(),
@@ -1307,7 +1307,9 @@ vk::ImageView Surface::ImageView(ViewType view_type, Type type) noexcept {
     auto aspect = traits.aspect;
 
     if (view_type == ViewType::Storage) {
-        ASSERT(traits.native == vk::Format::eR8G8B8A8Unorm);
+        ASSERT_MSG(traits.storage_support,
+                   "Creating a storage-view for format({}) which doesn't have storage-support!",
+                   vk::to_string(traits.native));
         is_storage = true;
     }
     if (view_type == ViewType::Depth || view_type == ViewType::Stencil) {
@@ -1368,9 +1370,8 @@ void Surface::BlitScale(const VideoCore::TextureBlit& blit, bool up_scale) {
     const auto src_type = up_scale ? Type::Base : Type::Scaled;
     const auto dst_type = up_scale ? Type::Scaled : Type::Base;
 
-    scheduler.Record([src_image = Image(src_type), aspect = Aspect(),
-                      filter = MakeFilter(pixel_format), dst_image = Image(dst_type),
-                      blit](vk::CommandBuffer render_cmdbuf) {
+    scheduler.Record([src_image = Image(src_type), aspect = Aspect(), filter = vk::Filter::eNearest,
+                      dst_image = Image(dst_type), blit](vk::CommandBuffer render_cmdbuf) {
         const std::array source_offsets = {
             vk::Offset3D{static_cast<s32>(blit.src_rect.left),
                          static_cast<s32>(blit.src_rect.bottom), 0},

@@ -1,6 +1,6 @@
 // Copyright 2020-2026 Citra Emulator Project / Azahar Emulator Project
 // Licensed under GPLv2 or any later version
-// Refer to the license.txt file included.
+// Refer to the misc/licenses/gplv2.txt file included.
 
 #pragma once
 
@@ -23,6 +23,8 @@ public:
     std::vector<u8> Sign(std::span<const u8> message) const;
 
     bool Verify(std::span<const u8> message, std::span<const u8> signature) const;
+
+    std::vector<u8> GetSignature(std::span<const u8> message) const;
 
     explicit operator bool() const {
         // TODO(B3N30): Maybe check if exponent and modulus are vailid
@@ -74,4 +76,5 @@ const RsaSlot& GetTicketWrapSlot();
 const RsaSlot& GetSecureInfoSlot();
 const RsaSlot& GetLocalFriendCodeSeedSlot();
 
+std::vector<u8> CreateASN1Message(std::span<const u8> data);
 } // namespace HW::RSA

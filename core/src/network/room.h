@@ -1,6 +1,6 @@
 // Copyright 2017-2025 Citra Emulator Project / Azahar Emulator Project
 // Licensed under GPLv2 or any later version
-// Refer to the license.txt file included.
+// Refer to the misc/licenses/gplv2.txt file included.
 
 #pragma once
 
@@ -18,6 +18,8 @@ constexpr u32 network_version = 4; ///< The version of this Room and RoomMember
 constexpr u16 DefaultRoomPort = 24872;
 
 constexpr u32 MaxMessageSize = 500;
+
+constexpr u32 azaharplus_network_version = 1;
 
 /// Maximum number of concurrent connections allowed to this room.
 static constexpr u32 MaxConcurrentConnections = 254;
@@ -75,6 +77,14 @@ enum RoomMessageTypes : u8 {
     IdModPermissionDenied,
     IdModNoSuchUser,
     IdJoinSuccessAsMod,
+	// Specific to AzaharPlus
+	idAzaharPlusSpecific = 0xff
+};
+
+enum AzaharPlusSpecificTypes : u8 {
+    IdZipPassAnnounce = 1,
+    IdZipPassUpload,
+    IdZipPassDownload,
 };
 
 /// Types of system status messages

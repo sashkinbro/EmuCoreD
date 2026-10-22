@@ -1,6 +1,6 @@
 // Copyright 2015-2025 Citra Emulator Project / Azahar Emulator Project
 // Licensed under GPLv2 or any later version
-// Refer to the license.txt file included.
+// Refer to the misc/licenses/gplv2.txt file included.
 
 #pragma once
 
@@ -29,6 +29,8 @@ class Timing;
 namespace SharedPage {
 
 // See http://3dbrew.org/wiki/Configuration_Memory#Shared_Memory_Page_For_ARM11_Processes
+
+std::chrono::seconds GetInitTime(u64 override_init_time);
 
 struct DateTime {
     u64_le date_time;                  // 0

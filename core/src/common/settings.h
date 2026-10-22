@@ -1,6 +1,6 @@
 // Copyright 2014-2026 Citra Emulator Project / Azahar Emulator Project
-// Licensed under GPLv2 or any later version
-// Refer to the license.txt file included.
+// Licensed under GPLv3 or any later version
+// Refer to the LICENSE.txt file included.
 
 #pragma once
 
@@ -484,6 +484,7 @@ struct Values {
 
     // Core
     Setting<bool> use_cpu_jit{true, Keys::use_cpu_jit};
+    Setting<bool> use_fastinterp{true, Keys::use_fastinterp};
     SwitchableSetting<s32, true> cpu_clock_percentage{100, 5, 400, Keys::cpu_clock_percentage};
     SwitchableSetting<bool> is_new_3ds{true, Keys::is_new_3ds};
     SwitchableSetting<bool> lle_applets{true, Keys::lle_applets};
@@ -511,11 +512,8 @@ struct Values {
     Setting<bool> apply_region_free_patch{true, Keys::apply_region_free_patch};
 
     // Renderer
-    // clang-format off
     SwitchableSetting<GraphicsAPI, true> graphics_api{
-#if defined(ANDROID) && defined(ENABLE_VULKAN) // Prefer Vulkan on Android, OpenGL on everything else
-        GraphicsAPI::Vulkan,
-#elif defined(ENABLE_OPENGL)
+#if defined(ENABLE_OPENGL)
         GraphicsAPI::OpenGL,
 #elif defined(ENABLE_VULKAN)
         GraphicsAPI::Vulkan,
@@ -526,7 +524,6 @@ struct Values {
 #error "At least one renderer must be enabled."
 #endif
         GraphicsAPI::Software, GraphicsAPI::Vulkan, Keys::graphics_api};
-    // clang-format on
     SwitchableSetting<u32> physical_device{0, Keys::physical_device};
     Setting<bool> use_gles{false, Keys::use_gles};
     Setting<bool> renderer_debug{false, Keys::renderer_debug};
@@ -636,11 +633,14 @@ struct Values {
     // Audio
     bool audio_muted;
     SwitchableSetting<AudioEmulation> audio_emulation{AudioEmulation::HLE, Keys::audio_emulation};
-    SwitchableSetting<bool> enable_audio_stretching{true, Keys::enable_audio_stretching};
+    SwitchableSetting<bool> enable_audio_stretching{false, Keys::enable_audio_stretching};
     SwitchableSetting<bool> enable_realtime_audio{false, Keys::enable_realtime_audio};
     SwitchableSetting<float, true> volume{1.f, 0.f, 1.f, Keys::volume};
     Setting<AudioCore::SinkType> output_type{AudioCore::SinkType::Auto, Keys::output_type};
     Setting<std::string> output_device{"Auto", Keys::output_device};
+#ifdef ENABLE_QT
+    Setting<bool> bypass_audio_effects{false, Keys::bypass_audio_effects};
+#endif
     Setting<AudioCore::InputType> input_type{AudioCore::InputType::Auto, Keys::input_type};
     Setting<std::string> input_device{"Auto", Keys::input_device};
     SwitchableSetting<bool> simulate_headphones_plugged{false, Keys::simulate_headphones_plugged};
@@ -662,7 +662,7 @@ struct Values {
     Setting<bool> enable_exception_handler{false, Keys::enable_exception_handler};
 
     // WebService
-    Setting<std::string> web_api_url{"", Keys::web_api_url};
+    Setting<std::string> web_api_url{"http://88.198.47.46:5000", Keys::web_api_url};
     Setting<std::string> network_token{"", Keys::network_token};
 
     // Miscellaneous

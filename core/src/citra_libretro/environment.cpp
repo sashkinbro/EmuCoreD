@@ -1,6 +1,6 @@
 // Copyright 2026 Citra Emulator Project / Azahar Emulator Project
 // Licensed under GPLv2 or any later version
-// Refer to the license.txt file included.
+// Refer to the misc/licenses/gplv2.txt file included.
 
 #include <cstring>
 
@@ -63,14 +63,7 @@ bool GetMicrophoneInterface(struct retro_microphone_interface* mic_interface) {
 }
 
 Settings::GraphicsAPI GetPreferredRenderer() {
-    // On Android, we really want to default to Vulkan if we can, so we'll ignore the frontend's
-    // recommendation if possible...
-#if defined(ANDROID) && defined(ENABLE_VULKAN)
-    return Settings::GraphicsAPI::Vulkan;
-#endif
-    // ...Otherwise negotiate with the RetroArch frontend as usual
-
-    // Attempt to use the renderer recommended by the frontend if possible
+    // try and maintain the current driver
     retro_hw_context_type context_type = RETRO_HW_CONTEXT_OPENGL;
     environ_cb(RETRO_ENVIRONMENT_GET_PREFERRED_HW_RENDER, &context_type);
     switch (context_type) {
@@ -89,7 +82,7 @@ Settings::GraphicsAPI GetPreferredRenderer() {
     default:
         break;
     }
-    // We can't get a recommendation from the frontend, so fall back to whatever's available
+    // we can't maintain the current driver, need to switch
 #if defined(ENABLE_VULKAN)
     return Settings::GraphicsAPI::Vulkan;
 #elif defined(ENABLE_OPENGL)

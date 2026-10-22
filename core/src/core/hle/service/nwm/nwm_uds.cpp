@@ -1,6 +1,6 @@
 // Copyright 2014-2026 Citra Emulator Project / Azahar Emulator Project
 // Licensed under GPLv2 or any later version
-// Refer to the license.txt file included.
+// Refer to the misc/licenses/gplv2.txt file included.
 
 #include <algorithm>
 #include <cstring>
@@ -227,7 +227,7 @@ void NWM_UDS::HandleEAPoLPacket(const Network::WifiPacket& packet) {
 
         auto node = DeserializeNodeInfo(eapol_start.node);
 
-        if (eapol_start.connection_type == ConnectionType::Client) {
+        if (eapol_start.connection_type != ConnectionType::Spectator) {
             // Get an unused network node id
             u16 node_id = GetNextAvailableNodeId();
             node.network_node_id = node_id;
@@ -505,7 +505,12 @@ void NWM_UDS::HandleDeauthenticationFrame(const Network::WifiPacket& packet) {
         return;
     }
     if (node_map.find(packet.transmitter_address) == node_map.end()) {
-        LOG_ERROR(Service_NWM, "Got deauthentication frame from unknown node");
+        LOG_ERROR(Service_NWM,
+                  "Got deauthentication frame from unknown node "
+                  "{:02X}:{:02X}:{:02X}:{:02X}:{:02X}:{:02X}",
+                  packet.transmitter_address[0], packet.transmitter_address[1],
+                  packet.transmitter_address[2], packet.transmitter_address[3],
+                  packet.transmitter_address[4], packet.transmitter_address[5]);
         return;
     }
 
@@ -1608,6 +1613,21 @@ void NWM_UDS::DecryptBeaconData(Kernel::HLERequestContext& ctx) {
     rb.PushStaticBuffer(std::move(output_buffer), 0);
 }
 
+void NWM_UDS::SetProbeResponseParam(Kernel::HLERequestContext& ctx) {
+    IPC::RequestParser rp(ctx);
+    u32 oui = rp.Pop<u32>();
+    u8 data = static_cast<u8>(rp.Pop<u32>());
+
+    LOG_DEBUG(Service_NWM, "called oui=0x{:08X}, data=0x{:02X}", oui, data);
+
+    probe_oui = oui;
+    probe_data = data;
+
+    IPC::RequestBuilder rb = rp.MakeBuilder(1, 0);
+
+    rb.Push(ResultSuccess);
+}
+
 void NWM_UDS::EjectSpectators(Kernel::HLERequestContext& ctx) {
     IPC::RequestParser rp(ctx);
 
@@ -1624,7 +1644,7 @@ void NWM_UDS::BeaconBroadcastCallback(std::uintptr_t user_data, s64 cycles_late)
     if (connection_status.status != NetworkStatus::ConnectedAsHost)
         return;
 
-    std::vector<u8> frame = GenerateBeaconFrame(network_info, node_info);
+    std::vector<u8> frame = GenerateBeaconFrame(network_info, node_info, probe_oui, probe_data);
 
     using Network::WifiPacket;
     WifiPacket packet;
@@ -1709,7 +1729,7 @@ NWM_UDS::NWM_UDS(Core::System& system) : ServiceFramework("nwm::UDS"), system(sy
         {0x001E, &NWM_UDS::ConnectToNetwork, "ConnectToNetwork"},
         {0x001F, &NWM_UDS::DecryptBeaconData, "DecryptBeaconData"},
         {0x0020, nullptr, "Flush"},
-        {0x0021, nullptr, "SetProbeResponseParam"},
+        {0x0021, &NWM_UDS::SetProbeResponseParam, "SetProbeResponseParam"},
         {0x0022, nullptr, "ScanOnConnection"},
         // clang-format on
     };

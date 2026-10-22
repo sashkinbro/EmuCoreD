@@ -1,6 +1,6 @@
 // Copyright 2018-2025 Citra Emulator Project / Azahar Emulator Project
 // Licensed under GPLv2 or any later version
-// Refer to the license.txt file included.
+// Refer to the misc/licenses/gplv2.txt file included.
 
 #pragma once
 
@@ -69,6 +69,9 @@ public:
     std::string GetType() const override;
     std::string GetCode() const override;
     std::string ToString() const override;
+	
+	void SetBuiltIn(bool builtIn) override;
+    bool IsBuiltIn() const override;
 
     /// Gateway cheats look like:
     ///     [Name]
@@ -84,5 +87,6 @@ private:
     const std::string name;
     std::vector<CheatLine> cheat_lines;
     const std::string comments;
+	bool built_in = false;
 };
 } // namespace Cheats

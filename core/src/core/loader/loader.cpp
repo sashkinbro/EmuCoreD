@@ -1,6 +1,6 @@
 // Copyright 2014-2026 Citra Emulator Project / Azahar Emulator Project
 // Licensed under GPLv2 or any later version
-// Refer to the license.txt file included.
+// Refer to the misc/licenses/gplv2.txt file included.
 
 #include <memory>
 #include <string>
@@ -51,7 +51,7 @@ FileType GuessFromExtension(const std::string& extension_) {
     if (extension == ".elf" || extension == ".axf")
         return FileType::ELF;
 
-    if (extension == ".cci" || extension == ".zcci" || extension == ".3ds")
+    if (extension == ".cci" || extension == ".zcci" || extension == ".3ds" || extension == ".z3ds")
         return FileType::CCI;
 
     if (extension == ".cxi" || extension == ".app" || extension == ".zcxi")

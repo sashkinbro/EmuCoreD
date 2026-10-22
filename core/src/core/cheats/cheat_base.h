@@ -1,6 +1,6 @@
 // Copyright 2018-2025 Citra Emulator Project / Azahar Emulator Project
 // Licensed under GPLv2 or any later version
-// Refer to the license.txt file included.
+// Refer to the misc/licenses/gplv2.txt file included.
 
 #pragma once
 
@@ -26,5 +26,8 @@ public:
     virtual std::string GetCode() const = 0;
 
     virtual std::string ToString() const = 0;
+	
+    virtual void SetBuiltIn(bool builtIn) = 0;
+    virtual bool IsBuiltIn() const = 0;
 };
 } // namespace Cheats

@@ -1,6 +1,6 @@
 // Copyright 2018-2026 Citra Emulator Project / Azahar Emulator Project
 // Licensed under GPLv2 or any later version
-// Refer to the license.txt file included.
+// Refer to the misc/licenses/gplv2.txt file included.
 
 #include "common/archives.h"
 #include "common/file_util.h"
@@ -116,13 +116,16 @@ u64 GetTitleIdForApplet(AppletId id, u32 region_value) {
                                 return data.applet_ids[0] == id || data.applet_ids[1] == id;
                             });
 
-    ASSERT_MSG(itr != applet_titleids.end(), "Unknown applet id 0x{:#05X}", id);
-
-    auto n3ds_title_id = itr->n3ds_title_ids[region_value];
-    if (n3ds_title_id != 0 && Settings::values.is_new_3ds.GetValue()) {
-        return n3ds_title_id;
+    if (itr != applet_titleids.end()) {
+        auto n3ds_title_id = itr->n3ds_title_ids[region_value];
+        if (n3ds_title_id != 0 && Settings::values.is_new_3ds.GetValue()) {
+            return n3ds_title_id;
+        }
+        return itr->title_ids[region_value];
+    } else {
+        LOG_ERROR(Service_APT, "Unknown applet id {:#05X}", id);
+        return 0xFFFFFFFFFFFFF;
     }
-    return itr->title_ids[region_value];
 }
 
 static constexpr std::size_t NumTitleIDConverts = 3;

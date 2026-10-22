@@ -1,6 +1,6 @@
 // Copyright 2015 Citra Emulator Project
 // Licensed under GPLv2 or any later version
-// Refer to the license.txt file included.
+// Refer to the misc/licenses/gplv2.txt file included.
 
 #include <chrono>
 #include <cstring>
@@ -31,7 +31,7 @@ template void load_construct_data<iarchive>(iarchive& ar, SharedPage::Handler* t
 
 namespace SharedPage {
 
-static std::chrono::seconds GetInitTime(u64 override_init_time) {
+std::chrono::seconds GetInitTime(u64 override_init_time) {
     if (override_init_time != 0) {
         // Override the clock init time with the one in the movie
         return std::chrono::seconds(override_init_time);

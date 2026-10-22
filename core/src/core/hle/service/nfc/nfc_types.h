@@ -1,6 +1,6 @@
 // Copyright 2022 yuzu Emulator Project
 // Licensed under GPLv2 or any later version
-// Refer to the license.txt file included.
+// Refer to the misc/licenses/gplv2.txt file included.
 
 #pragma once
 
@@ -59,6 +59,8 @@ enum class AmiiboType : u8 {
     Figure,
     Card,
     Yarn,
+	Band,
+	Block,
 };
 
 enum class AmiiboSeries : u8 {
@@ -85,6 +87,17 @@ enum class AmiiboSeries : u8 {
     Others,
     MegaMan,
     Diablo,
+	PowerPros,
+	MonsterHunterRise,
+	YuGiOh,
+	DonkeyKong,
+	XenobladeChronicles3,
+	MyMarioWoodenBlocks,
+	StreetFighter6,
+	KirbyAirRiders,
+	Unknown31,
+	Unknown32,
+	Pragmata,
 };
 
 enum class TagType : u32 {

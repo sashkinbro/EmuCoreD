@@ -1,6 +1,6 @@
 // Copyright 2026 Citra Emulator Project / Azahar Emulator Project
 // Licensed under GPLv2 or any later version
-// Refer to the license.txt file included.
+// Refer to the misc/licenses/gplv2.txt file included.
 
 #include <cryptopp/aes.h>
 #include <cryptopp/modes.h>
@@ -333,7 +333,11 @@ bool CryptoIOFile::IsCryptoIOFile(IOFileBase* underlying_file, const std::vector
     memcpy(&magic0x100, data.data() + 0x100, sizeof(u32));
     return magic0x0 == FileUtil::MakeMagic('Z', '3', 'D', 'S') ||
            magic0x100 == FileUtil::MakeMagic('N', 'C', 'C', 'H') ||
-           magic0x100 == FileUtil::MakeMagic('N', 'C', 'S', 'D');
+           magic0x100 == FileUtil::MakeMagic('N', 'C', 'S', 'D')
+           ||  memcmp("NDHT", data.data(), 4) == 0
+           ||  memcmp("dlplay", data.data(), 6) == 0
+           ||  memcmp("NARC", data.data() + 128, 4) == 0
+           ||  memcmp("DS INTERNET", data.data(), 11) == 0;
 }
 
 CryptoIOFile::CryptoIOFile() {
@@ -453,15 +457,21 @@ bool CryptoIOFile::Open() {
             impl->header.header_size = 0;
             impl->header.reserved = 0;
 
+            u8 head[150];
             u32 magic0x100, magic0x0;
             if (ReadAtBytes(&magic0x100, sizeof(u32), 0x100) != sizeof(u32) ||
-                ReadAtBytes(&magic0x0, sizeof(u32), 0x0) != sizeof(u32)) {
+                ReadAtBytes(&magic0x0, sizeof(u32), 0x0) != sizeof(u32) ||
+                ReadAtBytes(head, sizeof(head), 0x0) != sizeof(head)) {
                 Child()->Close();
                 return false;
             }
             if (magic0x100 != FileUtil::MakeMagic('N', 'C', 'C', 'H') &&
                 magic0x100 != FileUtil::MakeMagic('N', 'C', 'S', 'D') &&
-                magic0x0 != FileUtil::MakeMagic('Z', '3', 'D', 'S')) {
+                magic0x0 != FileUtil::MakeMagic('Z', '3', 'D', 'S')
+                &&  memcmp("NDHT", head, 4) != 0
+                &&  memcmp("dlplay", head, 6) != 0
+                &&  memcmp("NARC", head + 128, 4) != 0
+                &&  memcmp("DS INTERNET", head, 11) != 0) {
                 Child()->Close();
                 return false;
             }

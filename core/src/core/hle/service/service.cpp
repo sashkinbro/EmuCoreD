@@ -1,6 +1,6 @@
 // Copyright 2014-2026 Citra Emulator Project / Azahar Emulator Project
 // Licensed under GPLv2 or any later version
-// Refer to the license.txt file included.
+// Refer to the misc/licenses/gplv2.txt file included.
 
 #include <algorithm>
 #include <fmt/format.h>
@@ -55,6 +55,7 @@
 #include "core/hle/service/sm/srv.h"
 #include "core/hle/service/soc/soc_u.h"
 #include "core/hle/service/ssl/ssl_c.h"
+#include "core/hw/unique_data.h"
 #include "core/loader/loader.h"
 
 namespace Service {
@@ -178,7 +179,7 @@ void ServiceFrameworkBase::ReportUnimplementedFunction(u32* cmd_buf, const Funct
 void ServiceFrameworkBase::HandleSyncRequest(Kernel::HLERequestContext& context) {
     auto itr = handlers.find(context.CommandHeader().command_id.Value());
     const FunctionInfoBase* info = itr == handlers.end() ? nullptr : &itr->second;
-    if (info == nullptr || info->handler_callback == nullptr) {
+    if (info == nullptr || !info->implemented) {
         context.ReportUnimplemented();
         return ReportUnimplementedFunction(context.CommandBuffer(), info);
     }
@@ -205,6 +206,12 @@ static bool AttemptLLE(const ServiceModuleInfo& service_module, u64 loading_titl
     if (!Settings::values.lle_modules.at(service_module.name) &&
         (!enable_recommended_lle_modules || !service_module.is_online_recommended))
         return false;
+	
+	if(!HW::UniqueData::IsFullConsoleLinked()){
+		LOG_ERROR(Service, "Service module \"{}\" ignored because !IsFullConsoleLinked()", service_module.name);
+		return false;
+	}
+	
     std::unique_ptr<Loader::AppLoader> loader =
         Loader::GetLoader(AM::GetTitleContentPath(FS::MediaType::NAND, service_module.title_id));
     if (!loader) {

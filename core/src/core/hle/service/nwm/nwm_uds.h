@@ -1,6 +1,6 @@
 // Copyright 2014-2026 Citra Emulator Project / Azahar Emulator Project
 // Licensed under GPLv2 or any later version
-// Refer to the license.txt file included.
+// Refer to the misc/licenses/gplv2.txt file included.
 
 #pragma once
 
@@ -480,6 +480,18 @@ private:
      */
     void DecryptBeaconData(Kernel::HLERequestContext& ctx);
 
+    /**
+     * NWM_UDS::SetProbeResponseParam service function.
+     * Sets the probe response parameters for the network.
+     *  Inputs:
+     *      1 : Probe OUI
+     *      2 : Probe data
+     *  Outputs:
+     *      0 : Return header
+     *      1 : Result of function, 0 on success, otherwise error code
+     */
+    void SetProbeResponseParam(Kernel::HLERequestContext& ctx);
+
     void CheckSpoofFriendCodeSeed(Kernel::HLERequestContext& ctx, NodeInfo& node);
 
     void SignalEventAsync(std::shared_ptr<Kernel::Event> event);
@@ -652,6 +664,9 @@ private:
 
     // List of the last <MaxBeaconFrames> beacons received from the network.
     std::list<Network::WifiPacket> received_beacons;
+
+    u32 probe_oui = 0;
+    u8 probe_data = 0;
 
     template <class Archive>
     void serialize(Archive& ar, const unsigned int);

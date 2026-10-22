@@ -1,6 +1,6 @@
 // Copyright 2018-2026 Citra Emulator Project / Azahar Emulator Project
 // Licensed under GPLv2 or any later version
-// Refer to the license.txt file included.
+// Refer to the misc/licenses/gplv2.txt file included.
 
 #pragma once
 
@@ -45,7 +45,13 @@ private:
  */
 class DirectRomFSReader : public RomFSReader {
 public:
-    DirectRomFSReader(std::unique_ptr<FileUtil::IOFileBase>&& file) : file(std::move(file)) {}
+    DirectRomFSReader(std::unique_ptr<FileUtil::IOFileBase>&& file) : is_encrypted(false), file(std::move(file)) {}
+
+    DirectRomFSReader(std::unique_ptr<FileUtil::IOFileBase>&& file,
+                      const std::array<u8, 16>& key, const std::array<u8, 16>& ctr,
+                      std::size_t crypto_offset)
+        : is_encrypted(true), file(std::move(file)), key(key), ctr(ctr),
+          crypto_offset(crypto_offset) {}
 
     ~DirectRomFSReader() override = default;
 
@@ -60,7 +66,11 @@ public:
     bool CacheReady(std::size_t file_offset, std::size_t length) override;
 
 private:
+    bool is_encrypted;
     std::unique_ptr<FileUtil::IOFileBase> file;
+    std::array<u8, 16> key;
+    std::array<u8, 16> ctr;
+    u64 crypto_offset;
 
     // Total cache size: 128KB
     static constexpr std::size_t cache_line_size = (1 << 13); // About 8KB
@@ -82,7 +92,11 @@ private:
     template <class Archive>
     void serialize(Archive& ar, const unsigned int) {
         ar& boost::serialization::base_object<RomFSReader>(*this);
+        ar & is_encrypted;
         ar & file;
+        ar & key;
+        ar & ctr;
+        ar & crypto_offset;
     }
     friend class boost::serialization::access;
 };

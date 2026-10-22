@@ -1,10 +1,10 @@
 // Copyright 2014-2026 Citra Emulator Project / Azahar Emulator Project
 // Licensed under GPLv2 or any later version
-// Refer to the license.txt file included.
+// Refer to the misc/licenses/gplv2.txt file included.
 
 // Copyright Dolphin Emulator Project
 // Licensed under GPLv2 or any later version
-// Refer to the license.txt file included.
+// Refer to the misc/licenses/gplv2.txt file included.
 
 #pragma once
 
@@ -49,6 +49,9 @@
 #endif
 
 namespace FileUtil {
+
+void setProgramId(std::string id);
+std::string getCecId(std::string programId);
 
 // User paths for GetUserPath
 enum class UserPath {
@@ -131,6 +134,8 @@ private:
 
 // Returns the size of filename (64bit)
 [[nodiscard]] u64 GetSize(const std::string& filename);
+
+time_t GetDate(const std::string& filename);
 
 // Overloaded GetSize, accepts file descriptor
 [[nodiscard]] u64 GetSize(int fd);

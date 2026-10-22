@@ -1,6 +1,6 @@
 // Copyright 2014-2026 Citra Emulator Project / Azahar Emulator Project
 // Licensed under GPLv2 or any later version
-// Refer to the license.txt file included.
+// Refer to the misc/licenses/gplv2.txt file included.
 
 #include <algorithm>
 #include <climits>
@@ -143,11 +143,46 @@ void Thread::Stop() {
 #endif
 }
 
+const char* GetThreadStatusName(ThreadStatus status) {
+    switch (status) {
+    case ThreadStatus::Running:
+        return "Running";
+    case ThreadStatus::Ready:
+        return "Ready";
+    case ThreadStatus::WaitArb:
+        return "WaitArb";
+    case ThreadStatus::WaitSleep:
+        return "WaitSleep";
+    case ThreadStatus::WaitIPC:
+        return "WaitIPC";
+    case ThreadStatus::WaitSynchAny:
+        return "WaitSynchAny";
+    case ThreadStatus::WaitSynchAll:
+        return "WaitSynchAll";
+    case ThreadStatus::WaitHleEvent:
+        return "WaitHleEvent";
+    case ThreadStatus::Dormant:
+        return "Dormant";
+    case ThreadStatus::Dead:
+        return "Dead";
+    default:
+        return "Unknown";
+    }
+}
+
 void ThreadManager::SwitchContext(Thread* new_thread) {
     Thread* previous_thread = GetCurrentThread();
     std::shared_ptr<Process> previous_process = nullptr;
 
     Core::Timing& timing = kernel.timing;
+
+    // On real ARM11 a thread context switch (exception entry/return) clears the CPU's local
+    // exclusive monitor, so a LDREX reservation never survives a reschedule. The HLE switch
+    // replaces that exception path, so we must clear the reservation explicitly. Without this,
+    // a thread preempted between LDREX and STREX can have its STREX spuriously succeed (or a
+    // stale reservation corrupt another thread's atomic), breaking guest LightLocks/mutexes and
+    // desyncing multi-threaded scheduling.
+    cpu->ClearExclusiveState();
 
     // Save context for previous thread
     if (previous_thread) {
@@ -165,8 +200,17 @@ void ThreadManager::SwitchContext(Thread* new_thread) {
 
     // Load context of new thread
     if (new_thread) {
-        ASSERT_MSG(new_thread->status == ThreadStatus::Ready,
-                   "Thread must be ready to become running.");
+        if (new_thread->status == ThreadStatus::Running) {
+            // PopNextReadyThread can return the current running thread
+            // when no better thread is available. We can just continue.
+        } else if (new_thread->status != ThreadStatus::Ready) {
+            // Thread changed status due to a race condition (e.g. network callback).
+            // Put it back in the ready queue so it's not lost, then skip this switch
+            LOG_WARNING(Kernel, "Thread {} status changed to {} during scheduling, re-enqueueing.",
+                        new_thread->GetObjectId(), GetThreadStatusName(new_thread->status));
+            ready_queue.push_back(new_thread->current_priority, new_thread);
+            return;
+        }
 
         // Cancel any outstanding wakeup events for this thread
         timing.UnscheduleEvent(ThreadWakeupEventType, new_thread->thread_id);

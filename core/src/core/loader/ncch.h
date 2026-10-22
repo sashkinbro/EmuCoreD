@@ -1,6 +1,6 @@
 // Copyright 2014-2026 Citra Emulator Project / Azahar Emulator Project
 // Licensed under GPLv2 or any later version
-// Refer to the license.txt file included.
+// Refer to the misc/licenses/gplv2.txt file included.
 
 #pragma once
 
@@ -12,6 +12,9 @@
 
 namespace Loader {
 
+std::string getProgramId();
+void resetProgramId();
+
 /// Loads an NCCH file (e.g. from a CCI, or the first NCCH in a CXI)
 class AppLoader_NCCH final : public AppLoader {
 public:
@@ -21,7 +24,7 @@ public:
         filetype = IdentifyType(this->file.get());
         this->file.reset();
     }
-
+	
     /**
      * Returns the type of the file
      * @param file FileUtil::IOFile open file

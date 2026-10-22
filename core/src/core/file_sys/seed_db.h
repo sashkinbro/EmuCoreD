@@ -1,12 +1,12 @@
 // Copyright 2018-2025 Citra Emulator Project / Azahar Emulator Project
 // Licensed under GPLv2 or any later version
-// Refer to the license.txt file included.
+// Refer to the misc/licenses/gplv2.txt file included.
 
 #pragma once
 
 #include <array>
 #include <optional>
-#include <vector>
+#include <unordered_map>
 #include "common/common_types.h"
 #include "common/swap.h"
 
@@ -23,7 +23,7 @@ struct Seed {
 };
 
 struct SeedDB {
-    std::vector<Seed> seeds;
+    std::unordered_map<u64_le, Seed> seeds;
 
     bool Load();
     bool Save();
