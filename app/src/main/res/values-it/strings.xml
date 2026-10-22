@@ -1,4 +1,4 @@
-﻿<resources>
+<resources>
     <string name="emulation_runtime_failure_title">Emulazione arrestata</string>
     <string name="emulation_runtime_failure_description">Il runtime ha rilevato un errore e non puГІ continuare in sicurezza. Esci da questa sessione e avvia di nuovo il gioco. Il renderer non ГЁ stato modificato automaticamente.\n\nDettagli:\n</string>
     <string name="onboarding_core_title">Creato per Nintendo 3DS</string>
@@ -10,7 +10,7 @@
     <string name="app_name">EmuCoreD</string>
 
     <string name="shell_library">Libreria</string>
-    <string name="shell_catalog_search">Cerca su 3DS</string>
+    <string name="shell_catalog_search">Catalogo giochi</string>
     <string name="shell_supported_formats">Formati supportati</string>
 
     <string name="home_empty_title">Nessun gioco trovato</string>
@@ -237,7 +237,7 @@
     <string name="shell_data_transfer">Trasferimento dati</string>
     <string name="shell_launch_game_unsupported">Formato immagine di gioco non supportato.</string>
     <string name="shell_save_states">Gestore salvataggi</string>
-    <string name="shell_memory_cards">SD 3DS</string>
+    <string name="shell_memory_cards">Schede di memoria</string>
 
     <string name="settings_controls_tab">Controlli</string>
     <string name="settings_overlay_scale">Scala overlay</string>
@@ -399,7 +399,7 @@
     <string name="save_manager_empty_body_all">Crea prima un salvataggio in-game, poi apparirГ  qui.</string>
     <string name="save_manager_empty_body_game">Questo gioco non ha ancora alcun salvataggio.</string>
     <string name="save_manager_unknown_game">Gioco sconosciuto</string>
-    <string name="save_manager_entry_meta">%1$s вЂў Slot %2$d</string>
+    <string name="save_manager_entry_meta">%1$s - Slot %2$d</string>
     <string name="save_manager_entry_size">Dimensione: %1$s</string>
     <string name="save_manager_load_action">Carica</string>
     <string name="save_manager_delete_action">Elimina</string>

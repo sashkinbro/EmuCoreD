@@ -1,4 +1,4 @@
-﻿<resources>
+<resources>
     <string name="emulation_runtime_failure_title">а¤Џа¤®аҐЃа¤ІаҐ‡а¤¶а¤Ё а¤°аҐ‹а¤•а¤ѕ а¤—а¤Їа¤ѕ</string>
     <string name="emulation_runtime_failure_description">а¤°а¤Ёа¤џа¤ѕа¤‡а¤® а¤•аҐ‹ а¤Џа¤• а¤¤аҐЌа¤°аҐЃа¤џа¤ї а¤®а¤їа¤ІаҐЂ а¤”а¤° а¤Їа¤№ а¤ёаҐЃа¤°а¤•аҐЌа¤·а¤їа¤¤ а¤°аҐ‚а¤Є а¤ёаҐ‡ а¤ња¤ѕа¤°аҐЂ а¤Ёа¤№аҐЂа¤‚ а¤°а¤– а¤ёа¤•а¤¤а¤ѕаҐ¤ а¤‡а¤ё а¤ёа¤¤аҐЌа¤° а¤ёаҐ‡ а¤¬а¤ѕа¤№а¤° а¤Ёа¤їа¤•а¤ІаҐ‡а¤‚ а¤”а¤° а¤—аҐ‡а¤® а¤«а¤їа¤° а¤ёаҐ‡ а¤¶аҐЃа¤°аҐ‚ а¤•а¤°аҐ‡а¤‚аҐ¤ а¤°аҐ‡а¤‚а¤Ўа¤°а¤° а¤ёаҐЌа¤µа¤ља¤ѕа¤Іа¤їа¤¤ а¤°аҐ‚а¤Є а¤ёаҐ‡ а¤Ёа¤№аҐЂа¤‚ а¤¬а¤¦а¤Іа¤ѕ а¤—а¤Їа¤ѕаҐ¤\n\nа¤µа¤їа¤µа¤°а¤Ј:\n</string>
     <string name="onboarding_core_title">Nintendo 3DS а¤•аҐ‡ а¤Іа¤їа¤Џ а¤¬а¤Ёа¤ѕа¤Їа¤ѕ а¤—а¤Їа¤ѕ</string>
@@ -10,7 +10,7 @@
     <string name="app_name">EmuCoreD</string>
 
     <string name="shell_library">а¤Іа¤ѕа¤‡а¤¬аҐЌа¤°аҐ‡а¤°аҐЂ</string>
-    <string name="shell_catalog_search">3DS а¤–аҐ‹а¤њаҐ‡а¤‚</string>
+    <string name="shell_catalog_search">गेम कैटलॉग</string>
     <string name="shell_supported_formats">а¤ёа¤®а¤°аҐЌа¤Ґа¤їа¤¤ а¤«аҐ‰а¤°аҐЌа¤®аҐ‡а¤џ</string>
 
     <string name="home_empty_title">а¤•аҐ‹а¤€ а¤—аҐ‡а¤® а¤Ёа¤№аҐЂа¤‚ а¤®а¤їа¤Іа¤ѕ</string>
@@ -237,7 +237,7 @@
     <string name="shell_data_transfer">а¤ЎаҐ‡а¤џа¤ѕ а¤џаҐЌа¤°а¤ѕа¤‚а¤ёа¤«а¤°</string>
     <string name="shell_launch_game_unsupported">а¤…а¤ёа¤®а¤°аҐЌа¤Ґа¤їа¤¤ а¤—аҐ‡а¤® а¤‡а¤®аҐ‡а¤њ а¤«аҐ‰а¤°аҐЌа¤®аҐ‡а¤џаҐ¤</string>
     <string name="shell_save_states">а¤ёаҐ‡а¤µ а¤®аҐ€а¤ЁаҐ‡а¤ња¤°</string>
-    <string name="shell_memory_cards">3DS SD а¤•а¤ѕа¤°аҐЌа¤Ў</string>
+    <string name="shell_memory_cards">मेमोरी कार्ड</string>
 
     <string name="settings_controls_tab">а¤•а¤‚а¤џаҐЌа¤°аҐ‹а¤ІаҐЌа¤ё</string>
     <string name="settings_overlay_scale">а¤“а¤µа¤°а¤ІаҐ‡ а¤•а¤ѕ а¤†а¤•а¤ѕа¤°</string>
@@ -399,7 +399,7 @@
     <string name="save_manager_empty_body_all">а¤Єа¤№а¤ІаҐ‡ а¤—аҐ‡а¤® а¤®аҐ‡а¤‚ а¤Џа¤• а¤ёаҐ‡а¤µ а¤¬а¤Ёа¤ѕа¤Џа¤‚, а¤«а¤їа¤° а¤µа¤№ а¤Їа¤№а¤ѕа¤‚ а¤¦а¤їа¤–а¤ѕа¤€ а¤¦аҐ‡а¤—а¤ѕаҐ¤</string>
     <string name="save_manager_empty_body_game">а¤‡а¤ё а¤—аҐ‡а¤® а¤•аҐ‡ а¤Іа¤їа¤Џ а¤…а¤­аҐЂ а¤¤а¤• а¤•аҐ‹а¤€ а¤ёаҐ‡а¤µ а¤Ёа¤№аҐЂа¤‚ а¤№аҐ€аҐ¤</string>
     <string name="save_manager_unknown_game">а¤…а¤њаҐЌа¤ћа¤ѕа¤¤ а¤—аҐ‡а¤®</string>
-    <string name="save_manager_entry_meta">%1$s вЂў а¤ёаҐЌа¤ІаҐ‰а¤џ %2$d</string>
+    <string name="save_manager_entry_meta">%1$s - Slot %2$d</string>
     <string name="save_manager_entry_size">а¤†а¤•а¤ѕа¤°: %1$s</string>
     <string name="save_manager_load_action">а¤ІаҐ‹а¤Ў а¤•а¤°аҐ‡а¤‚</string>
     <string name="save_manager_delete_action">а¤№а¤џа¤ѕа¤Џа¤‚</string>

@@ -1,4 +1,4 @@
-﻿<resources>
+<resources>
     <string name="emulation_runtime_failure_title">EmulaciГіn detenida</string>
     <string name="emulation_runtime_failure_description">El entorno de ejecuciГіn encontrГі un error y no puede continuar de forma segura. Sal de esta sesiГіn y vuelve a iniciar el juego. El renderizador no se cambiГі automГЎticamente.\n\nDetalles:\n</string>
     <string name="onboarding_core_title">Hecho para Nintendo 3DS</string>
@@ -10,7 +10,7 @@
     <string name="app_name">EmuCoreD</string>
 
     <string name="shell_library">Biblioteca</string>
-    <string name="shell_catalog_search">Buscar en 3DS</string>
+    <string name="shell_catalog_search">Catálogo de juegos</string>
     <string name="shell_supported_formats">Formatos compatibles</string>
 
     <string name="home_empty_title">No se encontraron juegos</string>
@@ -287,7 +287,7 @@
     <string name="save_manager_empty_body_all">Crea un guardado en el juego primero, luego aparecerГЎ aquГ­.</string>
     <string name="save_manager_empty_body_game">Este juego aГєn no tiene guardados.</string>
     <string name="save_manager_unknown_game">Juego desconocido</string>
-    <string name="save_manager_entry_meta">%1$s вЂў Ranura %2$d</string>
+    <string name="save_manager_entry_meta">%1$s - Slot %2$d</string>
     <string name="save_manager_entry_size">TamaГ±o: %1$s</string>
     <string name="save_manager_load_action">Cargar</string>
     <string name="save_manager_delete_action">Eliminar</string>
@@ -405,7 +405,7 @@
     <string name="onboarding_profile_fast_title">RГЎpido / Inseguro</string>
     <string name="onboarding_profile_fast_desc">Para dispositivos menos potentes que necesitan velocidad extra. Algunos juegos pueden mostrar mГЎs errores visuales o volverse menos estables.</string>
     <string name="memory_card_loading">Cargando tarjetas de memoriaвЂ¦</string>
-    <string name="shell_memory_cards">Tarjeta SD de 3DS</string>
+    <string name="shell_memory_cards">Tarjetas de memoria</string>
     <string name="emulation_quick_save_confirm_title">ВїGuardar estado?</string>
     <string name="emulation_quick_save_confirm_desc">Esto sobrescribirГЎ la ranura %1$d con el estado actual del juego.</string>
     <string name="emulation_quick_load_confirm_title">ВїCargar estado?</string>

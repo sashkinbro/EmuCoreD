@@ -1,4 +1,4 @@
-﻿<resources>
+<resources>
     <string name="emulation_runtime_failure_title">Emulasi dihentikan</string>
     <string name="emulation_runtime_failure_description">Runtime mengalami error dan tidak dapat melanjutkan dengan aman. Keluar dari sesi ini dan mulai ulang game. Renderer tidak diubah secara otomatis.\n\nDetail:\n</string>
     <string name="onboarding_core_title">Dibuat untuk Nintendo 3DS</string>
@@ -11,7 +11,7 @@
 
     <!-- Navigation -->
     <string name="shell_library">Pustaka</string>
-    <string name="shell_catalog_search">Cari 3DS</string>
+    <string name="shell_catalog_search">Katalog Game</string>
     <string name="shell_supported_formats">Format yang Didukung</string>
 
     <!-- Home Screen -->
@@ -334,7 +334,7 @@
     <string name="shell_data_transfer">Transfer Data</string>
     <string name="shell_launch_game_unsupported">Format gambar game tidak didukung.</string>
     <string name="shell_save_states">Pengelola Simpanan</string>
-    <string name="shell_memory_cards">Kartu SD 3DS</string>
+    <string name="shell_memory_cards">Kartu Memori</string>
     <string name="shell_texture_manager">Pengelola Tekstur</string>
 
     <!-- Texture Manager -->
@@ -535,7 +535,7 @@
     <string name="save_manager_empty_body_all">Buat simpanan di dalam game terlebih dahulu, maka simpanan itu akan muncul di sini.</string>
     <string name="save_manager_empty_body_game">Game ini belum memiliki simpanan apa pun.</string>
     <string name="save_manager_unknown_game">Game tidak diketahui</string>
-    <string name="save_manager_entry_meta">%1$s вЂў Slot %2$d</string>
+    <string name="save_manager_entry_meta">%1$s - Slot %2$d</string>
     <string name="save_manager_entry_meta_auto">%1$s вЂў %2$s</string>
     <string name="save_manager_auto_save_label">Simpan Otomatis</string>
     <string name="save_manager_entry_size">Ukuran: %1$s</string>

@@ -1,4 +1,4 @@
-﻿
+
 <resources>
     <string name="onboarding_core_title">РЎС‚РІРѕСЂРµРЅРѕ РґР»СЏ Nintendo 3DS</string>
     <string name="onboarding_core_subtitle">Р§РёСЃС‚Рµ СЏРґСЂРѕ Nintendo 3DS Р· ARM64-СЂРµРєРѕРјРїС–Р»СЏС†С–С”СЋ С‚Р° СЂРµРЅРґРµСЂРёРЅРіРѕРј Vulkan.</string>
@@ -11,7 +11,7 @@
     <string name="onboarding_core_card_reference">РЈСЃС– РјРѕР¶Р»РёРІРѕСЃС‚С– СЏРґСЂР° РґРѕСЃС‚СѓРїРЅС– Р±РµР· РїР»Р°С‚РЅРѕС— РїС–РґРїРёСЃРєРё.</string>
 
     <string name="shell_library">Р‘С–Р±Р»С–РѕС‚РµРєР°</string>
-    <string name="shell_catalog_search">РџРѕС€СѓРє 3DS</string>
+    <string name="shell_catalog_search">Каталог ігор</string>
     <string name="shell_supported_formats">РџС–РґС‚СЂРёРјСѓРІР°РЅС– С„РѕСЂРјР°С‚Рё</string>
 
     <string name="home_empty_title">Р†РіРѕСЂ РЅРµ Р·РЅР°Р№РґРµРЅРѕ</string>
@@ -323,7 +323,7 @@
     <string name="save_manager_empty_body_all">РЎРїРµСЂС€Сѓ СЃС‚РІРѕСЂС–С‚СЊ Р·Р±РµСЂРµР¶РµРЅРЅСЏ Сѓ РіСЂС–, РїС–СЃР»СЏ С‡РѕРіРѕ РІРѕРЅРѕ Р·вЂ™СЏРІРёС‚СЊСЃСЏ С‚СѓС‚.</string>
     <string name="save_manager_empty_body_game">Р”Р»СЏ С†С–С”С— РіСЂРё Р·Р±РµСЂРµР¶РµРЅСЊ РїРѕРєРё РЅРµРјР°С”.</string>
     <string name="save_manager_unknown_game">РќРµРІС–РґРѕРјР° РіСЂР°</string>
-    <string name="save_manager_entry_meta">%1$s вЂў РЎР»РѕС‚ %2$d</string>
+    <string name="save_manager_entry_meta">%1$s - Slot %2$d</string>
     <string name="save_manager_entry_size">Р РѕР·РјС–СЂ: %1$s</string>
     <string name="save_manager_load_action">Р—Р°РІР°РЅС‚Р°Р¶РёС‚Рё</string>
     <string name="save_manager_delete_action">Р’РёРґР°Р»РёС‚Рё</string>
@@ -435,7 +435,7 @@
     <string name="settings_gamepad_action_left_input_toggle">РџРµСЂРµРјРёРєР°РЅРЅСЏ Р»С–РІРѕРіРѕ РІРІРѕРґСѓ</string>
     <string name="controls_editor_done">Р“РѕС‚РѕРІРѕ</string>
     <string name="memory_card_loading">Р—Р°РІР°РЅС‚Р°Р¶РµРЅРЅСЏ РєР°СЂС‚ РїР°Рј\'СЏС‚С–вЂ¦</string>
-    <string name="shell_memory_cards">SD-РєР°СЂС‚Р° 3DS</string>
+    <string name="shell_memory_cards">Карти пам’яті</string>
     <string name="emulation_quick_save_confirm_title">Р—Р±РµСЂРµРіС‚Рё СЃС‚Р°РЅ?</string>
     <string name="emulation_quick_save_confirm_desc">Р¦Рµ РїРµСЂРµР·Р°РїРёС€Рµ СЃР»РѕС‚ %1$d РїРѕС‚РѕС‡РЅРёРј СЃС‚Р°РЅРѕРј РіСЂРё.</string>
     <string name="emulation_quick_load_confirm_title">Р—Р°РІР°РЅС‚Р°Р¶РёС‚Рё СЃС‚Р°РЅ?</string>

@@ -1,4 +1,4 @@
-﻿<resources>
+<resources>
     <string name="emulation_runtime_failure_title">м—ђл®¬л €мќґм…мќґ м¤‘м§Ђлђм—€мЉµл‹€л‹¤</string>
     <string name="emulation_runtime_failure_description">лџ°нѓЂмћ„м—ђм„њ м¤лҐк°Ђ л°њмѓќн•м—¬ м•€м „н•кІЊ кі„м†Ќн•  м€ м—†мЉµл‹€л‹¤. мќґ м„ём…мќ„ мў…лЈЊн•кі  кІЊмћ„мќ„ л‹¤м‹њ м‹њмћ‘н•м„ёмљ”. л ЊлЌ”лџ¬лЉ” мћђлЏ™мњјлЎњ ліЂкІЅлђм§Ђ м•Љм•мЉµл‹€л‹¤.\n\nм„ёл¶Ђм •ліґ:\n</string>
     <string name="onboarding_core_title">Nintendo 3DSлҐј мњ„н•ґ</string>
@@ -10,7 +10,7 @@
     <string name="app_name">EmuCoreD</string>
 
     <string name="shell_library">лќјмќґлёЊлџ¬л¦¬</string>
-    <string name="shell_catalog_search">3DS кІЂмѓ‰</string>
+    <string name="shell_catalog_search">게임 카탈로그</string>
     <string name="shell_supported_formats">м§Ђм›ђлђлЉ” н•м‹ќ</string>
 
     <string name="home_empty_title">кІЊмћ„мќ„ м°ѕмќ„ м€ м—†мЉµл‹€л‹¤</string>
@@ -276,7 +276,7 @@
     <string name="shell_data_transfer">лЌ°мќґн„° м „м†Ў</string>
     <string name="shell_launch_game_unsupported">м§Ђм›ђлђм§Ђ м•ЉлЉ” кІЊмћ„ мќґлЇём§Ђ н•м‹ќмћ…л‹€л‹¤.</string>
     <string name="shell_save_states">м ЂмћҐ лЌ°мќґн„° кґЂл¦¬мћђ</string>
-    <string name="shell_memory_cards">3DS SD м№ґл“њ</string>
+    <string name="shell_memory_cards">메모리 카드</string>
 
     <string name="settings_controls_tab">м»ЁнЉёлЎ¤</string>
     <string name="settings_overlay_scale">м¤лІ„л €мќґ нЃ¬кё°</string>
@@ -438,7 +438,7 @@
     <string name="save_manager_empty_body_all">лЁјм Ђ кІЊмћ„ л‚ґм—ђм„њ м ЂмћҐ лЌ°мќґн„°лҐј мѓќм„±н•л©ґ м—¬кё°м—ђ л‚нѓЂл‚©л‹€л‹¤.</string>
     <string name="save_manager_empty_body_game">мќґ кІЊмћ„м—ђлЉ” м•„м§Ѓ м ЂмћҐ лЌ°мќґн„°к°Ђ м—†мЉµл‹€л‹¤.</string>
     <string name="save_manager_unknown_game">м•Њ м€ м—†лЉ” кІЊмћ„</string>
-    <string name="save_manager_entry_meta">%1$s вЂў мЉ¬лЎЇ %2$d</string>
+    <string name="save_manager_entry_meta">%1$s - Slot %2$d</string>
     <string name="save_manager_entry_meta_auto">%1$s вЂў %2$s</string>
     <string name="save_manager_auto_save_label">мћђлЏ™ м ЂмћҐ</string>
     <string name="save_manager_entry_size">нЃ¬кё°: %1$s</string>

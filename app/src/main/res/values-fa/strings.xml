@@ -1,4 +1,4 @@
-﻿<resources>
+<resources>
     <string name="emulation_runtime_failure_title">ШґШЁЫЊЩ‡вЂЊШіШ§ШІЫЊ Щ…ШЄЩ€Щ‚ЩЃ ШґШЇ</string>
     <string name="emulation_runtime_failure_description">Щ…Ш­ЫЊШ· Ш§Ш¬Ш±Ш§ ШЁШ§ Ш®Ш·Ш§ЫЊЫЊ Щ…Щ€Ш§Ш¬Щ‡ ШґШЇ Щ€ Щ†Щ…ЫЊвЂЊШЄЩ€Ш§Щ†ШЇ ШЁШ§ Ш®ЫЊШ§Щ„ Ш±Ш§Ш­ШЄ Ш§ШЇШ§Щ…Щ‡ ШЇЩ‡ШЇ. Ш§ШІ Ш§ЫЊЩ† Щ†ШґШіШЄ Ш®Ш§Ш±Ш¬ ШґЩ€ЫЊШЇ Щ€ ШЁШ§ШІЫЊ Ш±Ш§ ШЇЩ€ШЁШ§Ш±Щ‡ ШґШ±Щ€Ш№ Ъ©Щ†ЫЊШЇ. Ш±Щ†ШЇШ±Ш± ШЁЩ‡вЂЊШµЩ€Ш±ШЄ Ш®Щ€ШЇЪ©Ш§Ш± ШЄШєЫЊЫЊШ± Щ†Ъ©Ш±ШЇ.\n\nШ¬ШІШ¦ЫЊШ§ШЄ:\n</string>
     <string name="onboarding_core_title">ШіШ§Ш®ШЄЩ‡вЂЊШґШЇЩ‡ ШЁШ±Ш§ЫЊ Nintendo 3DS</string>
@@ -11,7 +11,7 @@
 
     <!-- Navigation -->
     <string name="shell_library">Ъ©ШЄШ§ШЁШ®Ш§Щ†Щ‡</string>
-    <string name="shell_catalog_search">Ш¬ШіШЄШ¬Щ€ЫЊ 3DS</string>
+    <string name="shell_catalog_search">کاتالوگ بازی‌ها</string>
     <string name="shell_supported_formats">ЩЃШ±Щ…ШЄвЂЊЩ‡Ш§ЫЊ ЩѕШґШЄЫЊШЁШ§Щ†ЫЊ ШґШЇЩ‡</string>
 
     <!-- Home Screen -->
@@ -334,7 +334,7 @@
     <string name="shell_data_transfer">Ш§Щ†ШЄЩ‚Ш§Щ„ ШЇШ§ШЇЩ‡</string>
     <string name="shell_launch_game_unsupported">ЩЃШ±Щ…ШЄ ШЄШµЩ€ЫЊШ± ШЁШ§ШІЫЊ ЩѕШґШЄЫЊШЁШ§Щ†ЫЊ Щ†Щ…ЫЊвЂЊШґЩ€ШЇ.</string>
     <string name="shell_save_states">Щ…ШЇЫЊШ±ЫЊШЄ Щ€Ш¶Ш№ЫЊШЄвЂЊЩ‡Ш§ЫЊ Ш°Ш®ЫЊШ±Щ‡</string>
-    <string name="shell_memory_cards">Ъ©Ш§Ш±ШЄ SD 3DS</string>
+    <string name="shell_memory_cards">کارت‌های حافظه</string>
     <string name="shell_texture_manager">Щ…ШЇЫЊШ±ЫЊШЄ ШЁШ§ЩЃШЄвЂЊЩ‡Ш§</string>
 
     <!-- Texture Manager -->
@@ -535,7 +535,7 @@
     <string name="save_manager_empty_body_all">Ш§ШЁШЄШЇШ§ ЫЊЪ© Ш°Ш®ЫЊШ±Щ‡ ШЇШ±Щ€Щ† ШЁШ§ШІЫЊ Ш§ЫЊШ¬Ш§ШЇ Ъ©Щ†ЫЊШЇШЊ ШіЩѕШі ШЇШ± Ш§ЫЊЩ†Ш¬Ш§ ШёШ§Щ‡Ш± Щ…ЫЊвЂЊШґЩ€ШЇ.</string>
     <string name="save_manager_empty_body_game">Ш§ЫЊЩ† ШЁШ§ШІЫЊ Щ‡Щ†Щ€ШІ Щ‡ЫЊЪ† Ш°Ш®ЫЊШ±Щ‡вЂЊШ§ЫЊ Щ†ШЇШ§Ш±ШЇ.</string>
     <string name="save_manager_unknown_game">ШЁШ§ШІЫЊ Щ†Ш§ШґЩ†Ш§Ш®ШЄЩ‡</string>
-    <string name="save_manager_entry_meta">%1$s вЂў ШґЪ©Ш§ЩЃ %2$d</string>
+    <string name="save_manager_entry_meta">%1$s - Slot %2$d</string>
     <string name="save_manager_entry_meta_auto">%1$s вЂў %2$s</string>
     <string name="save_manager_auto_save_label">Ш°Ш®ЫЊШ±Щ‡ Ш®Щ€ШЇЪ©Ш§Ш±</string>
     <string name="save_manager_entry_size">Ш­Ш¬Щ…: %1$s</string>

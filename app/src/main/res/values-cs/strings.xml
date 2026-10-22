@@ -1,4 +1,4 @@
-﻿<resources>
+<resources>
     <string name="emulation_runtime_failure_title">Emulace zastavena</string>
     <string name="emulation_runtime_failure_description">BД›hovГ© prostЕ™edГ­ narazilo na chybu a nemЕЇЕѕe bezpeДЌnД› pokraДЌovat. UkonДЌete tuto relaci a spusЕҐte hru znovu. Renderer nebyl automaticky zmД›nД›n.\n\nPodrobnosti:\n</string>
     <string name="onboarding_core_title">VytvoЕ™eno pro Nintendo 3DS</string>
@@ -11,7 +11,7 @@
 
     <!-- Navigation -->
     <string name="shell_library">Knihovna</string>
-    <string name="shell_catalog_search">Hledat 3DS</string>
+    <string name="shell_catalog_search">Katalog her</string>
     <string name="shell_supported_formats">PodporovanГ© formГЎty</string>
 
     <!-- Home Screen -->
@@ -355,7 +355,7 @@
     <string name="shell_data_transfer">PЕ™enos dat</string>
     <string name="shell_launch_game_unsupported">NepodporovanГЅ formГЎt obrazu hry.</string>
     <string name="shell_save_states">SprГЎvce uloЕѕenГ­</string>
-    <string name="shell_memory_cards">SD karta 3DS</string>
+    <string name="shell_memory_cards">Paměťové karty</string>
     <string name="shell_texture_manager">SprГЎvce textur</string>
 
     <!-- Texture Manager -->
@@ -566,7 +566,7 @@
     <string name="save_manager_empty_body_all">Nejprve vytvoЕ™te uloЕѕenГ­ ve hЕ™e, potГ© se objevГ­ zde.</string>
     <string name="save_manager_empty_body_game">Tato hra zatГ­m nemГЎ ЕѕГЎdnГЎ uloЕѕenГ­.</string>
     <string name="save_manager_unknown_game">NeznГЎmГЎ hra</string>
-    <string name="save_manager_entry_meta">%1$s вЂў Slot %2$d</string>
+    <string name="save_manager_entry_meta">%1$s - Slot %2$d</string>
     <string name="save_manager_entry_meta_auto">%1$s вЂў %2$s</string>
     <string name="save_manager_auto_save_label">AutomatickГ© uloЕѕenГ­</string>
     <string name="save_manager_entry_size">Velikost: %1$s</string>

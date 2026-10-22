@@ -1,4 +1,4 @@
-﻿<resources>
+<resources>
     <string name="emulation_runtime_failure_title">г‚ЁгѓџгѓҐгѓ¬гѓјг‚·гѓ§гѓіг‚’еЃњж­ўгЃ—гЃѕгЃ—гЃџ</string>
     <string name="emulation_runtime_failure_description">гѓ©гѓіг‚їг‚¤гѓ гЃ§г‚Ёгѓ©гѓјгЃЊз™єз”џгЃ—гЂЃе®‰е…ЁгЃ«з¶љиЎЊгЃ§гЃЌгЃѕгЃ›г‚“гЂ‚гЃ“гЃ®г‚»гѓѓг‚·гѓ§гѓіг‚’зµ‚дє†гЃ—гЃ¦г‚Ігѓјгѓ г‚’е†Ќиµ·е‹•гЃ—гЃ¦гЃЏгЃ гЃ•гЃ„гЂ‚гѓ¬гѓігѓЂгѓ©гѓјгЃЇи‡Єе‹•зљ„гЃ«е¤‰ж›ґгЃ•г‚ЊгЃ¦гЃ„гЃѕгЃ›г‚“гЂ‚\n\nи©ізґ°:\n</string>
     <string name="onboarding_core_title">Nintendo 3DSгЃ®гЃџг‚ЃгЃ«</string>
@@ -10,7 +10,7 @@
     <string name="app_name">EmuCoreD</string>
 
     <string name="shell_library">гѓ©г‚¤гѓ–гѓ©гѓЄ</string>
-    <string name="shell_catalog_search">3DSж¤њзґў</string>
+    <string name="shell_catalog_search">ゲームカタログ</string>
     <string name="shell_supported_formats">еЇѕеїњгѓ•г‚©гѓјгѓћгѓѓгѓ€</string>
 
     <string name="home_empty_title">г‚Ігѓјгѓ гЃЊи¦‹гЃ¤гЃ‹г‚ЉгЃѕгЃ›г‚“</string>
@@ -276,7 +276,7 @@
     <string name="shell_data_transfer">гѓ‡гѓјг‚їи»ўйЂЃ</string>
     <string name="shell_launch_game_unsupported">г‚µгѓќгѓјгѓ€гЃ•г‚ЊгЃ¦гЃ„гЃЄгЃ„г‚Ігѓјгѓ г‚¤гѓЎгѓјг‚ёеЅўејЏгЃ§гЃ™гЂ‚</string>
     <string name="shell_save_states">г‚»гѓјгѓ–гѓћгѓЌгѓјг‚ёгѓЈгѓј</string>
-    <string name="shell_memory_cards">3DS SDг‚«гѓјгѓ‰</string>
+    <string name="shell_memory_cards">メモリーカード</string>
 
     <string name="settings_controls_tab">ж“ЌдЅњ</string>
     <string name="settings_overlay_scale">г‚Єгѓјгѓђгѓ¬г‚¤гЃ®г‚№г‚±гѓјгѓ«</string>
@@ -438,7 +438,7 @@
     <string name="save_manager_empty_body_all">гЃѕгЃљг‚Ігѓјгѓ е†…гЃ§г‚»гѓјгѓ–гѓ‡гѓјг‚їг‚’дЅњж€ђгЃ™г‚‹гЃЁгЂЃгЃ“гЃ“гЃ«иЎЁз¤єгЃ•г‚ЊгЃѕгЃ™гЂ‚</string>
     <string name="save_manager_empty_body_game">гЃ“гЃ®г‚Ігѓјгѓ гЃ«гЃЇгЃѕгЃ г‚»гѓјгѓ–гѓ‡гѓјг‚їгЃЊгЃ‚г‚ЉгЃѕгЃ›г‚“гЂ‚</string>
     <string name="save_manager_unknown_game">дёЌжЋгЃЄг‚Ігѓјгѓ </string>
-    <string name="save_manager_entry_meta">%1$s вЂў г‚№гѓ­гѓѓгѓ€ %2$d</string>
+    <string name="save_manager_entry_meta">%1$s - Slot %2$d</string>
     <string name="save_manager_entry_meta_auto">%1$s вЂў %2$s</string>
     <string name="save_manager_auto_save_label">г‚Єгѓјгѓ€г‚»гѓјгѓ–</string>
     <string name="save_manager_entry_size">г‚µг‚¤г‚є: %1$s</string>

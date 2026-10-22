@@ -1,4 +1,4 @@
-﻿<resources>
+<resources>
     <string name="emulation_runtime_failure_title">жЁЎж‹џе·ІеЃњж­ў</string>
     <string name="emulation_runtime_failure_description">иїђиЎЊж—¶йЃ‡е€°й”™иЇЇпјЊж— жі•е®‰е…Ёз»§з»­гЂ‚иЇ·йЂЂе‡єжњ¬ж¬ЎдјљиЇќе№¶й‡Ќж–°еђЇеЉЁжёёж€ЏгЂ‚жёІжџ“е™ЁжњЄи‡ЄеЉЁж›ґж”№гЂ‚\n\nиЇ¦жѓ…пјљ\n</string>
     <string name="onboarding_core_title">дё“дёє Nintendo 3DS ж‰“йЂ </string>
@@ -10,7 +10,7 @@
     <string name="app_name">EmuCoreD</string>
 
     <string name="shell_library">йЃЉж€Іеє«</string>
-    <string name="shell_catalog_search">жђњзґў 3DS</string>
+    <string name="shell_catalog_search">游戏目录</string>
     <string name="shell_supported_formats">ж”ЇжЏґзљ„ж јејЏ</string>
 
     <string name="home_empty_title">ж‰ѕдёЌе€°йЃЉж€І</string>
@@ -287,7 +287,7 @@
     <string name="save_manager_empty_body_all">и«‹е…€ењЁйЃЉж€Ідё­е»єз«‹е­жЄ”пјЊз„¶еѕЊе®ѓе°±жњѓе‡єзЏѕењЁйЂ™иЈЎгЂ‚</string>
     <string name="save_manager_empty_body_game">ж­¤йЃЉж€Із›®е‰ЌжІ’жњ‰д»»дЅ•е­жЄ”гЂ‚</string>
     <string name="save_manager_unknown_game">жњЄзџҐзљ„йЃЉж€І</string>
-    <string name="save_manager_entry_meta">%1$s вЂў ж¬„дЅЌ %2$d</string>
+    <string name="save_manager_entry_meta">%1$s - Slot %2$d</string>
     <string name="save_manager_entry_size">е¤§е°Џпјљ%1$s</string>
     <string name="save_manager_load_action">иј‰е…Ґ</string>
     <string name="save_manager_delete_action">е€Єй™¤</string>
@@ -405,7 +405,7 @@
     <string name="onboarding_profile_fast_title">еї«йЂџ / дёЌе®‰е…Ё</string>
     <string name="onboarding_profile_fast_desc">йЂ‚з”ЁдєЋйњЂи¦Ѓйўќе¤–йЂџеє¦зљ„дЅЋй…ЌзЅ®и®ѕе¤‡гЂ‚жџђдє›жёёж€ЏеЏЇиѓЅдјље‡єзЋ°ж›ґе¤ље›ѕеЅўй”™иЇЇж€–еЏеѕ—дёЌе¤џзЁіе®љгЂ‚</string>
     <string name="memory_card_loading">ж­ЈењЁеЉ иЅЅи®°еї†еЌЎвЂ¦</string>
-    <string name="shell_memory_cards">3DS SD еЌЎ</string>
+    <string name="shell_memory_cards">存储卡</string>
     <string name="emulation_quick_save_confirm_title">дїќе­зЉ¶жЂЃпјџ</string>
     <string name="emulation_quick_save_confirm_desc">иї™е°†дЅїз”ЁеЅ“е‰Ќжёёж€ЏзЉ¶жЂЃи¦†з›–жЏ’ж§Ѕ %1$dгЂ‚</string>
     <string name="emulation_quick_load_confirm_title">еЉ иЅЅзЉ¶жЂЃпјџ</string>

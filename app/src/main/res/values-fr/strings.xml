@@ -1,4 +1,4 @@
-﻿<resources>
+<resources>
     <string name="emulation_runtime_failure_title">Г‰mulation arrГЄtГ©e</string>
     <string name="emulation_runtime_failure_description">LвЂ™environnement dвЂ™exГ©cution a rencontrГ© une erreur et ne peut pas continuer en toute sГ©curitГ©. Quittez cette session et relancez le jeu. Le moteur de rendu nвЂ™a pas Г©tГ© modifiГ© automatiquement.\n\nDГ©tails :\n</string>
     <string name="onboarding_core_title">ConГ§u pour la Nintendo 3DS</string>
@@ -10,7 +10,7 @@
     <string name="app_name">EmuCoreD</string>
 
     <string name="shell_library">BibliothГЁque</string>
-    <string name="shell_catalog_search">Recherche 3DS</string>
+    <string name="shell_catalog_search">Catalogue de jeux</string>
     <string name="shell_supported_formats">Formats pris en charge</string>
 
     <string name="home_empty_title">Aucun jeu trouvГ©</string>
@@ -287,7 +287,7 @@
     <string name="save_manager_empty_body_all">CrГ©ez d\'abord une sauvegarde dans le jeu, puis elle apparaГ®tra ici.</string>
     <string name="save_manager_empty_body_game">Ce jeu n\'a pas encore de sauvegarde.</string>
     <string name="save_manager_unknown_game">Jeu inconnu</string>
-    <string name="save_manager_entry_meta">%1$s вЂў Emplacement %2$d</string>
+    <string name="save_manager_entry_meta">%1$s - Slot %2$d</string>
     <string name="save_manager_entry_size">Taille : %1$s</string>
     <string name="save_manager_load_action">Charger</string>
     <string name="save_manager_delete_action">Supprimer</string>
@@ -405,7 +405,7 @@
     <string name="onboarding_profile_fast_title">Rapide / Peu sГ»r</string>
     <string name="onboarding_profile_fast_desc">Pour les appareils moins performants qui ont besoin de plus de vitesse. Certains jeux peuvent prГ©senter plus de bugs ou devenir moins stables.</string>
     <string name="memory_card_loading">Chargement des cartes mГ©moireвЂ¦</string>
-    <string name="shell_memory_cards">Carte SD 3DS</string>
+    <string name="shell_memory_cards">Cartes mémoire</string>
     <string name="emulation_quick_save_confirm_title">Sauvegarder l\'Г©tat ?</string>
     <string name="emulation_quick_save_confirm_desc">Cela Г©crasera l\'emplacement %1$d avec l\'Г©tat actuel du jeu.</string>
     <string name="emulation_quick_load_confirm_title">Charger l\'Г©tat ?</string>

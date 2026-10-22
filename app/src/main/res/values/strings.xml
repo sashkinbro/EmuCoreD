@@ -1,4 +1,4 @@
-﻿
+
 <resources>
     <string name="emulation_runtime_failure_title">Emulation stopped</string>
     <string name="emulation_runtime_failure_description">The runtime encountered an error and cannot safely continue. Exit this session and start the game again. The renderer was not changed automatically.\n\nDetails:\n</string>
@@ -12,7 +12,7 @@
 
     <!-- Navigation -->
     <string name="shell_library">Library</string>
-    <string name="shell_catalog_search">3DS Search</string>
+    <string name="shell_catalog_search">Game Catalog</string>
     <string name="shell_supported_formats">Supported Formats</string>
 
     <!-- Home Screen -->
@@ -373,7 +373,7 @@
     <string name="shell_data_transfer">Data Transfer</string>
     <string name="shell_launch_game_unsupported">Unsupported game image format.</string>
     <string name="shell_save_states">Save Manager</string>
-    <string name="shell_memory_cards">3DS SD Card</string>
+    <string name="shell_memory_cards">Memory Cards</string>
     <string name="shell_texture_manager">Texture Manager</string>
 
     <!-- Texture Manager -->
@@ -611,7 +611,7 @@
     <string name="save_manager_empty_body_all">Create a save in-game first, then it will appear here.</string>
     <string name="save_manager_empty_body_game">This game does not have any saves yet.</string>
     <string name="save_manager_unknown_game">Unknown game</string>
-    <string name="save_manager_entry_meta">%1$s вЂў Slot %2$d</string>
+    <string name="save_manager_entry_meta">%1$s - Slot %2$d</string>
     <string name="save_manager_entry_meta_auto">%1$s вЂў %2$s</string>
     <string name="save_manager_auto_save_label">Auto Save</string>
     <string name="save_manager_entry_size">Size: %1$s</string>

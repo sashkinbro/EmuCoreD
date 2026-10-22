@@ -1,4 +1,4 @@
-﻿<resources>
+<resources>
     <string name="emulation_runtime_failure_title">EmГјlasyon durduruldu</string>
     <string name="emulation_runtime_failure_description">Г‡alД±Еџma zamanД± bir hatayla karЕџД±laЕџtД± ve gГјvenle devam edemiyor. Bu oturumdan Г§Д±kД±p oyunu yeniden baЕџlatД±n. Д°Еџleyici otomatik olarak deДџiЕџtirilmedi.\n\nAyrД±ntД±lar:\n</string>
     <string name="onboarding_core_title">Nintendo 3DS iГ§in tasarlandД±</string>
@@ -10,7 +10,7 @@
     <string name="app_name">EmuCoreD</string>
 
     <string name="shell_library">KГјtГјphane</string>
-    <string name="shell_catalog_search">3DS\'de ara</string>
+    <string name="shell_catalog_search">Oyun Kataloğu</string>
     <string name="shell_supported_formats">Desteklenen Formatlar</string>
 
     <string name="home_empty_title">Oyun bulunamadД±</string>
@@ -276,7 +276,7 @@
     <string name="shell_data_transfer">Veri AktarД±mД±</string>
     <string name="shell_launch_game_unsupported">Desteklenmeyen oyun imajД± formatД±.</string>
     <string name="shell_save_states">KayД±t YГ¶neticisi</string>
-    <string name="shell_memory_cards">3DS SD kartД±</string>
+    <string name="shell_memory_cards">Hafıza Kartları</string>
 
     <string name="settings_controls_tab">Kontroller</string>
     <string name="settings_overlay_scale">ArayГјz Г–lГ§eДџi</string>
@@ -438,7 +438,7 @@
     <string name="save_manager_empty_body_all">Г–nce oyun iГ§inde bir kayД±t oluЕџturun, ardД±ndan burada gГ¶rГјnecektir.</string>
     <string name="save_manager_empty_body_game">Bu oyunda henГјz hiГ§ kayД±t yok.</string>
     <string name="save_manager_unknown_game">Bilinmeyen oyun</string>
-    <string name="save_manager_entry_meta">%1$s вЂў Yuva %2$d</string>
+    <string name="save_manager_entry_meta">%1$s - Slot %2$d</string>
     <string name="save_manager_entry_meta_auto">%1$s вЂў %2$s</string>
     <string name="save_manager_auto_save_label">Otomatik KayД±t</string>
     <string name="save_manager_entry_size">Boyut: %1$s</string>

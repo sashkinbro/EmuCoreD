@@ -1,4 +1,4 @@
-﻿<resources>
+<resources>
     <string name="emulation_runtime_failure_title">EmulaГ§ГЈo interrompida</string>
     <string name="emulation_runtime_failure_description">O ambiente de execuГ§ГЈo encontrou um erro e nГЈo pode continuar com seguranГ§a. Saia desta sessГЈo e inicie o jogo novamente. O renderizador nГЈo foi alterado automaticamente.\n\nDetalhes:\n</string>
     <string name="onboarding_core_title">Feito para o Nintendo 3DS</string>
@@ -10,7 +10,7 @@
     <string name="app_name">EmuCoreD</string>
 
     <string name="shell_library">Biblioteca</string>
-    <string name="shell_catalog_search">Buscar no 3DS</string>
+    <string name="shell_catalog_search">Catálogo de jogos</string>
     <string name="shell_supported_formats">Formatos Suportados</string>
 
     <string name="home_empty_title">Nenhum jogo encontrado</string>
@@ -287,7 +287,7 @@
     <string name="save_manager_empty_body_all">Crie um save no jogo primeiro, e ele aparecerГЎ aqui.</string>
     <string name="save_manager_empty_body_game">Este jogo ainda nГЈo possui nenhum save.</string>
     <string name="save_manager_unknown_game">Jogo desconhecido</string>
-    <string name="save_manager_entry_meta">%1$s вЂў Slot %2$d</string>
+    <string name="save_manager_entry_meta">%1$s - Slot %2$d</string>
     <string name="save_manager_entry_size">Tamanho: %1$s</string>
     <string name="save_manager_load_action">Carregar</string>
     <string name="save_manager_delete_action">Excluir</string>
@@ -405,7 +405,7 @@
     <string name="onboarding_profile_fast_title">RГЎpido / Inseguro</string>
     <string name="onboarding_profile_fast_desc">Para dispositivos mais fracos que precisam de velocidade extra. Alguns jogos podem apresentar mais falhas ou se tornarem menos estГЎveis.</string>
     <string name="memory_card_loading">Carregando cartГµes de memГіriaвЂ¦</string>
-    <string name="shell_memory_cards">CartГЈo SD do 3DS</string>
+    <string name="shell_memory_cards">Cartões de memória</string>
     <string name="emulation_quick_save_confirm_title">Salvar estado?</string>
     <string name="emulation_quick_save_confirm_desc">Isso substituirГЎ o slot %1$d pelo estado atual do jogo.</string>
     <string name="emulation_quick_load_confirm_title">Carregar estado?</string>

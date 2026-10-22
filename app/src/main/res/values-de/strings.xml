@@ -1,4 +1,4 @@
-﻿<resources>
+<resources>
     <string name="emulation_runtime_failure_title">Emulation gestoppt</string>
     <string name="emulation_runtime_failure_description">Die Laufzeit ist auf einen Fehler gestoГџen und kann nicht sicher fortfahren. Beende diese Sitzung und starte das Spiel erneut. Der Renderer wurde nicht automatisch geГ¤ndert.\n\nDetails:\n</string>
     <string name="onboarding_core_title">FГјr Nintendo 3DS gemacht</string>
@@ -10,7 +10,7 @@
     <string name="app_name">EmuCoreD</string>
 
     <string name="shell_library">Bibliothek</string>
-    <string name="shell_catalog_search">3DS-Suche</string>
+    <string name="shell_catalog_search">Spielekatalog</string>
     <string name="shell_supported_formats">UnterstГјtzte Formate</string>
 
     <string name="home_empty_title">Keine Spiele gefunden</string>
@@ -287,7 +287,7 @@
     <string name="save_manager_empty_body_all">Erstelle zuerst einen Spielstand im Spiel, dann wird er hier angezeigt.</string>
     <string name="save_manager_empty_body_game">FГјr dieses Spiel gibt es noch keine SpeicherstГ¤nde.</string>
     <string name="save_manager_unknown_game">Unbekanntes Spiel</string>
-    <string name="save_manager_entry_meta">%1$s вЂў Slot %2$d</string>
+    <string name="save_manager_entry_meta">%1$s - Slot %2$d</string>
     <string name="save_manager_entry_size">GrГ¶Гџe: %1$s</string>
     <string name="save_manager_load_action">Laden</string>
     <string name="save_manager_delete_action">LГ¶schen</string>
@@ -405,7 +405,7 @@
     <string name="onboarding_profile_fast_title">Schnell / Unsicher</string>
     <string name="onboarding_profile_fast_desc">FГјr schwГ¤chere GerГ¤te, die zusГ¤tzliche Geschwindigkeit benГ¶tigen. Bei einigen Spielen kГ¶nnen mehr Grafikfehler auftreten oder sie werden instabiler.</string>
     <string name="memory_card_loading">Memory Cards werden geladenвЂ¦</string>
-    <string name="shell_memory_cards">3DS-SD-Karte</string>
+    <string name="shell_memory_cards">Speicherkarten</string>
     <string name="emulation_quick_save_confirm_title">Spielstand speichern?</string>
     <string name="emulation_quick_save_confirm_desc">Dies Гјberschreibt Steckplatz %1$d mit dem aktuellen Spielstand.</string>
     <string name="emulation_quick_load_confirm_title">Spielstand laden?</string>

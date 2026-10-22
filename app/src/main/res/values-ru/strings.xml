@@ -1,4 +1,4 @@
-﻿<resources>
+<resources>
     <string name="emulation_runtime_failure_title">Р­РјСѓР»СЏС†РёСЏ РѕСЃС‚Р°РЅРѕРІР»РµРЅР°</string>
     <string name="emulation_runtime_failure_description">РЎСЂРµРґР° РІС‹РїРѕР»РЅРµРЅРёСЏ СЃС‚РѕР»РєРЅСѓР»Р°СЃСЊ СЃ РѕС€РёР±РєРѕР№ Рё РЅРµ РјРѕР¶РµС‚ Р±РµР·РѕРїР°СЃРЅРѕ РїСЂРѕРґРѕР»Р¶РёС‚СЊ. Р’С‹Р№РґРёС‚Рµ РёР· СЌС‚РѕРіРѕ СЃРµР°РЅСЃР° Рё Р·Р°РїСѓСЃС‚РёС‚Рµ РёРіСЂСѓ Р·Р°РЅРѕРІРѕ. Р РµРЅРґРµСЂРµСЂ РЅРµ Р±С‹Р» РёР·РјРµРЅС‘РЅ Р°РІС‚РѕРјР°С‚РёС‡РµСЃРєРё.\n\nРџРѕРґСЂРѕР±РЅРѕСЃС‚Рё:\n</string>
     <string name="onboarding_core_title">РЎРѕР·РґР°РЅРѕ РґР»СЏ Nintendo 3DS</string>
@@ -10,7 +10,7 @@
     <string name="app_name">EmuCoreD</string>
 
     <string name="shell_library">Р‘РёР±Р»РёРѕС‚РµРєР°</string>
-    <string name="shell_catalog_search">РџРѕРёСЃРє 3DS</string>
+    <string name="shell_catalog_search">Каталог игр</string>
     <string name="shell_supported_formats">РџРѕРґРґРµСЂР¶РёРІР°РµРјС‹Рµ С„РѕСЂРјР°С‚С‹</string>
 
     <string name="home_empty_title">РРіСЂС‹ РЅРµ РЅР°Р№РґРµРЅС‹</string>
@@ -290,7 +290,7 @@
     <string name="save_manager_empty_body_all">РЎРЅР°С‡Р°Р»Р° СЃРѕР·РґР°Р№С‚Рµ СЃРѕС…СЂР°РЅРµРЅРёРµ РІ РёРіСЂРµ, РїРѕСЃР»Рµ С‡РµРіРѕ РѕРЅРѕ РїРѕСЏРІРёС‚СЃСЏ Р·РґРµСЃСЊ.</string>
     <string name="save_manager_empty_body_game">Р”Р»СЏ СЌС‚РѕР№ РёРіСЂС‹ СЃРѕС…СЂР°РЅРµРЅРёР№ РїРѕРєР° РЅРµС‚.</string>
     <string name="save_manager_unknown_game">РќРµРёР·РІРµСЃС‚РЅР°СЏ РёРіСЂР°</string>
-    <string name="save_manager_entry_meta">%1$s вЂў РЎР»РѕС‚ %2$d</string>
+    <string name="save_manager_entry_meta">%1$s - Slot %2$d</string>
     <string name="save_manager_entry_size">Р Р°Р·РјРµСЂ: %1$s</string>
     <string name="save_manager_load_action">Р—Р°РіСЂСѓР·РёС‚СЊ</string>
     <string name="save_manager_delete_action">РЈРґР°Р»РёС‚СЊ</string>
@@ -408,7 +408,7 @@
     <string name="onboarding_profile_fast_title">Р‘С‹СЃС‚СЂС‹Р№ / РќРµР±РµР·РѕРїР°СЃРЅС‹Р№</string>
     <string name="onboarding_profile_fast_desc">Р”Р»СЏ СЃР»Р°Р±С‹С… СѓСЃС‚СЂРѕР№СЃС‚РІ, РєРѕС‚РѕСЂС‹Рј РЅСѓР¶РЅР° РґРѕРїРѕР»РЅРёС‚РµР»СЊРЅР°СЏ СЃРєРѕСЂРѕСЃС‚СЊ. Р’ РЅРµРєРѕС‚РѕСЂС‹С… РёРіСЂР°С… РјРѕР¶РµС‚ Р±С‹С‚СЊ Р±РѕР»СЊС€Рµ РіСЂР°С„РёС‡РµСЃРєРёС… РѕС€РёР±РѕРє, РёР»Рё РѕРЅРё РјРѕРіСѓС‚ СЃС‚Р°С‚СЊ РјРµРЅРµРµ СЃС‚Р°Р±РёР»СЊРЅС‹РјРё.</string>
     <string name="memory_card_loading">Р—Р°РіСЂСѓР·РєР° РєР°СЂС‚ РїР°РјСЏС‚РёвЂ¦</string>
-    <string name="shell_memory_cards">SD-РєР°СЂС‚Р° 3DS</string>
+    <string name="shell_memory_cards">Карты памяти</string>
     <string name="emulation_quick_save_confirm_title">РЎРѕС…СЂР°РЅРёС‚СЊ СЃРѕСЃС‚РѕСЏРЅРёРµ?</string>
     <string name="emulation_quick_save_confirm_desc">Р­С‚Рѕ РїРµСЂРµР·Р°РїРёС€РµС‚ СЃР»РѕС‚ %1$d С‚РµРєСѓС‰РёРј СЃРѕСЃС‚РѕСЏРЅРёРµРј РёРіСЂС‹.</string>
     <string name="emulation_quick_load_confirm_title">Р—Р°РіСЂСѓР·РёС‚СЊ СЃРѕСЃС‚РѕСЏРЅРёРµ?</string>

@@ -1,4 +1,4 @@
-﻿<resources>
+<resources>
     <string name="emulation_runtime_failure_title">Emulacja zatrzymana</string>
     <string name="emulation_runtime_failure_description">Ељrodowisko wykonawcze napotkaЕ‚o bЕ‚Д…d i nie moЕјe bezpiecznie kontynuowaД‡. ZakoЕ„cz tД™ sesjД™ i uruchom grД™ ponownie. Renderer nie zostaЕ‚ zmieniony automatycznie.\n\nSzczegГіЕ‚y:\n</string>
     <string name="onboarding_core_title">Zbudowany dla Nintendo 3DS</string>
@@ -11,7 +11,7 @@
 
     <!-- Navigation -->
     <string name="shell_library">Biblioteka</string>
-    <string name="shell_catalog_search">Szukaj 3DS</string>
+    <string name="shell_catalog_search">Katalog gier</string>
     <string name="shell_supported_formats">ObsЕ‚ugiwane formaty</string>
 
     <!-- Home Screen -->
@@ -352,7 +352,7 @@
     <string name="shell_data_transfer">Transfer danych</string>
     <string name="shell_launch_game_unsupported">NieobsЕ‚ugiwany format obrazu gry.</string>
     <string name="shell_save_states">MenedЕјer zapisГіw</string>
-    <string name="shell_memory_cards">Karta SD 3DS</string>
+    <string name="shell_memory_cards">Karty pamięci</string>
     <string name="shell_texture_manager">MenedЕјer tekstur</string>
 
     <!-- Texture Manager -->
@@ -563,7 +563,7 @@
     <string name="save_manager_empty_body_all">Najpierw utwГіrz zapis w grze, a pojawi siД™ on tutaj.</string>
     <string name="save_manager_empty_body_game">Ta gra nie ma jeszcze Ејadnych zapisГіw.</string>
     <string name="save_manager_unknown_game">Nieznana gra</string>
-    <string name="save_manager_entry_meta">%1$s вЂў Gniazdo %2$d</string>
+    <string name="save_manager_entry_meta">%1$s - Slot %2$d</string>
     <string name="save_manager_entry_meta_auto">%1$s вЂў %2$s</string>
     <string name="save_manager_auto_save_label">Autozapis</string>
     <string name="save_manager_entry_size">Rozmiar: %1$s</string>
