@@ -87,6 +87,7 @@ layout(std140) uniform uConfig
     float uFogDensity[34];
     int uFogOffset;
     int uFogShift;
+    float uCoverageFixDepthBias;
 };
 
 layout(location = 0) out vec4 oColor;
@@ -172,6 +173,7 @@ layout(std140) uniform uConfig
     float uFogDensity[34];
     int uFogOffset;
     int uFogShift;
+    float uCoverageFixDepthBias;
 };
 
 layout(location = 0) out vec4 oColor;
@@ -238,6 +240,7 @@ layout(std140) uniform uConfig
     float uFogDensity[34];
     int uFogOffset;
     int uFogShift;
+    float uCoverageFixDepthBias;
 };
 
 in uvec4 vPosition;
@@ -269,6 +272,7 @@ layout(std140) uniform uConfig
     float uFogDensity[34];
     int uFogOffset;
     int uFogShift;
+    float uCoverageFixDepthBias;
 };
 
 smooth in vec4 fColor;
@@ -675,6 +679,7 @@ void main()
     vec4 fpos;
     fpos.xy = (((vec2(vPosition.xy) ) * 2.0) / uScreenSize) - 1.0;
     fpos.z = (float(vPosition.z << zshift) / 8388608.0) - 1.0;
+    if ((attr & (1<<10)) != 0) fpos.z -= uCoverageFixDepthBias * 2.0;
     fpos.w = float(vPosition.w) / 65536.0f;
     fpos.xyz *= fpos.w;
 
@@ -699,6 +704,7 @@ void main()
     fpos.xy = (((vec2(vPosition.xy) ) * 2.0) / uScreenSize) - 1.0;
     fpos.z = 0.0;
     fZ = float(vPosition.z << zshift) / 16777216.0;
+    if ((attr & (1<<10)) != 0) fZ = max(fZ - uCoverageFixDepthBias, 0.0);
     fpos.w = float(vPosition.w) / 65536.0f;
     fpos.xy *= fpos.w;
     fpos.z = 0.0;

@@ -3,6 +3,7 @@ add_library(emucored_ds SHARED
     ds_emulator.cpp
     ds_presenter.cpp
     platform_android.cpp
+    melonds_android_stubs.cpp
 )
 
 target_include_directories(emucored_ds PRIVATE

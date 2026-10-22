@@ -18,7 +18,10 @@
 
 #include "GPU3D_OpenGL.h"
 
+#include <algorithm>
+#include <array>
 #include <assert.h>
+#include <cmath>
 #include <stdio.h>
 #include <string.h>
 #include "NDS.h"
@@ -27,6 +30,110 @@
 
 namespace melonDS
 {
+
+namespace
+{
+u32 ConvertBgraToRgba8(u32 packedColor)
+{
+    const u32 rb = packedColor & 0x00FF00FFu;
+    const u32 g = packedColor & 0x0000FF00u;
+    const u32 a = packedColor & 0xFF000000u;
+    return ((rb & 0x000000FFu) << 16) | g | ((rb & 0x00FF0000u) >> 16) | a;
+}
+
+u32 PackOpenGlAttrToLogical(u32 packedColor)
+{
+    const u32 polyIdByte = packedColor & 0xFFu;
+    const u32 edgeByte = (packedColor >> 8) & 0xFFu;
+    const u32 fogByte = (packedColor >> 16) & 0xFFu;
+
+    const u32 polyId = ((polyIdByte * 63u) + 127u) / 255u;
+    u32 attr = (polyId & 0x3Fu) << 24u;
+    if (fogByte >= 0x80u)
+        attr |= 1u << 15u;
+    if (edgeByte >= 0x80u)
+    {
+        attr |= 0xFu;
+        attr |= 0x10u << 8u;
+    }
+    return attr;
+}
+
+u32 ResolveOpenGlVertexX(const Vertex& vertex, int scale)
+{
+    return scale > 1
+        ? static_cast<u32>((vertex.HiresPosition[0] * scale) >> 4)
+        : vertex.FinalPosition[0];
+}
+
+u32 ResolveOpenGlVertexY(const Vertex& vertex, int scale)
+{
+    return scale > 1
+        ? static_cast<u32>((vertex.HiresPosition[1] * scale) >> 4)
+        : vertex.FinalPosition[1];
+}
+
+void ComputeOpenGlCoverageExpandedVertices(
+    const Polygon& polygon,
+    int scale,
+    int screenW,
+    int screenH,
+    float coveragePx,
+    std::array<u32, 10>& outX,
+    std::array<u32, 10>& outY)
+{
+    outX.fill(0u);
+    outY.fill(0u);
+
+    float centerX = 0.0f;
+    float centerY = 0.0f;
+    u32 vertexCount = 0;
+    std::array<float, 10> baseX{};
+    std::array<float, 10> baseY{};
+
+    for (u32 vertexIndex = 0; vertexIndex < polygon.NumVertices; vertexIndex++)
+    {
+        const Vertex* vertex = polygon.Vertices[vertexIndex];
+        if (vertex == nullptr)
+            continue;
+
+        baseX[vertexIndex] = static_cast<float>(ResolveOpenGlVertexX(*vertex, scale));
+        baseY[vertexIndex] = static_cast<float>(ResolveOpenGlVertexY(*vertex, scale));
+        centerX += baseX[vertexIndex];
+        centerY += baseY[vertexIndex];
+        vertexCount++;
+    }
+
+    if (vertexCount == 0)
+        return;
+
+    centerX /= static_cast<float>(vertexCount);
+    centerY /= static_cast<float>(vertexCount);
+    const int maxX = std::max(screenW - 1, 0);
+    const int maxY = std::max(screenH - 1, 0);
+
+    for (u32 vertexIndex = 0; vertexIndex < polygon.NumVertices; vertexIndex++)
+    {
+        if (polygon.Vertices[vertexIndex] == nullptr)
+            continue;
+
+        const float dx = baseX[vertexIndex] - centerX;
+        const float dy = baseY[vertexIndex] - centerY;
+        float x = baseX[vertexIndex];
+        float y = baseY[vertexIndex];
+        const float lengthSquared = (dx * dx) + (dy * dy);
+        if (lengthSquared > 0.000001f)
+        {
+            const float inverseLength = 1.0f / std::sqrt(lengthSquared);
+            x += dx * inverseLength * coveragePx;
+            y += dy * inverseLength * coveragePx;
+        }
+
+        outX[vertexIndex] = static_cast<u32>(std::clamp(static_cast<int>(std::lround(x)), 0, maxX));
+        outY[vertexIndex] = static_cast<u32>(std::clamp(static_cast<int>(std::lround(y)), 0, maxY));
+    }
+}
+}
 
 bool GLRenderer::BuildRenderShader(u32 flags, const std::string& vs, const std::string& fs)
 {
@@ -327,6 +434,24 @@ void GLRenderer::SetScaleFactor(int scale) noexcept
     SetRenderSettings(BetterPolygons, scale);
 }
 
+void GLRenderer::SetCoverageFixSettings(
+    bool enabled,
+    float coveragePx,
+    float depthBias,
+    bool applyRepeat,
+    bool applyClamp,
+    bool debug3dClearMagenta) noexcept
+{
+    CoverageFixEnabled = enabled;
+    CoverageFixPx = std::clamp(coveragePx, 0.0f, 2.0f);
+    CoverageFixDepthBias = std::clamp(depthBias, 0.0f, 0.01f);
+    CoverageFixApplyRepeat = applyRepeat;
+    CoverageFixApplyClamp = applyClamp;
+    Debug3dClearMagenta = debug3dClearMagenta;
+
+    ShaderConfig.uCoverageFixDepthBias = CoverageFixDepthBias;
+}
+
 
 void GLRenderer::SetRenderSettings(bool betterpolygons, int scale) noexcept
 {
@@ -417,6 +542,18 @@ void GLRenderer::SetupPolygon(GLRenderer::RendererPolygon* rp, Polygon* polygon)
 
 u32* GLRenderer::SetupVertex(const Polygon* poly, int vid, const Vertex* vtx, u32 vtxattr, u32* vptr) const
 {
+    return SetupVertex(
+        poly,
+        vid,
+        vtx,
+        vtxattr,
+        ResolveOpenGlVertexX(*vtx, ScaleFactor),
+        ResolveOpenGlVertexY(*vtx, ScaleFactor),
+        vptr);
+}
+
+u32* GLRenderer::SetupVertex(const Polygon* poly, int vid, const Vertex* vtx, u32 vtxattr, u32 x, u32 y, u32* vptr) const
+{
     u32 z = poly->FinalZ[vid];
     u32 w = poly->FinalW[vid];
 
@@ -425,18 +562,6 @@ u32* GLRenderer::SetupVertex(const Polygon* poly, int vid, const Vertex* vtx, u3
     // Z should always fit within 16 bits, so it's okay to do this
     u32 zshift = 0;
     while (z > 0xFFFF) { z >>= 1; zshift++; }
-
-    u32 x, y;
-    if (ScaleFactor > 1)
-    {
-        x = (vtx->HiresPosition[0] * ScaleFactor) >> 4;
-        y = (vtx->HiresPosition[1] * ScaleFactor) >> 4;
-    }
-    else
-    {
-        x = vtx->FinalPosition[0];
-        y = vtx->FinalPosition[1];
-    }
 
     // correct nearly-vertical edges that would look vertical on the DS
     /*{
@@ -503,6 +628,29 @@ void GLRenderer::BuildPolygons(GLRenderer::RendererPolygon* polygons, int npolys
         if (poly->FacingView) vtxattr |= (1<<8);
         if (poly->WBuffer)    vtxattr |= (1<<9);
 
+        std::array<u32, 10> coverageX{};
+        std::array<u32, 10> coverageY{};
+        bool applyCoverageFix = false;
+        if (CoverageFixEnabled && CoverageFixPx > 0.0f && poly->Type != 1)
+        {
+            const bool wrapS = (poly->TexParam & (1u << 16)) != 0u;
+            const bool wrapT = (poly->TexParam & (1u << 17)) != 0u;
+            const bool isRepeat = wrapS || wrapT;
+            applyCoverageFix = isRepeat ? CoverageFixApplyRepeat : CoverageFixApplyClamp;
+            if (applyCoverageFix)
+            {
+                vtxattr |= (1u << 10);
+                ComputeOpenGlCoverageExpandedVertices(
+                    *poly,
+                    ScaleFactor,
+                    ScreenW,
+                    ScreenH,
+                    CoverageFixPx,
+                    coverageX,
+                    coverageY);
+            }
+        }
+
         // assemble vertices
         if (poly->Type == 1) // line
         {
@@ -541,7 +689,9 @@ void GLRenderer::BuildPolygons(GLRenderer::RendererPolygon* polygons, int npolys
             {
                 Vertex* vtx = poly->Vertices[j];
 
-                vptr = SetupVertex(poly, j, vtx, vtxattr, vptr);
+                vptr = applyCoverageFix
+                    ? SetupVertex(poly, j, vtx, vtxattr, coverageX[j], coverageY[j], vptr)
+                    : SetupVertex(poly, j, vtx, vtxattr, vptr);
                 vidx++;
             }
 
@@ -563,7 +713,9 @@ void GLRenderer::BuildPolygons(GLRenderer::RendererPolygon* polygons, int npolys
                 {
                     Vertex* vtx = poly->Vertices[j];
 
-                    vptr = SetupVertex(poly, j, vtx, vtxattr, vptr);
+                    vptr = applyCoverageFix
+                        ? SetupVertex(poly, j, vtx, vtxattr, coverageX[j], coverageY[j], vptr)
+                        : SetupVertex(poly, j, vtx, vtxattr, vptr);
 
                     if (j >= 2)
                     {
@@ -658,7 +810,9 @@ void GLRenderer::BuildPolygons(GLRenderer::RendererPolygon* polygons, int npolys
                 {
                     Vertex* vtx = poly->Vertices[j];
 
-                    vptr = SetupVertex(poly, j, vtx, vtxattr, vptr);
+                    vptr = applyCoverageFix
+                        ? SetupVertex(poly, j, vtx, vtxattr, coverageX[j], coverageY[j], vptr)
+                        : SetupVertex(poly, j, vtx, vtxattr, vptr);
 
                     if (j >= 1)
                     {
@@ -1067,9 +1221,6 @@ void GLRenderer::RenderSceneChunk(const GPU3D& gpu3d, int y, int h)
         glStencilFunc(GL_ALWAYS, 0, 0);
         glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP);
         glStencilMask(0);
-        // While depth and stencil writing operations are disabled by the commands above, the fact that the same texture is used as both input and output results in undefined
-        // behaviour, which manifests as visual artifacts on some devices. Depth/stencil texture is attached again after fog/edge rendering
-        glFramebufferTexture(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, 0, 0);
 
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, DepthBufferTex);
@@ -1114,8 +1265,6 @@ void GLRenderer::RenderSceneChunk(const GPU3D& gpu3d, int y, int h)
 
             glDrawArrays(GL_TRIANGLES, 0, 2*3);
         }
-
-        glFramebufferTexture(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, DepthBufferTex, 0);
     }
 }
 
@@ -1130,6 +1279,7 @@ void GLRenderer::RenderFrame(GPU& gpu)
     ShaderConfig.uScreenSize[0] = ScreenW;
     ShaderConfig.uScreenSize[1] = ScreenH;
     ShaderConfig.uDispCnt = gpu.GPU3D.RenderDispCnt;
+    ShaderConfig.uCoverageFixDepthBias = CoverageFixDepthBias;
 
     for (int i = 0; i < 32; i++)
     {
@@ -1258,6 +1408,14 @@ void GLRenderer::RenderFrame(GPU& gpu)
         u32 polyid = (gpu.GPU3D.RenderClearAttr1 >> 24) & 0x3F;
         u32 z = ((gpu.GPU3D.RenderClearAttr2 & 0x7FFF) * 0x200) + 0x1FF;
 
+        if (Debug3dClearMagenta)
+        {
+            r = 31;
+            g = 0;
+            b = 31;
+            a = 31;
+        }
+
         glStencilFunc(GL_ALWAYS, 0xFF, 0xFF);
         glStencilOp(GL_REPLACE, GL_REPLACE, GL_REPLACE);
 
@@ -1374,6 +1532,62 @@ u32* GLRenderer::GetLine(int line)
 void GLRenderer::SetupAccelFrame()
 {
     glBindTexture(GL_TEXTURE_2D, ColorBufferTex);
+}
+
+std::vector<u32> GLRenderer::CaptureColorTargetForDebug()
+{
+    if (ScreenW <= 0 || ScreenH <= 0)
+        return {};
+
+    std::vector<u32> pixels(static_cast<size_t>(ScreenW) * static_cast<size_t>(ScreenH));
+    glBindFramebuffer(GL_READ_FRAMEBUFFER, MainFramebuffer);
+    glReadBuffer(GL_COLOR_ATTACHMENT0);
+    glReadPixels(0, 0, ScreenW, ScreenH, GL_RGBA, GL_UNSIGNED_BYTE, pixels.data());
+    for (u32& pixel : pixels)
+        pixel = ConvertBgraToRgba8(pixel);
+    return pixels;
+}
+
+std::vector<u32> GLRenderer::CaptureTopDepthForDebug()
+{
+    if (ScreenW <= 0 || ScreenH <= 0)
+        return {};
+
+    std::vector<u32> depth(static_cast<size_t>(ScreenW) * static_cast<size_t>(ScreenH));
+    glBindFramebuffer(GL_READ_FRAMEBUFFER, MainFramebuffer);
+    glReadBuffer(GL_NONE);
+    glReadPixels(0, 0, ScreenW, ScreenH, GL_DEPTH_STENCIL, GL_UNSIGNED_INT_24_8, depth.data());
+    for (u32& value : depth)
+        value >>= 8;
+    return depth;
+}
+
+std::vector<u32> GLRenderer::CaptureTopAttrForDebug()
+{
+    if (ScreenW <= 0 || ScreenH <= 0)
+        return {};
+
+    std::vector<u32> rawPixels(static_cast<size_t>(ScreenW) * static_cast<size_t>(ScreenH));
+    glBindFramebuffer(GL_READ_FRAMEBUFFER, MainFramebuffer);
+    glReadBuffer(GL_COLOR_ATTACHMENT1);
+    glReadPixels(0, 0, ScreenW, ScreenH, GL_RGBA, GL_UNSIGNED_BYTE, rawPixels.data());
+
+    std::vector<u32> attr(rawPixels.size(), 0u);
+    for (size_t i = 0; i < rawPixels.size(); i++)
+        attr[i] = PackOpenGlAttrToLogical(ConvertBgraToRgba8(rawPixels[i]));
+    return attr;
+}
+
+std::vector<u32> GLRenderer::CaptureTopCoverageForDebug()
+{
+    const std::vector<u32> topAttr = CaptureTopAttrForDebug();
+    if (topAttr.empty())
+        return {};
+
+    std::vector<u32> coverage(topAttr.size(), 0u);
+    for (size_t i = 0; i < topAttr.size(); i++)
+        coverage[i] = (topAttr[i] >> 8u) & 0x1Fu;
+    return coverage;
 }
 
 }

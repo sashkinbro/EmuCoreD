@@ -12,6 +12,7 @@
 
 #include "Args.h"
 #include "GPU.h"
+#include "GPU3D_Vulkan.h"
 #include "NDS.h"
 #include "NDSCart.h"
 #include "SPI_Firmware.h"
@@ -112,7 +113,7 @@ bool DsEmulator::Start(const std::string& rom_path, const std::string& sram_path
     }
 
     melonDS::NDSArgs args;
-    args.Renderer3D = std::make_unique<melonDS::SoftRenderer>();
+    args.Renderer3D = melonDS::VulkanRenderer3D::New();
     args.JIT = melonDS::JITArgs{};
     args.JIT->FastMemory = false;
     frame_count_ = 0;
@@ -126,6 +127,10 @@ bool DsEmulator::Start(const std::string& rom_path, const std::string& sram_path
         return false;
     }
     nds_->SetNDSCart(std::move(cart));
+    if (auto* renderer3d = dynamic_cast<melonDS::VulkanRenderer3D*>(&nds_->GPU.GetRenderer3D())) {
+        renderer3d->SetRenderSettings(false, true, 1, false, 0.0f, 0.0f, false, false, false,
+                                      nds_->GPU);
+    }
     nds_->Reset();
     nds_->SetupDirectBoot(rom_path_);
     nds_->Start();

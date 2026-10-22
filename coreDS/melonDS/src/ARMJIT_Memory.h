@@ -21,6 +21,7 @@
 
 #include "types.h"
 #include "MemConstants.h"
+#include <array>
 
 #ifdef JIT_ENABLED
 #  include <mutex>
@@ -38,8 +39,6 @@
 #    include <unistd.h>
 #    include <signal.h>
 #  endif
-#else
-# include <array>
 #endif
 
 namespace melonDS
@@ -106,9 +105,13 @@ public:
     ARMJIT_Memory& operator=(ARMJIT_Memory&&) = delete;
     void Reset() noexcept;
     void RemapDTCM(u32 newBase, u32 newSize) noexcept;
+    void RemapMainRAM() noexcept;
     void RemapSWRAM() noexcept;
     void RemapNWRAM(int num) noexcept;
     void SetCodeProtection(int region, u32 offset, bool protect) noexcept;
+
+    [[nodiscard]] bool NotifyMainRAMLineagePageTransition(
+        u32 physicalPageOffset, bool hasLineage) noexcept;
 
     [[nodiscard]] u8* GetMainRAM() noexcept { return MemoryBase + MemBlockMainRAMOffset; }
     [[nodiscard]] const u8* GetMainRAM() const noexcept { return MemoryBase + MemBlockMainRAMOffset; }
@@ -165,7 +168,14 @@ private:
     static bool FaultHandler(FaultDescription& faultDesc, melonDS::NDS& nds);
     bool MapIntoRange(u32 addr, u32 num, u32 offset, u32 size) noexcept;
     bool UnmapFromRange(u32 addr, u32 num, u32 offset, u32 size) noexcept;
-    void SetCodeProtectionRange(u32 addr, u32 size, u32 num, int protection) noexcept;
+    [[nodiscard]] bool SetCodeProtectionRange(
+        u32 addr, u32 size, u32 num, int protection) noexcept;
+    bool MainRAMHostPageHasLineage(u32 physicalOffset) const noexcept;
+    [[nodiscard]] bool RefreshMainRAMHostPageProtection(
+        u32 physicalOffset) noexcept;
+    [[nodiscard]] bool SetMappedPageProtection(
+        int region, Mapping& mapping, u32 physicalOffset,
+        bool protect) noexcept;
 
     melonDS::NDS& NDS;
     void* FastMem9Start;
@@ -195,6 +205,7 @@ private:
 #endif
     u8 MappingStatus9[1 << (32-12)] {};
     u8 MappingStatus7[1 << (32-12)] {};
+    std::array<u8, MainRAMMaxSize / RegularPageSize> MainRAMLineageHostPageRefs {};
     TinyVector<Mapping> Mappings[memregions_Count] {};
 #else
 public:
@@ -207,9 +218,12 @@ public:
 
     void Reset() noexcept {}
     void RemapDTCM(u32 newBase, u32 newSize) noexcept {}
+    void RemapMainRAM() noexcept {}
     void RemapSWRAM() noexcept {}
     void RemapNWRAM(int num) noexcept {}
     void SetCodeProtection(int region, u32 offset, bool protect) noexcept {}
+    [[nodiscard]] bool NotifyMainRAMLineagePageTransition(
+        u32 physicalPageOffset, bool hasLineage) noexcept { return true; }
 
     [[nodiscard]] u8* GetMainRAM() noexcept { return MainRAM.data(); }
     [[nodiscard]] const u8* GetMainRAM() const noexcept { return MainRAM.data(); }

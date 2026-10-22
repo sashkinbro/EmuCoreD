@@ -424,7 +424,7 @@ void DSi::SetupDirectBoot()
     // TODO properly setup SCFG_EXT
 
     // TODO: add controls for forcing DS or DSi mode?
-    if (!(header.UnitCode & 0x02))
+    if (!NDSCartSlot.GetCart()->IsDSiCapable())
         dsmode = true;
 
     if (dsmode)
@@ -451,7 +451,8 @@ void DSi::SetupDirectBoot()
         tsc->SetMode(0x00);
         Set_SCFG_Clock9(0x0000);
 
-        SCFG_EXT[0] &= ~0xC000;
+        SCFG_EXT[0] &= ~0x8000C000;
+        SCFG_EXT[1] &= ~(1u << 31);
         ApplyNewRAMSize(0);
     }
     else
@@ -1298,6 +1299,8 @@ void DSi::UpdateVRAMTimings()
 
 void DSi::ApplyNewRAMSize(u32 size)
 {
+    JIT.Memory.RemapMainRAM();
+
     switch (size)
     {
     case 0:
@@ -1603,6 +1606,8 @@ void DSi::ARM9Write8(u32 addr, u8 val)
 
     case 0x0C000000:
         JIT.CheckAndInvalidate<0, ARMJIT_Memory::memregion_MainRAM>(addr);
+        GPU.InvalidateFaithfulMainRamCaptureRangeForCpuAddress(
+            0u, addr, sizeof(val));
         *(u8*)&MainRAM[addr & MainRAMMask] = val;
         return;
     }
@@ -1688,6 +1693,8 @@ void DSi::ARM9Write16(u32 addr, u16 val)
 
     case 0x0C000000:
         JIT.CheckAndInvalidate<0, ARMJIT_Memory::memregion_MainRAM>(addr);
+        GPU.InvalidateFaithfulMainRamCaptureRangeForCpuAddress(
+            0u, addr, sizeof(val));
         *(u16*)&MainRAM[addr & MainRAMMask] = val;
         return;
     }
@@ -1773,6 +1780,8 @@ void DSi::ARM9Write32(u32 addr, u32 val)
 
     case 0x0C000000:
         JIT.CheckAndInvalidate<0, ARMJIT_Memory::memregion_MainRAM>(addr);
+        GPU.InvalidateFaithfulMainRamCaptureRangeForCpuAddress(
+            0u, addr, sizeof(val));
         *(u32*)&MainRAM[addr & MainRAMMask] = val;
         return;
     }
@@ -2076,6 +2085,8 @@ void DSi::ARM7Write8(u32 addr, u8 val)
     case 0x0C000000:
     case 0x0C800000:
         JIT.CheckAndInvalidate<1, ARMJIT_Memory::memregion_MainRAM>(addr);
+        GPU.InvalidateFaithfulMainRamCaptureRangeForCpuAddress(
+            1u, addr, sizeof(val));
         *(u8*)&NDS::MainRAM[addr & NDS::MainRAMMask] = val;
         return;
     }
@@ -2166,6 +2177,8 @@ void DSi::ARM7Write16(u32 addr, u16 val)
     case 0x0C000000:
     case 0x0C800000:
         JIT.CheckAndInvalidate<1, ARMJIT_Memory::memregion_MainRAM>(addr);
+        GPU.InvalidateFaithfulMainRamCaptureRangeForCpuAddress(
+            1u, addr, sizeof(val));
         *(u16*)&NDS::MainRAM[addr & NDS::MainRAMMask] = val;
         return;
     }
@@ -2256,6 +2269,8 @@ void DSi::ARM7Write32(u32 addr, u32 val)
     case 0x0C000000:
     case 0x0C800000:
         JIT.CheckAndInvalidate<1, ARMJIT_Memory::memregion_MainRAM>(addr);
+        GPU.InvalidateFaithfulMainRamCaptureRangeForCpuAddress(
+            1u, addr, sizeof(val));
         *(u32*)&NDS::MainRAM[addr & NDS::MainRAMMask] = val;
         return;
     }
@@ -2311,6 +2326,9 @@ bool DSi::ARM7GetMemRegion(u32 addr, bool write, MemRegion* region)
 
 u8 DSi::ARM9IORead8(u32 addr)
 {
+    if ((addr & 0xFFFFFF00) == 0x04004000 && !(SCFG_EXT[0] & (1u << 31)))
+        return 0;
+
     switch (addr)
     {
     case 0x04004000: return SCFG_BIOS & 0xFF;
@@ -2345,6 +2363,9 @@ u8 DSi::ARM9IORead8(u32 addr)
 u16 DSi::ARM9IORead16(u32 addr)
 {
     assert(ConsoleType == 1);
+    if ((addr & 0xFFFFFF00) == 0x04004000 && !(SCFG_EXT[0] & (1u << 31)))
+        return 0;
+
     switch (addr)
     {
     case 0x04004000: return SCFG_BIOS & 0xFF;
@@ -2381,6 +2402,9 @@ u16 DSi::ARM9IORead16(u32 addr)
 u32 DSi::ARM9IORead32(u32 addr)
 {
     assert(ConsoleType == 1);
+    if ((addr & 0xFFFFFF00) == 0x04004000 && !(SCFG_EXT[0] & (1u << 31)))
+        return 0;
+
     switch (addr)
     {
     case 0x04004000: return SCFG_BIOS & 0xFF;
@@ -2754,6 +2778,9 @@ void DSi::ARM9IOWrite32(u32 addr, u32 val)
 u8 DSi::ARM7IORead8(u32 addr)
 {
     assert(ConsoleType == 1);
+    if ((addr & 0xFFFFFF00) == 0x04004000 && !(SCFG_EXT[1] & (1u << 31)))
+        return 0;
+
 
     switch (addr)
     {
@@ -2810,6 +2837,9 @@ u8 DSi::ARM7IORead8(u32 addr)
 u16 DSi::ARM7IORead16(u32 addr)
 {
     assert(ConsoleType == 1);
+    if ((addr & 0xFFFFFF00) == 0x04004000 && !(SCFG_EXT[1] & (1u << 31)))
+        return 0;
+
     switch (addr)
     {
     case 0x04000218: return NDS::IE2;
@@ -2863,6 +2893,9 @@ u16 DSi::ARM7IORead16(u32 addr)
 u32 DSi::ARM7IORead32(u32 addr)
 {
     assert(ConsoleType == 1);
+    if ((addr & 0xFFFFFF00) == 0x04004000 && !(SCFG_EXT[1] & (1u << 31)))
+        return 0;
+
     switch (addr)
     {
     case 0x04000218: return NDS::IE2;

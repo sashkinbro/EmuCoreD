@@ -87,12 +87,14 @@ public:
     virtual void SetupDirectBoot(const std::string& romname, NDS& nds);
 
     virtual void DoSavestate(Savestate* file);
+    virtual void DoSavestateExtra(Savestate* file, u32 spiPos) {};
 
 
     virtual int ROMCommandStart(NDS& nds, NDSCart::NDSCartSlot& cartslot, const u8* cmd, u8* data, u32 len);
     virtual void ROMCommandFinish(const u8* cmd, u8* data, u32 len);
 
     virtual u8 SPIWrite(u8 val, u32 pos, bool last);
+    virtual void SPIRelease() {};
 
     virtual u8* GetSaveMemory() { return nullptr; }
     virtual const u8* GetSaveMemory() const { return nullptr; }
@@ -106,6 +108,7 @@ public:
     [[nodiscard]] const NDSBanner* Banner() const;
     [[nodiscard]] const ROMListEntry& GetROMParams() const { return ROMParams; };
     [[nodiscard]] u32 ID() const { return ChipID; }
+    [[nodiscard]] bool IsDSiCapable() const { return IsDSi; }
     [[nodiscard]] const u8* GetROM() const { return ROM.get(); }
     [[nodiscard]] u32 GetROMLength() const { return ROMLength; }
 protected:
@@ -159,12 +162,14 @@ public:
     void Reset() override;
 
     void DoSavestate(Savestate* file) override;
+    void DoSavestateExtra(Savestate* file, u32 spiPos) override;
 
     void SetSaveMemory(const u8* savedata, u32 savelen) override;
 
     int ROMCommandStart(NDS& nds, NDSCart::NDSCartSlot& cartslot, const u8* cmd, u8* data, u32 len) override;
 
     u8 SPIWrite(u8 val, u32 pos, bool last) override;
+    void SPIRelease() override;
 
     u8* GetSaveMemory() override { return SRAM.get(); }
     const u8* GetSaveMemory() const override { return SRAM.get(); }
@@ -227,6 +232,7 @@ public:
     void Reset() override;
 
     void DoSavestate(Savestate* file) override;
+    void DoSavestateExtra(Savestate* file, u32 spiPos) override;
 
     u8 SPIWrite(u8 val, u32 pos, bool last) override;
 
@@ -417,6 +423,7 @@ public:
     [[nodiscard]] u32 GetROMCnt() const noexcept { return ROMCnt; }
     [[nodiscard]] u16 GetSPICnt() const noexcept { return SPICnt; }
     void SetSPICnt(u16 val) noexcept { SPICnt = val; }
+    void CheckDMA(u32 cpu) noexcept;
 private:
     friend class CartCommon;
     melonDS::NDS& NDS;
@@ -428,8 +435,11 @@ private:
     bool SPIHold = false;
 
     u32 ROMData = 0;
+    u32 ROMDataNext = 0;
+    u32 ROMDataCount = 0;
+    bool ROMReadStalled = false;
 
-    std::array<u8, 0x4000> TransferData {};
+    alignas(u32) std::array<u8, 0x4000> TransferData {};
     u32 TransferPos = 0;
     u32 TransferLen = 0;
     u32 TransferDir = 0;
@@ -450,7 +460,8 @@ private:
     void Key2_Encrypt(const u8* data, u32 len) noexcept;
     void ROMEndTransfer(u32 param) noexcept;
     void ROMPrepareData(u32 param) noexcept;
-    void AdvanceROMTransfer() noexcept;
+    void RaiseDRQ() noexcept;
+    void AdvanceROMTransfer(bool fromTransferEvent = false) noexcept;
     void SPITransferDone(u32 param) noexcept;
 };
 

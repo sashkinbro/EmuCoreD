@@ -36,9 +36,15 @@ add_library(core STATIC
     GPU.cpp
     GPU2D.cpp
     GPU2D_Soft.cpp
+    GPU2D_Soft_Compatibility.cpp
     GPU3D.cpp
+    GPU3D_AcceleratedFrontend.cpp
     GPU3D_Soft.cpp
+    GPU3D_Vulkan.cpp
+    VulkanDispatch.cpp
+    VulkanContext.cpp
     GPU3D_Texcache.cpp
+    GPU3D_TexcacheVulkan.cpp
     GPU3D_Texcache.h
     melonDLDI.h
     Mic.cpp
@@ -75,7 +81,23 @@ add_library(core STATIC
     tiny-AES-c/aes.c
     xxhash/xxhash.c
 
+    soundtouch/source/SoundTouch/AAFilter.cpp
+    soundtouch/source/SoundTouch/cpu_detect_x86.cpp
+    soundtouch/source/SoundTouch/FIFOSampleBuffer.cpp
+    soundtouch/source/SoundTouch/FIRFilter.cpp
+    soundtouch/source/SoundTouch/InterpolateCubic.cpp
+    soundtouch/source/SoundTouch/InterpolateLinear.cpp
+    soundtouch/source/SoundTouch/InterpolateShannon.cpp
+    soundtouch/source/SoundTouch/mmx_optimized.cpp
+    soundtouch/source/SoundTouch/RateTransposer.cpp
+    soundtouch/source/SoundTouch/SoundTouch.cpp
+    soundtouch/source/SoundTouch/sse_optimized.cpp
+    soundtouch/source/SoundTouch/TDStretch.cpp
     blip-buf/blip_buf.c)
+
+if (ANDROID_ABI STREQUAL "arm64-v8a")
+    target_compile_definitions(core PRIVATE SOUNDTOUCH_USE_NEON)
+endif()
 
 if (ENABLE_GDBSTUB)
     message(NOTICE "Enabling GDB stub")
@@ -188,6 +210,7 @@ endif()
 # Fix xxhash compile errors when using -Og
 # See https://github.com/Cyan4973/xxHash/blob/136cc1f8fe4d5ea62a7c16c8424d4fa5158f6d68/README.md?plain=1#L159-L163
 target_compile_definitions(core PRIVATE $<$<CONFIG:DEBUG>:XXH_NO_INLINE_HINTS=1>)
+target_compile_definitions(core PRIVATE $<$<CONFIG:DEBUG>:MELONDS_VULKAN_ENABLE_VALIDATION=1>)
 
 find_library(m MATH_LIBRARY)
 
@@ -234,4 +257,3 @@ endif()
 #    BEFORE PUBLIC -fsanitize=undefined PUBLIC -fsanitize=address
 #  )
 #endif()
-
