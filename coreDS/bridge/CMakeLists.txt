@@ -4,10 +4,12 @@ add_library(emucored_ds SHARED
     ds_presenter.cpp
     platform_android.cpp
     melonds_android_stubs.cpp
+    renderer/VulkanOutput.cpp
 )
 
 target_include_directories(emucored_ds PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}
+    ${CMAKE_CURRENT_SOURCE_DIR}/renderer
 )
 
 target_compile_definitions(emucored_ds PRIVATE
