@@ -44,6 +44,7 @@ import androidx.compose.ui.window.DialogProperties
 import com.sbro.emucored.R
 import com.sbro.emucored.core.SoftwareKeyboard
 import com.sbro.emucored.ui.theme.neon.neonShape
+import kotlinx.coroutines.delay
 
 @Composable
 fun SoftwareKeyboardDialog(request: SoftwareKeyboard.Request) {
@@ -215,6 +216,7 @@ fun SoftwareKeyboardDialog(request: SoftwareKeyboard.Request) {
     }
 
     LaunchedEffect(request) {
+        delay(100)
         focusRequester.requestFocus()
         keyboardController?.show()
     }
