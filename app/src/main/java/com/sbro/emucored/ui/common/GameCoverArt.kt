@@ -45,14 +45,14 @@ import kotlinx.coroutines.sync.withPermit
 import com.sbro.emucored.ui.theme.neon.neonShape
 
 /** Portrait box-art canvas; images retain their original proportions within it. */
-val LocalGameCoverAspectRatio = androidx.compose.runtime.staticCompositionLocalOf { 2f / 3f }
+val LocalGameCoverAspectRatio = androidx.compose.runtime.staticCompositionLocalOf { 3f / 4f }
 val GameCoverAspectRatio: Float
     @Composable get() = LocalGameCoverAspectRatio.current
 
 internal fun isGenerated3dCover(coverPath: String?): Boolean =
     coverPath?.replace('\\', '/')?.let { path ->
-        path.contains("/game-covers/igdb-n3ds-v1/") && path.endsWith("_3d.webp") ||
-            path.startsWith("https://raw.githubusercontent.com/sashkinbro/EmuCoreA-Covers/") &&
+        path.endsWith("_3d.webp") || (path.contains("/3d/") && path.endsWith(".webp")) ||
+            path.startsWith("https://raw.githubusercontent.com/sashkinbro/EmuCoreD-Covers/") &&
             path.contains("/covers/3d/") && path.endsWith(".webp")
     } == true
 
@@ -158,6 +158,7 @@ fun GameCoverArt(
             bitmap = currentBitmap.asImageBitmap(),
             contentDescription = fallbackTitle,
             contentScale = gameCoverContentScale(coverPath, contentScale),
+            filterQuality = androidx.compose.ui.graphics.FilterQuality.Medium,
             modifier = imageModifier.clip(gameCoverShape(coverPath, neonShape(20.dp)))
         )
     } else {
@@ -210,8 +211,8 @@ private fun putCachedBitmap(path: String, bitmap: Bitmap) {
 private fun loadBitmap(context: android.content.Context, coverPath: String?): Bitmap? {
     if (coverPath.isNullOrBlank()) return null
 
-    val reqWidth = 720
-    val reqHeight = 1080
+    val reqWidth = 1080
+    val reqHeight = 1600
 
     return runCatching {
         fun openStream() = when {

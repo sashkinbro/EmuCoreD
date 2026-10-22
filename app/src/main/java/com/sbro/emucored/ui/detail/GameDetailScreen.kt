@@ -219,7 +219,7 @@ fun GameDetailScreen(
                     modifier = Modifier
                         .fillMaxWidth(if (isLandscape) 0.4f else 1f)
                         .widthIn(max = heroMaxWidth)
-                        .aspectRatio(2f / 3f)
+                        .aspectRatio(com.sbro.emucored.ui.common.GameCoverAspectRatio)
                         .clip(neonShape(28.dp))
                         .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f))
                 ) {
@@ -403,7 +403,7 @@ private fun DetailSkeleton(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = horizontalInset)
-                .aspectRatio(2f / 3f)
+                .aspectRatio(com.sbro.emucored.ui.common.GameCoverAspectRatio)
                 .clip(neonShape(28.dp))
         )
         SkeletonBlock(

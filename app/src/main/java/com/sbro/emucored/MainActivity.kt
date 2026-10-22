@@ -163,7 +163,7 @@ open class MainActivity : ComponentActivity() {
             CompositionLocalProvider(
                 LocalTvUiEnvironment provides tvUiEnvironment,
                 com.sbro.emucored.ui.common.LocalGameCoverAspectRatio provides
-                    if (coverStyle == AppPreferences.COVER_ART_STYLE_DEFAULT) 3f / 4f else 2f / 3f
+                    3f / 4f
             ) {
                 EmuCoreDTheme(
                     themeMode = themeMode,

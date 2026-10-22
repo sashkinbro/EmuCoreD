@@ -13,14 +13,18 @@ class N3dsCoverIndexRepository(private val context: Context) {
     fun find(serial: String?, title: String?, threeDimensional: Boolean = false): Cover? {
         val index = load()
         if (index != null) {
-            val normalizedSerial = serial.orEmpty().uppercase(Locale.ROOT).replace(Regex("[-_.\\s]"), "")
-            val id = index.optJSONObject("serials")?.optString(normalizedSerial).orEmpty().ifBlank {
-                index.optJSONObject("titles")?.optString(normalizeTitle(title.orEmpty())).orEmpty()
-            }
-            val game = id.takeIf { it.isNotBlank() }?.let { index.optJSONObject("games")?.optJSONObject(it) }
+            val serialsObj = index.optJSONObject("serials")
+            val cleanUpper = serial.orEmpty().uppercase(Locale.ROOT).replace(Regex("[-_.\\s]"), "")
+            val cleanLower = serial.orEmpty().lowercase(Locale.ROOT).replace(Regex("[-_.\\s]"), "")
+            val id = serialsObj?.optString(cleanUpper)?.takeIf { it.isNotBlank() }
+                ?: serialsObj?.optString(cleanLower)?.takeIf { it.isNotBlank() }
+                ?: (if (cleanUpper.startsWith("CTRP") && cleanUpper.length == 8) serialsObj?.optString(cleanUpper.substring(4))?.takeIf { it.isNotBlank() } else null)
+                ?: index.optJSONObject("titles")?.optString(normalizeTitle(title.orEmpty()))?.takeIf { it.isNotBlank() }
+
+            val game = id?.let { index.optJSONObject("games")?.optJSONObject(it) }
             if (game != null) {
                 val path = game.optString(if (threeDimensional) "path_3d" else "path")
-                if (Regex("covers/(3d/)?[0-9]+\\.(jpg|png|webp)").matches(path)) {
+                if (Regex("covers/(3d/)?(dark/)?[0-9]+\\.(jpg|png|webp)").matches(path)) {
                     return Cover(
                         "$BASE_URL/$path",
                         game.optString("source_url"),
@@ -29,8 +33,7 @@ class N3dsCoverIndexRepository(private val context: Context) {
                 }
             }
         }
-        // No reviewed cover repository is bundled yet: fall back to the IGDB
-        // catalogue so library entries still get their catalogue artwork.
+        // Fall back to the bundled 3DS games.db catalog
         val match = N3dsCatalogRepository.getInstance(context).findCoverMatch(serial, title) ?: return null
         val coverUrl = match.coverUrl ?: match.heroUrl ?: return null
         return Cover(coverUrl, match.heroUrl.orEmpty(), "")
@@ -45,7 +48,7 @@ class N3dsCoverIndexRepository(private val context: Context) {
     }
 
     companion object {
-        private const val BASE_URL = "https://raw.githubusercontent.com/sashkinbro/EmuCoreA-Covers/5af2519246d19a29da9ab069d512abd30a5a6113"
+        private const val BASE_URL = "https://raw.githubusercontent.com/sashkinbro/EmuCoreD-Covers/main"
         private val lock = Any()
         @Volatile private var cached: JSONObject? = null
 

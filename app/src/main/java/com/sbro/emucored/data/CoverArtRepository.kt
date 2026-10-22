@@ -199,7 +199,7 @@ class CoverArtRepository(context: Context) {
 
         var result: String? = null
         if (coverBaseUrl != null) {
-            val extensionsToTry = if (style == AppPreferences.COVER_ART_STYLE_3D) listOf("png", "jpg") else listOf("jpg", "png")
+            val extensionsToTry = if (style == AppPreferences.COVER_ART_STYLE_3D) listOf("webp", "png", "jpg") else listOf("jpg", "png", "webp")
             for (extension in extensionsToTry) {
                 val targetFile = File(cacheDirectory, cacheFileName(normalizedSerial, style, extension))
                 result = downloadFromUrl("$coverBaseUrl/$normalizedSerial.$extension", targetFile, missFile, "Custom")

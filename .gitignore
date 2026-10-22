@@ -30,6 +30,7 @@ ehthumbs.db
 # Local catalog tooling and IGDB credentials - never push these.
 /IGDB/
 /tools/
+/covers/
 
 # Firebase Hosting site sources are deployed from the local working tree only.
 /public/

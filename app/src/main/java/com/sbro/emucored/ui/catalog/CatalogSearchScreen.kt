@@ -506,7 +506,7 @@ private fun CatalogGameCard(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .aspectRatio(2f / 3f)
+                    .aspectRatio(com.sbro.emucored.ui.common.GameCoverAspectRatio)
                     .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f))
             ) {
                 GameCoverArt(
