@@ -188,6 +188,8 @@ import com.sbro.emucored.core.EmulatorBridge
 import com.sbro.emucored.core.EmulatorStorage
 import com.sbro.emucored.core.GamepadManager
 import com.sbro.emucored.core.NativeApp
+import com.sbro.emucored.core.ds.DsSession
+import com.sbro.emucored.core.ds.EmuCoreDsNative
 import com.sbro.emucored.core.buildUpscaleOptions
 import com.sbro.emucored.core.upscaleKeyToMultiplier
 import com.sbro.emucored.core.upscaleMultiplierKey
@@ -2282,6 +2284,14 @@ private fun SettingsContent(
                 }
 
                 SettingsTab.About -> {
+                    val dsCoreActive = DsSession.isActive
+                    val activeCoreLabel = if (dsCoreActive) {
+                        EmuCoreDsNative.nativeGetVersion()
+                    } else {
+                        listOf(uiState.coreName, uiState.coreVersion)
+                            .filter(String::isNotBlank)
+                            .joinToString(" ")
+                    }
                     SettingsSection(title = stringResource(R.string.settings_about)) {
                         SettingsItem(
                             icon = Icons.Rounded.Info,
@@ -2292,8 +2302,7 @@ private fun SettingsContent(
                         SettingsItem(
                             icon = Icons.Rounded.Memory,
                             label = stringResource(R.string.settings_emulator_core),
-                              value = listOf(uiState.coreName, uiState.coreVersion)
-                                  .filter(String::isNotBlank).joinToString(" "),
+                            value = activeCoreLabel,
                             onClick = { }
                         )
                         AboutNote(

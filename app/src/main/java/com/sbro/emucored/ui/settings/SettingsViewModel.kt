@@ -25,6 +25,8 @@ import com.sbro.emucored.core.ProPurchaseState
 import com.sbro.emucored.core.ProPurchaseTier
 import com.sbro.emucored.core.NativeApp
 import com.sbro.emucored.core.SetupValidator
+import com.sbro.emucored.core.ds.DsSession
+import com.sbro.emucored.core.ds.EmuCoreDsNative
 import com.sbro.emucored.core.StorageAccess
 import com.sbro.emucored.core.TvInterfaceMode
 import com.sbro.emucored.core.UPSCALE_DEFAULT
@@ -267,10 +269,15 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
         val appVersion = runCatching {
             application.packageManager.getPackageInfo(application.packageName, 0).versionName
         }.getOrNull()?.takeIf { it.isNotBlank() } ?: BuildConfig.VERSION_NAME
+        val dsActive = DsSession.isActive
         _uiState.value = _uiState.value.copy(
             appVersion = appVersion,
-            coreName = NativeApp.getCoreName().orEmpty().ifBlank { "Azahar" },
-            coreVersion = NativeApp.getCoreVersion().orEmpty()
+            coreName = if (dsActive) "melonDS" else NativeApp.getCoreName().orEmpty().ifBlank { "Azahar" },
+            coreVersion = if (dsActive) {
+                EmuCoreDsNative.nativeGetVersion()
+            } else {
+                NativeApp.getCoreVersion().orEmpty()
+            }
         )
     }
 
