@@ -15,6 +15,8 @@ import com.sbro.emucored.core.DeviceGpuInfoProvider
 import com.sbro.emucored.core.GpuHardwareProfiles
 import com.sbro.emucored.core.MobileSocNameMapper
 import com.sbro.emucored.core.NativeApp
+import com.sbro.emucored.core.ds.DsSession
+import com.sbro.emucored.core.ds.EmuCoreDsNative
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
@@ -58,9 +60,12 @@ object ProfileDeviceInfoProvider {
     private const val DEVICE_ID = "device_id"
 
     /** Reported in profiles and cloud backups; follows the active native core. */
-    val CORE_VERSION: String by lazy {
-        NativeApp.getCoreVersion().orEmpty().takeIf { it.isNotBlank() } ?: "Azahar"
-    }
+    val CORE_VERSION: String
+        get() = if (DsSession.isActive) {
+            EmuCoreDsNative.nativeGetVersion()
+        } else {
+            NativeApp.getCoreVersion().orEmpty().takeIf { it.isNotBlank() } ?: "Azahar"
+        }
 
     fun current(context: Context, isPublic: Boolean = false): PlayerDevice {
         val appContext = context.applicationContext

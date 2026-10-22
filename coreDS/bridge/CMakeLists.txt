@@ -22,6 +22,7 @@ target_link_libraries(emucored_ds PRIVATE
     core
     android
     log
+    aaudio
     EGL
     GLESv3
 )

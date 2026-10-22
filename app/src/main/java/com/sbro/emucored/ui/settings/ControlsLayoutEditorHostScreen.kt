@@ -21,6 +21,7 @@ import com.sbro.emucored.R
 import com.sbro.emucored.core.DocumentPathResolver
 import com.sbro.emucored.data.AppPreferences
 import com.sbro.emucored.data.CustomTouchControlLibrary
+import com.sbro.emucored.data.GamePlatform
 import com.sbro.emucored.data.OverlayControlLayout
 import com.sbro.emucored.data.PerGameSettingsRepository
 import com.sbro.emucored.data.SettingsSnapshot
@@ -197,9 +198,14 @@ fun ControlsLayoutEditorHostScreen(
         stringResource(R.string.controls_editor_game_inherited, resolvedGameTitle)
     }
 
+    val dsMode = normalizedGamePath?.let {
+        GamePlatform.fromFileName(it) == GamePlatform.NDS
+    } == true
     ControlsEditorScreen(
         state = state,
         subtitle = subtitle,
+        manageActivityOrientation = !dsMode,
+        dsMode = dsMode,
         onBackClick = ::finishEditor,
         onUpdateControlOffset = { controlId, offset ->
             updateState { current ->

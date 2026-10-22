@@ -21,11 +21,13 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -411,7 +413,8 @@ fun ControlsEditorScreen(
     onSetControlVisible: (String, Boolean) -> Unit,
     onSetStickSurfaceMode: (String, Boolean) -> Unit,
     onResetLayout: () -> Unit,
-    onCustomControlsChange: (CustomTouchControlLibrary) -> Unit = {}
+    onCustomControlsChange: (CustomTouchControlLibrary) -> Unit = {},
+    dsMode: Boolean = false
 ) {
     val context = LocalContext.current
     val resources = LocalResources.current
@@ -427,6 +430,7 @@ fun ControlsEditorScreen(
     var showLayoutGrid by rememberSaveable { mutableStateOf(false) }
     var snapToGrid by rememberSaveable { mutableStateOf(false) }
     var deleteCustomCandidate by remember { mutableStateOf<CustomTouchControl?>(null) }
+    val dsControlsHeight = 260.dp * (state.overlayScale / 100f).coerceIn(0.8f, 1.4f)
     val defaultLayouts = remember(state.stickScale) { AppPreferences.defaultOverlayControlLayouts(state.stickScale) }
     val selectedLayout = selectedControlId?.let { id ->
         editorControlLayouts[id] ?: defaultLayouts[id] ?: OverlayControlLayout()
@@ -739,6 +743,7 @@ fun ControlsEditorScreen(
             onSetControlOffset = ::setControlOffsetLocally,
             onCommitControlPosition = ::persistControlPosition,
             onCommitControlPositions = ::persistControlPositions,
+            dsMode = dsMode,
             onSetCustomControlPosition = { controlId, x, y ->
                 val current = editorCustomControls.controls.firstOrNull { it.id == controlId } ?: return@PreviewLayout
                 setCustomControlLocally(current.copy(positionX = x, positionY = y))
@@ -749,9 +754,15 @@ fun ControlsEditorScreen(
             overlayRightSafeInset = overlayRightSafeInset,
             overlayTopSafeInset = overlayTopSafeInset,
             overlayBottomSafeInset = overlayBottomSafeInset,
-            modifier = Modifier.fillMaxSize()
+            modifier = if (dsMode) {
+                Modifier
+                    .fillMaxWidth()
+                    .height(dsControlsHeight)
+                    .align(Alignment.BottomCenter)
+            } else {
+                Modifier.fillMaxSize()
+            }
         )
-
         Column(
             modifier = Modifier
                 .align(Alignment.TopCenter)
@@ -790,7 +801,9 @@ fun ControlsEditorScreen(
             }
 
             Row(
-                modifier = Modifier.padding(top = 10.dp),
+                modifier = Modifier
+                    .horizontalScroll(rememberScrollState())
+                    .padding(start = 6.dp, top = 18.dp, end = 12.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 OutlinedButton(
@@ -1597,11 +1610,12 @@ private fun PreviewLayout(
     onSetCustomControlPosition: (String, Float, Float) -> Unit,
     onCommitCustomControlPosition: (String) -> Unit,
     onSelectedGeometryChange: (EditorControlGeometry?) -> Unit,
-    modifier: Modifier = Modifier,
+    modifier: Modifier = Modifier.fillMaxSize(),
     overlayLeftSafeInset: Dp? = null,
     overlayRightSafeInset: Dp? = null,
     overlayTopSafeInset: Dp? = null,
-    overlayBottomSafeInset: Dp? = null
+    overlayBottomSafeInset: Dp? = null,
+    dsMode: Boolean = false
 ) {
     val density = LocalDensity.current
     val safeDrawingPadding = WindowInsets.safeDrawing.asPaddingValues()
@@ -1613,7 +1627,7 @@ private fun PreviewLayout(
         ?: safeDrawingPadding.calculateTopPadding()
     val safeBottom = overlayBottomSafeInset ?: safeDrawingPadding.calculateBottomPadding()
     BoxWithConstraints(
-        modifier = modifier.fillMaxSize()
+        modifier = modifier
     ) {
         val gridStepDp = 24.dp
         val snapResiduals = remember { mutableMapOf<String, Pair<Float, Float>>() }
@@ -1674,14 +1688,20 @@ private fun PreviewLayout(
             safeRightInset = safeRightInset,
             safeTopInset = safeTop,
             safeBottomInset = safeBottom,
-            previewMode = true
+            previewMode = true,
+            dsMode = dsMode
         )
 
         val showLeftStick = layout.leftStick?.visible == true
         val showIndependentDpad = layout.dpadCluster?.visible == true
 
-        fun shouldShowButton(id: String): Boolean = when (id) {
-            "dpad_up", "dpad_down", "dpad_left", "dpad_right" -> !showLeftStick && !showIndependentDpad
+        fun shouldShowButton(id: String): Boolean = when {
+            dsMode && id !in setOf(
+                "dpad_up", "dpad_down", "dpad_left", "dpad_right",
+                "a", "b", "x", "y", "l", "r", "select", "start"
+            ) -> false
+            id in setOf("dpad_up", "dpad_down", "dpad_left", "dpad_right") ->
+                !showLeftStick && !showIndependentDpad
             else -> true
         }
 

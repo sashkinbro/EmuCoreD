@@ -617,7 +617,7 @@ fun EmulationScreen(
         touchPadIndex != null || !gamepadConnected || !uiState.hideOverlayOnGamepad
     )
     val dsControlsScale = (uiState.overlayScale / 100f).coerceIn(0.8f, 1.4f)
-    val dsControlsHeight = 300.dp * dsControlsScale
+    val dsControlsHeight = 260.dp * dsControlsScale
 
     val toggleMenuClick = rememberDebouncedClick(onClick = { viewModel.toggleMenu() })
     val toggleControlsClick = rememberDebouncedClick(onClick = { viewModel.toggleControlsVisibility() })
@@ -1479,32 +1479,21 @@ fun EmulationScreen(
             // keeping the visual overlay LTR guarantees that visible and logical buttons
             // stay aligned in Arabic, Persian, and every other RTL language.
             CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
-                if (isNds) {
-                    DsOnScreenControls(
-                        modifier = Modifier
+                OnScreenControls(
+                    modifier = if (isNds) {
+                        Modifier
                             .fillMaxWidth()
+                            .height(dsControlsHeight)
                             .align(Alignment.BottomCenter)
                             .zIndex(20f)
-                            .graphicsLayer(alpha = alpha),
-                        scaleFactor = dsControlsScale,
-                        alpha = alpha,
-                        safeInsets = PaddingValues(
-                            start = overlayLeftSafeInset,
-                            top = overlayTopSafeInset,
-                            end = overlayRightSafeInset,
-                            bottom = overlayBottomSafeInset
-                        ),
-                        onPadInput = { keyCode, range, pressed ->
-                            viewModel.onPadInput(overlayPadIndex, keyCode, range, pressed)
-                        }
-                    )
-                } else {
-                OnScreenControls(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .zIndex(20f)
-                        .graphicsLayer(alpha = alpha),
-                    scaleFactor = scaleFactor,
+                            .graphicsLayer(alpha = alpha)
+                    } else {
+                        Modifier
+                            .fillMaxSize()
+                            .zIndex(20f)
+                            .graphicsLayer(alpha = alpha)
+                    },
+                    scaleFactor = if (isNds) dsControlsScale else scaleFactor,
                     stickScaleFactor = uiState.stickScale / 100f,
                     leftStickSensitivity = uiState.leftStickSensitivity / 100f,
                     rightStickSensitivity = uiState.rightStickSensitivity / 100f,
@@ -1514,16 +1503,16 @@ fun EmulationScreen(
                     invertRightStickHorizontal = uiState.invertRightStickHorizontal,
                     rightStickUpToR2 = uiState.gamepadRightStickUpToR2,
                     rightStickDownToL2 = uiState.gamepadRightStickDownToL2,
-                    touchscreenRightStick = uiState.touchscreenRightStick,
+                    touchscreenRightStick = if (isNds) false else uiState.touchscreenRightStick,
                     touchscreenRightStickSensitivity = uiState.touchscreenRightStickSensitivity / 100f,
-                    touchscreenLeftStick = uiState.touchscreenLeftStick,
+                    touchscreenLeftStick = if (isNds) false else uiState.touchscreenLeftStick,
                     touchscreenLeftStickSensitivity = uiState.touchscreenLeftStickSensitivity / 100f,
                     touchHaptics = uiState.touchHaptics,
                     touchHapticsPreset = uiState.touchHapticsPreset,
                     touchHapticsStrength = uiState.touchHapticsStrength,
                     visualStyle = uiState.touchControlVisualStyle,
                     pressEffect = uiState.touchControlPressEffect,
-                    customControls = uiState.customTouchControls.controls,
+                    customControls = if (isNds) emptyList() else uiState.customTouchControls.controls,
                     dpadOffset = uiState.dpadOffset,
                     lstickOffset = uiState.lstickOffset,
                     rstickOffset = uiState.rstickOffset,
@@ -1532,8 +1521,8 @@ fun EmulationScreen(
                     rbtnOffset = uiState.rbtnOffset,
                     centerOffset = uiState.centerOffset,
                     controlLayouts = uiState.controlLayouts,
-                    racingMode = uiState.racingMode,
-                    stickyButtons = uiState.stickyButtons,
+                    racingMode = if (isNds) false else uiState.racingMode,
+                    stickyButtons = if (isNds) emptySet() else uiState.stickyButtons,
                     stickToggleTarget = uiState.stickToggleTarget,
                     onToggleLeftInputMode = viewModel::toggleLeftInputMode,
                     onPadInput = { keyCode, range, pressed ->
@@ -1547,9 +1536,9 @@ fun EmulationScreen(
                         end = overlayRightSafeInset,
                         bottom = overlayBottomSafeInset
                     ),
-                    onScreenDoubleTap = { secondScreenTabRevealSignal++ }
+                    onScreenDoubleTap = { if (!isNds) secondScreenTabRevealSignal++ },
+                    dsMode = isNds
                 )
-                }
             }
         }
         }
@@ -1611,7 +1600,8 @@ fun EmulationScreen(
                 onSetControlVisible = viewModel::setTouchControlVisible,
                 onSetStickSurfaceMode = viewModel::setTouchStickSurfaceMode,
                 onResetLayout = viewModel::resetTouchControlsLayout,
-                onCustomControlsChange = viewModel::setCustomTouchControls
+                onCustomControlsChange = viewModel::setCustomTouchControls,
+                dsMode = isNds
             )
         }
 
@@ -2195,7 +2185,8 @@ private fun OnScreenControls(
     onPadInput: (Int, Int, Boolean) -> Unit,
     onScreenDoubleTap: () -> Unit = {},
     respectSystemInsets: Boolean = true,
-    safeInsets: PaddingValues? = null
+    safeInsets: PaddingValues? = null,
+    dsMode: Boolean = false
 ) {
     val density = LocalDensity.current
     val safeDrawingPadding = safeInsets ?: WindowInsets.safeDrawing.asPaddingValues()
@@ -2315,7 +2306,8 @@ private fun OnScreenControls(
             safeRightInset = safeRight,
             safeTopInset = safeTop,
             safeBottomInset = safeBottom,
-            stickToggleTarget = stickToggleTarget
+            stickToggleTarget = stickToggleTarget,
+            dsMode = dsMode
         )
         var extraDpadDirections by remember { mutableStateOf(emptySet<OverlayDpadDirection>()) }
         val currentExtraDpadDirections by rememberUpdatedState(extraDpadDirections)

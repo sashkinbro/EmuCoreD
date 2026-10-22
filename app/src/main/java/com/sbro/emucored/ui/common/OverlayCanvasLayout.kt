@@ -97,7 +97,8 @@ fun buildOverlayCanvasLayout(
     safeTopInset: Dp,
     safeBottomInset: Dp,
     previewMode: Boolean = false,
-    stickToggleTarget: Int = AppPreferences.DEFAULT_STICK_TOGGLE_TARGET
+    stickToggleTarget: Int = AppPreferences.DEFAULT_STICK_TOGGLE_TARGET,
+    dsMode: Boolean = false
 ): OverlayCanvasLayout {
     fun pxToDp(value: Float): Dp = with(density) { value.toDp() }
 
@@ -110,8 +111,11 @@ fun buildOverlayCanvasLayout(
     }
 
     val leftStickLayout = layoutFor("left_stick", (stickScaleFactor * 100f).toInt())
+        .let { if (dsMode) it.copy(visible = false) else it }
     val rightStickLayout = layoutFor("right_stick", (stickScaleFactor * 100f).toInt())
+        .let { if (dsMode) it.copy(visible = false) else it }
     val extraDpadLayout = layoutFor("dpad_cluster")
+        .let { if (dsMode) it.copy(visible = false) else it }
     val responsiveScale = calculateOverlayResponsiveScale(
         canvasWidth = canvasWidth,
         canvasHeight = canvasHeight,
@@ -251,7 +255,11 @@ fun buildOverlayCanvasLayout(
             y = baseY + pxToDp(layout.offset.second),
             shape = shape,
             opacity = layout.opacity,
-            visible = visible && layout.visible
+            visible = if (dsMode && id in setOf("dpad_up", "dpad_down", "dpad_left", "dpad_right")) {
+                true
+            } else {
+                visible && layout.visible
+            }
         )
     }
 
@@ -282,7 +290,7 @@ fun buildOverlayCanvasLayout(
             baseX = leftShoulderBaseX,
             baseY = leftShoulderBaseY + shoulderH * 1.15f,
             shape = RoundedCornerShape(10.dp),
-            visible = true
+            visible = !dsMode
         )
     )
 
@@ -305,7 +313,7 @@ fun buildOverlayCanvasLayout(
             baseX = rightShoulderColumnBaseX,
             baseY = rightShoulderBaseY + shoulderH * 1.15f,
             shape = RoundedCornerShape(10.dp),
-            visible = true
+            visible = !dsMode
         )
     )
 
@@ -451,8 +459,8 @@ fun buildOverlayCanvasLayout(
     val centerAnchorX = (horizontalSafeInset + canvasWidth - horizontalSafeInset) / 2f + centerAdjustment.first
 
     val selectLayout = layoutFor("select")
-    val homeLayout = layoutFor("home")
-    val touchLayout = layoutFor("touch")
+    val homeLayout = layoutFor("home").let { if (dsMode) it.copy(visible = false) else it }
+    val touchLayout = layoutFor("touch").let { if (dsMode) it.copy(visible = false) else it }
     val startLayout = layoutFor("start")
     val selectWidth = wideCenterW * (selectLayout.scale / 100f)
     val homeSize = centerH * (homeLayout.scale / 100f)
@@ -602,18 +610,22 @@ fun buildOverlayCanvasLayout(
         x = toggleDpadTargetStick.baseX + pxToDp(toggleDpadLayout.offset.first),
         y = toggleDpadTargetStick.baseY + pxToDp(toggleDpadLayout.offset.second),
         opacity = toggleDpadLayout.opacity,
-        visible = toggleDpadLayout.visible
+        visible = !dsMode && toggleDpadLayout.visible
     )
 
     return OverlayCanvasLayout(
-        leftShoulders = leftShoulders,
-        rightShoulders = rightShoulders,
-        dpadButtons = dpadButtons.filter { previewMode || it.visible },
-        dpadCluster = dpadCluster.takeIf { previewMode || it.visible },
+        leftShoulders = if (dsMode) leftShoulders.filter { it.id == "l" } else leftShoulders,
+        rightShoulders = if (dsMode) rightShoulders.filter { it.id == "r" } else rightShoulders,
+        dpadButtons = dpadButtons.filter { if (dsMode) it.visible else previewMode || it.visible },
+        dpadCluster = if (dsMode) null else dpadCluster.takeIf { previewMode || it.visible },
         actionButtons = actionButtons,
-        centerButtons = centerButtons.filter { previewMode || it.visible },
-        leftStick = leftStick.takeIf { previewMode || it.visible },
-        rightStick = rightStick.takeIf { previewMode || it.visible },
-        toggleDpad = toggleDpad.takeIf { it.visible }
+        centerButtons = if (dsMode) {
+            centerButtons.filter { it.id == "select" || it.id == "start" }
+        } else {
+            centerButtons.filter { previewMode || it.visible }
+        },
+        leftStick = if (dsMode) null else leftStick.takeIf { previewMode || it.visible },
+        rightStick = if (dsMode) null else rightStick.takeIf { previewMode || it.visible },
+        toggleDpad = if (dsMode) null else toggleDpad.takeIf { it.visible }
     )
 }

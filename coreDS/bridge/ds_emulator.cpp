@@ -1,6 +1,7 @@
 #include "ds_emulator.h"
 
 #include <android/log.h>
+#include <aaudio/AAudio.h>
 #include <algorithm>
 #include <array>
 #include <chrono>
@@ -157,6 +158,8 @@ bool DsEmulator::Start(const std::string& rom_path, const std::string& sram_path
     nds_->Reset();
     nds_->SetupDirectBoot(rom_path_);
     nds_->Start();
+    paused_ = false;
+    StartAudio();
 
     {
         std::lock_guard lock(surface_mutex_);
@@ -175,6 +178,7 @@ void DsEmulator::Stop() {
             DetachVulkanSurfaceLocked();
             surface_presenter_.reset();
         }
+        StopAudio();
         vulkan_output_.reset();
         vulkan_frame_.reset();
         if (nds_) nds_.reset();
@@ -184,6 +188,7 @@ void DsEmulator::Stop() {
     g_stop_requested = true;
     if (thread_.joinable()) thread_.join();
     stop_requested_ = false;
+    StopAudio();
     {
         std::lock_guard lock(surface_mutex_);
         DetachVulkanSurfaceLocked();
@@ -228,6 +233,11 @@ void DsEmulator::Run() {
         if (pending_scale_.load(std::memory_order_relaxed) != 0) {
             ApplyRenderScaleLocked();
         }
+        if (paused_.load(std::memory_order_relaxed)) {
+            std::this_thread::sleep_for(std::chrono::milliseconds(8));
+            next_frame = clock::now();
+            continue;
+        }
         if (nds_ && nds_->IsRunning()) {
             if (vulkan_output_) {
                 if (auto* renderer2d =
@@ -241,6 +251,7 @@ void DsEmulator::Run() {
             }
             nds_->RunFrame();
             frame_count_.fetch_add(1, std::memory_order_relaxed);
+            DrainAudio();
             if (vulkan_output_) {
                 if (auto* renderer2d =
                         dynamic_cast<melonDS::GPU2D::SoftRenderer*>(&nds_->GPU.GetRenderer2D())) {
@@ -511,6 +522,67 @@ void DsEmulator::TouchScreen(uint16_t x, uint16_t y) {
 
 void DsEmulator::ReleaseTouch() {
     if (nds_) nds_->ReleaseScreen();
+}
+
+void DsEmulator::StartAudio() {
+    if (audio_stream_ != nullptr) return;
+
+    AAudioStreamBuilder* builder = nullptr;
+    if (AAudio_createStreamBuilder(&builder) != AAUDIO_OK || builder == nullptr) return;
+    AAudioStreamBuilder_setDirection(builder, AAUDIO_DIRECTION_OUTPUT);
+    AAudioStreamBuilder_setSampleRate(builder, 48000);
+    AAudioStreamBuilder_setChannelCount(builder, 2);
+    AAudioStreamBuilder_setFormat(builder, AAUDIO_FORMAT_PCM_I16);
+    AAudioStreamBuilder_setSharingMode(builder, AAUDIO_SHARING_MODE_SHARED);
+    AAudioStreamBuilder_setPerformanceMode(builder, AAUDIO_PERFORMANCE_MODE_LOW_LATENCY);
+    AAudioStreamBuilder_setBufferCapacityInFrames(builder, 1024);
+    const aaudio_result_t result = AAudioStreamBuilder_openStream(builder, &audio_stream_);
+    AAudioStreamBuilder_delete(builder);
+    if (result != AAUDIO_OK || audio_stream_ == nullptr) {
+        audio_stream_ = nullptr;
+        __android_log_print(ANDROID_LOG_WARN, "EmuCoreDS", "AAudio stream open failed: %d",
+                            static_cast<int>(result));
+        return;
+    }
+    AAudioStream_requestStart(audio_stream_);
+    __android_log_print(ANDROID_LOG_INFO, "EmuCoreDS", "AAudio stream %d Hz %d ch",
+                        AAudioStream_getSampleRate(audio_stream_),
+                        AAudioStream_getChannelCount(audio_stream_));
+}
+
+void DsEmulator::StopAudio() {
+    if (audio_stream_ == nullptr) return;
+    AAudioStream_requestStop(audio_stream_);
+    AAudioStream_close(audio_stream_);
+    audio_stream_ = nullptr;
+}
+
+void DsEmulator::DrainAudio() {
+    if (audio_stream_ == nullptr || !nds_) return;
+    const int available = nds_->SPU.GetOutputSize();
+    if (available <= 0) return;
+    const int frames = std::min(available, 2048);
+    audio_buffer_.resize(static_cast<size_t>(frames) * 2);
+    const int read = nds_->SPU.ReadOutput(audio_buffer_.data(), frames);
+    if (read <= 0) return;
+    const float volume = std::clamp(audio_volume_.load(std::memory_order_relaxed), 0.0f, 1.0f);
+    if (volume < 0.999f) {
+        for (int i = 0; i < read * 2; i++) {
+            audio_buffer_[i] = static_cast<int16_t>(audio_buffer_[i] * volume);
+        }
+    }
+    AAudioStream_write(audio_stream_, audio_buffer_.data(), read, 2'000'000);
+}
+
+void DsEmulator::SetPaused(bool paused) {
+    paused_.store(paused, std::memory_order_relaxed);
+    if (audio_stream_ == nullptr) return;
+    if (paused) {
+        AAudioStream_requestPause(audio_stream_);
+        AAudioStream_requestFlush(audio_stream_);
+    } else {
+        AAudioStream_requestStart(audio_stream_);
+    }
 }
 
 void DsEmulator::SetRenderScale(int scale) {

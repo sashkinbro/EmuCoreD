@@ -158,8 +158,13 @@ object DsSession {
         return String.format(Locale.US, "%.3f\n%.3f\n%s", fps, speed, overlay)
     }
 
-    fun pause() = Unit
-    fun resume() = Unit
+    fun pause() {
+        if (isActive) EmuCoreDsNative.nativeSetPaused(true)
+    }
+
+    fun resume() {
+        if (isActive) EmuCoreDsNative.nativeSetPaused(false)
+    }
 
     fun setSurface(surface: Surface?) {
         this.surface = surface

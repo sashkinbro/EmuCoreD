@@ -10,6 +10,8 @@
 #include <vector>
 
 struct ANativeWindow;
+struct AAudioStreamStruct;
+using AAudioStream = AAudioStreamStruct;
 
 namespace melonDS {
 class NDS;
@@ -44,6 +46,7 @@ public:
     void TouchScreen(uint16_t x, uint16_t y);
     void ReleaseTouch();
     void SetRenderScale(int scale);
+    void SetPaused(bool paused);
     bool SaveState(const std::string& path);
     bool LoadState(const std::string& path);
 
@@ -52,6 +55,9 @@ public:
 
 private:
     void Run();
+    void StartAudio();
+    void StopAudio();
+    void DrainAudio();
     void ApplyDefaultBios();
     void PresentFrame();
     void PresentVulkanFrame();
@@ -68,6 +74,9 @@ private:
     std::unique_ptr<MelonDSAndroid::VulkanSurfacePresenter> surface_presenter_;
     std::unique_ptr<Frame> vulkan_frame_;
     std::vector<uint32_t> vulkan_readback_;
+    AAudioStream* audio_stream_ = nullptr;
+    std::vector<int16_t> audio_buffer_;
+    std::atomic<float> audio_volume_{1.0f};
     std::unique_ptr<DsPresenter> presenter_;
     std::unique_ptr<DsPresenter> secondary_presenter_;
     std::thread thread_;
@@ -78,6 +87,7 @@ private:
     int vulkan_surface_id_ = 0;
     std::atomic<bool> running_{false};
     std::atomic<bool> stop_requested_{false};
+    std::atomic<bool> paused_{false};
     std::atomic<bool> swap_screens_{false};
     std::atomic<int> screen_layout_{0};
     std::atomic<int> requested_scale_{1};
