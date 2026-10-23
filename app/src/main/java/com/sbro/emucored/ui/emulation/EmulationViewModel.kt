@@ -1518,7 +1518,9 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
 
     fun resetCurrentGameSettingsProfile() {
         viewModelScope.launch {
-            resetCurrentGameProfile()
+            lifecycleMutex.withLock {
+                if (!isShuttingDown) resetCurrentGameProfile()
+            }
         }
     }
 
@@ -2434,8 +2436,52 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
         }
     }
 
-    private fun resetCurrentGameProfile() {
+    private suspend fun resetCurrentGameProfile() {
         val gameKey = activePerGameKey() ?: return
+        val platform = activeGamePlatform()
+        val settings = preferences.settingsSnapshot.first()
+        val defaults = settings.forPlatform(platform)
+        val config = loadLaunchConfig(includeProfile = false, globalSettings = settings)
+        val layout = preferences.overlayLayoutSnapshot.first()
+        if (activePerGameKey() != gameKey || isShuttingDown) return
+
+        // A failed renderer restart must retain the saved profile and live UI.
+        // Use the normal state-preserving renderer path before deleting anything.
+        if (_uiState.value.renderer != defaults.renderer && !EmulatorBridge.setRenderer(defaults.renderer)) {
+            if (platform == GamePlatform.NDS && !DsSession.isActive) {
+                _uiState.value = _uiState.value.withRuntimeFailure(RuntimeFailure(
+                    "DS renderer restart and rollback failed. The recovery checkpoint was retained in the app cache."
+                ))
+            }
+            return
+        }
+        EmulatorBridge.setUpscaleMultiplier(defaults.upscaleMultiplier)
+        if (platform != GamePlatform.NDS) {
+            EmulatorBridge.applyRuntimeConfig(
+                emulatorDataPath = config.emulatorDataPath,
+                renderer = config.renderer,
+                upscaleMultiplier = config.upscaleMultiplier,
+                gpuHardwareProfile = config.gpuHardwareProfile,
+                mediatekAngleOpenGl = config.mediatekAngleOpenGl,
+                aspectRatio = config.aspectRatio,
+                displayCrop = config.displayCrop,
+                audioVolume = config.audioVolume,
+                audioFastForwardVolume = config.audioFastForwardVolume,
+                audioMuted = config.audioMuted,
+                audioOutputLatencyMs = config.audioOutputLatencyMs,
+                audioMinimalOutputLatency = config.audioMinimalOutputLatency,
+                frameSkip = config.frameSkip,
+                frameLimitEnabled = config.frameLimitEnabled,
+                vSyncEnabled = config.vSyncEnabled,
+                fastForwardSpeed = config.fastForwardSpeed,
+                shaderChainEnabled = config.shaderChainEnabled,
+                shaderChainPreset = config.shaderChainPreset,
+                textureReplacementsEnabled = config.textureReplacementsEnabled,
+                enableCheats = config.enableCheats,
+                layoutOption = config.layoutOption,
+                swapScreens = config.swapScreens
+            )
+        }
         perGameSettingsRepository.delete(gameKey)
         currentTouchControlsLayoutProfile = null
         currentCustomTouchControlsProfile = null
@@ -2443,39 +2489,24 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
         refreshKeyboardMouseOverride()
         // Restore the global/core-default value of any option that was overridden
         // only by this game, so the live core matches the reset profile.
-        pendingPerGameCoreOptions.keys.forEach { key ->
+        if (platform != GamePlatform.NDS) pendingPerGameCoreOptions.keys.forEach { key ->
             NativeApp.getCoreOption(key)?.let { baseValue -> NativeApp.applyCoreOption(key, baseValue) }
         }
         pendingPerGameCoreOptions = emptyMap()
-        _uiState.value = _uiState.value.copy(
-            gameSettingsProfileActive = false,
-            perGameCoreOptions = emptyMap(),
-            gamepadBindingsByPad = emptyMap()
-        )
-        viewModelScope.launch {
-            val settings = preferences.settingsSnapshot.first()
-            val resetSwap = loadLaunchConfig().swapScreens ?: false
-            if (activePerGameKey() != gameKey) return@launch
-            _uiState.value = _uiState.value
-                .withOverlayLayoutSnapshot(preferences.overlayLayoutSnapshot.first())
-                .copy(
-                    swapScreens = resetSwap,
-                    touchControlVisualStyle = settings.touchControlVisualStyle,
-                    touchControlPressEffect = settings.touchControlPressEffect,
-                    customTouchControls = settings.customTouchControls,
-                    gameSettingsProfileActive = false,
-                    perGameCoreOptions = emptyMap(),
-                    gamepadStickDeadzone = settings.gamepadStickDeadzone,
-                    gamepadLeftStickSensitivity = settings.gamepadLeftStickSensitivity,
-                    gamepadRightStickSensitivity = settings.gamepadRightStickSensitivity
-                )
-            EmulatorBridge.setSwapScreens(resetSwap)
-        }
+        val resetSwap = config.swapScreens ?: false
+        _uiState.value = _uiState.value
+            .withGlobalRuntimeDefaults(settings, platform, resetSwap)
+            .withOverlayLayoutSnapshot(layout)
+        EmulatorBridge.setSwapScreens(resetSwap)
+        syncNativePerformanceOverlayState(_uiState.value)
+        syncGamepadRuntimeSettings(_uiState.value)
+        if (platform != GamePlatform.NDS) withContext(Dispatchers.IO) { syncCheatsForCurrentGame() }
+        updateCrashContext()
     }
 
-    private suspend fun loadLaunchConfig(): EmulationLaunchConfig {
-        val profile = activePerGameKey()?.let(perGameSettingsRepository::get)
-        val settings = preferences.settingsSnapshot.first().forPlatform(activeGamePlatform())
+    private suspend fun loadLaunchConfig(includeProfile: Boolean = true, globalSettings: SettingsSnapshot? = null): EmulationLaunchConfig {
+        val profile = if (includeProfile) activePerGameKey()?.let(perGameSettingsRepository::get) else null
+        val settings = (globalSettings ?: preferences.settingsSnapshot.first()).forPlatform(activeGamePlatform())
         val secondScreenMode = preferences.secondScreenMode.first()
         val secondScreenSwap = preferences.secondScreenSwap.first()
         val detachedSecondScreen = secondScreenMode == AppPreferences.SECOND_SCREEN_MODE_PANEL ||
