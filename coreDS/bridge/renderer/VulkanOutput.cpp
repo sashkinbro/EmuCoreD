@@ -1,4 +1,5 @@
 #include "VulkanOutput.h"
+#include "FaithfulLiveRoutePolicy.h"
 
 #include <algorithm>
 #include <atomic>
@@ -5473,6 +5474,7 @@ bool VulkanOutput::dispatchFaithfulCompositor(Frame* frame, FrameResource& resou
     FaithfulCausalBoundLiveGpu* boundLive = nullptr;
     bool causalHeaderCpuValid = false;
     bool causalHeaderAllNativeCpu = false;
+    bool causalLiveHeaderCpuValid = false;
     if (faithfulCausalMapped[faithfulRing] != nullptr)
     {
         u8* const causalBytes = static_cast<u8*>(
@@ -5499,7 +5501,10 @@ bool VulkanOutput::dispatchFaithfulCompositor(Frame* frame, FrameResource& resou
                 : header->ProductCount == 0u)
             && (header->CaptureEpochLo | header->CaptureEpochHi) != 0u;
         causalHeaderAllNativeCpu = causalHeaderCpuValid && allNative;
-        if (causalHeaderCpuValid)
+        causalLiveHeaderCpuValid = FaithfulLiveRouteHeaderValid(
+            header->Valid, header->GenerationLo, header->GenerationHi,
+            header->CaptureEpochLo, header->CaptureEpochHi, causalRouteHeaderCpuValid);
+        if (causalLiveHeaderCpuValid)
         {
             const auto* const lines =
                 reinterpret_cast<const FaithfulCausalRouteLiveGpu*>(
@@ -5590,9 +5595,9 @@ bool VulkanOutput::dispatchFaithfulCompositor(Frame* frame, FrameResource& resou
         paseCaptura = false;
     }
 
-    if (causalHeaderCpuValid && !liveCausalAmbiguous
+    if (causalLiveHeaderCpuValid && !liveCausalAmbiguous
         && liveCausalEpoch != 0u && liveCausalSequence != 0u
-        && escala > 1u)
+        && escala >= 1u)
     {
         const auto matchesLive = [&](const FrameResource& candidate) {
             return snapshotVisibleToThisDispatch(candidate)
@@ -5646,11 +5651,7 @@ bool VulkanOutput::dispatchFaithfulCompositor(Frame* frame, FrameResource& resou
             considerLive(candidate);
         }
         const bool liveProjectionUsable = liveCausalProjectionSet
-            && liveCausalWidth >= 256u * escala
-            && (liveCausalWidth % (256u * escala)) == 0u
-            && liveCausalHeight * 4u == liveCausalWidth * 3u
-            && liveCausalWidth <= 0xFFFFu
-            && liveCausalHeight <= 0xFFFFu;
+            && FaithfulLiveProjectionValid(escala, liveCausalWidth, liveCausalHeight);
         if (liveCausalMatches == 0u || liveCausalAmbiguous
             || !liveProjectionUsable)
         {
@@ -6239,7 +6240,7 @@ bool VulkanOutput::dispatchFaithfulCompositor(Frame* frame, FrameResource& resou
             0, 0, nullptr, 1, &bObj, 0, nullptr);
     }
     writeFaithfulTimestamp(2u, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT);
-    if (escala > 1u && !rutaCorta)
+    if (!rutaCorta)
     {
 
         const u32 empujeB1[3] = {
@@ -6629,7 +6630,7 @@ bool VulkanOutput::dispatchFaithfulCompositor(Frame* frame, FrameResource& resou
     }
     grabarPase();
     writeFaithfulTimestamp(4u, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT);
-    if (escala > 1u && !rutaCorta)
+    if (!rutaCorta)
     {
 
         VkBufferMemoryBarrier compactPrepare[2]{};
@@ -8096,8 +8097,6 @@ bool VulkanOutput::liveCausalSourceAvailable(const Frame* frame, u32 escala,
     if (anchoSalida == 0u)
         for (const auto& [f2, r2] : resources) { (void)f2; if (r2.width != 0u) { anchoSalida = r2.width; break; } }
     const u32 escalaSalida = (anchoSalida >= 256u) ? anchoSalida / 256u : escala;
-    if (escalaSalida <= 1u)
-        return true;
     u32 matches = 0u; bool usable = false;
     for (const auto& [candidateFrame, candidate] : resources)
     {
@@ -8112,8 +8111,7 @@ bool VulkanOutput::liveCausalSourceAvailable(const Frame* frame, u32 escala,
         matches++;
         const auto& p = candidate.renderer3dSnapshotProjection;
         if (p.valid() && candidate.snapshotWidth == p.destinationWidth && candidate.snapshotHeight == p.destinationHeight
-            && p.destinationWidth >= 256u * escalaSalida && (p.destinationWidth % (256u * escalaSalida)) == 0u
-            && p.destinationHeight * 4u == p.destinationWidth * 3u && p.destinationWidth <= 0xFFFFu && p.destinationHeight <= 0xFFFFu)
+            && FaithfulLiveProjectionValid(escalaSalida, p.destinationWidth, p.destinationHeight))
             usable = true;
     }
     if (coincidencias != nullptr) *coincidencias = matches;

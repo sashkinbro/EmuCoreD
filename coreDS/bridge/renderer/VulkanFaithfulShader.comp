@@ -235,7 +235,7 @@ bool causalLoadBoundLive(out uvec4 identity, out uvec4 metadata)
 {
     identity = uvec4(0u);
     metadata = uvec4(0u);
-    if (!causalHeaderValid())
+    if (!causalRouteHeaderValid())
         return false;
 
     uint word = kCausalBoundLiveOffsetWords;
@@ -1898,6 +1898,19 @@ void main()
         uint lineaCompacta = filaSalida % 192u;
         uint carrilCompacto = gl_LocalInvocationID.x;
 
+        // Live routes are published before optional capture lineage. A route-only
+        // frame can still bind an exact direct 3D image; never inspect stale
+        // lineage rows or certify capture pixels in this state.
+        if (!causalHeaderValid())
+        {
+            if (carrilCompacto == 0u)
+                objLinea[pantallaCompacta * 192u + lineaCompacta] =
+                    causalBuildLiveLineDescriptor(
+                        pantallaCompacta, lineaCompacta, escCompacta,
+                        ratioCompacto, false);
+            return;
+        }
+
         uint rowWordCompacto = kCausalLineageRowOffsetWords
             + (pantallaCompacta * 192u + lineaCompacta) * 4u;
         uint rowKindCompacto = causal[rowWordCompacto + 0u];
@@ -2050,29 +2063,10 @@ void main()
         pantalla = (filaSalida < 192u * esc) ? 0u : 1u;
         filaInterna = (filaSalida < 192u * esc) ? filaSalida : (filaSalida - 194u * esc);
         linea = filaInterna / esc;
-        if (esc > 1u)
-        {
-            descriptorCompacto = objLinea[pantalla * 192u + linea];
-            if ((descriptorCompacto & (1u << 31u)) == 0u)
-                return;
-            eng = (descriptorCompacto >> 30u) & 1u;
-        }
-        else
-        {
-            uvec4 routeLive;
-            uvec4 liveRenderKey;
-            if (!causalLoadRouteLive(
-                    pantalla, linea, routeLive, liveRenderKey))
-                return;
-            uint routeFlags = routeLive.x;
-            uint routeEngine = (routeFlags >> 8u) & 0xFFu;
-            uint routeScreen = (routeFlags >> 16u) & 0xFFu;
-            if ((routeFlags & 0xFFu) != 0x03u
-                || routeEngine >= 2u
-                || routeScreen != pantalla)
-                return;
-            eng = routeEngine;
-        }
+        descriptorCompacto = objLinea[pantalla * 192u + linea];
+        if ((descriptorCompacto & (1u << 31u)) == 0u)
+            return;
+        eng = (descriptorCompacto >> 30u) & 1u;
     }
     else if (outputMode() == 4u)
     {
@@ -2122,7 +2116,7 @@ void main()
         return;
     }
 
-    if (outputMode() == 1u && esc > 1u)
+    if (outputMode() == 1u)
     {
         uint idxN = ((eng * 192u + linea) * 256u + x) * 2u;
         uint w0 = fielB1[idxN];
