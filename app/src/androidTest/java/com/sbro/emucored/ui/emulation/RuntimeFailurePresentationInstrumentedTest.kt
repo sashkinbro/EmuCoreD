@@ -16,12 +16,15 @@ class RuntimeFailurePresentationInstrumentedTest {
     @Test
     fun failedExitCannotOverwriteTheAutosaveOrChangeTheUsersPreference() {
         for (enabled in listOf(false, true)) {
-            val state = EmulationUiState(autoSaveOnExit = enabled)
-            assertEquals(enabled, state.shouldAutoSaveOnExit("owned-fixture.cue", null))
-            assertFalse(state.shouldAutoSaveOnExit(null, null))
-            assertFalse(state.shouldAutoSaveOnExit("owned-fixture.cue", RuntimeFailure("probe fault")))
-            assertFalse(state.shouldAutoSaveOnExit(null, RuntimeFailure("probe fault")))
-            assertEquals(enabled, state.autoSaveOnExit)
+            for (onExit in listOf(false, true)) {
+                val state = EmulationUiState(autoSaveEnabled = enabled, autoSaveOnExit = onExit)
+                assertEquals(enabled && onExit, state.shouldAutoSaveOnExit("owned-fixture.3ds", null))
+                assertFalse(state.shouldAutoSaveOnExit(null, null))
+                assertFalse(state.shouldAutoSaveOnExit("owned-fixture.3ds", RuntimeFailure("probe fault")))
+                assertFalse(state.shouldAutoSaveOnExit(null, RuntimeFailure("probe fault")))
+                assertEquals(enabled, state.autoSaveEnabled)
+                assertEquals(onExit, state.autoSaveOnExit)
+            }
         }
     }
 
