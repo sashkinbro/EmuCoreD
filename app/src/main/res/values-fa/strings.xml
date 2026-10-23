@@ -1843,4 +1843,5 @@
     <string name="profile_platform_empty">هنوز بازی‌ای برای این پلتفرم وجود ندارد.</string>
     <string name="profile_platform_ds">Nintendo DS</string>
     <string name="profile_platform_3ds">Nintendo 3DS</string>
+    <string name="settings_ds_software_native_resolution">رندر نرم‌افزاری از وضوح اصلی DS استفاده می‌کند (256 × 192 برای هر صفحه).</string>
 </resources>

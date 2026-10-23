@@ -936,7 +936,7 @@ private fun GameSettingsTabContent(
                     // while the game ran the in-game value, and a single edit
                     // here pinned a core-option override that shadowed the
                     // app-level value at launch forever.
-                    SelectionRow(
+                    if (capabilities.supportsInternalUpscaling(draft.renderer)) SelectionRow(
                         title = stringResource(R.string.settings_upscale),
                         options = buildUpscaleOptions(nativeUpscaleLabel, maxUpscaleMultiplier),
                         selectedValue = upscaleMultiplierKey(draft.upscaleMultiplier.coerceIn(1f, maxUpscaleMultiplier.toFloat())),
@@ -953,7 +953,7 @@ private fun GameSettingsTabContent(
                                 )
                             )
                         }
-                    )
+                    ) else SettingsInlineNote(stringResource(R.string.settings_ds_software_native_resolution))
                     if (capabilities.supportsAzaharOptions) {
                         SelectionRow(
                             title = stringResource(R.string.settings_aspect_ratio),
@@ -1307,7 +1307,7 @@ private fun GameSettingsTabContent(
                         helpText = stringResource(R.string.settings_help_gamepad_button_haptics),
                         onResetToDefault = { onDraftChange(draft.copy(gamepadButtonHaptics = defaultProfile.gamepadButtonHaptics)) }
                     )
-                    SliderRow(
+                    if (capabilities.supportsAnalogControls) SliderRow(
                         title = stringResource(R.string.settings_gamepad_stick_deadzone),
                         value = draft.gamepadStickDeadzone.toFloat(),
                         valueLabel = "${draft.gamepadStickDeadzone}%",
@@ -1317,7 +1317,7 @@ private fun GameSettingsTabContent(
                         helpText = stringResource(R.string.settings_help_gamepad_stick_deadzone),
                         onResetToDefault = { onDraftChange(draft.copy(gamepadStickDeadzone = defaultProfile.gamepadStickDeadzone)) }
                     )
-                    SliderRow(
+                    if (capabilities.supportsAnalogControls) SliderRow(
                         title = stringResource(R.string.settings_gamepad_left_stick_sensitivity),
                         value = draft.gamepadLeftStickSensitivity.toFloat(),
                         valueLabel = "${draft.gamepadLeftStickSensitivity}%",
@@ -1327,7 +1327,7 @@ private fun GameSettingsTabContent(
                         helpText = stringResource(R.string.settings_help_gamepad_left_stick_sensitivity),
                         onResetToDefault = { onDraftChange(draft.copy(gamepadLeftStickSensitivity = defaultProfile.gamepadLeftStickSensitivity)) }
                     )
-                    SliderRow(
+                    if (capabilities.supportsAnalogControls) SliderRow(
                         title = stringResource(R.string.settings_gamepad_right_stick_sensitivity),
                         value = draft.gamepadRightStickSensitivity.toFloat(),
                         valueLabel = "${draft.gamepadRightStickSensitivity}%",

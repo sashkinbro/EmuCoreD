@@ -39,4 +39,13 @@ class CoreCapabilitiesTest {
         assertEquals(1, CoreCapabilities.forPlatform(ConsolePlatform.NDS).maxInternalScale(12))
         assertEquals(1, CoreCapabilities.forPlatform(ConsolePlatform.N3DS).maxInternalScale(13))
     }
+
+    @Test fun dsMappingOffersPhysicalDsButtonsAndImplementedFrontendShortcuts() {
+        val ds = CoreCapabilities.forPlatform(ConsolePlatform.NDS)
+        listOf("a", "b", "x", "y", "l", "r", "start", "select", "dpad_up", "quick_save", "quick_load", "swap_screens")
+            .forEach { assertTrue(it, ds.supportsMappedAction(it)) }
+        listOf("zl", "zr", "home", "rewind", "fast_forward", "right_stick_up", "left_stick_down")
+            .forEach { assertFalse(it, ds.supportsMappedAction(it)) }
+        assertFalse(CoreCapabilities.forPlatform(ConsolePlatform.GBA).supportsMappedAction("a"))
+    }
 }

@@ -4155,7 +4155,7 @@ private fun EmulationSidebarMenu(
                             )
                         }
 
-                        LiveSliderRow(
+                        if (capabilities.supportsAnalogControls) LiveSliderRow(
                             title = stringResource(R.string.settings_gamepad_stick_deadzone),
                             valueLabelForValue = { "$it%" },
                             value = uiState.gamepadStickDeadzone.toFloat(),
@@ -4167,7 +4167,7 @@ private fun EmulationSidebarMenu(
                             onResetToDefault = { onSetGamepadStickDeadzone(AppPreferences.DEFAULT_GAMEPAD_STICK_DEADZONE) }
                         )
 
-                        LiveSliderRow(
+                        if (capabilities.supportsAnalogControls) LiveSliderRow(
                             title = stringResource(R.string.settings_gamepad_left_stick_sensitivity),
                             valueLabelForValue = { "$it%" },
                             value = uiState.gamepadLeftStickSensitivity.toFloat(),
@@ -4179,7 +4179,7 @@ private fun EmulationSidebarMenu(
                             onResetToDefault = { onSetGamepadLeftStickSensitivity(AppPreferences.DEFAULT_GAMEPAD_STICK_SENSITIVITY) }
                         )
 
-                        LiveSliderRow(
+                        if (capabilities.supportsAnalogControls) LiveSliderRow(
                             title = stringResource(R.string.settings_gamepad_right_stick_sensitivity),
                             valueLabelForValue = { "$it%" },
                             value = uiState.gamepadRightStickSensitivity.toFloat(),
@@ -4271,11 +4271,7 @@ private fun EmulationSidebarMenu(
                     EmulationMenuTab.Emulation -> {
                         gameMenuSectionsForTab(GameMenuTabId.EMULATION, uiState.gameMenuSectionOrder)
                             .filterNot(uiState.hiddenGameMenuSections::contains)
-                            .filter {
-                                capabilities.supportsAzaharOptions || it !in setOf(
-                                    GameMenuSectionId.EMULATION_CPU, GameMenuSectionId.EMULATION_AUDIO
-                                )
-                            }
+                            .filter(capabilities::supportsGameMenuSection)
                             .forEach { section ->
                                 when (section) {
                                     GameMenuSectionId.EMULATION_PERFORMANCE -> {
@@ -4482,7 +4478,7 @@ private fun EmulationSidebarMenu(
                         // persisted changes to the global core-option store, so
                         // they leaked into every game and never appeared in the
                         // game manager.
-                        LiveSelectionRow(
+                        if (capabilities.supportsInternalUpscaling(uiState.renderer)) LiveSelectionRow(
                             title = stringResource(R.string.settings_upscale),
                             options = buildUpscaleOptions(
                                 stringResource(R.string.settings_upscale_native),
@@ -4492,7 +4488,7 @@ private fun EmulationSidebarMenu(
                             onValueChange = { onSetUpscale(upscaleKeyToMultiplier(it)) },
                             helpText = stringResource(R.string.settings_help_upscale),
                             onResetToDefault = { onSetUpscale(globalDefaults.upscaleMultiplier.coerceIn(1f, capabilities.maxUpscaleMultiplier(10).toFloat())) }
-                        )
+                        ) else Text(stringResource(R.string.settings_ds_software_native_resolution))
 
                         if (capabilities.supportsAzaharOptions) {
                             LiveSelectionRow(

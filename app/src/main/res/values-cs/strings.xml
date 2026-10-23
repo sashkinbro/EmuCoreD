@@ -1849,4 +1849,5 @@
     <string name="profile_platform_empty">Pro tuto platformu zatím nejsou žádné hry.</string>
     <string name="profile_platform_ds">Nintendo DS</string>
     <string name="profile_platform_3ds">Nintendo 3DS</string>
+    <string name="settings_ds_software_native_resolution">Softwarové vykreslování používá původní rozlišení DS (256 × 192 na obrazovku).</string>
 </resources>

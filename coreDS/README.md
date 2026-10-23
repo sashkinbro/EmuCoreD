@@ -6,7 +6,7 @@ EmuCoreD. The core is integrated through EmuCoreD's own JNI bridge, not libretro
 ## Layout
 
 - `melonDS/` — upstream melonDS source.
-- `bridge/` — EmuCoreD JNI/platform/frontend layer (to be added).
+- `bridge/` — EmuCoreD JNI/platform/frontend layer.
 - `CMakeLists.txt` — configures melonDS as a static `core` target for Android.
 
 ## Build direction
@@ -14,8 +14,8 @@ EmuCoreD. The core is integrated through EmuCoreD's own JNI bridge, not libretro
 - NDK, `arm64-v8a`.
 - `ENABLE_JIT=ON` (melonDS ARM64 JIT).
 - `ENABLE_OGLRENDERER=ON` with `MELONDS_GL_HEADER=<GLES3/gl32.h>`.
-- Software renderer remains available as a fallback.
-- melonDS has no Vulkan backend; Vulkan remains a 3DS-only renderer.
+- Vulkan is the default DS renderer in this locally adapted tree; it is not a 3DS-only option.
+- Software remains explicitly selectable for compatibility comparisons and native-resolution reference rendering. It is not an automatic substitute for fixing Vulkan defects.
 - BIOS/firmware can come from user files or FreeBIOS where supported.
 
 ## Integration scope

@@ -2,6 +2,7 @@ package com.sbro.emucored.core
 
 import com.sbro.emucored.data.GamePlatform
 import com.sbro.emucored.data.GameMenuTabId
+import com.sbro.emucored.data.GameMenuSectionId
 import org.junit.Assert.*
 import org.junit.Test
 
@@ -13,6 +14,10 @@ class PlatformUiCapabilitiesTest {
         assertEquals(14, capabilities.normalizeRenderer(12))
         assertEquals(8, capabilities.maxUpscaleMultiplier(10))
         assertFalse(capabilities.supportsAzaharOptions)
+        assertFalse(capabilities.supportsAnalogControls)
+        assertTrue(capabilities.supportsInternalUpscaling(14))
+        assertFalse(capabilities.supportsInternalUpscaling(13))
+        assertFalse(capabilities.supportsInternalUpscaling(12))
     }
 
     @Test fun threeDsMenusRetainHardwareRenderersAndCoreOptions() {
@@ -22,6 +27,7 @@ class PlatformUiCapabilitiesTest {
         assertEquals(12, capabilities.normalizeRenderer(12))
         assertEquals(10, capabilities.maxUpscaleMultiplier(10))
         assertTrue(capabilities.supportsAzaharOptions)
+        assertTrue(capabilities.supportsAnalogControls)
     }
 
     @Test fun cachedPlatformIdentifiesOpaqueDocumentPaths() {
@@ -37,5 +43,10 @@ class PlatformUiCapabilitiesTest {
         assertTrue(ds.supportsGameMenuTab(GameMenuTabId.SESSION))
         assertTrue(ds.supportsGameMenuTab(GameMenuTabId.CONTROLS))
         assertTrue(ds.supportsGameMenuTab(GameMenuTabId.GRAPHICS))
+        assertFalse(ds.supportsGameMenuSection(GameMenuSectionId.EMULATION_CPU))
+        assertFalse(ds.supportsGameMenuSection(GameMenuSectionId.EMULATION_AUDIO))
+        assertFalse(ds.supportsGameMenuSection(GameMenuSectionId.EMULATION_CHEATS))
+        assertTrue(ds.supportsGameMenuSection(GameMenuSectionId.SAVE_STATES))
+        assertTrue(threeDs.supportsGameMenuSection(GameMenuSectionId.EMULATION_CPU))
     }
 }

@@ -50,6 +50,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
@@ -170,7 +171,7 @@ class HomeViewModel(application: Application, private val savedStateHandle: Save
     private var publishJob: Job? = null
 
     private val _uiState = MutableStateFlow(HomeUiState(platformFilter =
-        savedStateHandle.get<String>("library_platform")?.let { name ->
+        savedStateHandle.get<String>(LIBRARY_PLATFORM_STATE_KEY)?.let { name ->
             GamePlatform.entries.firstOrNull { it.name == name }
         }
     ))
@@ -181,6 +182,7 @@ class HomeViewModel(application: Application, private val savedStateHandle: Save
     private var ciaInstallJob: Job? = null
 
     init {
+        viewModelScope.persistLibraryPlatformFilter(_uiState.map { it.platformFilter }, savedStateHandle)
         viewModelScope.launch {
             preferences.homeGridScale.collect { scale ->
                 _uiState.value = _uiState.value.copy(homeGridScale = scale)
@@ -591,7 +593,6 @@ class HomeViewModel(application: Application, private val savedStateHandle: Save
 
     fun updatePlatformFilter(platform: GamePlatform?) {
         val selection = resolveLibraryPlatformSelection(allGames, platform)
-        savedStateHandle["library_platform"] = selection.selected?.name
         _uiState.update { it.copy(platformFilter = selection.selected) }
         publishVisibleGames()
     }

@@ -1829,4 +1829,5 @@
     <string name="profile_platform_empty">此平台暂无游戏。</string>
     <string name="profile_platform_ds">Nintendo DS</string>
     <string name="profile_platform_3ds">Nintendo 3DS</string>
+    <string name="settings_ds_software_native_resolution">軟體渲染器使用 DS 原生解析度（每個螢幕 256 × 192）。</string>
 </resources>

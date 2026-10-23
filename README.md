@@ -87,7 +87,12 @@ Discord support is built when a compatible Discord Social SDK directory is suppl
 - `core/` Vendored Azahar 3DS sources
 - `core-android/` Gradle module that builds the Azahar 3DS core for Android
 - `coreDS/` Nintendo DS bridge, Vulkan/software renderers, and vendored melonDS sources
+- `coreGameCube/dolphin/` Pinned Dolphin source submodule for planned GameCube/Wii integration
+- `coreGBA/mgba/` Pinned mGBA source submodule for planned GBA integration
+- `coreGB/SameBoy/` Pinned SameBoy source submodule for planned GB/GBC integration
 - `IGDB/` Local catalog tooling (not part of the app build)
+
+New core sources are acquired but their Android adapters are not yet integrated. See [core integration status](CORE_INTEGRATION.md) and the [product implementation plan](docs/superpowers/plans/2026-10-23-multiplatform-product.md) for pins, checkout instructions and acceptance criteria. Only DS/3DS are currently launchable.
 
 ## Supported Content
 

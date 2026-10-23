@@ -1842,4 +1842,5 @@
     <string name="profile_platform_empty">Belum ada game untuk platform ini.</string>
     <string name="profile_platform_ds">Nintendo DS</string>
     <string name="profile_platform_3ds">Nintendo 3DS</string>
+    <string name="settings_ds_software_native_resolution">Perender perangkat lunak memakai resolusi asli DS (256 × 192 per layar).</string>
 </resources>

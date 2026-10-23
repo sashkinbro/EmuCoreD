@@ -1827,4 +1827,5 @@
     <string name="profile_platform_empty">이 플랫폼의 게임이 아직 없습니다.</string>
     <string name="profile_platform_ds">Nintendo DS</string>
     <string name="profile_platform_3ds">Nintendo 3DS</string>
+    <string name="settings_ds_software_native_resolution">소프트웨어 렌더러는 DS 기본 해상도(화면당 256 × 192)로 렌더링합니다.</string>
 </resources>

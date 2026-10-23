@@ -1833,4 +1833,5 @@
     <string name="profile_platform_empty">Ігор для цієї платформи поки немає.</string>
     <string name="profile_platform_ds">Nintendo DS</string>
     <string name="profile_platform_3ds">Nintendo 3DS</string>
+    <string name="settings_ds_software_native_resolution">Програмний рендерер використовує рідну роздільність DS (256 × 192 на кожен екран).</string>
 </resources>

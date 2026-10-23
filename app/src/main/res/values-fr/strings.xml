@@ -1830,4 +1830,5 @@
     <string name="profile_platform_empty">Aucun jeu pour cette plateforme pour le moment.</string>
     <string name="profile_platform_ds">Nintendo DS</string>
     <string name="profile_platform_3ds">Nintendo 3DS</string>
+    <string name="settings_ds_software_native_resolution">Le rendu logiciel utilise la résolution native de la DS (256 × 192 par écran).</string>
 </resources>

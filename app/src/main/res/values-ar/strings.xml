@@ -1836,4 +1836,5 @@
     <string name="profile_platform_empty">لا توجد ألعاب لهذه المنصة بعد.</string>
     <string name="profile_platform_ds">Nintendo DS</string>
     <string name="profile_platform_3ds">Nintendo 3DS</string>
+    <string name="settings_ds_software_native_resolution">يعرض المصيّر البرمجي بدقة DS الأصلية (256 × 192 لكل شاشة).</string>
 </resources>

@@ -164,6 +164,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.platform.LocalWindowInfo
@@ -202,6 +203,12 @@ import com.sbro.emucored.core.PerformanceProfiles
 import com.sbro.emucored.core.ProPurchaseTier
 import com.sbro.emucored.core.availableProSupportOffers
 import com.sbro.emucored.core.RendererDefaults
+import com.sbro.emucored.core.PlatformUiCapabilities
+import com.sbro.emucored.data.GamePlatform
+import com.sbro.emucored.core.platform.ConsolePlatform
+import com.sbro.emucored.core.platform.ConsoleSettingsPolicy
+import com.sbro.emucored.core.platform.CoreCapabilities
+import com.sbro.emucored.core.platform.SettingsCategory
 import com.sbro.emucored.core.TvInterfaceMode
 import com.sbro.emucored.core.TvUiPolicy
 import com.sbro.emucored.data.AppFontChoice
@@ -284,9 +291,7 @@ import com.sbro.emucored.ui.theme.neon.neonShape
 import com.sbro.emucored.ui.theme.neon.neonShapeCorners
 import java.util.Locale
 
-private enum class SettingsTab {
-    General, Graphics, NintendoDs, Controls, Emulation, Audio, Multiplayer, Library, Customization, GameMenu, Updates, Pro, About
-}
+private typealias SettingsTab = SettingsCategory
 
 @OptIn(ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class)
 @Composable
@@ -309,6 +314,11 @@ fun SettingsScreen(
     val bottomInset = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
     val horizontalSystemBarPadding = navigationBarsHorizontalPaddingValues()
     var selectedTab by rememberSaveable(initialTab) { mutableStateOf(initialTab.toSettingsTab()) }
+    var selectedPlatformId by rememberSaveable(initialTab) {
+        mutableStateOf(if (initialTab.isDsSettingsLink() || DsSession.isActive) ConsolePlatform.NDS.id else ConsolePlatform.N3DS.id)
+    }
+    val selectedPlatform = ConsolePlatform.fromId(selectedPlatformId)?.takeIf { it.isLaunchable } ?: ConsolePlatform.N3DS
+    val activeTab = ConsoleSettingsPolicy.normalizeCategory(selectedPlatform, selectedTab)
     val pendingGamepadActionId = remember { mutableStateOf<String?>(null) }
     var pendingGamepadPadIndex by rememberSaveable { mutableIntStateOf(0) }
     var showGamepadAssignmentDialog by rememberSaveable { mutableStateOf(false) }
@@ -422,7 +432,7 @@ fun SettingsScreen(
         }
     )
     val openLanguageSheet = rememberDebouncedClick(onClick = { onOpenLanguageScreen?.invoke() })
-    val settingsTabs = remember { SettingsTab.entries.toList() }
+    val settingsTabs = remember(selectedPlatform) { ConsoleSettingsPolicy.categories(selectedPlatform) }
     fun selectRelativeTab(offset: Int) {
         val currentIndex = settingsTabs.indexOf(selectedTab).coerceAtLeast(0)
         selectedTab = settingsTabs[(currentIndex + offset + settingsTabs.size) % settingsTabs.size]
@@ -524,7 +534,7 @@ fun SettingsScreen(
             item(key = "settings-top-bar") {
             SettingsCompactTopBar(
                 title = stringResource(R.string.settings_title),
-                subtitle = if (searchEnabled) stringResource(R.string.settings_search_subtitle) else selectedTab.label(),
+                subtitle = if (searchEnabled) stringResource(R.string.settings_search_subtitle) else activeTab.label(),
                 topInset = (topInset - stickyTabInset).coerceAtLeast(0.dp),
                 onBackClick = onBackClick,
                 menuExpanded = showTopBarMenu,
@@ -545,8 +555,14 @@ fun SettingsScreen(
 
             stickyHeader(key = "settings-tabs") {
                 StickyTabHeader(showDivider = settingsTabsPinned) {
+                    ConsoleSelector(selectedPlatform) { platform ->
+                        selectedPlatformId = platform.id
+                        selectedTab = ConsoleSettingsPolicy.normalizeCategory(platform, selectedTab)
+                        searchQuery = ""
+                    }
                     SettingsTabRow(
-                        selectedTab = selectedTab,
+                        tabs = settingsTabs,
+                        selectedTab = activeTab,
                         onSelected = { tab ->
                             if (selectedTab == tab) return@SettingsTabRow
                             selectedTab = tab
@@ -559,7 +575,8 @@ fun SettingsScreen(
             item(key = "settings-content") {
             SettingsContent(
                 uiState = uiState,
-                selectedTab = selectedTab,
+                platform = selectedPlatform,
+                selectedTab = activeTab,
                 context = context,
                 launchGamePicker = launchGamePicker,
                 openEmulatorDataLocationDialog = openEmulatorDataLocationDialog,
@@ -1061,11 +1078,11 @@ private fun SettingsCompactTopBar(
 
 @Composable
 private fun SettingsTabRow(
+    tabs: List<SettingsTab>,
     selectedTab: SettingsTab,
     onSelected: (SettingsTab) -> Unit,
     selectedTabFocusRequester: FocusRequester
 ) {
-    val tabs = remember { SettingsTab.entries.toList() }
     ScrollableFilterTabRow(
         tabs = tabs,
         selectedTab = selectedTab,
@@ -1073,13 +1090,16 @@ private fun SettingsTabRow(
         key = SettingsTab::name,
         label = SettingsTab::label,
         icon = SettingsTab::icon,
-        selectedTabFocusRequester = selectedTabFocusRequester
+        selectedTabFocusRequester = selectedTabFocusRequester,
+        verticalPadding = 0.dp,
+        modifier = Modifier.testTag("settings-category-tabs")
     )
 }
 
 @Composable
 private fun SettingsContent(
     uiState: SettingsUiState,
+    platform: ConsolePlatform,
     selectedTab: SettingsTab,
     searchQuery: String,
     context: android.content.Context,
@@ -1108,12 +1128,16 @@ private fun SettingsContent(
     onOpenThemeManager: (() -> Unit)? = null,
     onOpenTouchControlCreator: (() -> Unit)? = null
 ) {
-    val gamepadActions = remember { GamepadManager.mappableButtonActions() }
+    val supportsAzaharOptions = CoreCapabilities.forPlatform(platform).supportsAzaharOptions
+    val gamepadActions = remember(platform) {
+        val capabilities = CoreCapabilities.forPlatform(platform)
+        GamepadManager.mappableButtonActions().filter { capabilities.supportsMappedAction(it.id) }
+    }
     val gamepadDeviceAssignments by GamepadManager.gamepadDeviceAssignmentsState.collectAsState()
     val ignoredGamepadDevices by GamepadManager.ignoredGamepadDevicesState.collectAsState()
     val defaults = remember { SettingsSnapshot() }
     val overlayDefaults = remember { OverlayLayoutSnapshot() }
-    val searchEntries = rememberSettingsSearchEntries()
+    val searchEntries = rememberSettingsSearchEntries(platform, uiState.dsRenderer)
     val floatingQuickActionsEnabled by viewModel.floatingQuickActionsEnabled.collectAsState()
     val orientationLock by viewModel.orientationLock.collectAsState()
     val emulationAllowsBothOrientations by viewModel.emulationAllowsBothOrientations.collectAsState()
@@ -1342,7 +1366,7 @@ private fun SettingsContent(
                 }
 
                 SettingsTab.GameMenu -> {
-                    GameMenuSettingsTab(uiState = uiState, viewModel = viewModel)
+                    GameMenuSettingsTab(uiState = uiState, platform = platform, viewModel = viewModel)
                 }
 
                 SettingsTab.Audio -> {
@@ -1403,19 +1427,21 @@ private fun SettingsContent(
 
                 SettingsTab.Controls -> {
                     SettingsSection(title = stringResource(R.string.settings_touch_controls)) {
-                        ActionItem(
-                            icon = Icons.Rounded.Tune,
-                            title = stringResource(R.string.settings_edit_global_controls),
-                            subtitle = stringResource(R.string.settings_edit_global_controls_desc),
-                            actionIcon = Icons.Rounded.Gamepad,
-                            actionLabel = stringResource(R.string.settings_edit_controls_action),
-                            onClick = { onOpenControlsLayoutEditor?.invoke() },
-                            enabled = onOpenControlsLayoutEditor != null
-                        )
-                        StickToggleTargetPicker(
-                            selected = uiState.stickToggleTarget,
-                            onSelect = viewModel::setStickToggleTarget
-                        )
+                        if (supportsAzaharOptions) {
+                            ActionItem(
+                                icon = Icons.Rounded.Tune,
+                                title = stringResource(R.string.settings_edit_global_controls),
+                                subtitle = stringResource(R.string.settings_edit_global_controls_desc),
+                                actionIcon = Icons.Rounded.Gamepad,
+                                actionLabel = stringResource(R.string.settings_edit_controls_action),
+                                onClick = { onOpenControlsLayoutEditor?.invoke() },
+                                enabled = onOpenControlsLayoutEditor != null
+                            )
+                            StickToggleTargetPicker(
+                                selected = uiState.stickToggleTarget,
+                                onSelect = viewModel::setStickToggleTarget
+                            )
+                        }
                         SliderItem(
                             icon = Icons.Rounded.TouchApp,
                             title = stringResource(R.string.settings_overlay_scale),
@@ -1440,93 +1466,95 @@ private fun SettingsContent(
                             helpText = stringResource(R.string.settings_help_overlay_opacity),
                             onResetToDefault = { viewModel.setOverlayOpacity(overlayDefaults.overlayOpacity) }
                         )
-                        ToggleItem(
-                            icon = Icons.Rounded.TouchApp,
-                            title = stringResource(R.string.settings_touchscreen_left_stick),
-                            subtitle = stringResource(R.string.settings_touchscreen_left_stick_desc),
-                            checked = uiState.touchscreenLeftStick,
-                            onCheckedChange = viewModel::setTouchscreenLeftStick,
-                            helpText = stringResource(R.string.settings_help_touchscreen_left_stick),
-                            onResetToDefault = {
-                                viewModel.setTouchscreenLeftStick(
-                                    AppPreferences.DEFAULT_TOUCHSCREEN_LEFT_STICK
-                                )
-                            }
-                        )
-                        if (uiState.touchscreenLeftStick) {
-                            SliderItem(
+                        if (supportsAzaharOptions) {
+                            ToggleItem(
                                 icon = Icons.Rounded.TouchApp,
-                                title = stringResource(R.string.settings_touchscreen_left_stick_sensitivity),
-                                subtitle = "${uiState.touchscreenLeftStickSensitivity}%",
-                                value = uiState.touchscreenLeftStickSensitivity.toFloat(),
-                                range = AppPreferences.TOUCHSCREEN_RIGHT_STICK_SENSITIVITY_MIN.toFloat()..
-                                    AppPreferences.TOUCHSCREEN_RIGHT_STICK_SENSITIVITY_MAX.toFloat(),
-                                steps = AppPreferences.TOUCHSCREEN_RIGHT_STICK_SENSITIVITY_MAX -
-                                    AppPreferences.TOUCHSCREEN_RIGHT_STICK_SENSITIVITY_MIN - 1,
-                                onValueChange = {
-                                    viewModel.setTouchscreenLeftStickSensitivity(it.roundToInt())
-                                },
-                                helpText = stringResource(
-                                    R.string.settings_help_touchscreen_left_stick_sensitivity
-                                ),
+                                title = stringResource(R.string.settings_touchscreen_left_stick),
+                                subtitle = stringResource(R.string.settings_touchscreen_left_stick_desc),
+                                checked = uiState.touchscreenLeftStick,
+                                onCheckedChange = viewModel::setTouchscreenLeftStick,
+                                helpText = stringResource(R.string.settings_help_touchscreen_left_stick),
                                 onResetToDefault = {
-                                    viewModel.setTouchscreenLeftStickSensitivity(
-                                        AppPreferences.DEFAULT_TOUCHSCREEN_LEFT_STICK_SENSITIVITY
+                                    viewModel.setTouchscreenLeftStick(
+                                        AppPreferences.DEFAULT_TOUCHSCREEN_LEFT_STICK
                                     )
                                 }
                             )
-                        }
-                        ToggleItem(
-                            icon = Icons.Rounded.TouchApp,
-                            title = stringResource(R.string.settings_touchscreen_right_stick),
-                            subtitle = stringResource(R.string.settings_touchscreen_right_stick_desc),
-                            checked = uiState.touchscreenRightStick,
-                            onCheckedChange = viewModel::setTouchscreenRightStick,
-                            helpText = stringResource(R.string.settings_help_touchscreen_right_stick),
-                            onResetToDefault = {
-                                viewModel.setTouchscreenRightStick(
-                                    AppPreferences.DEFAULT_TOUCHSCREEN_RIGHT_STICK
+                            if (uiState.touchscreenLeftStick) {
+                                SliderItem(
+                                    icon = Icons.Rounded.TouchApp,
+                                    title = stringResource(R.string.settings_touchscreen_left_stick_sensitivity),
+                                    subtitle = "${uiState.touchscreenLeftStickSensitivity}%",
+                                    value = uiState.touchscreenLeftStickSensitivity.toFloat(),
+                                    range = AppPreferences.TOUCHSCREEN_RIGHT_STICK_SENSITIVITY_MIN.toFloat()..
+                                        AppPreferences.TOUCHSCREEN_RIGHT_STICK_SENSITIVITY_MAX.toFloat(),
+                                    steps = AppPreferences.TOUCHSCREEN_RIGHT_STICK_SENSITIVITY_MAX -
+                                        AppPreferences.TOUCHSCREEN_RIGHT_STICK_SENSITIVITY_MIN - 1,
+                                    onValueChange = {
+                                        viewModel.setTouchscreenLeftStickSensitivity(it.roundToInt())
+                                    },
+                                    helpText = stringResource(
+                                        R.string.settings_help_touchscreen_left_stick_sensitivity
+                                    ),
+                                    onResetToDefault = {
+                                        viewModel.setTouchscreenLeftStickSensitivity(
+                                            AppPreferences.DEFAULT_TOUCHSCREEN_LEFT_STICK_SENSITIVITY
+                                        )
+                                    }
                                 )
                             }
-                        )
-                        if (uiState.touchscreenRightStick) {
-                            SliderItem(
+                            ToggleItem(
                                 icon = Icons.Rounded.TouchApp,
-                                title = stringResource(R.string.settings_touchscreen_right_stick_sensitivity),
-                                subtitle = "${uiState.touchscreenRightStickSensitivity}%",
-                                value = uiState.touchscreenRightStickSensitivity.toFloat(),
-                                range = AppPreferences.TOUCHSCREEN_RIGHT_STICK_SENSITIVITY_MIN.toFloat()..
-                                    AppPreferences.TOUCHSCREEN_RIGHT_STICK_SENSITIVITY_MAX.toFloat(),
-                                steps = AppPreferences.TOUCHSCREEN_RIGHT_STICK_SENSITIVITY_MAX -
-                                    AppPreferences.TOUCHSCREEN_RIGHT_STICK_SENSITIVITY_MIN - 1,
-                                onValueChange = {
-                                    viewModel.setTouchscreenRightStickSensitivity(it.roundToInt())
-                                },
-                                helpText = stringResource(
-                                    R.string.settings_help_touchscreen_right_stick_sensitivity
-                                ),
+                                title = stringResource(R.string.settings_touchscreen_right_stick),
+                                subtitle = stringResource(R.string.settings_touchscreen_right_stick_desc),
+                                checked = uiState.touchscreenRightStick,
+                                onCheckedChange = viewModel::setTouchscreenRightStick,
+                                helpText = stringResource(R.string.settings_help_touchscreen_right_stick),
                                 onResetToDefault = {
-                                    viewModel.setTouchscreenRightStickSensitivity(
-                                        AppPreferences.DEFAULT_TOUCHSCREEN_RIGHT_STICK_SENSITIVITY
+                                    viewModel.setTouchscreenRightStick(
+                                        AppPreferences.DEFAULT_TOUCHSCREEN_RIGHT_STICK
                                     )
                                 }
                             )
+                            if (uiState.touchscreenRightStick) {
+                                SliderItem(
+                                    icon = Icons.Rounded.TouchApp,
+                                    title = stringResource(R.string.settings_touchscreen_right_stick_sensitivity),
+                                    subtitle = "${uiState.touchscreenRightStickSensitivity}%",
+                                    value = uiState.touchscreenRightStickSensitivity.toFloat(),
+                                    range = AppPreferences.TOUCHSCREEN_RIGHT_STICK_SENSITIVITY_MIN.toFloat()..
+                                        AppPreferences.TOUCHSCREEN_RIGHT_STICK_SENSITIVITY_MAX.toFloat(),
+                                    steps = AppPreferences.TOUCHSCREEN_RIGHT_STICK_SENSITIVITY_MAX -
+                                        AppPreferences.TOUCHSCREEN_RIGHT_STICK_SENSITIVITY_MIN - 1,
+                                    onValueChange = {
+                                        viewModel.setTouchscreenRightStickSensitivity(it.roundToInt())
+                                    },
+                                    helpText = stringResource(
+                                        R.string.settings_help_touchscreen_right_stick_sensitivity
+                                    ),
+                                    onResetToDefault = {
+                                        viewModel.setTouchscreenRightStickSensitivity(
+                                            AppPreferences.DEFAULT_TOUCHSCREEN_RIGHT_STICK_SENSITIVITY
+                                        )
+                                    }
+                                )
+                            }
+                            ToggleItem(
+                                icon = Icons.Rounded.TouchApp,
+                                title = stringResource(R.string.settings_racing_mode),
+                                subtitle = stringResource(R.string.settings_racing_mode_desc),
+                                checked = uiState.racingMode,
+                                onCheckedChange = viewModel::setRacingMode,
+                                helpText = stringResource(R.string.settings_help_racing_mode),
+                                onResetToDefault = { viewModel.setRacingMode(defaults.racingMode) }
+                            )
+                            StickyButtonsSelector(
+                                selected = uiState.stickyButtons,
+                                onSelectionChange = viewModel::setStickyButtons,
+                                helpText = stringResource(R.string.settings_help_sticky_buttons),
+                                onResetToDefault = { viewModel.setStickyButtons(defaults.stickyButtons) }
+                            )
                         }
-                        ToggleItem(
-                            icon = Icons.Rounded.TouchApp,
-                            title = stringResource(R.string.settings_racing_mode),
-                            subtitle = stringResource(R.string.settings_racing_mode_desc),
-                            checked = uiState.racingMode,
-                            onCheckedChange = viewModel::setRacingMode,
-                            helpText = stringResource(R.string.settings_help_racing_mode),
-                            onResetToDefault = { viewModel.setRacingMode(defaults.racingMode) }
-                        )
-                        StickyButtonsSelector(
-                            selected = uiState.stickyButtons,
-                            onSelectionChange = viewModel::setStickyButtons,
-                            helpText = stringResource(R.string.settings_help_sticky_buttons),
-                            onResetToDefault = { viewModel.setStickyButtons(defaults.stickyButtons) }
-                        )
                         ToggleItem(
                             icon = Icons.Rounded.Vibration,
                             title = stringResource(R.string.settings_touch_haptics),
@@ -1571,123 +1599,125 @@ private fun SettingsContent(
                             },
                             helpText = stringResource(R.string.settings_help_touch_haptics_test)
                         )
-                        ChoiceSection(
-                            title = stringResource(R.string.settings_gyro_mode),
-                            options = gyroModeOptions(),
-                            selectedValue = uiState.gyroMode,
-                            onSelect = viewModel::setGyroMode,
-                            helpText = stringResource(R.string.settings_help_gyro_mode),
-                            onResetToDefault = { viewModel.setGyroMode(defaults.gyroMode) }
-                        )
-                        if (uiState.gyroMode != AppPreferences.GYRO_MODE_OFF &&
-                            !AndroidGyroscopeInput.isModeAvailable(context, uiState.gyroMode)
-                        ) {
-                            SettingsInlineNote(text = stringResource(R.string.settings_gyro_unavailable))
-                        }
-                        if (uiState.gyroMode != AppPreferences.GYRO_MODE_OFF) {
+                        if (supportsAzaharOptions) {
+                            ChoiceSection(
+                                title = stringResource(R.string.settings_gyro_mode),
+                                options = gyroModeOptions(),
+                                selectedValue = uiState.gyroMode,
+                                onSelect = viewModel::setGyroMode,
+                                helpText = stringResource(R.string.settings_help_gyro_mode),
+                                onResetToDefault = { viewModel.setGyroMode(defaults.gyroMode) }
+                            )
+                            if (uiState.gyroMode != AppPreferences.GYRO_MODE_OFF &&
+                                !AndroidGyroscopeInput.isModeAvailable(context, uiState.gyroMode)
+                            ) {
+                                SettingsInlineNote(text = stringResource(R.string.settings_gyro_unavailable))
+                            }
+                            if (uiState.gyroMode != AppPreferences.GYRO_MODE_OFF) {
+                                SliderItem(
+                                    icon = Icons.Rounded.ScreenRotation,
+                                    title = stringResource(R.string.settings_gyro_sensitivity),
+                                    subtitle = "${uiState.gyroSensitivity}%",
+                                    valueLabel = { "${it.roundToInt()}%" },
+                                    value = uiState.gyroSensitivity.toFloat(),
+                                    range = 25f..300f,
+                                    steps = 10,
+                                    onValueChange = { viewModel.setGyroSensitivity(it.roundToInt()) },
+                                    helpText = stringResource(R.string.settings_help_gyro_sensitivity),
+                                    onResetToDefault = { viewModel.setGyroSensitivity(defaults.gyroSensitivity) }
+                                )
+                                SliderItem(
+                                    icon = Icons.Rounded.Tune,
+                                    title = stringResource(R.string.settings_gyro_smoothing),
+                                    subtitle = "${uiState.gyroSmoothing}%",
+                                    valueLabel = { "${it.roundToInt()}%" },
+                                    value = uiState.gyroSmoothing.toFloat(),
+                                    range = 0f..90f,
+                                    steps = 8,
+                                    onValueChange = { viewModel.setGyroSmoothing(it.roundToInt()) },
+                                    helpText = stringResource(R.string.settings_help_gyro_smoothing),
+                                    onResetToDefault = { viewModel.setGyroSmoothing(defaults.gyroSmoothing) }
+                                )
+                                ToggleItem(
+                                    icon = Icons.Rounded.SwapHoriz,
+                                    title = stringResource(R.string.settings_gyro_invert_x),
+                                    subtitle = stringResource(R.string.settings_gyro_invert_x_desc),
+                                    checked = uiState.gyroInvertX,
+                                    onCheckedChange = viewModel::setGyroInvertX,
+                                    helpText = stringResource(R.string.settings_help_gyro_invert_x),
+                                    onResetToDefault = { viewModel.setGyroInvertX(defaults.gyroInvertX) }
+                                )
+                                if (uiState.gyroMode == AppPreferences.GYRO_MODE_AIM) {
+                                    ToggleItem(
+                                        icon = Icons.Rounded.SwapVert,
+                                        title = stringResource(R.string.settings_gyro_invert_y),
+                                        subtitle = stringResource(R.string.settings_gyro_invert_y_desc),
+                                        checked = uiState.gyroInvertY,
+                                        onCheckedChange = viewModel::setGyroInvertY,
+                                        helpText = stringResource(R.string.settings_help_gyro_invert_y),
+                                        onResetToDefault = { viewModel.setGyroInvertY(defaults.gyroInvertY) }
+                                    )
+                                }
+                            }
                             SliderItem(
-                                icon = Icons.Rounded.ScreenRotation,
-                                title = stringResource(R.string.settings_gyro_sensitivity),
-                                subtitle = "${uiState.gyroSensitivity}%",
-                                valueLabel = { "${it.roundToInt()}%" },
-                                value = uiState.gyroSensitivity.toFloat(),
-                                range = 25f..300f,
-                                steps = 10,
-                                onValueChange = { viewModel.setGyroSensitivity(it.roundToInt()) },
-                                helpText = stringResource(R.string.settings_help_gyro_sensitivity),
-                                onResetToDefault = { viewModel.setGyroSensitivity(defaults.gyroSensitivity) }
+                                icon = Icons.Rounded.Gamepad,
+                                title = stringResource(R.string.settings_left_stick_sensitivity),
+                                subtitle = "${uiState.leftStickSensitivity}%",
+                                value = uiState.leftStickSensitivity.toFloat(),
+                                range = 50f..200f,
+                                steps = 14,
+                                onValueChange = { viewModel.setLeftStickSensitivity(it.toInt()) },
+                                helpText = stringResource(R.string.settings_help_left_stick_sensitivity),
+                                onResetToDefault = { viewModel.setLeftStickSensitivity(overlayDefaults.leftStickSensitivity) }
                             )
                             SliderItem(
-                                icon = Icons.Rounded.Tune,
-                                title = stringResource(R.string.settings_gyro_smoothing),
-                                subtitle = "${uiState.gyroSmoothing}%",
-                                valueLabel = { "${it.roundToInt()}%" },
-                                value = uiState.gyroSmoothing.toFloat(),
-                                range = 0f..90f,
-                                steps = 8,
-                                onValueChange = { viewModel.setGyroSmoothing(it.roundToInt()) },
-                                helpText = stringResource(R.string.settings_help_gyro_smoothing),
-                                onResetToDefault = { viewModel.setGyroSmoothing(defaults.gyroSmoothing) }
+                                icon = Icons.Rounded.Gamepad,
+                                title = stringResource(R.string.settings_right_stick_sensitivity),
+                                subtitle = "${uiState.rightStickSensitivity}%",
+                                value = uiState.rightStickSensitivity.toFloat(),
+                                range = 50f..200f,
+                                steps = 14,
+                                onValueChange = { viewModel.setRightStickSensitivity(it.toInt()) },
+                                helpText = stringResource(R.string.settings_help_right_stick_sensitivity),
+                                onResetToDefault = { viewModel.setRightStickSensitivity(overlayDefaults.rightStickSensitivity) }
                             )
                             ToggleItem(
-                                icon = Icons.Rounded.SwapHoriz,
-                                title = stringResource(R.string.settings_gyro_invert_x),
-                                subtitle = stringResource(R.string.settings_gyro_invert_x_desc),
-                                checked = uiState.gyroInvertX,
-                                onCheckedChange = viewModel::setGyroInvertX,
-                                helpText = stringResource(R.string.settings_help_gyro_invert_x),
-                                onResetToDefault = { viewModel.setGyroInvertX(defaults.gyroInvertX) }
+                                icon = Icons.Rounded.Gamepad,
+                                title = stringResource(R.string.settings_invert_left_stick),
+                                subtitle = stringResource(R.string.settings_invert_left_stick_desc),
+                                checked = uiState.invertLeftStick,
+                                onCheckedChange = viewModel::setInvertLeftStick,
+                                helpText = stringResource(R.string.settings_help_invert_left_stick),
+                                onResetToDefault = { viewModel.setInvertLeftStick(false) }
                             )
-                            if (uiState.gyroMode == AppPreferences.GYRO_MODE_AIM) {
-                                ToggleItem(
-                                    icon = Icons.Rounded.SwapVert,
-                                    title = stringResource(R.string.settings_gyro_invert_y),
-                                    subtitle = stringResource(R.string.settings_gyro_invert_y_desc),
-                                    checked = uiState.gyroInvertY,
-                                    onCheckedChange = viewModel::setGyroInvertY,
-                                    helpText = stringResource(R.string.settings_help_gyro_invert_y),
-                                    onResetToDefault = { viewModel.setGyroInvertY(defaults.gyroInvertY) }
-                                )
-                            }
+                            ToggleItem(
+                                icon = Icons.Rounded.Gamepad,
+                                title = stringResource(R.string.settings_invert_left_stick_horizontal),
+                                subtitle = stringResource(R.string.settings_invert_left_stick_horizontal_desc),
+                                checked = uiState.invertLeftStickHorizontal,
+                                onCheckedChange = viewModel::setInvertLeftStickHorizontal,
+                                helpText = stringResource(R.string.settings_help_invert_left_stick_horizontal),
+                                onResetToDefault = { viewModel.setInvertLeftStickHorizontal(false) }
+                            )
+                            ToggleItem(
+                                icon = Icons.Rounded.Gamepad,
+                                title = stringResource(R.string.settings_invert_right_stick),
+                                subtitle = stringResource(R.string.settings_invert_right_stick_desc),
+                                checked = uiState.invertRightStick,
+                                onCheckedChange = viewModel::setInvertRightStick,
+                                helpText = stringResource(R.string.settings_help_invert_right_stick),
+                                onResetToDefault = { viewModel.setInvertRightStick(false) }
+                            )
+                            ToggleItem(
+                                icon = Icons.Rounded.Gamepad,
+                                title = stringResource(R.string.settings_invert_right_stick_horizontal),
+                                subtitle = stringResource(R.string.settings_invert_right_stick_horizontal_desc),
+                                checked = uiState.invertRightStickHorizontal,
+                                onCheckedChange = viewModel::setInvertRightStickHorizontal,
+                                helpText = stringResource(R.string.settings_help_invert_right_stick_horizontal),
+                                onResetToDefault = { viewModel.setInvertRightStickHorizontal(false) }
+                            )
                         }
-                        SliderItem(
-                            icon = Icons.Rounded.Gamepad,
-                            title = stringResource(R.string.settings_left_stick_sensitivity),
-                            subtitle = "${uiState.leftStickSensitivity}%",
-                            value = uiState.leftStickSensitivity.toFloat(),
-                            range = 50f..200f,
-                            steps = 14,
-                            onValueChange = { viewModel.setLeftStickSensitivity(it.toInt()) },
-                            helpText = stringResource(R.string.settings_help_left_stick_sensitivity),
-                            onResetToDefault = { viewModel.setLeftStickSensitivity(overlayDefaults.leftStickSensitivity) }
-                        )
-                        SliderItem(
-                            icon = Icons.Rounded.Gamepad,
-                            title = stringResource(R.string.settings_right_stick_sensitivity),
-                            subtitle = "${uiState.rightStickSensitivity}%",
-                            value = uiState.rightStickSensitivity.toFloat(),
-                            range = 50f..200f,
-                            steps = 14,
-                            onValueChange = { viewModel.setRightStickSensitivity(it.toInt()) },
-                            helpText = stringResource(R.string.settings_help_right_stick_sensitivity),
-                            onResetToDefault = { viewModel.setRightStickSensitivity(overlayDefaults.rightStickSensitivity) }
-                        )
-                        ToggleItem(
-                            icon = Icons.Rounded.Gamepad,
-                            title = stringResource(R.string.settings_invert_left_stick),
-                            subtitle = stringResource(R.string.settings_invert_left_stick_desc),
-                            checked = uiState.invertLeftStick,
-                            onCheckedChange = viewModel::setInvertLeftStick,
-                            helpText = stringResource(R.string.settings_help_invert_left_stick),
-                            onResetToDefault = { viewModel.setInvertLeftStick(false) }
-                        )
-                        ToggleItem(
-                            icon = Icons.Rounded.Gamepad,
-                            title = stringResource(R.string.settings_invert_left_stick_horizontal),
-                            subtitle = stringResource(R.string.settings_invert_left_stick_horizontal_desc),
-                            checked = uiState.invertLeftStickHorizontal,
-                            onCheckedChange = viewModel::setInvertLeftStickHorizontal,
-                            helpText = stringResource(R.string.settings_help_invert_left_stick_horizontal),
-                            onResetToDefault = { viewModel.setInvertLeftStickHorizontal(false) }
-                        )
-                        ToggleItem(
-                            icon = Icons.Rounded.Gamepad,
-                            title = stringResource(R.string.settings_invert_right_stick),
-                            subtitle = stringResource(R.string.settings_invert_right_stick_desc),
-                            checked = uiState.invertRightStick,
-                            onCheckedChange = viewModel::setInvertRightStick,
-                            helpText = stringResource(R.string.settings_help_invert_right_stick),
-                            onResetToDefault = { viewModel.setInvertRightStick(false) }
-                        )
-                        ToggleItem(
-                            icon = Icons.Rounded.Gamepad,
-                            title = stringResource(R.string.settings_invert_right_stick_horizontal),
-                            subtitle = stringResource(R.string.settings_invert_right_stick_horizontal_desc),
-                            checked = uiState.invertRightStickHorizontal,
-                            onCheckedChange = viewModel::setInvertRightStickHorizontal,
-                            helpText = stringResource(R.string.settings_help_invert_right_stick_horizontal),
-                            onResetToDefault = { viewModel.setInvertRightStickHorizontal(false) }
-                        )
                     }
                     SettingsSection(title = stringResource(R.string.settings_gamepad_section)) {
                         ChoiceSection(
@@ -1725,55 +1755,57 @@ private fun SettingsContent(
                             helpText = stringResource(R.string.settings_help_hide_overlay_on_gamepad),
                             onResetToDefault = { viewModel.setHideOverlayOnGamepad(overlayDefaults.hideOverlayOnGamepad) }
                         )
-                        ToggleItem(
-                            icon = Icons.Rounded.Vibration,
-                            title = stringResource(R.string.settings_pad_vibration),
-                            subtitle = stringResource(R.string.settings_pad_vibration_desc),
-                            checked = uiState.padVibration,
-                            onCheckedChange = viewModel::setPadVibration,
-                            helpText = stringResource(R.string.settings_help_pad_vibration),
-                            onResetToDefault = { viewModel.setPadVibration(defaults.padVibration) }
-                        )
-                        ToggleItem(
-                            icon = Icons.Rounded.Vibration,
-                            title = stringResource(R.string.settings_gamepad_button_haptics),
-                            subtitle = stringResource(R.string.settings_gamepad_button_haptics_desc),
-                            checked = uiState.gamepadButtonHaptics,
-                            onCheckedChange = viewModel::setGamepadButtonHaptics,
-                            helpText = stringResource(R.string.settings_help_gamepad_button_haptics),
-                            onResetToDefault = { viewModel.setGamepadButtonHaptics(defaults.gamepadButtonHaptics) }
-                        )
-                        SliderItem(
-                            icon = Icons.Rounded.Vibration,
-                            title = stringResource(R.string.settings_pad_vibration_strength),
-                            subtitle = "${uiState.padVibrationStrength}%",
-                            valueLabel = { "${it.roundToInt()}%" },
-                            value = uiState.padVibrationStrength.toFloat(),
-                            range = 0f..150f,
-                            steps = 0,
-                            onValueChange = { viewModel.setPadVibrationStrength(it.toInt()) },
-                            helpText = stringResource(R.string.settings_help_pad_vibration_strength),
-                            onResetToDefault = { viewModel.setPadVibrationStrength(defaults.padVibrationStrength) }
-                        )
-                        ActionItem(
-                            icon = Icons.Rounded.Vibration,
-                            title = stringResource(R.string.settings_pad_vibration_test),
-                            subtitle = stringResource(R.string.settings_pad_vibration_test_desc),
-                            actionIcon = Icons.Rounded.PlayArrow,
-                            actionLabel = stringResource(R.string.settings_pad_vibration_test_action),
-                            onClick = { viewModel.testPadVibration(uiState.padVibrationStrength, 320L) },
-                            helpText = stringResource(R.string.settings_help_pad_vibration_test)
-                        )
-                        ToggleItem(
-                            icon = Icons.Rounded.Vibration,
-                            title = stringResource(R.string.settings_pad_vibration_fallback),
-                            subtitle = stringResource(R.string.settings_pad_vibration_fallback_desc),
-                            checked = uiState.padVibrationFallback,
-                            onCheckedChange = viewModel::setPadVibrationFallback,
-                            helpText = stringResource(R.string.settings_help_pad_vibration_fallback),
-                            onResetToDefault = { viewModel.setPadVibrationFallback(defaults.padVibrationFallback) }
-                        )
-                        SliderItem(
+                        if (supportsAzaharOptions) {
+                            ToggleItem(
+                                icon = Icons.Rounded.Vibration,
+                                title = stringResource(R.string.settings_pad_vibration),
+                                subtitle = stringResource(R.string.settings_pad_vibration_desc),
+                                checked = uiState.padVibration,
+                                onCheckedChange = viewModel::setPadVibration,
+                                helpText = stringResource(R.string.settings_help_pad_vibration),
+                                onResetToDefault = { viewModel.setPadVibration(defaults.padVibration) }
+                            )
+                            ToggleItem(
+                                icon = Icons.Rounded.Vibration,
+                                title = stringResource(R.string.settings_gamepad_button_haptics),
+                                subtitle = stringResource(R.string.settings_gamepad_button_haptics_desc),
+                                checked = uiState.gamepadButtonHaptics,
+                                onCheckedChange = viewModel::setGamepadButtonHaptics,
+                                helpText = stringResource(R.string.settings_help_gamepad_button_haptics),
+                                onResetToDefault = { viewModel.setGamepadButtonHaptics(defaults.gamepadButtonHaptics) }
+                            )
+                            SliderItem(
+                                icon = Icons.Rounded.Vibration,
+                                title = stringResource(R.string.settings_pad_vibration_strength),
+                                subtitle = "${uiState.padVibrationStrength}%",
+                                valueLabel = { "${it.roundToInt()}%" },
+                                value = uiState.padVibrationStrength.toFloat(),
+                                range = 0f..150f,
+                                steps = 0,
+                                onValueChange = { viewModel.setPadVibrationStrength(it.toInt()) },
+                                helpText = stringResource(R.string.settings_help_pad_vibration_strength),
+                                onResetToDefault = { viewModel.setPadVibrationStrength(defaults.padVibrationStrength) }
+                            )
+                            ActionItem(
+                                icon = Icons.Rounded.Vibration,
+                                title = stringResource(R.string.settings_pad_vibration_test),
+                                subtitle = stringResource(R.string.settings_pad_vibration_test_desc),
+                                actionIcon = Icons.Rounded.PlayArrow,
+                                actionLabel = stringResource(R.string.settings_pad_vibration_test_action),
+                                onClick = { viewModel.testPadVibration(uiState.padVibrationStrength, 320L) },
+                                helpText = stringResource(R.string.settings_help_pad_vibration_test)
+                            )
+                            ToggleItem(
+                                icon = Icons.Rounded.Vibration,
+                                title = stringResource(R.string.settings_pad_vibration_fallback),
+                                subtitle = stringResource(R.string.settings_pad_vibration_fallback_desc),
+                                checked = uiState.padVibrationFallback,
+                                onCheckedChange = viewModel::setPadVibrationFallback,
+                                helpText = stringResource(R.string.settings_help_pad_vibration_fallback),
+                                onResetToDefault = { viewModel.setPadVibrationFallback(defaults.padVibrationFallback) }
+                            )
+                        }
+                        if (CoreCapabilities.forPlatform(platform).supportsAnalogControls) SliderItem(
                             icon = Icons.Rounded.Tune,
                             title = stringResource(R.string.settings_gamepad_stick_deadzone),
                             subtitle = "${uiState.gamepadStickDeadzone}%",
@@ -1784,28 +1816,30 @@ private fun SettingsContent(
                             helpText = stringResource(R.string.settings_help_gamepad_stick_deadzone),
                             onResetToDefault = { viewModel.setGamepadStickDeadzone(defaults.gamepadStickDeadzone) }
                         )
-                        SliderItem(
-                            icon = Icons.Rounded.Gamepad,
-                            title = stringResource(R.string.settings_gamepad_left_stick_sensitivity),
-                            subtitle = "${uiState.gamepadLeftStickSensitivity}%",
-                            value = uiState.gamepadLeftStickSensitivity.toFloat(),
-                            range = 50f..200f,
-                            steps = 14,
-                            onValueChange = { viewModel.setGamepadLeftStickSensitivity(it.toInt()) },
-                            helpText = stringResource(R.string.settings_help_gamepad_left_stick_sensitivity),
-                            onResetToDefault = { viewModel.setGamepadLeftStickSensitivity(defaults.gamepadLeftStickSensitivity) }
-                        )
-                        SliderItem(
-                            icon = Icons.Rounded.Gamepad,
-                            title = stringResource(R.string.settings_gamepad_right_stick_sensitivity),
-                            subtitle = "${uiState.gamepadRightStickSensitivity}%",
-                            value = uiState.gamepadRightStickSensitivity.toFloat(),
-                            range = 50f..200f,
-                            steps = 14,
-                            onValueChange = { viewModel.setGamepadRightStickSensitivity(it.toInt()) },
-                            helpText = stringResource(R.string.settings_help_gamepad_right_stick_sensitivity),
-                            onResetToDefault = { viewModel.setGamepadRightStickSensitivity(defaults.gamepadRightStickSensitivity) }
-                        )
+                        if (supportsAzaharOptions) {
+                            SliderItem(
+                                icon = Icons.Rounded.Gamepad,
+                                title = stringResource(R.string.settings_gamepad_left_stick_sensitivity),
+                                subtitle = "${uiState.gamepadLeftStickSensitivity}%",
+                                value = uiState.gamepadLeftStickSensitivity.toFloat(),
+                                range = 50f..200f,
+                                steps = 14,
+                                onValueChange = { viewModel.setGamepadLeftStickSensitivity(it.toInt()) },
+                                helpText = stringResource(R.string.settings_help_gamepad_left_stick_sensitivity),
+                                onResetToDefault = { viewModel.setGamepadLeftStickSensitivity(defaults.gamepadLeftStickSensitivity) }
+                            )
+                            SliderItem(
+                                icon = Icons.Rounded.Gamepad,
+                                title = stringResource(R.string.settings_gamepad_right_stick_sensitivity),
+                                subtitle = "${uiState.gamepadRightStickSensitivity}%",
+                                value = uiState.gamepadRightStickSensitivity.toFloat(),
+                                range = 50f..200f,
+                                steps = 14,
+                                onValueChange = { viewModel.setGamepadRightStickSensitivity(it.toInt()) },
+                                helpText = stringResource(R.string.settings_help_gamepad_right_stick_sensitivity),
+                                onResetToDefault = { viewModel.setGamepadRightStickSensitivity(defaults.gamepadRightStickSensitivity) }
+                            )
+                        }
                     }
                     SettingsSection(title = stringResource(R.string.settings_gamepad_mapping_title)) {
                         val selectedBindings = uiState.gamepadBindingsByPad[selectedGamepadPadIndex].orEmpty()
@@ -1874,18 +1908,20 @@ private fun SettingsContent(
                             onClick = { viewModel.resetGamepadBindingsForPad(selectedGamepadPadIndex) }
                         )
                     }
-                    GlobalKeyboardMouseSettingsSection()
+                    if (supportsAzaharOptions) {
+                        GlobalKeyboardMouseSettingsSection()
 
-                    SettingsSection(title = stringResource(R.string.settings_core_input)) {
-                        var coreControlsVersion by remember { mutableIntStateOf(0) }
-                        CoreOptionSettingsRows(
-                            options = remember { AzaharCoreOptions.controlsOptions() },
-                            version = coreControlsVersion,
-                            onValueChange = { key, value ->
-                                NativeApp.setCoreOption(key, value)
-                                coreControlsVersion++
-                            }
-                        )
+                        SettingsSection(title = stringResource(R.string.settings_core_input)) {
+                            var coreControlsVersion by remember { mutableIntStateOf(0) }
+                            CoreOptionSettingsRows(
+                                options = remember { AzaharCoreOptions.controlsOptions() },
+                                version = coreControlsVersion,
+                                onValueChange = { key, value ->
+                                    NativeApp.setCoreOption(key, value)
+                                    coreControlsVersion++
+                                }
+                            )
+                        }
                     }
                 }
 
@@ -1997,7 +2033,7 @@ private fun SettingsContent(
                     }
                 }
 
-                SettingsTab.NintendoDs -> {
+                SettingsTab.Graphics -> if (platform == ConsolePlatform.NDS) {
                     SettingsSection(title = stringResource(R.string.profile_platform_ds)) {
                         ChoiceSection(
                             title = stringResource(R.string.settings_renderer),
@@ -2009,7 +2045,7 @@ private fun SettingsContent(
                             onSelect = viewModel::setDsRenderer,
                             onResetToDefault = { viewModel.setDsRenderer(DsSettingsPolicy.DEFAULT_RENDERER) }
                         )
-                        ChoiceSection(
+                        if (uiState.dsRenderer == 14) ChoiceSection(
                             title = stringResource(R.string.settings_upscale),
                             options = buildUpscaleOptions(
                                 stringResource(R.string.settings_upscale_native),
@@ -2021,11 +2057,9 @@ private fun SettingsContent(
                             onResetToDefault = {
                                 viewModel.setDsUpscaleMultiplier(DsSettingsPolicy.DEFAULT_UPSCALE_MULTIPLIER)
                             }
-                        )
+                        ) else SettingsInlineNote(stringResource(R.string.settings_ds_software_native_resolution))
                     }
-                }
-
-                SettingsTab.Graphics -> {
+                } else if (supportsAzaharOptions) {
                     SettingsSection(title = stringResource(R.string.settings_graphics_tab)) {
                         ChoiceSection(
                             title = stringResource(R.string.settings_renderer),
@@ -2202,36 +2236,38 @@ private fun SettingsContent(
                             helpText = stringResource(R.string.settings_help_show_fps),
                             onResetToDefault = { viewModel.setShowFps(defaults.showFps) }
                         )
-                        ToggleItem(
-                            icon = Icons.Rounded.FastForward,
-                            title = stringResource(R.string.settings_frame_limit),
-                            subtitle = stringResource(R.string.settings_frame_limit_desc),
-                            checked = uiState.frameLimitEnabled,
-                            onCheckedChange = viewModel::setFrameLimitEnabled,
-                            helpText = stringResource(R.string.settings_frame_limit_desc),
-                            onResetToDefault = { viewModel.setFrameLimitEnabled(defaults.frameLimitEnabled) }
-                        )
-                        ToggleItem(
-                            icon = Icons.Rounded.Restore,
-                            title = stringResource(R.string.settings_rewind),
-                            subtitle = stringResource(R.string.settings_rewind_desc),
-                            checked = uiState.rewindEnabled,
-                            onCheckedChange = viewModel::setRewindEnabled,
-                            helpText = stringResource(R.string.settings_rewind_desc),
-                            onResetToDefault = { viewModel.setRewindEnabled(defaults.rewindEnabled) }
-                        )
-                        ChoiceSection(
-                            title = stringResource(R.string.settings_target_fps),
-                            options = listOf(
-                                0 to stringResource(R.string.settings_aspect_ratio_auto),
-                                50 to "50 Hz",
-                                60 to "60 Hz"
-                            ),
-                            selectedValue = uiState.targetFps,
-                            onSelect = viewModel::setTargetFps,
-                            helpText = stringResource(R.string.settings_target_fps_desc),
-                            onResetToDefault = { viewModel.setTargetFps(defaults.targetFps) }
-                        )
+                        if (supportsAzaharOptions) {
+                            ToggleItem(
+                                icon = Icons.Rounded.FastForward,
+                                title = stringResource(R.string.settings_frame_limit),
+                                subtitle = stringResource(R.string.settings_frame_limit_desc),
+                                checked = uiState.frameLimitEnabled,
+                                onCheckedChange = viewModel::setFrameLimitEnabled,
+                                helpText = stringResource(R.string.settings_frame_limit_desc),
+                                onResetToDefault = { viewModel.setFrameLimitEnabled(defaults.frameLimitEnabled) }
+                            )
+                            ToggleItem(
+                                icon = Icons.Rounded.Restore,
+                                title = stringResource(R.string.settings_rewind),
+                                subtitle = stringResource(R.string.settings_rewind_desc),
+                                checked = uiState.rewindEnabled,
+                                onCheckedChange = viewModel::setRewindEnabled,
+                                helpText = stringResource(R.string.settings_rewind_desc),
+                                onResetToDefault = { viewModel.setRewindEnabled(defaults.rewindEnabled) }
+                            )
+                            ChoiceSection(
+                                title = stringResource(R.string.settings_target_fps),
+                                options = listOf(
+                                    0 to stringResource(R.string.settings_aspect_ratio_auto),
+                                    50 to "50 Hz",
+                                    60 to "60 Hz"
+                                ),
+                                selectedValue = uiState.targetFps,
+                                onSelect = viewModel::setTargetFps,
+                                helpText = stringResource(R.string.settings_target_fps_desc),
+                                onResetToDefault = { viewModel.setTargetFps(defaults.targetFps) }
+                            )
+                        }
                         ChoiceSection(
                             title = stringResource(R.string.settings_fps_overlay_mode),
                             options = listOf(
@@ -2277,16 +2313,18 @@ private fun SettingsContent(
                         }
                     }
 
-                    SettingsSection(title = stringResource(R.string.settings_core_cpu)) {
-                        var coreEmulationVersion by remember { mutableIntStateOf(0) }
-                        CoreOptionSettingsRows(
-                            options = remember { AzaharCoreOptions.emulationOptions() },
-                            version = coreEmulationVersion,
-                            onValueChange = { key, value ->
-                                NativeApp.setCoreOption(key, value)
-                                coreEmulationVersion++
-                            }
-                        )
+                    if (supportsAzaharOptions) {
+                        SettingsSection(title = stringResource(R.string.settings_core_cpu)) {
+                            var coreEmulationVersion by remember { mutableIntStateOf(0) }
+                            CoreOptionSettingsRows(
+                                options = remember { AzaharCoreOptions.emulationOptions() },
+                                version = coreEmulationVersion,
+                                onValueChange = { key, value ->
+                                    NativeApp.setCoreOption(key, value)
+                                    coreEmulationVersion++
+                                }
+                            )
+                        }
                     }
                 }
 
@@ -3013,35 +3051,47 @@ private fun CustomizationSettingsTab(
 @Composable
 private fun GameMenuSettingsTab(
     uiState: SettingsUiState,
+    platform: ConsolePlatform,
     viewModel: SettingsViewModel
 ) {
+    val capabilities = PlatformUiCapabilities.forGame(null, when (platform) {
+        ConsolePlatform.NDS -> GamePlatform.NDS
+        ConsolePlatform.N3DS -> GamePlatform.N3DS
+        else -> error("Game menu configuration requires an integrated console")
+    })
+    val supportedTabs = uiState.gameMenuTabOrder.filter(capabilities::supportsGameMenuTab)
     SettingsSection(title = stringResource(R.string.settings_game_menu_preview_section)) {
         SettingsInlineNote(stringResource(R.string.settings_game_menu_content_summary))
         GameMenuLayoutStylePicker(
             selected = uiState.gameMenuLayoutStyle,
-            visibleTabs = uiState.gameMenuTabOrder.filterNot(uiState.hiddenGameMenuTabs::contains),
+            visibleTabs = supportedTabs.filterNot(uiState.hiddenGameMenuTabs::contains),
             onSelect = viewModel::setGameMenuLayoutStyle
         )
     }
 
     SettingsSection(title = stringResource(R.string.settings_game_menu_tabs_section)) {
-        uiState.gameMenuTabOrder.forEachIndexed { index, tab ->
+        supportedTabs.forEachIndexed { index, tab ->
             GameMenuEditorRow(
                 icon = gameMenuTabIcon(tab),
                 title = gameMenuTabLabel(tab),
                 visible = tab !in uiState.hiddenGameMenuTabs,
                 required = tab == GameMenuTabId.SESSION,
                 canMoveUp = index > 0,
-                canMoveDown = index < uiState.gameMenuTabOrder.lastIndex,
+                canMoveDown = index < supportedTabs.lastIndex,
                 onVisibleChange = { viewModel.setGameMenuTabVisible(tab, it) },
-                onMoveUp = { viewModel.moveGameMenuTab(tab, -1) },
-                onMoveDown = { viewModel.moveGameMenuTab(tab, 1) }
+                onMoveUp = { supportedTabs.getOrNull(index - 1)?.let {
+                    viewModel.moveGameMenuTab(tab, uiState.gameMenuTabOrder.indexOf(it) - uiState.gameMenuTabOrder.indexOf(tab))
+                } },
+                onMoveDown = { supportedTabs.getOrNull(index + 1)?.let {
+                    viewModel.moveGameMenuTab(tab, uiState.gameMenuTabOrder.indexOf(it) - uiState.gameMenuTabOrder.indexOf(tab))
+                } }
             )
         }
     }
 
-    uiState.gameMenuTabOrder.forEach { tab ->
-        val sections = uiState.gameMenuSectionOrder.filter { it.tab == tab }
+    supportedTabs.forEach { tab ->
+        val allSections = uiState.gameMenuSectionOrder.filter { it.tab == tab }
+        val sections = allSections.filter(capabilities::supportsGameMenuSection)
         SettingsSection(
             title = stringResource(
                 R.string.settings_game_menu_tab_content_format,
@@ -3055,8 +3105,12 @@ private fun GameMenuSettingsTab(
                     canMoveUp = index > 0,
                     canMoveDown = index < sections.lastIndex,
                     onVisibleChange = { viewModel.setGameMenuSectionVisible(section, it) },
-                    onMoveUp = { viewModel.moveGameMenuSection(section, -1) },
-                    onMoveDown = { viewModel.moveGameMenuSection(section, 1) }
+                    onMoveUp = { sections.getOrNull(index - 1)?.let {
+                        viewModel.moveGameMenuSection(section, allSections.indexOf(it) - allSections.indexOf(section))
+                    } },
+                    onMoveDown = { sections.getOrNull(index + 1)?.let {
+                        viewModel.moveGameMenuSection(section, allSections.indexOf(it) - allSections.indexOf(section))
+                    } }
                 )
             }
             if (tab == GameMenuTabId.SESSION) {
@@ -4045,16 +4099,27 @@ private data class SettingsSearchEntry(
 )
 
 @Composable
-private fun rememberSettingsSearchEntries(): List<SettingsSearchEntry> {
+private fun rememberSettingsSearchEntries(platform: ConsolePlatform, dsRenderer: Int): List<SettingsSearchEntry> {
     @Composable
-    fun entry(tab: SettingsTab, @StringRes titleRes: Int): SettingsSearchEntry {
+    fun entry(tab: SettingsTab, @StringRes titleRes: Int): SettingsSearchEntry? {
+        if (tab !in ConsoleSettingsPolicy.categories(platform)) return null
+        if (platform == ConsolePlatform.NDS && dsRenderer == 13 && titleRes == R.string.settings_upscale) return null
+        if (platform == ConsolePlatform.NDS && when (tab) {
+            SettingsTab.Graphics -> titleRes !in setOf(R.string.settings_renderer, R.string.settings_upscale)
+            SettingsTab.Controls -> titleRes !in setOf(
+                R.string.settings_overlay_scale, R.string.settings_overlay_opacity,
+                R.string.settings_gamepad_mode, R.string.settings_gamepad_hide_overlay,
+                R.string.settings_gamepad_mapping_title, R.string.settings_gamepad_assignment_title,
+                R.string.settings_touch_haptics,
+                R.string.settings_touch_haptics_preset, R.string.settings_touch_haptics_strength,
+                R.string.settings_touch_haptics_test
+            )
+            else -> false
+        }) return null
         return SettingsSearchEntry(tab = tab, title = stringResource(titleRes), summary = tab.label())
     }
     return listOfNotNull(
         entry(SettingsTab.General, R.string.settings_language),
-        SettingsSearchEntry(SettingsTab.NintendoDs, stringResource(R.string.profile_platform_ds), SettingsTab.NintendoDs.label()),
-        entry(SettingsTab.NintendoDs, R.string.settings_renderer),
-        entry(SettingsTab.NintendoDs, R.string.settings_upscale),
         entry(SettingsTab.General, R.string.settings_tv_interface),
         entry(SettingsTab.General, R.string.settings_theme),
         entry(SettingsTab.General, R.string.settings_theme_manager),
@@ -6334,7 +6399,6 @@ private fun SettingsTab.label(): String {
     return when (this) {
         SettingsTab.General -> stringResource(R.string.settings_general_tab)
         SettingsTab.Graphics -> stringResource(R.string.settings_graphics_tab)
-        SettingsTab.NintendoDs -> stringResource(R.string.profile_platform_ds)
         SettingsTab.Customization -> stringResource(R.string.settings_customization_tab)
         SettingsTab.GameMenu -> stringResource(R.string.settings_game_menu_tab)
         SettingsTab.Audio -> stringResource(R.string.settings_audio_tab)
@@ -6352,7 +6416,6 @@ private fun SettingsTab.icon(): ImageVector {
     return when (this) {
         SettingsTab.General -> Icons.Rounded.Tune
         SettingsTab.Graphics -> Icons.Rounded.Wallpaper
-        SettingsTab.NintendoDs -> Icons.Rounded.Gamepad
         SettingsTab.Customization -> Icons.Rounded.Palette
         SettingsTab.GameMenu -> Icons.Rounded.MoreVert
         SettingsTab.Audio -> Icons.AutoMirrored.Rounded.VolumeUp
@@ -6374,7 +6437,7 @@ private fun String.toSettingsTab(): SettingsTab {
         "multiplayer", "network", "netplay", "room", "rooms" -> SettingsTab.Multiplayer
         "controls" -> SettingsTab.Controls
         "graphics", "video", "renderer", "display" -> SettingsTab.Graphics
-        "ds", "nds", "nintendo_ds", "nintendo-ds" -> SettingsTab.NintendoDs
+        "ds", "nds", "nintendo_ds", "nintendo-ds" -> SettingsTab.Graphics
         "paths", "files", "memorycards", "memory_cards", "memory-cards", "memcards", "covers",
         "cover-art", "cover_art", "data_transfer", "transfer", "backup", "data-transfer", "library" -> SettingsTab.Library
         "performance", "emulation" -> SettingsTab.Emulation
@@ -6384,3 +6447,6 @@ private fun String.toSettingsTab(): SettingsTab {
         else -> SettingsTab.General
     }
 }
+
+private fun String.isDsSettingsLink(): Boolean =
+    lowercase() in setOf("ds", "nds", "nintendo_ds", "nintendo-ds")
