@@ -153,4 +153,3 @@ class AutoSaveExitDeviceTest {
         fail(message)
     }
 }
-

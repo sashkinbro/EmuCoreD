@@ -369,6 +369,11 @@ static Core::System::ResultStatus RunCitra(const std::string& filepath, bool sta
 
     MicroProfileOnThreadCreate("EmuThread");
 
+    // Window/input/system resources may already exist when loading or shader
+    // preparation fails. Release them on every return, including rejected ROMs
+    // and a stop requested while the title was still loading.
+    SCOPE_EXIT({ TryShutdown(); });
+
     if (filepath.empty()) {
         LOG_CRITICAL(Frontend, "Failed to load ROM: No ROM specified");
         return Core::System::ResultStatus::ErrorLoader;
@@ -520,8 +525,6 @@ static Core::System::ResultStatus RunCitra(const std::string& filepath, bool sta
                                                                    &LoadDiskCacheProgress);
 
     LoadDiskCacheProgress(VideoCore::LoadCallbackStage::Complete, 0, 0, "");
-
-    SCOPE_EXIT({ TryShutdown(); });
 
     system.RegisterCoreLoopThreadId();
 
