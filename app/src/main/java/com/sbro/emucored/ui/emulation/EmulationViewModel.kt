@@ -2884,15 +2884,9 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
             ?: runCatching { NativeApp.getSaveStatePathForFile(gamePath, slot) }.getOrNull()
             ?: return false
         val fallbackFile = File(statePath)
-        repeat(40) {
-            val file = resolveSaveStateFile(gamePath, slot) ?: fallbackFile
-            val modified = file.takeIf { it.exists() }?.lastModified() ?: 0L
-            if (modified > 0L && modified != previousModified) {
-                return true
-            }
-            delay(250.milliseconds)
+        return awaitSaveStateFileUpdate(previousModified) {
+            resolveSaveStateFile(gamePath, slot) ?: fallbackFile
         }
-        return (resolveSaveStateFile(gamePath, slot) ?: fallbackFile).exists()
     }
 
     private fun resolveSaveStateFile(gamePath: String, slot: Int): File? {
