@@ -8,14 +8,19 @@ import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.hasClickAction
+import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.v2.createComposeRule
+import androidx.compose.ui.test.junit4.StateRestorationTester
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollToNode
+import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performTextReplacement
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.ViewModelStore
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -35,12 +40,16 @@ class ConsoleSettingsInstrumentedTest {
     private val application get() = InstrumentationRegistry.getInstrumentation().targetContext.applicationContext as Application
     private fun label(id: Int) = application.getString(id)
 
-    private fun openDsGraphics() {
+    private fun openDsGraphics(restoration: StateRestorationTester? = null) {
         lateinit var viewModel: SettingsViewModel
         compose.runOnUiThread {
             viewModel = ViewModelProvider(store, ViewModelProvider.AndroidViewModelFactory.getInstance(application))[SettingsViewModel::class.java]
         }
-        compose.setContent { MaterialTheme { SettingsScreen(initialTab = "ds", viewModel = viewModel) } }
+        if (restoration == null) {
+            compose.setContent { MaterialTheme { SettingsScreen(initialTab = "ds", viewModel = viewModel) } }
+        } else {
+            restoration.setContent { MaterialTheme { SettingsScreen(initialTab = "ds", viewModel = viewModel) } }
+        }
     }
 
     @After fun clearViewModel() { compose.runOnUiThread { store.clear() } }
@@ -77,5 +86,31 @@ class ConsoleSettingsInstrumentedTest {
         compose.onNodeWithText(label(R.string.settings_gamepad_left_stick_sensitivity)).assertDoesNotExist()
         compose.onNodeWithText(label(R.string.settings_overlay_scale)).assertIsDisplayed()
         capture("settings-ds-controls")
+    }
+
+    @Test fun searchCannotExposeAnotherConsolesGyroSettings() {
+        openDsGraphics()
+        compose.onNodeWithContentDescription(label(R.string.settings_search)).performClick()
+        compose.onNode(hasSetTextAction()).performTextReplacement(label(R.string.settings_gyro_mode))
+        compose.onNodeWithText(label(R.string.settings_search_no_results)).assertIsDisplayed()
+        compose.onNode(hasText(label(R.string.profile_platform_3ds)) and hasClickAction()).performClick()
+        compose.onNode(hasSetTextAction()).performTextReplacement(label(R.string.settings_gyro_mode))
+        compose.onNode(hasText(label(R.string.settings_gyro_mode)) and hasClickAction() and !hasSetTextAction()).performClick()
+        compose.onNodeWithText(label(R.string.settings_gyro_mode)).performScrollTo().assertIsDisplayed()
+        compose.onNode(hasText(label(R.string.settings_controls_tab)) and hasClickAction()).assertIsSelected()
+        compose.onNode(hasText(label(R.string.profile_platform_3ds)) and hasClickAction()).assertIsSelected()
+    }
+
+    @Test fun consoleAndCategorySurviveSavedInstanceStateRestoration() {
+        val restoration = StateRestorationTester(compose)
+        openDsGraphics(restoration)
+        compose.onNode(hasText(label(R.string.profile_platform_3ds)) and hasClickAction()).performClick()
+        compose.onNodeWithTag("settings-category-tabs").performScrollToNode(hasText(label(R.string.settings_audio_tab)))
+        compose.onNode(hasText(label(R.string.settings_audio_tab)) and hasClickAction()).performClick()
+        restoration.emulateSavedInstanceStateRestore()
+        compose.onNode(hasText(label(R.string.profile_platform_3ds)) and hasClickAction()).assertIsSelected()
+        compose.onNode(hasText(label(R.string.settings_audio_tab)) and hasClickAction()).assertIsSelected()
+        compose.onNode(hasText(label(R.string.profile_platform_ds)) and hasClickAction()).performClick()
+        compose.onNode(hasText(label(R.string.settings_general_tab)) and hasClickAction()).assertIsSelected()
     }
 }
