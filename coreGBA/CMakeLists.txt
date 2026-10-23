@@ -1,0 +1,31 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+cmake_minimum_required(VERSION 3.22)
+project(EmuCoreGBA LANGUAGES C CXX)
+
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+set(LIBMGBA_ONLY ON CACHE BOOL "Build only the mGBA engine" FORCE)
+set(BINARY_NAME emucored_mgba)
+set(M_CORE_GBA ON CACHE BOOL "Enable the GBA engine" FORCE)
+set(M_CORE_GB OFF CACHE BOOL "GB/GBC use the separate SameBoy engine" FORCE)
+set(ENABLE_DEBUGGERS OFF CACHE BOOL "Exclude debugger infrastructure" FORCE)
+set(ENABLE_GDB_STUB OFF CACHE BOOL "Exclude remote debugger" FORCE)
+set(ENABLE_SCRIPTING OFF CACHE BOOL "Exclude scripting" FORCE)
+set(USE_DISCORD_RPC OFF CACHE BOOL "Exclude upstream presence frontend" FORCE)
+set(BUILD_GL OFF CACHE BOOL "Presentation is owned by our Android adapter" FORCE)
+set(BUILD_GLES2 OFF CACHE BOOL "Presentation is owned by our Android adapter" FORCE)
+set(BUILD_GLES3 OFF CACHE BOOL "Presentation is owned by our Android adapter" FORCE)
+add_subdirectory(mgba)
+
+# Public headers have conditional ABI fields: consumers must inherit the engine's
+# feature definitions, rather than independently guessing ENABLE_VFS etc.
+add_library(emucored_gba_core INTERFACE)
+target_link_libraries(emucored_gba_core INTERFACE emucored_mgba)
+target_compile_definitions(emucored_gba_core INTERFACE $<TARGET_PROPERTY:emucored_mgba,COMPILE_DEFINITIONS>)
+
+option(EMUCORED_BUILD_CORE_TESTS "Build standalone native core contract tests" OFF)
+if(EMUCORED_BUILD_CORE_TESTS)
+    enable_testing()
+    add_executable(emucored_mgba_contract_test tests/mgba_contract_test.c)
+    target_link_libraries(emucored_mgba_contract_test PRIVATE emucored_gba_core)
+    add_test(NAME emucored_mgba_contract COMMAND emucored_mgba_contract_test)
+endif()

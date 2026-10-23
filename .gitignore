@@ -11,6 +11,14 @@
 /core-android/.externalNativeBuild/
 /coreDS/build/
 /coreDS/.cxx/
+
+# New core build products; upstream source pins and integration code are tracked.
+/coreGameCube/build/
+/coreGameCube/.cxx/
+/coreGBA/build/
+/coreGBA/.cxx/
+/coreGB/build/
+/coreGB/.cxx/
 /coreDS/.externalNativeBuild/
 /.gradle/
 /.kotlin/

@@ -3,7 +3,7 @@
 - Official upstream: https://github.com/mgba-emu/mgba
 - Source: pinned Git submodule `mgba/`, revision `fd9dc5c2cbf234365068855851107e762fc6211b`.
 - Licensing: `mgba/LICENSE` (MPL-2.0), plus enabled dependency notices. Covered source and modifications must remain available according to the license.
-- Integration status: source acquired, no EmuCoreD Android bridge or playable GBA platform yet.
+- Integration status: standalone Android ARM64 core builds and contracts pass on OnePlus; no EmuCoreD Android bridge or playable GBA platform yet.
 
 ## Build boundary
 
@@ -14,4 +14,4 @@ git submodule update --init --depth 1 coreGBA/mgba
 git -C coreGBA/mgba rev-parse HEAD
 ```
 
-There is no `.gitmodules` in this pinned mGBA tree. Optional third-party code and data remain subject to their individual licenses. Android build/bridge commands will be recorded only after verification. Full work and acceptance criteria: `../docs/superpowers/plans/2026-10-23-multiplatform-product.md`.
+There is no `.gitmodules` in this pinned mGBA tree. Optional third-party code and data remain subject to their individual licenses. Run `../core-tests/run_android_contracts.ps1 -DeviceSerial '<adb serial>' -Core gba` from PowerShell. The runner builds an original homebrew contract for Android API 26/ARM64, then checks video colors, input, state restore, corrupt-state rejection and recreation on that device. Consumer ABI definitions are inherited from the engine target. App lifecycle/audio/presentation and release diagnostic stripping remain pending. Full work and acceptance criteria: `../docs/superpowers/plans/2026-10-23-multiplatform-product.md`.
