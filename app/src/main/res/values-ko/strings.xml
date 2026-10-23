@@ -1828,4 +1828,10 @@
     <string name="profile_platform_ds">Nintendo DS</string>
     <string name="profile_platform_3ds">Nintendo 3DS</string>
     <string name="settings_ds_software_native_resolution">소프트웨어 렌더러는 DS 기본 해상도(화면당 256 × 192)로 렌더링합니다.</string>
+    <string name="console_gamecube">Nintendo GameCube</string>
+    <string name="console_wii">Nintendo Wii</string>
+    <string name="console_gba">Game Boy Advance</string>
+    <string name="console_gb">Game Boy</string>
+    <string name="console_gbc">Game Boy Color</string>
+    <string name="console_coming_soon">%1$s (출시 예정)</string>
 </resources>

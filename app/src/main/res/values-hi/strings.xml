@@ -1829,4 +1829,10 @@
     <string name="profile_platform_ds">Nintendo DS</string>
     <string name="profile_platform_3ds">Nintendo 3DS</string>
     <string name="settings_ds_software_native_resolution">सॉफ़्टवेयर रेंडरर DS के मूल रिज़ॉल्यूशन (हर स्क्रीन पर 256 × 192) का उपयोग करता है।</string>
+    <string name="console_gamecube">Nintendo GameCube</string>
+    <string name="console_wii">Nintendo Wii</string>
+    <string name="console_gba">Game Boy Advance</string>
+    <string name="console_gb">Game Boy</string>
+    <string name="console_gbc">Game Boy Color</string>
+    <string name="console_coming_soon">%1$s (जल्द आ रहा है)</string>
 </resources>

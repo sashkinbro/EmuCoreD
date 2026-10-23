@@ -1830,4 +1830,10 @@
     <string name="profile_platform_ds">Nintendo DS</string>
     <string name="profile_platform_3ds">Nintendo 3DS</string>
     <string name="settings_ds_software_native_resolution">軟體渲染器使用 DS 原生解析度（每個螢幕 256 × 192）。</string>
+    <string name="console_gamecube">Nintendo GameCube</string>
+    <string name="console_wii">Nintendo Wii</string>
+    <string name="console_gba">Game Boy Advance</string>
+    <string name="console_gb">Game Boy</string>
+    <string name="console_gbc">Game Boy Color</string>
+    <string name="console_coming_soon">%1$s (即将推出)</string>
 </resources>

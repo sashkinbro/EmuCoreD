@@ -1850,4 +1850,10 @@
     <string name="profile_platform_ds">Nintendo DS</string>
     <string name="profile_platform_3ds">Nintendo 3DS</string>
     <string name="settings_ds_software_native_resolution">Softwarové vykreslování používá původní rozlišení DS (256 × 192 na obrazovku).</string>
+    <string name="console_gamecube">Nintendo GameCube</string>
+    <string name="console_wii">Nintendo Wii</string>
+    <string name="console_gba">Game Boy Advance</string>
+    <string name="console_gb">Game Boy</string>
+    <string name="console_gbc">Game Boy Color</string>
+    <string name="console_coming_soon">%1$s (Již brzy)</string>
 </resources>

@@ -7,6 +7,7 @@ import androidx.compose.ui.graphics.asAndroidBitmap
 import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsSelected
+import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.hasText
@@ -86,6 +87,19 @@ class ConsoleSettingsInstrumentedTest {
         compose.onNodeWithText(label(R.string.settings_gamepad_left_stick_sensitivity)).assertDoesNotExist()
         compose.onNodeWithText(label(R.string.settings_overlay_scale)).assertIsDisplayed()
         capture("settings-ds-controls")
+    }
+
+    @Test fun upcomingConsolesAreVisibleWithoutExposingUnimplementedSettings() {
+        openDsGraphics()
+        for (id in listOf(R.string.console_gamecube, R.string.console_wii, R.string.console_gba,
+            R.string.console_gb, R.string.console_gbc)) {
+            val name = application.getString(R.string.console_coming_soon, label(id))
+            compose.onNodeWithTag("settings-console-tabs").performScrollToNode(hasText(name))
+            compose.onNodeWithText(name).assertIsDisplayed().assertIsNotEnabled()
+        }
+        compose.onNodeWithTag("settings-console-tabs").performScrollToNode(hasText(label(R.string.profile_platform_ds)))
+        compose.onNode(hasText(label(R.string.profile_platform_ds)) and hasClickAction()).assertIsSelected()
+        compose.onNodeWithText(label(R.string.settings_renderer_opengl)).assertDoesNotExist()
     }
 
     @Test fun searchCannotExposeAnotherConsolesGyroSettings() {
