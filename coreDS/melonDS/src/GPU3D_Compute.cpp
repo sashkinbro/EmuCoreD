@@ -1,3 +1,4 @@
+#include "../../bridge/ds_diagnostics.h"
 /*
     Copyright 2016-2025 melonDS team
 
@@ -201,7 +202,7 @@ void ComputeRenderer::ShaderCompileStep(int& current, int& count)
 
 void blah(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar *message, const void *userParam)
 {
-    printf("%s\n", message);
+    EMUCORED_DIAGNOSTIC_LOG(printf("%s\n", message));
 }
 
 std::unique_ptr<ComputeRenderer> ComputeRenderer::New()
@@ -351,8 +352,8 @@ void ComputeRenderer::SetRenderSettings(int scale, bool highResolutionCoordinate
     TileScale <<= 1;
     TileScale += TileScale == 0;
 
-    std::printf("Scale: %d\n", ScaleFactor);
-    std::printf("TileScale: %d\n", TileScale);
+    EMUCORED_DIAGNOSTIC_LOG(std::printf("Scale: %d\n", ScaleFactor));
+    EMUCORED_DIAGNOSTIC_LOG(std::printf("TileScale: %d\n", TileScale));
     
     TileSize = std::min(8 * TileScale, 32);
     CoarseTileCountY = TileSize < 32 ? 4 : 6;

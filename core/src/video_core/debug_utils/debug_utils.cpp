@@ -70,6 +70,7 @@ namespace DebugUtils {
 
 void DumpShader(const std::string& filename, const ShaderRegs& config, const ShaderSetup& setup,
                 const RasterizerRegs::VSOutputAttributes* output_attributes) {
+#if !defined(EMUCORED_DIAGNOSTICS) || EMUCORED_DIAGNOSTICS
     struct StuffToWrite {
         const u8* pointer;
         u32 size;
@@ -254,8 +255,10 @@ void DumpShader(const std::string& filename, const ShaderRegs& config, const Sha
     for (const auto& chunk : writing_queue) {
         file.write(reinterpret_cast<const char*>(chunk.pointer), chunk.size);
     }
+#endif
 }
 
+#if !defined(EMUCORED_DIAGNOSTICS) || EMUCORED_DIAGNOSTICS
 static std::unique_ptr<PicaTrace> pica_trace;
 static std::mutex pica_trace_mutex;
 bool g_is_pica_tracing = false;
@@ -296,6 +299,12 @@ std::unique_ptr<PicaTrace> FinishPicaTracing() {
 
     return ret;
 }
+#else
+bool g_is_pica_tracing = false;
+void StartPicaTracing() {}
+void OnPicaRegWrite(u16, u16, u32) {}
+std::unique_ptr<PicaTrace> FinishPicaTracing() { return {}; }
+#endif
 
 } // namespace DebugUtils
 

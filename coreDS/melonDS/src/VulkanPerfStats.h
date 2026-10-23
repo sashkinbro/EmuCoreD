@@ -1,5 +1,7 @@
 #pragma once
 
+#include "../../bridge/ds_diagnostics.h"
+
 #include <algorithm>
 #include <array>
 #include <atomic>
@@ -28,6 +30,15 @@ inline double PerfNsToMs(u64 valueNs)
     return static_cast<double>(valueNs) / 1000000.0;
 }
 
+inline u64 DiagnosticNowNs()
+{
+#if EMUCORED_DIAGNOSTICS
+    return PerfNowNs();
+#else
+    return 0;
+#endif
+}
+
 template <size_t SampleCount = 120>
 class PerfSampleWindow
 {
@@ -42,25 +53,38 @@ public:
 
     void Add(u64 sampleNs)
     {
+#if EMUCORED_DIAGNOSTICS
         if (Count >= SampleCount)
             return;
 
         Samples[Count++] = sampleNs;
+#else
+        (void)sampleNs;
+#endif
     }
 
     [[nodiscard]] bool Ready() const
     {
+#if EMUCORED_DIAGNOSTICS
         return Count >= SampleCount;
+#else
+        return false;
+#endif
     }
 
     [[nodiscard]] bool Empty() const
     {
+#if EMUCORED_DIAGNOSTICS
         return Count == 0;
+#else
+        return true;
+#endif
     }
 
     Summary SummarizeAndReset()
     {
         Summary summary{};
+#if EMUCORED_DIAGNOSTICS
         if (Count == 0)
             return summary;
 
@@ -86,12 +110,15 @@ public:
         summary.MeanNs = totalNs / static_cast<u64>(Count);
         summary.P95Ns = orderedSamples[p95Index];
         Count = 0;
+#endif
         return summary;
     }
 
 private:
+#if EMUCORED_DIAGNOSTICS
     std::array<u64, SampleCount> Samples{};
     size_t Count = 0;
+#endif
 };
 
 template <typename Callback>
@@ -135,6 +162,7 @@ ScopeExit<Callback> MakeScopeExit(Callback callback)
 namespace melonDS
 {
 using MelonDSAndroid::MakeScopeExit;
+using MelonDSAndroid::DiagnosticNowNs;
 using MelonDSAndroid::PerfNowNs;
 using MelonDSAndroid::PerfNsToMs;
 using MelonDSAndroid::PerfSampleWindow;

@@ -1,3 +1,4 @@
+#include "../../bridge/ds_diagnostics.h"
 /*
     Copyright 2016-2025 melonDS team
 
@@ -311,7 +312,7 @@ u8 DSi_CamModule::Read8(u32 addr)
 {
     //
 
-    Log(LogLevel::Debug, "unknown DSi cam read8 %08X\n", addr);
+    EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Debug, "unknown DSi cam read8 %08X\n", addr));
     return 0;
 }
 
@@ -323,7 +324,7 @@ u16 DSi_CamModule::Read16(u32 addr)
     case 0x04004202: return Cnt | (Transferring ? (1<<15) : 0);
     }
 
-    Log(LogLevel::Debug, "unknown DSi cam read16 %08X\n", addr);
+    EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Debug, "unknown DSi cam read16 %08X\n", addr));
     return 0;
 }
 
@@ -349,7 +350,7 @@ u32 DSi_CamModule::Read32(u32 addr)
     case 0x04004214: return CropEnd;
     }
 
-    Log(LogLevel::Debug, "unknown DSi cam read32 %08X\n", addr);
+    EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Debug, "unknown DSi cam read32 %08X\n", addr));
     return 0;
 }
 
@@ -357,7 +358,7 @@ void DSi_CamModule::Write8(u32 addr, u8 val)
 {
     //
 
-    Log(LogLevel::Debug, "unknown DSi cam write8 %08X %02X\n", addr, val);
+    EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Debug, "unknown DSi cam write8 %08X %02X\n", addr, val));
 }
 
 void DSi_CamModule::Write16(u32 addr, u16 val)
@@ -430,7 +431,7 @@ void DSi_CamModule::Write16(u32 addr, u16 val)
         return;
     }
 
-    Log(LogLevel::Debug, "unknown DSi cam write16 %08X %04X\n", addr, val);
+    EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Debug, "unknown DSi cam write16 %08X %04X\n", addr, val));
 }
 
 void DSi_CamModule::Write32(u32 addr, u32 val)
@@ -447,7 +448,7 @@ void DSi_CamModule::Write32(u32 addr, u32 val)
         return;
     }
 
-    Log(LogLevel::Debug, "unknown DSi cam write32 %08X %08X\n", addr, val);
+    EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Debug, "unknown DSi cam write32 %08X %08X\n", addr, val));
 }
 
 
@@ -576,7 +577,7 @@ int DSi_Camera::TransferScanline(u32* buffer, int maxlen, int& nlines)
         (FrameWidth & 1))
     {
         // TODO work out something for these cases?
-        Log(LogLevel::Warn, "CAM%d: invalid resolution %dx%d\n", Num, FrameWidth, FrameHeight);
+        EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Warn, "CAM%d: invalid resolution %dx%d\n", Num, FrameWidth, FrameHeight));
         //memset(buffer, 0, width*height*sizeof(u16));
         return 0;
     }
@@ -666,7 +667,7 @@ void DSi_Camera::Write(u8 val, bool last)
         else
             RegAddr |= val;
 
-        if (RegAddr & 0x1) Log(LogLevel::Warn, "DSi_Camera: !! UNALIGNED REG ADDRESS %04X\n", RegAddr);
+        if (RegAddr & 0x1) EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Warn, "DSi_Camera: !! UNALIGNED REG ADDRESS %04X\n", RegAddr));
     }
     else
     {
@@ -718,7 +719,7 @@ u16 DSi_Camera::I2C_ReadReg(u16 addr) const
     case 0x301A: return ((~StandbyCnt) & 0x4000) >> 12;
     }
 
-    if(Num==1) Log(LogLevel::Debug, "DSi_Camera%d: unknown read %04X\n", Num, addr);
+    if(Num==1) EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Debug, "DSi_Camera%d: unknown read %04X\n", Num, addr));
     return 0;
 }
 
@@ -784,7 +785,7 @@ void DSi_Camera::I2C_WriteReg(u16 addr, u16 val)
         return;
     }
 
-    if(Num==1) Log(LogLevel::Debug, "DSi_Camera%d: unknown write %04X %04X\n", Num, addr, val);
+    if(Num==1) EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Debug, "DSi_Camera%d: unknown write %04X %04X\n", Num, addr, val));
 }
 
 
@@ -809,7 +810,7 @@ void DSi_Camera::MCU_Write(u16 addr, u8 val)
         if      (val == 2) MCURegs[0x2104] = 7; // capture mode
         else if (val == 1) MCURegs[0x2104] = 3; // preview mode
         else if (val != 5 && val != 6)
-            Log(LogLevel::Debug, "CAM%d: atypical SEQ_CMD %04X\n", Num, val);
+            EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Debug, "CAM%d: atypical SEQ_CMD %04X\n", Num, val));
         return;
 
     case 0x2104: // SEQ_STATE, read-only

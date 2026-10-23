@@ -1,3 +1,4 @@
+#include "../../bridge/ds_diagnostics.h"
 /*
     Copyright 2016-2025 melonDS team, RSDuck
 
@@ -84,7 +85,7 @@ public:
             }
         }
 
-        Log(LogLevel::Error, "this is a JIT bug! LoadRegister failed\n");
+        EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error, "this is a JIT bug! LoadRegister failed\n"));
         abort();
     }
 

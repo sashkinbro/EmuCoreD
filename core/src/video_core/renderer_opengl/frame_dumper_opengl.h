@@ -43,6 +43,7 @@ public:
     std::unique_ptr<Frontend::TextureMailbox> mailbox;
 
 private:
+#if !defined(EMUCORED_DIAGNOSTICS) || EMUCORED_DIAGNOSTICS
     void InitializeOpenGLObjects();
     void CleanupOpenGLObjects();
     void PresentLoop(std::stop_token stop_token);
@@ -56,6 +57,7 @@ private:
     std::array<OGLBuffer, 2> pbos;
     GLuint current_pbo = 1;
     GLuint next_pbo = 0;
+#endif
 };
 
 } // namespace OpenGL

@@ -1,3 +1,4 @@
+#include "../../bridge/ds_diagnostics.h"
 /*
     Copyright 2016-2025 melonDS team
 
@@ -2694,7 +2695,7 @@ u8 GPU3D::Read8(u32 addr) noexcept
         }
     }
 
-    Log(LogLevel::Debug, "unknown GPU3D read8 %08X\n", addr);
+    EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Debug, "unknown GPU3D read8 %08X\n", addr));
     return 0;
 }
 
@@ -2738,7 +2739,7 @@ u16 GPU3D::Read16(u32 addr) noexcept
     case 0x04000634: return VecTestResult[2];
     }
 
-    Log(LogLevel::Debug, "unknown GPU3D read16 %08X\n", addr);
+    EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Debug, "unknown GPU3D read16 %08X\n", addr));
     return 0;
 }
 
@@ -2842,7 +2843,7 @@ void GPU3D::Write8(u32 addr, u8 val) noexcept
         return;
     }
 
-    Log(LogLevel::Debug, "unknown GPU3D write8 %08X %02X\n", addr, val);
+    EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Debug, "unknown GPU3D write8 %08X %02X\n", addr, val));
 }
 
 void GPU3D::Write16(u32 addr, u16 val) noexcept
@@ -2929,7 +2930,7 @@ void GPU3D::Write16(u32 addr, u16 val) noexcept
         return;
     }
 
-    Log(LogLevel::Debug, "unknown GPU3D write16 %08X %04X\n", addr, val);
+    EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Debug, "unknown GPU3D write16 %08X %04X\n", addr, val));
 }
 
 void GPU3D::Write32(u32 addr, u32 val) noexcept
@@ -3026,7 +3027,7 @@ void GPU3D::Write32(u32 addr, u32 val) noexcept
         return;
     }
 
-    Log(LogLevel::Debug, "unknown GPU3D write32 %08X %08X\n", addr, val);
+    EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Debug, "unknown GPU3D write32 %08X %08X\n", addr, val));
 }
 
 void GPU3D::Blit(const GPU& gpu) noexcept

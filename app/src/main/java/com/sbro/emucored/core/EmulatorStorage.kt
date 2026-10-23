@@ -1,6 +1,7 @@
 package com.sbro.emucored.core
 
 import android.content.Context
+import com.sbro.emucored.BuildConfig
 import java.io.File
 import java.io.FileOutputStream
 import java.util.concurrent.ConcurrentHashMap
@@ -19,11 +20,11 @@ object EmulatorStorage {
         val preferencePath: String?
     )
 
-    private val runtimeSubdirectories = listOf(
-        "sstates",
-        "azahar",
-        "logs"
-    )
+    private val runtimeSubdirectories = buildList {
+        add("sstates")
+        add("azahar")
+        if (BuildConfig.DEBUG) add("logs")
+    }
 
     /** The user-selected emulator data root (external app storage by default). */
     fun dataRoot(context: Context, customRootPath: String? = null): File =
@@ -155,7 +156,7 @@ object EmulatorStorage {
         File(azaharUserDir(context, customRootPath), "patches").apply { mkdirs() }
 
     fun logDir(context: Context, customRootPath: String? = null): File =
-        File(root(context, customRootPath), "logs").apply { mkdirs() }
+        File(root(context, customRootPath), "logs").apply { if (BuildConfig.DEBUG) mkdirs() }
 
     fun appStateDir(context: Context): File = File(root(context), "app-state").apply { mkdirs() }
 

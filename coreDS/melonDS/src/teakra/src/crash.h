@@ -1,9 +1,10 @@
+#include "../../../../bridge/ds_diagnostics.h"
 #pragma once
 #include <cstdio>
 #include <cstdlib>
 
 [[noreturn]] inline void Assert(const char* expression, const char* file, int line) {
-    std::fprintf(stderr, "Assertion '%s' failed, file '%s' line '%d'.", expression, file, line);
+    EMUCORED_DIAGNOSTIC_LOG(std::fprintf(stderr, "Assertion '%s' failed, file '%s' line '%d'.", expression, file, line));
     std::abort();
 }
 

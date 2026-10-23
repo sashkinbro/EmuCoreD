@@ -1,3 +1,4 @@
+#include "ds_diagnostics.h"
 #include <android/log.h>
 #include <pthread.h>
 #include <unistd.h>
@@ -191,6 +192,7 @@ u64 FileLength(FileHandle* file) {
 }
 
 void Log(LogLevel level, const char* fmt, ...) {
+#if EMUCORED_DIAGNOSTICS
     if (!fmt) return;
     va_list args;
     va_start(args, fmt);
@@ -201,8 +203,12 @@ void Log(LogLevel level, const char* fmt, ...) {
     case LogLevel::Warn: priority = ANDROID_LOG_WARN; break;
     case LogLevel::Error: priority = ANDROID_LOG_ERROR; break;
     }
-    __android_log_vprint(priority, "EmuCoreDS", fmt, args);
+    EMUCORED_DIAGNOSTIC_LOG(__android_log_vprint(priority, "EmuCoreDS", fmt, args));
     va_end(args);
+#else
+    (void)level;
+    (void)fmt;
+#endif
 }
 
 Thread* Thread_Create(std::function<void()> func) {

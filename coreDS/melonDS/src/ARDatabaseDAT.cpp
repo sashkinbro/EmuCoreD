@@ -1,3 +1,4 @@
+#include "../../bridge/ds_diagnostics.h"
 /*
     Copyright 2016-2025 melonDS team
 
@@ -148,7 +149,7 @@ bool ARDatabaseDAT::LoadEntries()
 
         if ((entrydata[2] < 0x100) || (entrydata[2] >= filelen))
         {
-            Log(LogLevel::Error, "AR: malformed database file (invalid offset %08X)\n", entrydata[2]);
+            EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error, "AR: malformed database file (invalid offset %08X)\n", entrydata[2]));
             CloseFile(f);
             return false;
         }
@@ -222,10 +223,10 @@ bool ARDatabaseDAT::LoadCheatCodes(EntryInfo& info, ARDatabaseEntry& entry)
 
             if ((totallen >= 0x10000) || (totallen == 0))
             {
-                Log(LogLevel::Error, "AR: unreasonable category length %08X\n",
-                    totallen);
-                Log(LogLevel::Error, "game=%s, offset=%08X, cat=%s\n",
-                    entry.Name.c_str(), info.Offset, itemname.c_str());
+                EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error, "AR: unreasonable category length %08X\n",
+                    totallen));
+                EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error, "game=%s, offset=%08X, cat=%s\n",
+                    entry.Name.c_str(), info.Offset, itemname.c_str()));
 
                 CloseFile(f);
                 return false;
@@ -254,10 +255,10 @@ bool ARDatabaseDAT::LoadCheatCodes(EntryInfo& info, ARDatabaseEntry& entry)
             chklen = ((chklen + 3) >> 2) + 1 + codelen;
             if (chklen != totallen)
             {
-                Log(LogLevel::Error, "AR: malformed code entry, codelen=%08X, totallen=%08X (expected %08X)\n",
-                    codelen, totallen, chklen);
-                Log(LogLevel::Error, "game=%s, offset=%08X, cheat=%s\n",
-                    entry.Name.c_str(), info.Offset, itemname.c_str());
+                EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error, "AR: malformed code entry, codelen=%08X, totallen=%08X (expected %08X)\n",
+                    codelen, totallen, chklen));
+                EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error, "game=%s, offset=%08X, cheat=%s\n",
+                    entry.Name.c_str(), info.Offset, itemname.c_str()));
 
                 CloseFile(f);
                 return false;
@@ -265,10 +266,10 @@ bool ARDatabaseDAT::LoadCheatCodes(EntryInfo& info, ARDatabaseEntry& entry)
 
             if ((codelen >= 0x100000) || (codelen & 1))
             {
-                Log(LogLevel::Error, "AR: unreasonable code length %08X\n",
-                    codelen);
-                Log(LogLevel::Error, "game=%s, offset=%08X, cheat=%s\n",
-                    entry.Name.c_str(), info.Offset, itemname.c_str());
+                EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error, "AR: unreasonable code length %08X\n",
+                    codelen));
+                EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error, "game=%s, offset=%08X, cheat=%s\n",
+                    entry.Name.c_str(), info.Offset, itemname.c_str()));
 
                 CloseFile(f);
                 return false;

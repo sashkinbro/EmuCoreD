@@ -17,6 +17,7 @@
 #include "renderer/VulkanFilterMode.h"
 #include "types.h"
 #include "VulkanPerfStats.h"
+#include "../ds_frame_trace.h"
 
 namespace melonDS
 {
@@ -864,6 +865,9 @@ public:
     void publishFaithfulCertifiedCaptureTerminals(
         melonDS::GPU& gpu, u32 outputScale);
     bool faithfulPreListo = false;
+#if EMUCORED_DIAGNOSTICS
+    EmuCoreDS::DsFrameTrace frameTrace;
+#endif
     bool faithfulHighresConsumerActive = false;
     [[nodiscard]] const void* faithfulAtlasMapped() const { return faithfulAtlasMappedPtr[faithfulRing]; }
 
@@ -919,6 +923,17 @@ private:
 
     static constexpr size_t kFaithfulPreBytes = 0x225000u;
     FaithfulAtlasStaging<kFaithfulPreBytes> faithfulAtlasPre[kFielRanuras];
+#if EMUCORED_DIAGNOSTICS
+    struct AtlasTraceStamp {
+        bool valid{};
+        bool fromTail{};
+        u32 guestFrame{};
+        u32 metaFrame{};
+        u64 hash{};
+    };
+    AtlasTraceStamp faithfulAtlasTrace[kFielRanuras]{};
+#endif
+    u32 faithfulTailGuestFrame[kFielRanuras]{};
     PFN_vkFlushMappedMemoryRanges faithfulFlushMappedMemoryRanges = nullptr;
     VkMemoryPropertyFlags faithfulAtlasMemoryFlags[kFielRanuras] = {};
     bool faithfulAtlasDeviceVisible[kFielRanuras] = {};

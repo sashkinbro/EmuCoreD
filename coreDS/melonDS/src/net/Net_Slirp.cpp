@@ -1,3 +1,4 @@
+#include "../../../bridge/ds_diagnostics.h"
 /*
     Copyright 2016-2025 melonDS team
 
@@ -75,11 +76,11 @@ ssize_t Net_Slirp::SlirpCbSendPacket(const void* buf, size_t len, void* opaque) 
 {
     if (len > 2048)
     {
-        Log(LogLevel::Warn, "slirp: packet too big (%zu)\n", len);
+        EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Warn, "slirp: packet too big (%zu)\n", len));
         return 0;
     }
 
-    Log(LogLevel::Debug, "slirp: response packet of %zu bytes, type %04X\n", len, ntohs(((u16*)buf)[6]));
+    EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Debug, "slirp: response packet of %zu bytes, type %04X\n", len, ntohs(((u16*)buf)[6])));
 
     Net_Slirp& self = *static_cast<Net_Slirp*>(opaque);
     if (self.Callback)
@@ -92,7 +93,7 @@ ssize_t Net_Slirp::SlirpCbSendPacket(const void* buf, size_t len, void* opaque) 
 
 void SlirpCbGuestError(const char* msg, void* opaque)
 {
-    Log(LogLevel::Error, "SLIRP: error: %s\n", msg);
+    EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error, "SLIRP: error: %s\n", msg));
 }
 
 int64_t SlirpCbClockGetNS(void* opaque)
@@ -117,17 +118,17 @@ void SlirpCbTimerMod(void* timer, int64_t expire_time, void* opaque)
 
 void SlirpCbRegisterPollFD(int fd, void* opaque)
 {
-    Log(LogLevel::Debug, "Slirp: register poll FD %d\n", fd);
+    EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Debug, "Slirp: register poll FD %d\n", fd));
 }
 
 void SlirpCbUnregisterPollFD(int fd, void* opaque)
 {
-    Log(LogLevel::Debug, "Slirp: unregister poll FD %d\n", fd);
+    EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Debug, "Slirp: unregister poll FD %d\n", fd));
 }
 
 void SlirpCbNotify(void* opaque)
 {
-    Log(LogLevel::Debug, "Slirp: notify???\n");
+    EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Debug, "Slirp: notify???\n"));
 }
 
 const SlirpCb Net_Slirp::cb =
@@ -224,8 +225,8 @@ void Net_Slirp::HandleDNSFrame(u8* data, int len) noexcept
     u16 numauth = ntohs(*(u16*)&dnsbody[8]);
     u16 numadd = ntohs(*(u16*)&dnsbody[10]);
 
-    Log(LogLevel::Debug, "DNS: ID=%04X, flags=%04X, Q=%d, A=%d, auth=%d, add=%d\n",
-           id, flags, numquestions, numanswers, numauth, numadd);
+    EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Debug, "DNS: ID=%04X, flags=%04X, Q=%d, A=%d, auth=%d, add=%d\n",
+           id, flags, numquestions, numanswers, numauth, numadd));
 
     // for now we only take 'simple' DNS requests
     if (flags & 0x8000) return;
@@ -313,7 +314,7 @@ void Net_Slirp::HandleDNSFrame(u8* data, int len) noexcept
 		u16 type = ntohs(*(u16*)&dnsbody[curoffset]);
 		u16 cls = ntohs(*(u16*)&dnsbody[curoffset+2]);
 
-		printf("- q%d: %04X %04X %s", i, type, cls, domainname);
+		EMUCORED_DIAGNOSTIC_LOG(printf("- q%d: %04X %04X %s", i, type, cls, domainname));
 
 		// get answer
 		struct addrinfo dns_hint;
@@ -330,9 +331,9 @@ void Net_Slirp::HandleDNSFrame(u8* data, int len) noexcept
                 struct sockaddr_in* addr = (struct sockaddr_in*)p->ai_addr;
                 addr_res = *(u32*)&addr->sin_addr;
 
-                printf(" -> %d.%d.%d.%d",
+                EMUCORED_DIAGNOSTIC_LOG(printf(" -> %d.%d.%d.%d",
                        addr_res & 0xFF, (addr_res >> 8) & 0xFF,
-                       (addr_res >> 16) & 0xFF, addr_res >> 24);
+                       (addr_res >> 16) & 0xFF, addr_res >> 24));
 
                 break;
                 p = p->ai_next;
@@ -340,11 +341,11 @@ void Net_Slirp::HandleDNSFrame(u8* data, int len) noexcept
         }
         else
         {
-            printf(" shat itself :(");
+            EMUCORED_DIAGNOSTIC_LOG(printf(" shat itself :("));
             addr_res = 0;
         }
 
-		printf("\n");
+		EMUCORED_DIAGNOSTIC_LOG(printf("\n"));
 		curoffset += 4;
 
 		// TODO: betterer support
@@ -371,7 +372,7 @@ int Net_Slirp::SendPacket(u8* data, int len) noexcept
 
     if (len > 2048)
     {
-        Log(LogLevel::Error, "Net_SendPacket: error: packet too long (%d)\n", len);
+        EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error, "Net_SendPacket: error: packet too long (%d)\n", len));
         return 0;
     }
 
@@ -401,7 +402,7 @@ int Net_Slirp::SlirpCbAddPoll(int fd, int events, void* opaque) noexcept
 
     if (self.PollListSize >= PollListMax)
     {
-        Log(LogLevel::Error, "slirp: POLL LIST FULL\n");
+        EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error, "slirp: POLL LIST FULL\n"));
         return -1;
     }
 

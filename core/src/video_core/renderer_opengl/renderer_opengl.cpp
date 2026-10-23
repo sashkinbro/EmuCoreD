@@ -82,7 +82,9 @@ RendererOpenGL::RendererOpenGL(Core::System& system, Pica::PicaCore& pica_,
     if (secondary_window) {
         secondary_window->mailbox = std::make_unique<OGLTextureMailbox>(has_debug_tool);
     }
+#if !defined(EMUCORED_DIAGNOSTICS) || EMUCORED_DIAGNOSTICS
     frame_dumper.mailbox = std::make_unique<OGLVideoDumpingMailbox>();
+#endif
     InitOpenGLObjects();
 }
 
@@ -144,6 +146,7 @@ void RendererOpenGL::SwapBuffers() {
     }
 #endif
 
+#if !defined(EMUCORED_DIAGNOSTICS) || EMUCORED_DIAGNOSTICS
     if (frame_dumper.IsDumping()) {
         try {
             RenderToMailbox(frame_dumper.GetLayout(), frame_dumper.mailbox, true);
@@ -151,6 +154,7 @@ void RendererOpenGL::SwapBuffers() {
             LOG_DEBUG(Render_OpenGL, "Frame dumper exception caught: {}", exception.what());
         }
     }
+#endif
 #endif
     LimitFramesAheadOfGpu();
 
@@ -934,15 +938,18 @@ void RendererOpenGL::TryPresent(int timeout_ms, bool is_secondary) {
 }
 
 void RendererOpenGL::PrepareVideoDumping() {
+#if !defined(EMUCORED_DIAGNOSTICS) || EMUCORED_DIAGNOSTICS
     auto* mailbox = static_cast<OGLVideoDumpingMailbox*>(frame_dumper.mailbox.get());
     {
         std::scoped_lock lock{mailbox->swap_chain_lock};
         mailbox->quit = false;
     }
     frame_dumper.StartDumping();
+#endif
 }
 
 void RendererOpenGL::CleanupVideoDumping() {
+#if !defined(EMUCORED_DIAGNOSTICS) || EMUCORED_DIAGNOSTICS
     frame_dumper.StopDumping();
     auto* mailbox = static_cast<OGLVideoDumpingMailbox*>(frame_dumper.mailbox.get());
     {
@@ -950,6 +957,7 @@ void RendererOpenGL::CleanupVideoDumping() {
         mailbox->quit = true;
     }
     mailbox->free_cv.notify_one();
+#endif
 }
 
 } // namespace OpenGL

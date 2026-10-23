@@ -16,6 +16,8 @@ public:
     ~DsPresenter();
 
     bool SetSurface(ANativeWindow* window);
+    // Release the graphics API connection while retaining the acquired native window.
+    void ReleaseGraphicsContext();
     void Release();
     void Present(const uint32_t* pixels, int width, int height, DsPixelFormat format);
 

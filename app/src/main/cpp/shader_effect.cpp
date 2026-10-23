@@ -4,7 +4,7 @@
 #include <atomic>
 #include <android/log.h>
 
-#ifdef NDEBUG
+#if !EMUCORED_DIAGNOSTICS
 #define SHADER_LOGE(...) ((void)0)
 #else
 #define SHADER_LOGE(...) __android_log_print(ANDROID_LOG_ERROR, "EmuCoreD-Shader", __VA_ARGS__)

@@ -82,7 +82,9 @@ private:
 private:
     Core::System& system;
     Frontend::ImageInterface& image_interface;
+#if !defined(EMUCORED_DIAGNOSTICS) || EMUCORED_DIAGNOSTICS
     std::unordered_set<u64> dumped_textures;
+#endif
     std::unordered_map<u64, std::unique_ptr<Material>> material_map;
     std::unordered_map<std::string, std::vector<u64>> path_to_hash_map;
     std::vector<std::unique_ptr<CustomTexture>> custom_textures;

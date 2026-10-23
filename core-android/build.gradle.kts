@@ -68,6 +68,7 @@ android {
             // but optimize the core so test APKs measure real emulation speed.
             externalNativeBuild {
                 cmake {
+                    arguments += "-DEMUCORED_DIAGNOSTICS=ON"
                     arguments += listOf(
                         "-DCMAKE_C_FLAGS_DEBUG=-O3 -g",
                         "-DCMAKE_CXX_FLAGS_DEBUG=-O3 -g"
@@ -78,6 +79,7 @@ android {
         release {
             externalNativeBuild {
                 cmake {
+                    arguments += "-DEMUCORED_DIAGNOSTICS=OFF"
                     arguments += listOf(
                         "-DCMAKE_C_FLAGS_RELWITHDEBINFO=-O3 -g -DNDEBUG",
                         "-DCMAKE_CXX_FLAGS_RELWITHDEBINFO=-O3 -g -DNDEBUG"

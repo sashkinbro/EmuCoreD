@@ -1,3 +1,4 @@
+#include "../../../bridge/ds_diagnostics.h"
 
 #ifdef _WIN32
 #include <ws2tcpip.h>
@@ -73,7 +74,7 @@ Gdb::ReadResult GdbStub::TryParsePacket(size_t start, size_t& packetStart, size_
 					u8 checksumShould = (hex2nyb(RecvBuffer[i+1]) << 4)
 						| hex2nyb(RecvBuffer[i+2]);
 
-					Log(LogLevel::Debug, "[GDB] found pkt, checksumGot: %02x vs %02x\n", checksumShould, checksumGot);
+					EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Debug, "[GDB] found pkt, checksumGot: %02x vs %02x\n", checksumShould, checksumGot));
 
 					if (checksumShould != checksumGot)
 					{
@@ -94,7 +95,7 @@ Gdb::ReadResult GdbStub::TryParsePacket(size_t start, size_t& packetStart, size_
 		}
 		else
 		{
-			Log(LogLevel::Error, "[GDB] Received unknown character %c (%d)\n", curChar, curChar);
+			EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error, "[GDB] Received unknown character %c (%d)\n", curChar, curChar));
 			return ReadResult::Wut;
 		}
 	}
@@ -125,7 +126,7 @@ Gdb::ReadResult GdbStub::ParseAndSetupPacket()
 			(packetContentSize != prevPacketContentSize ||
 				memcmp(&RecvBuffer[packetStart], &RecvBuffer[prevPacketStart], prevPacketContentSize) != 0))
 		{
-			Log(LogLevel::Debug, "[GDB] found differing packet further back %zu %zu\n", packetContentSize, prevPacketContentSize);
+			EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Debug, "[GDB] found differing packet further back %zu %zu\n", packetContentSize, prevPacketContentSize));
 			break;
 		}
 
@@ -169,7 +170,7 @@ ReadResult GdbStub::MsgRecv()
 #if MOCKTEST
 		static bool FIRST = false;
 		if (FIRST) {
-			printf("%s", "[==>] TEST DONE\n");
+			EMUCORED_DIAGNOSTIC_LOG(printf("%s", "[==>] TEST DONE\n"));
 			__builtin_trap();
 		}
 		FIRST = true;
@@ -185,7 +186,7 @@ ReadResult GdbStub::MsgRecv()
 #ifndef _WIN32
 		if (first) flag |= MSG_DONTWAIT;
 		ssize_t receivedNum = recv(ConnFd, &RecvBuffer[RecvBufferFilled], sizeof(RecvBuffer) - RecvBufferFilled, flag);
-		Log(LogLevel::Debug, "[GDB] receiving from stream %d\n", receivedNum);
+		EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Debug, "[GDB] receiving from stream %d\n", receivedNum));
 #else
 		// fuck windows
 		ssize_t receivedNum = recv(ConnFd, (char*)&RecvBuffer[RecvBufferFilled], sizeof(RecvBuffer) - RecvBufferFilled, flag);
@@ -197,7 +198,7 @@ ReadResult GdbStub::MsgRecv()
 			if (first) return ReadResult::NoPacket;
 			else
 			{
-				Log(LogLevel::Debug, "[GDB] recv() error %zi, errno=%d (%s)\n", receivedNum, errno, strerror(errno));
+				EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Debug, "[GDB] recv() error %zi, errno=%d (%s)\n", receivedNum, errno, strerror(errno)));
 				return ReadResult::Eof;
 			}
 		}
@@ -213,7 +214,7 @@ int GdbStub::SendAck()
 {
 	if (NoAck) return 1;
 
-	Log(LogLevel::Debug, "[GDB] send ack\n");
+	EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Debug, "[GDB] send ack\n"));
 	u8 v = '+';
 #if MOCKTEST
 	return 1;
@@ -231,7 +232,7 @@ int GdbStub::SendNak()
 {
 	if (NoAck) return 1;
 
-	Log(LogLevel::Debug, "[GDB] send nak\n");
+	EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Debug, "[GDB] send nak\n"));
 	u8 v = '-';
 #if MOCKTEST
 	return 1;
@@ -301,7 +302,7 @@ int GdbStub::Resp(const u8* data1, size_t len1, const u8* data2, size_t len2, bo
 
 	if (totallen >= GDBPROTO_BUFFER_CAPACITY)
 	{
-		Log(LogLevel::Error, "[GDB] packet with len %zu can't fit in buffer!\n", totallen);
+		EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error, "[GDB] packet with len %zu can't fit in buffer!\n", totallen));
 		return -42;
 	}
 
@@ -325,7 +326,7 @@ int GdbStub::Resp(const u8* data1, size_t len1, const u8* data2, size_t len2, bo
 		ssize_t r;
 		u8 ack;
 
-		Log(LogLevel::Debug, "[GDB] send resp: '%s'\n", &RespBuf[0]);
+		EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Debug, "[GDB] send resp: '%s'\n", &RespBuf[0]));
 #if MOCKTEST
 		r = totallen+4;
 #else
@@ -340,7 +341,7 @@ int GdbStub::Resp(const u8* data1, size_t len1, const u8* data2, size_t len2, bo
 		if (noack) break;
 
 		r = WaitAckBlocking(&ack, 2000);
-		Log(LogLevel::Debug, "[GDB] got ack: '%c'\n", ack);
+		EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Debug, "[GDB] got ack: '%c'\n", ack));
 		if (r == 0 && ack == '+') break;
 
 		++tries;

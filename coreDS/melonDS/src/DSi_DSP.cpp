@@ -1,3 +1,4 @@
+#include "../../bridge/ds_diagnostics.h"
 /*
     Copyright 2020 PoroCYon
 
@@ -173,7 +174,7 @@ void DSi_DSP::StartDSPHLE()
         crc = CRC32(ptr, 0x8000, crc);
     }
 
-    Log(LogLevel::Info, "DSP_HLE: CRC = %08X\n", crc);
+    EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Info, "DSP_HLE: CRC = %08X\n", crc));
 
     switch (crc)
     {
@@ -252,7 +253,7 @@ void DSi_DSP::StartDSPHLE()
         break;
 
     default:
-        Log(LogLevel::Info, "DSP_HLE: unknown ucode, falling back to Teakra\n");
+        EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Info, "DSP_HLE: unknown ucode, falling back to Teakra\n"));
         StartDSPLLE();
         break;
     }

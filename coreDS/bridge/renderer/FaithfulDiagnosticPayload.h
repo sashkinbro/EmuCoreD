@@ -18,6 +18,7 @@ public:
     static constexpr std::uint32_t HeaderWords = 64u;
     using Header = std::array<std::uint32_t, HeaderWords>;
 
+#if !defined(EMUCORED_DIAGNOSTICS) || EMUCORED_DIAGNOSTICS
     void publish(std::uint32_t slot, const Header& header) noexcept
     {
         header_ = header;
@@ -80,6 +81,17 @@ private:
     Header header_{};
     std::uint32_t slot_{};
     bool valid_{};
+#else
+    void publish(std::uint32_t, const Header&) noexcept {}
+    void invalidate() noexcept {}
+    void invalidateSlot(std::uint32_t) noexcept {}
+    [[nodiscard]] bool matches(std::uint64_t) const noexcept { return false; }
+    [[nodiscard]] std::uint32_t slot() const noexcept { return 0u; }
+    [[nodiscard]] std::vector<std::uint32_t> copy(
+        std::uint64_t, const std::uint32_t*, std::size_t,
+        const std::uint32_t*, std::size_t) const { return {}; }
+    static void write64(Header&, std::size_t, std::uint64_t) noexcept {}
+#endif
 };
 
 }

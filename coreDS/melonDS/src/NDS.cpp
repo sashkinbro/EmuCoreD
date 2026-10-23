@@ -1,3 +1,4 @@
+#include "../../bridge/ds_diagnostics.h"
 /*
     Copyright 2016-2025 melonDS team
 
@@ -605,7 +606,7 @@ void NDS::Stop(Platform::StopReason reason)
             break;
     }
 
-    Log(level, "Stopping emulated console (Reason: %s)\n", StopReasonName(reason));
+    EMUCORED_DIAGNOSTIC_LOG(Log(level, "Stopping emulated console (Reason: %s)\n", StopReasonName(reason)));
     Running = false;
     Platform::SignalStop(reason, UserData);
     GPU.Stop();
@@ -638,7 +639,7 @@ bool NDS::DoSavestate(Savestate* file)
         file->Var32(&config_chk);
         if (config_chk != config)
         {
-            Log(LogLevel::Error, "savestate: Expected config word %08X, got %08X. cannot load.\n", config, config_chk);
+            EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error, "savestate: Expected config word %08X, got %08X. cannot load.\n", config, config_chk));
             return false;
         }
     }
@@ -1038,11 +1039,11 @@ u32 NDS::RunFrame()
             continue;
 
 #ifdef DEBUG_CHECK_DESYNC
-        Log(LogLevel::Debug, "[%08X%08X] ARM9=%ld, ARM7=%ld, GPU=%ld\n",
+        EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Debug, "[%08X%08X] ARM9=%ld, ARM7=%ld, GPU=%ld\n",
             (u32)(SysTimestamp>>32), (u32)SysTimestamp,
             (ARM9Timestamp>>1)-SysTimestamp,
             ARM7Timestamp-SysTimestamp,
-            GPU.GPU3D.Timestamp-SysTimestamp);
+            GPU.GPU3D.Timestamp-SysTimestamp));
 #endif
         break;
     }
@@ -1120,7 +1121,7 @@ void NDS::ScheduleEvent(u32 id, bool periodic, s32 delay, u32 funcid, u32 param)
 {
     if (SchedListMask & (1<<id))
     {
-        Log(LogLevel::Debug, "!! EVENT %d ALREADY SCHEDULED\n", id);
+        EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Debug, "!! EVENT %d ALREADY SCHEDULED\n", id));
         return; 
     }
 
@@ -1231,7 +1232,7 @@ void NDS::SetLidClosed(bool closed)
 
 void NDS::Halt()
 {
-    Log(LogLevel::Info, "Halt()\n");
+    EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Info, "Halt()\n"));
     Running = false;
 }
 
@@ -1573,7 +1574,7 @@ void NDS::NocashPrint(u32 ncpu, u32 addr, bool appendNewline)
     }
 
     output[ptr] = '\0';
-    Log(LogLevel::Debug, appendNewline ? "%s\n" : "%s", output);
+    EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Debug, appendNewline ? "%s\n" : "%s", output));
 }
 
 void NDS::MonitorARM9Jump(u32 addr)
@@ -1586,7 +1587,7 @@ void NDS::MonitorARM9Jump(u32 addr)
         const NDSHeader& header = NDSCartSlot.GetCart()->GetHeader();
         if (addr == header.ARM9EntryAddress)
         {
-            Log(LogLevel::Info, "Game is now booting\n");
+            EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Info, "Game is now booting\n"));
             RunningGame = true;
         }
     }
@@ -1870,11 +1871,13 @@ void NDS::StartSqrt()
 
 void NDS::debug(u32 param)
 {
-    Log(LogLevel::Debug, "ARM9 PC=%08X LR=%08X %08X\n", ARM9.R[15], ARM9.R[14], ARM9.R_IRQ[1]);
-    Log(LogLevel::Debug, "ARM7 PC=%08X LR=%08X %08X\n", ARM7.R[15], ARM7.R[14], ARM7.R_IRQ[1]);
+#if EMUCORED_DIAGNOSTICS
 
-    Log(LogLevel::Debug, "ARM9 IME=%08X IE=%08X IF=%08X\n", IME[0], IE[0], IF[0]);
-    Log(LogLevel::Debug, "ARM7 IME=%08X IE=%08X IF=%08X IE2=%04X IF2=%04X\n", IME[1], IE[1], IF[1], IE2, IF2);
+    EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Debug, "ARM9 PC=%08X LR=%08X %08X\n", ARM9.R[15], ARM9.R[14], ARM9.R_IRQ[1]));
+    EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Debug, "ARM7 PC=%08X LR=%08X %08X\n", ARM7.R[15], ARM7.R[14], ARM7.R_IRQ[1]));
+
+    EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Debug, "ARM9 IME=%08X IE=%08X IF=%08X\n", IME[0], IE[0], IF[0]));
+    EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Debug, "ARM7 IME=%08X IE=%08X IF=%08X IE2=%04X IF2=%04X\n", IME[1], IE[1], IF[1], IE2, IF2));
 
     //for (int i = 0; i < 9; i++)
     //    printf("VRAM %c: %02X\n", 'A'+i, GPU->VRAMCNT[i]);
@@ -1914,6 +1917,8 @@ void NDS::debug(u32 param)
         fwrite(&val, 4, 1, shit);
     }
     fclose(shit);
+
+#endif
 }
 
 
@@ -1973,7 +1978,7 @@ u8 NDS::ARM9Read8(u32 addr)
         return GBACartSlot.SRAMRead(addr);
     }
 
-    Log(LogLevel::Debug, "unknown arm9 read8 %08X\n", addr);
+    EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Debug, "unknown arm9 read8 %08X\n", addr));
     return 0;
 }
 
@@ -2141,7 +2146,7 @@ void NDS::ARM9Write8(u32 addr, u8 val)
         return;
     }
 
-    Log(LogLevel::Debug, "unknown arm9 write8 %08X %02X\n", addr, val);
+    EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Debug, "unknown arm9 write8 %08X %02X\n", addr, val));
 }
 
 void NDS::ARM9Write16(u32 addr, u16 val)
@@ -2371,7 +2376,7 @@ u8 NDS::ARM7Read8(u32 addr)
         return GBACartSlot.SRAMRead(addr);
     }
 
-    Log(LogLevel::Debug, "unknown arm7 read8 %08X %08X %08X/%08X\n", addr, ARM7.R[15], ARM7.R[0], ARM7.R[1]);
+    EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Debug, "unknown arm7 read8 %08X %08X %08X/%08X\n", addr, ARM7.R[15], ARM7.R[0], ARM7.R[1]));
     return 0;
 }
 
@@ -2437,7 +2442,7 @@ u16 NDS::ARM7Read16(u32 addr)
               (GBACartSlot.SRAMRead(addr+1) << 8);
     }
 
-    Log(LogLevel::Debug, "unknown arm7 read16 %08X %08X\n", addr, ARM7.R[15]);
+    EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Debug, "unknown arm7 read16 %08X %08X\n", addr, ARM7.R[15]));
     return 0;
 }
 
@@ -2569,7 +2574,7 @@ void NDS::ARM7Write8(u32 addr, u8 val)
 
     //if (ARM7.R[15] > 0x00002F30) // ARM7 BIOS bug
     if (addr >= 0x01000000)
-        Log(LogLevel::Debug, "unknown arm7 write8 %08X %02X @ %08X\n", addr, val, ARM7.R[15]);
+        EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Debug, "unknown arm7 write8 %08X %02X @ %08X\n", addr, val, ARM7.R[15]));
 }
 
 void NDS::ARM7Write16(u32 addr, u16 val)
@@ -2644,7 +2649,7 @@ void NDS::ARM7Write16(u32 addr, u16 val)
     }
 
     if (addr >= 0x01000000)
-        Log(LogLevel::Debug, "unknown arm7 write16 %08X %04X @ %08X\n", addr, val, ARM7.R[15]);
+        EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Debug, "unknown arm7 write16 %08X %04X @ %08X\n", addr, val, ARM7.R[15]));
 }
 
 void NDS::ARM7Write32(u32 addr, u32 val)
@@ -2723,7 +2728,7 @@ void NDS::ARM7Write32(u32 addr, u32 val)
     }
 
     if (addr >= 0x01000000)
-        Log(LogLevel::Debug, "unknown arm7 write32 %08X %08X @ %08X\n", addr, val, ARM7.R[15]);
+        EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Debug, "unknown arm7 write32 %08X %08X @ %08X\n", addr, val, ARM7.R[15]));
 }
 
 bool NDS::ARM7GetMemRegion(u32 addr, bool write, MemRegion* region)
@@ -2913,7 +2918,7 @@ u8 NDS::ARM9IORead8(u32 addr)
     }
 
     if ((addr & 0xFFFFF000) != 0x04004000)
-        Log(LogLevel::Debug, "unknown ARM9 IO read8 %08X %08X\n", addr, ARM9.R[15]);
+        EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Debug, "unknown ARM9 IO read8 %08X %08X\n", addr, ARM9.R[15]));
     return 0;
 }
 
@@ -3071,7 +3076,7 @@ u16 NDS::ARM9IORead16(u32 addr)
     }
 
     if ((addr & 0xFFFFF000) != 0x04004000)
-        Log(LogLevel::Debug, "unknown ARM9 IO read16 %08X %08X\n", addr, ARM9.R[15]);
+        EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Debug, "unknown ARM9 IO read16 %08X %08X\n", addr, ARM9.R[15]));
     return 0;
 }
 
@@ -3215,7 +3220,7 @@ u32 NDS::ARM9IORead32(u32 addr)
     }
 
     if ((addr & 0xFFFFF000) != 0x04004000)
-        Log(LogLevel::Debug, "unknown ARM9 IO read32 %08X %08X\n", addr, ARM9.R[15]);
+        EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Debug, "unknown ARM9 IO read32 %08X %08X\n", addr, ARM9.R[15]));
     return 0;
 }
 
@@ -3308,7 +3313,7 @@ void NDS::ARM9IOWrite8(u32 addr, u8 val)
         return;
 
     // NO$GBA debug register "Char Out"
-        case 0x04FFFA1C: Log(LogLevel::Debug, "%c", char(val)); return;
+        case 0x04FFFA1C: EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Debug, "%c", char(val))); return;
     }
 
     if (addr >= 0x04000000 && addr < 0x04000060)
@@ -3327,7 +3332,7 @@ void NDS::ARM9IOWrite8(u32 addr, u8 val)
         return;
     }
 
-    Log(LogLevel::Debug, "unknown ARM9 IO write8 %08X %02X %08X\n", addr, val, ARM9.R[15]);
+    EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Debug, "unknown ARM9 IO write8 %08X %02X %08X\n", addr, val, ARM9.R[15]));
 }
 
 void NDS::ARM9IOWrite16(u32 addr, u16 val)
@@ -3525,7 +3530,7 @@ void NDS::ARM9IOWrite16(u32 addr, u16 val)
         return;
     }
 
-    Log(LogLevel::Debug, "unknown ARM9 IO write16 %08X %04X %08X\n", addr, val, ARM9.R[15]);
+    EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Debug, "unknown ARM9 IO write16 %08X %04X %08X\n", addr, val, ARM9.R[15]));
 }
 
 void NDS::ARM9IOWrite32(u32 addr, u32 val)
@@ -3688,7 +3693,7 @@ void NDS::ARM9IOWrite32(u32 addr, u32 val)
                 ch = NDS::ARM9Read8(val + i);
                 output[i] = ch;
             }
-            Log(LogLevel::Debug, "%s", output);
+            EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Debug, "%s", output));
             return;
         }
 
@@ -3702,7 +3707,7 @@ void NDS::ARM9IOWrite32(u32 addr, u32 val)
         }
 
     // NO$GBA debug register "Char Out"
-        case 0x04FFFA1C: Log(LogLevel::Debug, "%c", val & 0xFF); return;
+        case 0x04FFFA1C: EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Debug, "%c", val & 0xFF)); return;
     }
 
     if (addr >= 0x04000000 && addr < 0x04000060)
@@ -3721,7 +3726,7 @@ void NDS::ARM9IOWrite32(u32 addr, u32 val)
         return;
     }
 
-    Log(LogLevel::Debug, "unknown ARM9 IO write32 %08X %08X %08X\n", addr, val, ARM9.R[15]);
+    EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Debug, "unknown ARM9 IO write32 %08X %08X %08X\n", addr, val, ARM9.R[15]));
 }
 
 
@@ -3824,7 +3829,7 @@ u8 NDS::ARM7IORead8(u32 addr)
     }
 
     if ((addr & 0xFFFFF000) != 0x04004000)
-        Log(LogLevel::Debug, "unknown ARM7 IO read8 %08X %08X\n", addr, ARM7.R[15]);
+        EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Debug, "unknown ARM7 IO read8 %08X %08X\n", addr, ARM7.R[15]));
     return 0;
 }
 
@@ -3927,7 +3932,7 @@ u16 NDS::ARM7IORead16(u32 addr)
     }
 
     if ((addr & 0xFFFFF000) != 0x04004000)
-        Log(LogLevel::Debug, "unknown ARM7 IO read16 %08X %08X\n", addr, ARM7.R[15]);
+        EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Debug, "unknown ARM7 IO read16 %08X %08X\n", addr, ARM7.R[15]));
     return 0;
 }
 
@@ -4028,7 +4033,7 @@ u32 NDS::ARM7IORead32(u32 addr)
     }
 
     if ((addr & 0xFFFFF000) != 0x04004000)
-        Log(LogLevel::Debug, "unknown ARM7 IO read32 %08X %08X\n", addr, ARM7.R[15]);
+        EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Debug, "unknown ARM7 IO read32 %08X %08X\n", addr, ARM7.R[15]));
     return 0;
 }
 
@@ -4134,7 +4139,7 @@ void NDS::ARM7IOWrite8(u32 addr, u8 val)
         return;
     }
 
-    Log(LogLevel::Debug, "unknown ARM7 IO write8 %08X %02X %08X\n", addr, val, ARM7.R[15]);
+    EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Debug, "unknown ARM7 IO write8 %08X %02X %08X\n", addr, val, ARM7.R[15]));
 }
 
 void NDS::ARM7IOWrite16(u32 addr, u16 val)
@@ -4298,7 +4303,7 @@ void NDS::ARM7IOWrite16(u32 addr, u16 val)
         return;
     }
 
-    Log(LogLevel::Debug, "unknown ARM7 IO write16 %08X %04X %08X\n", addr, val, ARM7.R[15]);
+    EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Debug, "unknown ARM7 IO write16 %08X %04X %08X\n", addr, val, ARM7.R[15]));
 }
 
 void NDS::ARM7IOWrite32(u32 addr, u32 val)
@@ -4432,7 +4437,7 @@ void NDS::ARM7IOWrite32(u32 addr, u32 val)
         return;
     }
 
-    Log(LogLevel::Debug, "unknown ARM7 IO write32 %08X %08X %08X\n", addr, val, ARM7.R[15]);
+    EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Debug, "unknown ARM7 IO write32 %08X %08X %08X\n", addr, val, ARM7.R[15]));
 }
 
 }

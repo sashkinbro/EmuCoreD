@@ -1,3 +1,4 @@
+#include "../../bridge/ds_diagnostics.h"
 /*
     Copyright 2016-2025 melonDS team
 
@@ -207,7 +208,7 @@ void CartGame::SetupSave(u32 type)
         SRAMType = S_NULL;
         break;
     default:
-        Log(LogLevel::Warn, "!! BAD GBA SAVE LENGTH %d\n", SRAMLength);
+        EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Warn, "!! BAD GBA SAVE LENGTH %d\n", SRAMLength));
     }
 
     if (SRAMType == S_FLASH512K)
@@ -278,7 +279,7 @@ void CartGame::ROMWrite(u32 addr, u16 val)
             break;
 
         default:
-            Log(LogLevel::Warn, "Unknown GBA GPIO write 0x%02X @ 0x%04X\n", val, addr);
+            EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Warn, "Unknown GBA GPIO write 0x%02X @ 0x%04X\n", val, addr));
             break;
     }
 }
@@ -374,7 +375,7 @@ u8 CartGame::SRAMRead_FLASH(u32 addr)
         case 0xB0: // bank switching (128K only)
             break; // ignore here, handled in Write_Flash()
         default:
-            Log(LogLevel::Warn, "GBACart_SRAM::Read_Flash: unknown command 0x%02X @ 0x%04X\n", SRAMFlashState.cmd, addr);
+            EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Warn, "GBACart_SRAM::Read_Flash: unknown command 0x%02X @ 0x%04X\n", SRAMFlashState.cmd, addr));
             break;
     }
 
@@ -507,8 +508,8 @@ void CartGame::SRAMWrite_FLASH(u32 addr, u8 val)
         return;
     }
 
-    Log(LogLevel::Debug, "GBACart_SRAM::Write_Flash: unknown write 0x%02X @ 0x%04X (state: 0x%02X)\n",
-        val, addr, SRAMFlashState.state);
+    EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Debug, "GBACart_SRAM::Write_Flash: unknown write 0x%02X @ 0x%04X (state: 0x%02X)\n",
+        val, addr, SRAMFlashState.state));
 }
 
 u8 CartGame::SRAMRead_SRAM(u32 addr)
@@ -650,7 +651,7 @@ void CartGameSolarSensor::ProcessGPIO()
         u8 prev = LightSample;
         LightCounter = 0;
         LightSample = (0xFF - (0x16 + kLuxLevels[LightLevel]));
-        Log(LogLevel::Debug, "Solar sensor reset (sample: 0x%02X -> 0x%02X)\n", prev, LightSample);
+        EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Debug, "Solar sensor reset (sample: 0x%02X -> 0x%02X)\n", prev, LightSample));
     }
     if (GPIO.data & 1 && LightEdge) LightCounter++;
 
@@ -935,13 +936,13 @@ std::unique_ptr<CartCommon> ParseROM(std::unique_ptr<u8[]>&& romdata, u32 romlen
 {
     if (romdata == nullptr)
     {
-        Log(LogLevel::Error, "GBACart: romdata is null\n");
+        EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error, "GBACart: romdata is null\n"));
         return nullptr;
     }
 
     if (romlen == 0)
     {
-        Log(LogLevel::Error, "GBACart: romlen is zero\n");
+        EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error, "GBACart: romlen is zero\n"));
         return nullptr;
     }
 
@@ -959,7 +960,7 @@ std::unique_ptr<CartCommon> ParseROM(std::unique_ptr<u8[]>&& romdata, u32 romlen
 
     if (solarsensor)
     {
-        Log(LogLevel::Info, "GBA solar sensor support detected!\n");
+        EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Info, "GBA solar sensor support detected!\n"));
     }
 
     std::unique_ptr<CartCommon> cart;
@@ -1015,7 +1016,7 @@ std::unique_ptr<CartCommon> LoadAddon(int type, void* userdata)
         cart = std::make_unique<CartAnalog>();
         break;
     default:
-        Log(LogLevel::Warn, "GBACart: !! invalid addon type %d\n", type);
+        EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Warn, "GBACart: !! invalid addon type %d\n", type));
         return nullptr;
     }
 
@@ -1029,7 +1030,7 @@ void GBACartSlot::SetCart(std::unique_ptr<CartCommon>&& cart) noexcept
 
     if (!Cart)
     {
-        Log(LogLevel::Info, "Ejected GBA cart\n");
+        EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Info, "Ejected GBA cart\n"));
         return;
     }
 
@@ -1039,11 +1040,11 @@ void GBACartSlot::SetCart(std::unique_ptr<CartCommon>&& cart) noexcept
     {
         char gamecode[5] = { '\0' };
         memcpy(&gamecode, Cart->GetROM() + 0xAC, 4);
-        Log(LogLevel::Info, "Inserted GBA cart with game code: %s\n", gamecode);
+        EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Info, "Inserted GBA cart with game code: %s\n", gamecode));
     }
     else
     {
-        Log(LogLevel::Info, "Inserted GBA cart with no game code (it's probably an accessory)\n");
+        EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Info, "Inserted GBA cart with no game code (it's probably an accessory)\n"));
     }
 }
 

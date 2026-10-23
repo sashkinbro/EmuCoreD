@@ -1,3 +1,4 @@
+#include "../../bridge/ds_diagnostics.h"
 /*
     Copyright 2016-2025 melonDS team
 
@@ -122,7 +123,7 @@ void NDSCartSlot::Key1_LoadKeyBuf(bool dsimode) noexcept
 
             const u8* bios = dsi.ARM7iBIOS.data();
             memcpy(Key1_KeyBuf.data(), bios + 0xC6D0, sizeof(Key1_KeyBuf));
-            Platform::Log(LogLevel::Debug, "NDSCart: Initialized Key1_KeyBuf from ARM7i BIOS\n");
+            EMUCORED_DIAGNOSTIC_LOG(Platform::Log(LogLevel::Debug, "NDSCart: Initialized Key1_KeyBuf from ARM7i BIOS\n"));
         }
         else
         {
@@ -130,7 +131,7 @@ void NDSCartSlot::Key1_LoadKeyBuf(bool dsimode) noexcept
 
             const u8* bios = dsi.ARM9iBIOS.data();
             memcpy(Key1_KeyBuf.data(), bios + 0x99A0, sizeof(Key1_KeyBuf));
-            Platform::Log(LogLevel::Debug, "NDSCart: Initialized Key1_KeyBuf from ARM9i BIOS\n");
+            EMUCORED_DIAGNOSTIC_LOG(Platform::Log(LogLevel::Debug, "NDSCart: Initialized Key1_KeyBuf from ARM9i BIOS\n"));
         }
     }
     else
@@ -141,13 +142,13 @@ void NDSCartSlot::Key1_LoadKeyBuf(bool dsimode) noexcept
         {
             const u8* bios = NDS.GetARM7BIOS().data();
             memcpy(Key1_KeyBuf.data(), bios + 0x0030, sizeof(Key1_KeyBuf));
-            Platform::Log(LogLevel::Debug, "NDSCart: Initialized Key1_KeyBuf from ARM7 BIOS\n");
+            EMUCORED_DIAGNOSTIC_LOG(Platform::Log(LogLevel::Debug, "NDSCart: Initialized Key1_KeyBuf from ARM7 BIOS\n"));
         }
         else
         {
             // well
             memset(Key1_KeyBuf.data(), 0, sizeof(Key1_KeyBuf));
-            Platform::Log(LogLevel::Debug, "NDSCart: Initialized Key1_KeyBuf to zero\n");
+            EMUCORED_DIAGNOSTIC_LOG(Platform::Log(LogLevel::Debug, "NDSCart: Initialized Key1_KeyBuf to zero\n"));
         }
     }
 }
@@ -476,8 +477,8 @@ void CartRetail::DoSavestate(Savestate* file)
     file->Var32(&SRAMLength);
     if (SRAMLength != oldlen)
     {
-        Log(LogLevel::Warn, "savestate: VERY BAD!!!! SRAM LENGTH DIFFERENT. %d -> %d\n", oldlen, SRAMLength);
-        Log(LogLevel::Warn, "oh well. loading it anyway. adsfgdsf\n");
+        EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Warn, "savestate: VERY BAD!!!! SRAM LENGTH DIFFERENT. %d -> %d\n", oldlen, SRAMLength));
+        EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Warn, "oh well. loading it anyway. adsfgdsf\n"));
 
         SRAM = SRAMLength ? std::make_unique<u8[]>(SRAMLength) : nullptr;
     }
@@ -681,7 +682,7 @@ u8 CartRetail::SRAMWrite_EEPROMTiny(u8 val, u32 pos, bool last)
 
     default:
         if (pos == 1)
-            Log(LogLevel::Warn, "unknown tiny EEPROM save command %02X\n", SRAMCmd);
+            EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Warn, "unknown tiny EEPROM save command %02X\n", SRAMCmd));
         return 0xFF;
     }
 }
@@ -741,7 +742,7 @@ u8 CartRetail::SRAMWrite_EEPROM(u8 val, u32 pos, bool last)
 
     default:
         if (pos == 1)
-            Log(LogLevel::Warn, "unknown EEPROM save command %02X\n", SRAMCmd);
+            EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Warn, "unknown EEPROM save command %02X\n", SRAMCmd));
         return 0xFF;
     }
 }
@@ -861,7 +862,7 @@ u8 CartRetail::SRAMWrite_FLASH(u8 val, u32 pos, bool last)
 
     default:
         if (pos == 1)
-            Log(LogLevel::Warn, "unknown FLASH save command %02X\n", SRAMCmd);
+            EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Warn, "unknown FLASH save command %02X\n", SRAMCmd));
         return 0xFF;
     }
 }
@@ -994,8 +995,8 @@ int CartRetailNAND::ROMCommandStart(NDS& nds, NDSCart::NDSCartSlot& cartslot, co
             // window is 0x20000 bytes, address is aligned to that boundary
             // NAND remains stuck 'busy' forever if this is less than the starting SRAM address
             // TODO.
-            if (addr < SRAMBase) Log(LogLevel::Warn,"NAND: !! BAD ADDR %08X < %08X\n", addr, SRAMBase);
-            if (addr >= (SRAMBase+SRAMLength)) Log(LogLevel::Warn,"NAND: !! BAD ADDR %08X > %08X\n", addr, SRAMBase+SRAMLength);
+            if (addr < SRAMBase) EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Warn,"NAND: !! BAD ADDR %08X < %08X\n", addr, SRAMBase));
+            if (addr >= (SRAMBase+SRAMLength)) EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Warn,"NAND: !! BAD ADDR %08X > %08X\n", addr, SRAMBase+SRAMLength));
 
             SRAMWindow = addr;
         }
@@ -1170,7 +1171,7 @@ CartRetailBT::CartRetailBT(const u8* rom, u32 len, u32 chipid, ROMListEntry romp
 CartRetailBT::CartRetailBT(std::unique_ptr<u8[]>&& rom, u32 len, u32 chipid, ROMListEntry romparams, std::unique_ptr<u8[]>&& sram, u32 sramlen, void* userdata) :
     CartRetail(std::move(rom), len, chipid, false, romparams, std::move(sram), sramlen, userdata, CartType::RetailBT)
 {
-    Log(LogLevel::Info,"POKETYPE CART\n");
+    EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Info,"POKETYPE CART\n"));
 }
 
 CartRetailBT::~CartRetailBT() = default;
@@ -1210,12 +1211,12 @@ void CartSD::ApplyDLDIPatchAt(u8* binary, u32 dldioffset, const u8* patch, u32 p
 {
     if (patch[0x0D] > binary[dldioffset+0x0F])
     {
-        Log(LogLevel::Error, "DLDI driver ain't gonna fit, sorry\n");
+        EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error, "DLDI driver ain't gonna fit, sorry\n"));
         return;
     }
 
-    Log(LogLevel::Info, "existing driver is: %s\n", &binary[dldioffset+0x10]);
-    Log(LogLevel::Info, "new driver is: %s\n", &patch[0x10]);
+    EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Info, "existing driver is: %s\n", &binary[dldioffset+0x10]));
+    EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Info, "new driver is: %s\n", &patch[0x10]));
 
     u32 memaddr = *(u32*)&binary[dldioffset+0x40];
     if (memaddr == 0)
@@ -1304,7 +1305,7 @@ void CartSD::ApplyDLDIPatchAt(u8* binary, u32 dldioffset, const u8* patch, u32 p
         *(u32*)&binary[writesec_addr+0x04] = 0xE12FFF1E; // bx lr
     }
 
-    Log(LogLevel::Debug, "applied DLDI patch at %08X\n", dldioffset);
+    EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Debug, "applied DLDI patch at %08X\n", dldioffset));
 }
 
 void CartSD::ApplyDLDIPatch(const u8* patch, u32 patchlen, bool readonly)
@@ -1313,7 +1314,7 @@ void CartSD::ApplyDLDIPatch(const u8* patch, u32 patchlen, bool readonly)
         *(u32*)&patch[4] != 0x69684320 ||
         *(u32*)&patch[8] != 0x006D6873)
     {
-        Log(LogLevel::Error, "bad DLDI patch\n");
+        EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error, "bad DLDI patch\n"));
         return;
     }
 
@@ -1328,7 +1329,7 @@ void CartSD::ApplyDLDIPatch(const u8* patch, u32 patchlen, bool readonly)
             *(u32*)&binary[i+4] == 0x69684320 &&
             *(u32*)&binary[i+8] == 0x006D6873)
         {
-            Log(LogLevel::Debug, "DLDI structure found at %08X (%08X)\n", i, offset+i);
+            EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Debug, "DLDI structure found at %08X (%08X)\n", i, offset+i));
             ApplyDLDIPatchAt(binary, i, patch, patchlen, readonly);
             i += patchlen;
         }
@@ -1613,13 +1614,13 @@ void NDSCartSlot::DecryptSecureArea(u8* out) noexcept
 
     if (!strncmp((const char*)out, "encryObj", 8))
     {
-        Log(LogLevel::Info, "Secure area decryption OK\n");
+        EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Info, "Secure area decryption OK\n"));
         *(u32*)&out[0] = 0xE7FFDEFF;
         *(u32*)&out[4] = 0xE7FFDEFF;
     }
     else
     {
-        Log(LogLevel::Warn, "Secure area decryption failed\n");
+        EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Warn, "Secure area decryption failed\n"));
         for (u32 i = 0; i < 0x800; i += 4)
             *(u32*)&out[i] = 0xE7FFDEFF;
     }
@@ -1634,13 +1635,13 @@ std::unique_ptr<CartCommon> ParseROM(std::unique_ptr<u8[]>&& romdata, u32 romlen
 {
     if (romdata == nullptr)
     {
-        Log(LogLevel::Error, "NDSCart: romdata is null\n");
+        EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error, "NDSCart: romdata is null\n"));
         return nullptr;
     }
 
     if (romlen == 0)
     {
-        Log(LogLevel::Error, "NDSCart: romlen is zero\n");
+        EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error, "NDSCart: romlen is zero\n"));
         return nullptr;
     }
 
@@ -1654,7 +1655,7 @@ std::unique_ptr<CartCommon> ParseROM(std::unique_ptr<u8[]>&& romdata, u32 romlen
 
     if (dsi && header.DSiRegionMask == RegionMask::NoRegion)
     {
-        Log(LogLevel::Info, "DS header indicates DSi, but region is zero. Going in bad dump mode.\n");
+        EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Info, "DS header indicates DSi, but region is zero. Going in bad dump mode.\n"));
         badDSiDump = true;
         dsi = false;
     }
@@ -1669,7 +1670,7 @@ std::unique_ptr<CartCommon> ParseROM(std::unique_ptr<u8[]>&& romdata, u32 romlen
     if (!ReadROMParams(gamecode, &romparams))
     {
         // set defaults
-        Log(LogLevel::Warn, "ROM entry not found for gamecode %d\n", gamecode);
+        EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Warn, "ROM entry not found for gamecode %d\n", gamecode));
 
         romparams.GameCode = gamecode;
         romparams.ROMSize = cartromsize;
@@ -1680,7 +1681,7 @@ std::unique_ptr<CartCommon> ParseROM(std::unique_ptr<u8[]>&& romdata, u32 romlen
     }
 
     if (romparams.ROMSize != romlen)
-        Log(LogLevel::Warn, "!! bad ROM size %d (expected %d) rounded to %d\n", romlen, romparams.ROMSize, cartromsize);
+        EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Warn, "!! bad ROM size %d (expected %d) rounded to %d\n", romlen, romparams.ROMSize, cartromsize));
 
     // generate a ROM ID
     // note: most games don't check the actual value
@@ -1762,7 +1763,7 @@ void NDSCartSlot::SetCart(std::unique_ptr<CartCommon>&& cart) noexcept
         // reencrypt secure area if needed
         if (*(u32*)&cartrom[header.ARM9ROMOffset] == 0xE7FFDEFF && *(u32*)&cartrom[header.ARM9ROMOffset + 0x10] != 0xE7FFDEFF)
         {
-            Log(LogLevel::Debug, "Re-encrypting cart secure area\n");
+            EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Debug, "Re-encrypting cart secure area\n"));
 
             strncpy((char*)&cartrom[header.ARM9ROMOffset], "encryObj", 8);
 
@@ -1773,17 +1774,17 @@ void NDSCartSlot::SetCart(std::unique_ptr<CartCommon>&& cart) noexcept
             Key1_InitKeycode(false, romparams.GameCode, 2, 2);
             Key1_Encrypt((u32*)&cartrom[header.ARM9ROMOffset]);
 
-            Log(LogLevel::Debug, "Re-encrypted cart secure area\n");
+            EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Debug, "Re-encrypted cart secure area\n"));
         }
         else
         {
-            Log(LogLevel::Debug, "No need to re-encrypt cart secure area\n");
+            EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Debug, "No need to re-encrypt cart secure area\n"));
         }
     }
 
-    Log(LogLevel::Info, "Inserted cart with game code: %.4s\n", header.GameCode);
-    Log(LogLevel::Info, "Inserted cart with ID: %08X\n", Cart->ID());
-    Log(LogLevel::Info, "ROM entry: %08X %08X\n", romparams.ROMSize, romparams.SaveMemType);
+    EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Info, "Inserted cart with game code: %.4s\n", header.GameCode));
+    EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Info, "Inserted cart with ID: %08X\n", Cart->ID()));
+    EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Info, "ROM entry: %08X %08X\n", romparams.ROMSize, romparams.SaveMemType));
 }
 
 void NDSCartSlot::SetSaveMemory(const u8* savedata, u32 savelen) noexcept
@@ -1922,10 +1923,10 @@ void NDSCartSlot::WriteROMCnt(u32 val) noexcept
             if (seed1 & (1ULL << i)) Key2_Y |= (1ULL << (38-i));
         }
 
-        Log(LogLevel::Debug, "seed0: %02X%08X\n", (u32)(seed0>>32), (u32)seed0);
-        Log(LogLevel::Debug, "seed1: %02X%08X\n", (u32)(seed1>>32), (u32)seed1);
-        Log(LogLevel::Debug, "key2 X: %02X%08X\n", (u32)(Key2_X>>32), (u32)Key2_X);
-        Log(LogLevel::Debug, "key2 Y: %02X%08X\n", (u32)(Key2_Y>>32), (u32)Key2_Y);
+        EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Debug, "seed0: %02X%08X\n", (u32)(seed0>>32), (u32)seed0));
+        EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Debug, "seed1: %02X%08X\n", (u32)(seed1>>32), (u32)seed1));
+        EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Debug, "key2 X: %02X%08X\n", (u32)(Key2_X>>32), (u32)Key2_X));
+        EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Debug, "key2 Y: %02X%08X\n", (u32)(Key2_Y>>32), (u32)Key2_Y));
     }
 
     // transfers will only start when bit31 changes from 0 to 1
@@ -1964,7 +1965,7 @@ void NDSCartSlot::WriteROMCnt(u32 val) noexcept
         TransferDir = Cart->ROMCommandStart(NDS, *this, TransferCmd.data(), TransferData.data(), TransferLen);
 
     if ((datasize > 0) && (((ROMCnt >> 30) & 0x1) != TransferDir))
-        Log(LogLevel::Debug, "NDSCART: !! BAD TRANSFER DIRECTION FOR CMD %02X, DIR=%d, ROMCNT=%08X\n", ROMCommand[0], TransferDir, ROMCnt);
+        EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Debug, "NDSCART: !! BAD TRANSFER DIRECTION FOR CMD %02X, DIR=%d, ROMCNT=%08X\n", ROMCommand[0], TransferDir, ROMCnt));
 
     ROMCnt &= ~(1<<23);
 
@@ -2077,7 +2078,7 @@ void NDSCartSlot::WriteSPICnt(u16 val) noexcept
     // in this case, the transfer continues until the end, even if bit13 or bit15 are cleared
     // if the transfer speed is changed, the transfer continues at the new speed (TODO)
     if (SPICnt & (1<<7))
-        Log(LogLevel::Debug, "!! CHANGING AUXSPICNT DURING TRANSFER: %04X\n", val);
+        EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Debug, "!! CHANGING AUXSPICNT DURING TRANSFER: %04X\n", val));
 }
 
 void NDSCartSlot::SPITransferDone(u32 param) noexcept

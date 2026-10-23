@@ -36,6 +36,16 @@ void FmtLogMessage(Class log_class, Level log_level, const char* filename, unsig
 
 } // namespace Common::Log
 
+// Disabled diagnostic builds must not evaluate arguments or retain format strings.
+#if defined(EMUCORED_DIAGNOSTICS) && !EMUCORED_DIAGNOSTICS
+#define LOG_GENERIC(...) ((void)0)
+#define LOG_TRACE(...) ((void)0)
+#define LOG_DEBUG(...) ((void)0)
+#define LOG_INFO(...) ((void)0)
+#define LOG_WARNING(...) ((void)0)
+#define LOG_ERROR(...) ((void)0)
+#define LOG_CRITICAL(...) ((void)0)
+#else
 // Define the fmt lib macros
 #define LOG_GENERIC(log_class, log_level, ...)                                                     \
     Common::Log::FmtLogMessage(log_class, log_level, Common::Log::TrimSourcePath(__FILE__),        \
@@ -70,3 +80,4 @@ void FmtLogMessage(Class log_class, Level log_level, const char* filename, unsig
     Common::Log::FmtLogMessage(Common::Log::Class::log_class, Common::Log::Level::Critical,        \
                                Common::Log::TrimSourcePath(__FILE__), __LINE__, __func__,          \
                                __VA_ARGS__)
+#endif

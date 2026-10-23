@@ -1,3 +1,4 @@
+#include "../../bridge/ds_diagnostics.h"
 /*
     Copyright 2016-2025 melonDS team
 
@@ -177,7 +178,7 @@ int CartR4::ROMCommandStart(NDS& nds, NDSCart::NDSCartSlot& cartslot, const u8* 
                 for (int i = 0; i < 7; i++)
                     checksum ^= cmd[i];
                 if (checksum != cmd[7])
-                    Log(LogLevel::Warn, "R4: invalid 0xBC command checksum (%d != %d)", cmd[7], checksum);
+                    EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Warn, "R4: invalid 0xBC command checksum (%d != %d)", cmd[7], checksum));
             }
             for (u32 pos = 0; pos < len; pos += 4)
                 *(u32*)&data[pos] = 0;
@@ -212,7 +213,7 @@ int CartR4::ROMCommandStart(NDS& nds, NDSCart::NDSCartSlot& cartslot, const u8* 
             return 0;        
         }
     default:
-        Log(LogLevel::Warn, "R4: unknown command %02X %02X %02X %02X %02X %02X %02X %02X (%d)\n", cmd[0], cmd[1], cmd[2], cmd[3], cmd[4], cmd[5], cmd[6], cmd[7], len);
+        EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Warn, "R4: unknown command %02X %02X %02X %02X %02X %02X %02X %02X (%d)\n", cmd[0], cmd[1], cmd[2], cmd[3], cmd[4], cmd[5], cmd[6], cmd[7], len));
         for (u32 pos = 0; pos < len; pos += 4)
             *(u32*)&data[pos] = 0;
         return 0;
@@ -273,12 +274,12 @@ u16 CartR4::GetEncryptionKey(u16 sector)
         
         if (EncryptionKey != -1)
         {
-            Log(LogLevel::Warn, "R4: found cartridge key = %04X\n", EncryptionKey);
+            EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Warn, "R4: found cartridge key = %04X\n", EncryptionKey));
         }
         else
         {
             EncryptionKey = -2;
-            Log(LogLevel::Warn, "R4: could not find cartridge key\n");
+            EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Warn, "R4: could not find cartridge key\n"));
         }
     }
     return EncryptionKey ^ sector;

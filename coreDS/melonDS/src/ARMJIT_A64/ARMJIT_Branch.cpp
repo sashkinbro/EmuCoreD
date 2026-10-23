@@ -1,3 +1,4 @@
+#include "../../../bridge/ds_diagnostics.h"
 /*
     Copyright 2016-2025 melonDS team, RSDuck
 
@@ -403,7 +404,7 @@ void Compiler::T_Comp_BranchXchangeReg()
     {
         if (Num == 1)
         {
-            Log(LogLevel::Warn, "BLX unsupported on ARM7!!!\n");
+            EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Warn, "BLX unsupported on ARM7!!!\n"));
             return;
         }
         MOV(W0, MapReg(CurInstr.A_Reg(3)));

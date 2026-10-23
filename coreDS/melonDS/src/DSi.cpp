@@ -1,3 +1,4 @@
+#include "../../bridge/ds_diagnostics.h"
 /*
     Copyright 2016-2025 melonDS team
 
@@ -759,15 +760,15 @@ bool DSi::LoadNAND()
     DSi_NAND::NANDImage* image = SDMMC.GetNAND();
     if (!(image && *image))
     {
-        Log(LogLevel::Error, "No NAND image loaded\n");
+        EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error, "No NAND image loaded\n"));
         return false;
     }
-    Log(LogLevel::Info, "Loading DSi NAND\n");
+    EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Info, "Loading DSi NAND\n"));
 
     DSi_NAND::NANDMount nandmount(*SDMMC.GetNAND());
     if (!nandmount)
     {
-        Log(LogLevel::Error, "Failed to load DSi NAND\n");
+        EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error, "Failed to load DSi NAND\n"));
         return false;
     }
 
@@ -818,10 +819,10 @@ bool DSi::LoadNAND()
         FileSeek(nand, 0x220, FileSeekOrigin::Start);
         FileRead(bootparams, 4, 8, nand);
 
-        Log(LogLevel::Debug, "ARM9: offset=%08X size=%08X RAM=%08X size_aligned=%08X\n",
-               bootparams[0], bootparams[1], bootparams[2], bootparams[3]);
-        Log(LogLevel::Debug, "ARM7: offset=%08X size=%08X RAM=%08X size_aligned=%08X\n",
-               bootparams[4], bootparams[5], bootparams[6], bootparams[7]);
+        EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Debug, "ARM9: offset=%08X size=%08X RAM=%08X size_aligned=%08X\n",
+               bootparams[0], bootparams[1], bootparams[2], bootparams[3]));
+        EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Debug, "ARM7: offset=%08X size=%08X RAM=%08X size_aligned=%08X\n",
+               bootparams[4], bootparams[5], bootparams[6], bootparams[7]));
 
         // read and apply new-WRAM settings
 
@@ -928,8 +929,8 @@ bool DSi::LoadNAND()
     }
 
     const DSi_NAND::DSiKey& emmccid = image->GetEMMCID();
-    Log(LogLevel::Debug, "eMMC CID: %08llX%08llX\n", *(const u64*)&emmccid[0], *(const u64*)&emmccid[8]);
-    Log(LogLevel::Debug, "Console ID: %" PRIx64 "\n", image->GetConsoleID());
+    EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Debug, "eMMC CID: %08llX%08llX\n", *(const u64*)&emmccid[0], *(const u64*)&emmccid[8]));
+    EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Debug, "Console ID: %" PRIx64 "\n", image->GetConsoleID()));
 
     if (FullBIOSBoot)
     {
@@ -1081,7 +1082,7 @@ void DSi::MapNWRAM_A(u32 num, u8 val)
 
     if (MBK[0][8] & (1 << num))
     {
-        Log(LogLevel::Warn, "trying to map NWRAM_A %d to %02X, but it is write-protected (%08X)\n", num, val, MBK[0][8]);
+        EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Warn, "trying to map NWRAM_A %d to %02X, but it is write-protected (%08X)\n", num, val, MBK[0][8]));
         return;
     }
 
@@ -1126,7 +1127,7 @@ void DSi::MapNWRAM_B(u32 num, u8 val)
 
     if (MBK[0][8] & (1 << (8+num)))
     {
-        Log(LogLevel::Warn, "trying to map NWRAM_B %d to %02X, but it is write-protected (%08X)\n", num, val, MBK[0][8]);
+        EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Warn, "trying to map NWRAM_B %d to %02X, but it is write-protected (%08X)\n", num, val, MBK[0][8]));
         return;
     }
 
@@ -1173,7 +1174,7 @@ void DSi::MapNWRAM_C(u32 num, u8 val)
 
     if (MBK[0][8] & (1 << (16+num)))
     {
-        Log(LogLevel::Warn, "trying to map NWRAM_C %d to %02X, but it is write-protected (%08X)\n", num, val, MBK[0][8]);
+        EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Warn, "trying to map NWRAM_C %d to %02X, but it is write-protected (%08X)\n", num, val, MBK[0][8]));
         return;
     }
 
@@ -1249,7 +1250,7 @@ void DSi::MapNWRAMRange(u32 cpu, u32 num, u32 val)
         u32 end   = 0x03000000 + (((val >> 20) & 0x1FF) << 16);
         u32 size  = (val >> 12) & 0x3;
 
-        Log(LogLevel::Debug, "NWRAM-A: ARM%d range %08X-%08X, size %d\n", cpu?7:9, start, end, size);
+        EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Debug, "NWRAM-A: ARM%d range %08X-%08X, size %d\n", cpu?7:9, start, end, size));
 
         NWRAMStart[cpu][num] = start;
         NWRAMEnd[cpu][num] = end;
@@ -1268,7 +1269,7 @@ void DSi::MapNWRAMRange(u32 cpu, u32 num, u32 val)
         u32 end   = 0x03000000 + (((val >> 19) & 0x3FF) << 15);
         u32 size  = (val >> 12) & 0x3;
 
-        Log(LogLevel::Debug, "NWRAM-%c: ARM%d range %08X-%08X, size %d\n", 'A'+num, cpu?7:9, start, end, size);
+        EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Debug, "NWRAM-%c: ARM%d range %08X-%08X, size %d\n", 'A'+num, cpu?7:9, start, end, size));
 
         NWRAMStart[cpu][num] = start;
         NWRAMEnd[cpu][num] = end;
@@ -1306,12 +1307,12 @@ void DSi::ApplyNewRAMSize(u32 size)
     case 0:
     case 1:
         MainRAMMask = 0x3FFFFF;
-        Log(LogLevel::Debug, "RAM: 4MB\n");
+        EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Debug, "RAM: 4MB\n"));
         break;
     case 2:
     case 3: // TODO: debug console w/ 32MB?
         MainRAMMask = 0xFFFFFF;
-        Log(LogLevel::Debug, "RAM: 16MB\n");
+        EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Debug, "RAM: 16MB\n"));
         break;
     }
 
@@ -1335,7 +1336,7 @@ void DSi::Set_SCFG_Clock9(u16 val)
     ARM9Timestamp >>= ARM9ClockShift;
     ARM9Target    >>= ARM9ClockShift;
 
-    Log(LogLevel::Debug, "CLOCK9=%04X\n", val);
+    EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Debug, "CLOCK9=%04X\n", val));
     SCFG_Clock9 = val & 0x0187;
 
     if (SCFG_Clock9 & (1<<0)) ARM9ClockShift = 2;
@@ -1352,7 +1353,7 @@ void DSi::Set_SCFG_MC(u32 val)
 
     val &= 0xFFFF800C;
     if ((val & 0xC) == 0xC) val &= ~0xC; // hax
-    if (val & 0x8000) Log(LogLevel::Warn, "SCFG_MC: weird NDS slot swap\n");
+    if (val & 0x8000) EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Warn, "SCFG_MC: weird NDS slot swap\n"));
     SCFG_MC = (SCFG_MC & ~0xFFFF800C) | val;
 
     if ((oldslotstatus == 0x0) && ((SCFG_MC & 0xC) == 0x4))
@@ -2624,7 +2625,7 @@ void DSi::ARM9IOWrite32(u32 addr, u32 val)
             SCFG_EXT[0] |= (val & 0x8007F19F);
             SCFG_EXT[1] &= ~0x00003080;
             SCFG_EXT[1] |= (val & 0x00003080);
-            Log(LogLevel::Debug, "SCFG_EXT = %08X / %08X (val9 %08X)\n", SCFG_EXT[0], SCFG_EXT[1], val);
+            EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Debug, "SCFG_EXT = %08X / %08X (val9 %08X)\n", SCFG_EXT[0], SCFG_EXT[1], val));
             
             if (newram != oldram)
             {
@@ -3227,7 +3228,7 @@ void DSi::ARM7IOWrite32(u32 addr, u32 val)
         SCFG_EXT[0] |= (val & 0x03000000);
         SCFG_EXT[1] &= ~0x93FF0F07;
         SCFG_EXT[1] |= (val & 0x93FF0F07);
-        Log(LogLevel::Debug, "SCFG_EXT = %08X / %08X (val7 %08X)\n", SCFG_EXT[0], SCFG_EXT[1], val);
+        EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Debug, "SCFG_EXT = %08X / %08X (val7 %08X)\n", SCFG_EXT[0], SCFG_EXT[1], val));
         return;
     case 0x04004010:
         if (!(SCFG_EXT[1] & (1 << 31))) /* no access to SCFG Registers if disabled*/

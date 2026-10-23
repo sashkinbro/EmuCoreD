@@ -1,3 +1,4 @@
+#include "../../bridge/ds_diagnostics.h"
 /*
     Copyright 2016-2025 melonDS team
 
@@ -74,11 +75,11 @@ Savestate::Savestate(void *buffer, u32 size, bool save) :
 
         if (read_magic != *((u32*)SAVESTATE_MAGIC))
         {
-            Log(LogLevel::Error, "savestate: expected magic number %#08x (%s), got %#08x\n",
+            EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error, "savestate: expected magic number %#08x (%s), got %#08x\n",
                 *((u32*)SAVESTATE_MAGIC),
                 SAVESTATE_MAGIC,
                 read_magic
-            );
+            ));
             Error = true;
             return;
         }
@@ -87,7 +88,7 @@ Savestate::Savestate(void *buffer, u32 size, bool save) :
         Var16(&major);
         if (major != SAVESTATE_MAJOR)
         {
-            Log(LogLevel::Error, "savestate: bad version major %d, expecting %d\n", major, SAVESTATE_MAJOR);
+            EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error, "savestate: bad version major %d, expecting %d\n", major, SAVESTATE_MAJOR));
             Error = true;
             return;
         }
@@ -96,7 +97,7 @@ Savestate::Savestate(void *buffer, u32 size, bool save) :
         Var16(&minor);
         if (minor > SAVESTATE_MINOR)
         {
-            Log(LogLevel::Error, "savestate: state from the future, %d > %d\n", minor, SAVESTATE_MINOR);
+            EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error, "savestate: state from the future, %d > %d\n", minor, SAVESTATE_MINOR));
             Error = true;
             return;
         }
@@ -105,7 +106,7 @@ Savestate::Savestate(void *buffer, u32 size, bool save) :
         Var32(&read_length);
         if (read_length != buffer_length)
         {
-            Log(LogLevel::Error, "savestate: expected a length of %d, got %d\n", buffer_length, read_length);
+            EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error, "savestate: expected a length of %d, got %d\n", buffer_length, read_length));
             Error = true;
             return;
         }
@@ -130,7 +131,7 @@ Savestate::Savestate(u32 initial_size) :
 
     if (buffer == nullptr)
     {
-        Log(LogLevel::Error, "savestate: failed to allocate %d bytes\n", buffer_length);
+        EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error, "savestate: failed to allocate %d bytes\n", buffer_length));
         Error = true;
         return;
     }
@@ -185,7 +186,7 @@ void Savestate::Section(const char* magic)
         }
         else
         {
-            Log(LogLevel::Error, "savestate: section %s not found. blarg\n", magic);
+            EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error, "savestate: section %s not found. blarg\n", magic));
             Error = true;
         }
     }
@@ -217,11 +218,11 @@ void Savestate::VarArray(void* data, u32 len)
     {
         if (buffer_offset + len > buffer_length)
         { // If writing the given data would take us past the buffer's end...
-            Log(LogLevel::Warn, "savestate: %u-byte write would exceed %u-byte savestate buffer\n", len, buffer_length);
+            EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Warn, "savestate: %u-byte write would exceed %u-byte savestate buffer\n", len, buffer_length));
 
             if (!(buffer_owned && Resize(buffer_length * 2 + len)))
             { // If we're not allowed to resize this buffer, or if we are but failed...
-                Log(LogLevel::Error, "savestate: Failed to write %d bytes to savestate\n", len);
+                EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error, "savestate: Failed to write %d bytes to savestate\n", len));
                 Error = true;
                 return;
             }
@@ -235,7 +236,7 @@ void Savestate::VarArray(void* data, u32 len)
     {
         if (buffer_offset + len > buffer_length)
         { // If reading the requested amount of data would take us past the buffer's edge...
-            Log(LogLevel::Error, "savestate: %u-byte read would exceed %u-byte savestate buffer\n", len, buffer_length);
+            EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error, "savestate: %u-byte read would exceed %u-byte savestate buffer\n", len, buffer_length));
             Error = true;
             return;
 
@@ -289,7 +290,7 @@ bool Savestate::Resize(u32 new_length)
 {
     if (!buffer_owned)
     { // If we're not allowed to resize this buffer...
-        Log(LogLevel::Error, "savestate: Buffer is externally-owned, cannot resize it\n");
+        EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error, "savestate: Buffer is externally-owned, cannot resize it\n"));
         return false;
     }
 
@@ -297,7 +298,7 @@ bool Savestate::Resize(u32 new_length)
     void* resized = realloc(buffer, new_length);
     if (!resized)
     { // If the buffer couldn't be expanded...
-        Log(LogLevel::Error, "savestate: Failed to resize owned savestate buffer from %dB to %dB\n", old_length, new_length);
+        EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error, "savestate: Failed to resize owned savestate buffer from %dB to %dB\n", old_length, new_length));
         return false;
     }
 
@@ -305,7 +306,7 @@ bool Savestate::Resize(u32 new_length)
     buffer = static_cast<u8 *>(resized);
     buffer_length = new_length;
 
-    Log(LogLevel::Debug, "savestate: Expanded %uB savestate buffer to %uB\n", old_length, new_length);
+    EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Debug, "savestate: Expanded %uB savestate buffer to %uB\n", old_length, new_length));
     // Zero out the newly-allocated memory (to ensure we don't introduce a security hole)
     memset(buffer + old_length, 0, length_diff);
     return true;
@@ -378,7 +379,7 @@ u32 Savestate::FindSection(const char* magic) const
     }
 
     // We've reached the end of the file without finding the requested section...
-    Log(LogLevel::Error, "savestate: section %s not found. blarg\n", magic);
+    EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error, "savestate: section %s not found. blarg\n", magic));
     return NO_SECTION;
 }
 

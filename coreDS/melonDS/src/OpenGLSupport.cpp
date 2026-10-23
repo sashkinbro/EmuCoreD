@@ -1,3 +1,4 @@
+#include "../../bridge/ds_diagnostics.h"
 /*
     Copyright 2016-2025 melonDS team
 
@@ -79,26 +80,26 @@ void LoadShaderCache()
     Platform::FileHandle* file = Platform::OpenLocalFile("shadercache", Platform::FileMode::Read);
     if (file == nullptr)
     {
-        Log(LogLevel::Error, "Could not find shader cache\n");
+        EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error, "Could not find shader cache\n"));
         return;
     }
 
     u32 magic, version, numPrograms;
     if (Platform::FileRead(&magic, 4, 1, file) != 1 || magic != ShaderCacheMagic)
     {
-        Log(LogLevel::Error, "Shader cache file has invalid magic\n");
+        EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error, "Shader cache file has invalid magic\n"));
         goto fileInvalid;
     }
 
     if (Platform::FileRead(&version, 4, 1, file) != 1 || version != ShaderCacheVersion)
     {
-        Log(LogLevel::Error, "Shader cache file has bad version\n");
+        EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error, "Shader cache file has bad version\n"));
         goto fileInvalid;
     }
 
     if (Platform::FileRead(&numPrograms, 4, 1, file) != 1)
     {
-        Log(LogLevel::Error, "Shader cache file invalid program count\n");
+        EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error, "Shader cache file invalid program count\n"));
         goto fileInvalid;
     }
 
@@ -116,14 +117,14 @@ void LoadShaderCache()
 
         if (error != 0)
         {
-            Log(LogLevel::Error, "Invalid shader cache entry\n");
+            EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error, "Invalid shader cache entry\n"));
             goto fileInvalid;
         }
 
         u8* data = new u8[length];
         if (Platform::FileRead(data, length, 1, file) != 1)
         {
-            Log(LogLevel::Error, "Could not read shader cache entry data\n");
+            EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error, "Could not read shader cache entry data\n"));
             delete[] data;
             goto fileInvalid;
         }
@@ -142,7 +143,7 @@ void SaveShaderCache()
 
     if (file == nullptr)
     {
-        Log(LogLevel::Error, "Could not open or create shader cache file\n");
+        EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error, "Could not open or create shader cache file\n"));
         return;
     }
 
@@ -154,13 +155,13 @@ void SaveShaderCache()
 
     if (written != 0)
     {
-        Log(LogLevel::Error, "Could not write shader cache header\n");
+        EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error, "Could not write shader cache header\n"));
         goto writeError;
     }
 
     Platform::FileSeek(file, 0, Platform::FileSeekOrigin::End);
 
-    Log(LogLevel::Debug, "OpenGL: new shaders %zu\n", NewShaders.size());
+    EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Debug, "OpenGL: new shaders %zu\n", NewShaders.size()));
 
     for (u64 newShader : NewShaders)
     {
@@ -174,7 +175,7 @@ void SaveShaderCache()
 
         if (error != 0)
         {
-            Log(LogLevel::Error, "Could not insert new shader cache entry\n");
+            EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error, "Could not insert new shader cache entry\n"));
             goto writeError;
         }
     }
@@ -191,7 +192,7 @@ bool CompilerShader(GLuint& id, const std::string& source, const std::string& na
 
     if (!glCreateShader)
     {
-        Log(LogLevel::Error, "OpenGL: Cannot build shader program, OpenGL hasn't been loaded\n");
+        EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error, "OpenGL: Cannot build shader program, OpenGL hasn't been loaded\n"));
         return false;
     }
 
@@ -208,8 +209,8 @@ bool CompilerShader(GLuint& id, const std::string& source, const std::string& na
         if (res < 1) res = 1024;
         char* log = new char[res+1];
         glGetShaderInfoLog(id, res+1, NULL, log);
-        Log(LogLevel::Error, "OpenGL: failed to compile %s shader %s: %s\n", type.c_str(), name.c_str(), log);
-        Log(LogLevel::Debug, "shader source:\n--\n%s\n--\n", source.c_str());
+        EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error, "OpenGL: failed to compile %s shader %s: %s\n", type.c_str(), name.c_str(), log));
+        EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Debug, "shader source:\n--\n%s\n--\n", source.c_str()));
         delete[] log;
 
         glDeleteShader(id);
@@ -226,7 +227,7 @@ bool LinkProgram(GLuint& result, GLuint* ids, int numIds)
 
     if (!glLinkProgram)
     {
-        Log(LogLevel::Error, "OpenGL: Cannot link shader program, OpenGL hasn't been loaded\n");
+        EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error, "OpenGL: Cannot link shader program, OpenGL hasn't been loaded\n"));
         return false;
     }
 
@@ -247,7 +248,7 @@ bool LinkProgram(GLuint& result, GLuint* ids, int numIds)
         if (res < 1) res = 1024;
         char* log = new char[res+1];
         glGetProgramInfoLog(result, res+1, NULL, log);
-        Log(LogLevel::Error, "OpenGL: failed to link shader program: %s\n", log);
+        EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error, "OpenGL: failed to link shader program: %s\n", log));
         delete[] log;
 
         return false;
@@ -277,7 +278,7 @@ bool CompileComputeProgram(GLuint& result, const std::string& source, const std:
         {
         }
     }*/
-    Log(LogLevel::Error, "Shader %s from cache was rejected\n", name.c_str());
+    EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error, "Shader %s from cache was rejected\n", name.c_str()));
 
     GLuint shader;
     bool linkingSucess = false;

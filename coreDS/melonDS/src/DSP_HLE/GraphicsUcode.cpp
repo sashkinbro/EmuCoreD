@@ -1,3 +1,4 @@
+#include "../../../bridge/ds_diagnostics.h"
 /*
     Copyright 2016-2025 melonDS team
 
@@ -38,7 +39,7 @@ GraphicsUcode::GraphicsUcode(melonDS::DSi& dsi, int version) : UcodeBase(dsi)
     UcodeVersion = version;
     DSi.RegisterEventFuncs(Event_DSi_DSPHLE, this, {MakeEventThunk(GraphicsUcode, FinishCmd)});
 
-    Log(LogLevel::Info, "DSP_HLE: initializing Graphics SDK ucode version %02X\n", version);
+    EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Info, "DSP_HLE: initializing Graphics SDK ucode version %02X\n", version));
 }
 
 GraphicsUcode::~GraphicsUcode()
@@ -227,7 +228,7 @@ void GraphicsUcode::CmdScalingNearest()
         (rect_width > 16384) ||
         (dst_width > 16384))
     {
-        printf("DSP_HLE: incorrect parameters for nearest scaling\n");
+        EMUCORED_DIAGNOSTIC_LOG(printf("DSP_HLE: incorrect parameters for nearest scaling\n"));
         return;
     }
 
@@ -292,7 +293,7 @@ void GraphicsUcode::CmdScalingBilinear()
         (rect_width > 8192) ||
         (dst_width > 8192))
     {
-        printf("DSP_HLE: incorrect parameters for bilinear scaling\n");
+        EMUCORED_DIAGNOSTIC_LOG(printf("DSP_HLE: incorrect parameters for bilinear scaling\n"));
         return;
     }
 
@@ -420,7 +421,7 @@ void GraphicsUcode::CmdScalingBicubic()
         (rect_width > 4096) ||
         (dst_width > 4096))
     {
-        printf("DSP_HLE: incorrect parameters for bicubic scaling\n");
+        EMUCORED_DIAGNOSTIC_LOG(printf("DSP_HLE: incorrect parameters for bicubic scaling\n"));
         return;
     }
 
@@ -526,7 +527,7 @@ void GraphicsUcode::CmdScalingOneThird()
     // sanity checks
     if (rect_width > 16384)
     {
-        printf("DSP_HLE: incorrect parameters for one-third scaling\n");
+        EMUCORED_DIAGNOSTIC_LOG(printf("DSP_HLE: incorrect parameters for one-third scaling\n"));
         return;
     }
     u32 sx, sy;

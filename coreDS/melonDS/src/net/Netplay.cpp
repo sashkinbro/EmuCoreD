@@ -1,3 +1,4 @@
+#include "../../../bridge/ds_diagnostics.h"
 /*
     Copyright 2016-2025 melonDS team
 
@@ -130,7 +131,7 @@ void StartHost(const char* playername, int port)
     Host = enet_host_create(&addr, 16, 1, 0, 0);
     if (!Host)
     {
-        printf("host shat itself :(\n");
+        EMUCORED_DIAGNOSTIC_LOG(printf("host shat itself :(\n"));
         return;
     }
 
@@ -150,11 +151,11 @@ void StartHost(const char* playername, int port)
     ENetAddress mirroraddr;
     mirroraddr.host = ENET_HOST_ANY;
     mirroraddr.port = port + 1;
-printf("host mirror host connecting to %08X:%d\n", mirroraddr.host, mirroraddr.port);
+EMUCORED_DIAGNOSTIC_LOG(printf("host mirror host connecting to %08X:%d\n", mirroraddr.host, mirroraddr.port));
     MirrorHost = enet_host_create(&mirroraddr, 16, 2, 0, 0);
     if (!MirrorHost)
     {
-        printf("mirror host shat itself :(\n");
+        EMUCORED_DIAGNOSTIC_LOG(printf("mirror host shat itself :(\n"));
         return;
     }
 
@@ -170,11 +171,11 @@ void StartClient(const char* playername, const char* host, int port)
     Host = enet_host_create(nullptr, 1, 1, 0, 0);
     if (!Host)
     {
-        printf("client shat itself :(\n");
+        EMUCORED_DIAGNOSTIC_LOG(printf("client shat itself :(\n"));
         return;
     }
 
-    printf("client created, connecting (%s, %s:%d)\n", playername, host, port);
+    EMUCORED_DIAGNOSTIC_LOG(printf("client created, connecting (%s, %s:%d)\n", playername, host, port));
 
     ENetAddress addr;
     enet_address_set_host(&addr, host);
@@ -182,7 +183,7 @@ void StartClient(const char* playername, const char* host, int port)
     ENetPeer* peer = enet_host_connect(Host, &addr, 1, 0);
     if (!peer)
     {
-        printf("connect shat itself :(\n");
+        EMUCORED_DIAGNOSTIC_LOG(printf("connect shat itself :(\n"));
         return;
     }
 
@@ -192,14 +193,14 @@ void StartClient(const char* playername, const char* host, int port)
     {
         if (event.type == ENET_EVENT_TYPE_CONNECT)
         {
-            printf("connected!\n");
+            EMUCORED_DIAGNOSTIC_LOG(printf("connected!\n"));
             conn = true;
         }
     }
 
     if (!conn)
     {
-        printf("connection failed\n");
+        EMUCORED_DIAGNOSTIC_LOG(printf("connection failed\n"));
         enet_peer_reset(peer);
         return;
     }
@@ -230,20 +231,20 @@ void StartMirror(const Player* player)
     MirrorHost = enet_host_create(nullptr, 1, 2, 0, 0);
     if (!MirrorHost)
     {
-        printf("mirror shat itself :(\n");
+        EMUCORED_DIAGNOSTIC_LOG(printf("mirror shat itself :(\n"));
         return;
     }
 
-    printf("mirror created, connecting\n");
+    EMUCORED_DIAGNOSTIC_LOG(printf("mirror created, connecting\n"));
 
     ENetAddress addr;
     addr.host = player->Address;
     addr.port = 8064+1 + player->ID; // FIXME!!!!!!!!!!
-    printf("mirror client connecting to %08X:%d\n", addr.host, addr.port);
+    EMUCORED_DIAGNOSTIC_LOG(printf("mirror client connecting to %08X:%d\n", addr.host, addr.port));
     ENetPeer* peer = enet_host_connect(MirrorHost, &addr, 2, 0);
     if (!peer)
     {
-        printf("connect shat itself :(\n");
+        EMUCORED_DIAGNOSTIC_LOG(printf("connect shat itself :(\n"));
         return;
     }
 
@@ -253,14 +254,14 @@ void StartMirror(const Player* player)
     {
         if (event.type == ENET_EVENT_TYPE_CONNECT)
         {
-            printf("connected!\n");
+            EMUCORED_DIAGNOSTIC_LOG(printf("connected!\n"));
             conn = true;
         }
     }
 
     if (!conn)
     {
-        printf("connection failed\n");
+        EMUCORED_DIAGNOSTIC_LOG(printf("connection failed\n"));
         enet_peer_reset(peer);
         return;
     }
@@ -328,7 +329,7 @@ bool SpawnMirrorInstance(Player player)
     if (newid == -1) return false;
 
     // setup that instance
-    printf("netplay: spawned mirror instance for player %d with ID %d, configuring\n", player.ID, newid);
+    EMUCORED_DIAGNOSTIC_LOG(printf("netplay: spawned mirror instance for player %d with ID %d, configuring\n", player.ID, newid));
 
     //std::string rompath = ROMManager::FullROMPath.join('|').toStdString();
     //IPC::SendCommandStr(1<<newid, IPC::Cmd_LoadROM, rompath);
@@ -397,7 +398,7 @@ void RecvBlobFromMirrorHost(ENetPeer* peer, ENetPacket* pkt)
 
         if (Blobs[type] != nullptr) return;
         if (BlobLens[type] != 0) return;
-printf("[MC] start blob type=%d len=%d\n", type, len);
+EMUCORED_DIAGNOSTIC_LOG(printf("[MC] start blob type=%d len=%d\n", type, len));
         if (len) Blobs[type] = new u8[len];
         BlobLens[type] = len;
 
@@ -412,13 +413,13 @@ printf("[MC] start blob type=%d len=%d\n", type, len);
                 RecvBlobFromMirrorHost(evt.peer, evt.packet);
                 if (evt.packet->dataLength >= 1 && evt.packet->data[0] == 0x03)
                 {
-                    printf("[MC] blob done while in fast recv loop\n");
+                    EMUCORED_DIAGNOSTIC_LOG(printf("[MC] blob done while in fast recv loop\n"));
                     break;
                 }
             }
             else
             {
-                printf("[MC] fast recv loop aborted because evt %d ch %d\n", evt.type, evt.channelID);
+                EMUCORED_DIAGNOSTIC_LOG(printf("[MC] fast recv loop aborted because evt %d ch %d\n", evt.type, evt.channelID));
                 break;
             }
         }
@@ -441,7 +442,7 @@ printf("[MC] start blob type=%d len=%d\n", type, len);
         u8* dst = Blobs[type];
         if (!dst) return;
         if (BlobLens[type] != len) return;
-        printf("[MC] recv blob data, type=%d pos=%08X len=%08X data=%08lX\n", type, pos, len, pkt->dataLength-16);
+        EMUCORED_DIAGNOSTIC_LOG(printf("[MC] recv blob data, type=%d pos=%08X len=%08X data=%08lX\n", type, pos, len, pkt->dataLength-16));
         memcpy(&dst[pos], &buf[16], pkt->dataLength-16);
     }
     else if (buf[0] == 0x03)
@@ -454,7 +455,7 @@ printf("[MC] start blob type=%d len=%d\n", type, len);
 
         u32 len = *(u32*)&buf[4];
         if (len != CurBlobLen) return;
-printf("[MC] finish blob type=%d len=%d\n", type, len);
+EMUCORED_DIAGNOSTIC_LOG(printf("[MC] finish blob type=%d len=%d\n", type, len));
         CurBlobType = -1;
         CurBlobLen = 0;
     }
@@ -476,7 +477,7 @@ printf("[MC] finish blob type=%d len=%d\n", type, len);
                                 Blobs[Blob_CartSRAM], BlobLens[Blob_CartSRAM]);
             if (!res)
             {
-                printf("!!!! FAIL!!\n");
+                EMUCORED_DIAGNOSTIC_LOG(printf("!!!! FAIL!!\n"));
                 return;
             }
         }
@@ -510,21 +511,21 @@ printf("[MC] finish blob type=%d len=%d\n", type, len);
         NDS::DoSavestate(zorp);
         delete zorp;*/
 
-printf("[MC] state loaded, PC=%08X/%08X\n", NDS::GetPC(0), NDS::GetPC(1));
+EMUCORED_DIAGNOSTIC_LOG(printf("[MC] state loaded, PC=%08X/%08X\n", NDS::GetPC(0), NDS::GetPC(1)));
         ENetPacket* resp = enet_packet_create(buf, 1, ENET_PACKET_FLAG_RELIABLE);
         enet_peer_send(peer, 1, resp);
         #endif
     }
     else if (buf[0] == 0x05)
     {
-        printf("[MIRROR CLIENT] start\n");
+        EMUCORED_DIAGNOSTIC_LOG(printf("[MIRROR CLIENT] start\n"));
         StartLocal();
     }
 }
 
 void SyncMirrorClients()
 {
-    printf("[MIRROR HOST] syncing clients\n");
+    EMUCORED_DIAGNOSTIC_LOG(printf("[MIRROR HOST] syncing clients\n"));
 
 #if 0
     SendBlobToMirrorClients(Blob_CartSRAM, NDSCart::GetSaveMemoryLength(), NDSCart::GetSaveMemory());
@@ -560,7 +561,7 @@ void SyncMirrorClients()
     int ngood = 0;
     ENetEvent evt;
     while (enet_host_service(MirrorHost, &evt, 300000) > 0)
-    {printf("EVENT %d CH %d\n", evt.type, evt.channelID);
+    {EMUCORED_DIAGNOSTIC_LOG(printf("EVENT %d CH %d\n", evt.type, evt.channelID));
         if (evt.type == ENET_EVENT_TYPE_RECEIVE && evt.channelID == 1)
         {
             if (evt.packet->dataLength == 1 && evt.packet->data[0] == 0x04)
@@ -574,9 +575,9 @@ void SyncMirrorClients()
     }
 
     if (ngood != (NumPlayers-1))
-        printf("!!! BAD!! %d %d\n", ngood, NumPlayers);
+        EMUCORED_DIAGNOSTIC_LOG(printf("!!! BAD!! %d %d\n", ngood, NumPlayers));
 
-    printf("[MIRROR HOST] clients synced\n");
+    EMUCORED_DIAGNOSTIC_LOG(printf("[MIRROR HOST] clients synced\n"));
 
     // start
 
@@ -593,7 +594,7 @@ void StartGame()
 {
     if (!IsHost)
     {
-        printf("?????\n");
+        EMUCORED_DIAGNOSTIC_LOG(printf("?????\n"));
         return;
     }
 
@@ -681,7 +682,7 @@ void ProcessHost()
         case ENET_EVENT_TYPE_DISCONNECT:
             {
                 // TODO
-                printf("disco\n");
+                EMUCORED_DIAGNOSTIC_LOG(printf("disco\n"));
             }
             break;
 
@@ -703,7 +704,7 @@ void ProcessHost()
                         Player* hostside = (Player*)event.peer->data;
                         if (player.ID != hostside->ID)
                         {
-                            printf("what??? %d =/= %d\n", player.ID, hostside->ID);
+                            EMUCORED_DIAGNOSTIC_LOG(printf("what??? %d =/= %d\n", player.ID, hostside->ID));
                             // TODO: disconnect
                             break;
                         }
@@ -742,13 +743,13 @@ void ProcessClient()
         switch (event.type)
         {
         case ENET_EVENT_TYPE_CONNECT:
-            printf("schmo\n");
+            EMUCORED_DIAGNOSTIC_LOG(printf("schmo\n"));
             break;
 
         case ENET_EVENT_TYPE_DISCONNECT:
             {
                 // TODO
-                printf("shma\n");
+                EMUCORED_DIAGNOSTIC_LOG(printf("shma\n"));
             }
             break;
 
@@ -769,11 +770,11 @@ void ProcessClient()
                         ENetAddress mirroraddr;
                         mirroraddr.host = ENET_HOST_ANY;
                         mirroraddr.port = 8064+1 + data[1]; // FIXME!!!!
-printf("client mirror host connecting to %08X:%d\n", mirroraddr.host, mirroraddr.port);
+EMUCORED_DIAGNOSTIC_LOG(printf("client mirror host connecting to %08X:%d\n", mirroraddr.host, mirroraddr.port));
                         MirrorHost = enet_host_create(&mirroraddr, 16, 2, 0, 0);
                         if (!MirrorHost)
                         {
-                            printf("mirror host shat itself :(\n");
+                            EMUCORED_DIAGNOSTIC_LOG(printf("mirror host shat itself :(\n"));
                             break;
                         }
 
@@ -813,10 +814,10 @@ printf("client mirror host connecting to %08X:%d\n", mirroraddr.host, mirroraddr
                         }
 
                         //SyncMirrorClients();
-printf("bourf\n");
+EMUCORED_DIAGNOSTIC_LOG(printf("bourf\n"));
                         // tell other mirror instances to start the game
                         //IPC::SendCommand(0xFFFF, IPC::Cmd_Start, 0, nullptr);
-printf("birf\n");
+EMUCORED_DIAGNOSTIC_LOG(printf("birf\n"));
                         // start game locally
                         //StartLocal();
                     }
@@ -841,13 +842,13 @@ void ProcessMirrorHost()
         switch (event.type)
         {
         case ENET_EVENT_TYPE_CONNECT:
-            printf("[MIRROR HOST] mirror client connected\n");
+            EMUCORED_DIAGNOSTIC_LOG(printf("[MIRROR HOST] mirror client connected\n"));
             NumMirrorClients++;
             event.peer->data = (void*)0;
 
             if (NumMirrorClients >= NumPlayers)
             {
-                printf("??????\n");
+                EMUCORED_DIAGNOSTIC_LOG(printf("??????\n"));
             }
             else if (NumMirrorClients == (NumPlayers-1))
             {
@@ -860,7 +861,7 @@ void ProcessMirrorHost()
         case ENET_EVENT_TYPE_DISCONNECT:
             {
                 // TODO
-                printf("[MIRROR HOST] mirror client disconnected\n");
+                EMUCORED_DIAGNOSTIC_LOG(printf("[MIRROR HOST] mirror client disconnected\n"));
                 NumMirrorClients--;
             }
             break;
@@ -939,14 +940,14 @@ void ProcessMirrorClient()
         switch (event.type)
         {
         case ENET_EVENT_TYPE_CONNECT:
-            printf("schmu\n");
+            EMUCORED_DIAGNOSTIC_LOG(printf("schmu\n"));
             Lag = false;
             break;
 
         case ENET_EVENT_TYPE_DISCONNECT:
             {
                 // TODO
-                printf("shmz\n");
+                EMUCORED_DIAGNOSTIC_LOG(printf("shmz\n"));
             }
             break;
 
@@ -1051,7 +1052,7 @@ void ProcessInput()
     if (InputQueue.empty())
     {
         //if (NDS::NumFrames > 4)
-            printf("Netplay: BAD! INPUT QUEUE EMPTY\n");
+            EMUCORED_DIAGNOSTIC_LOG(printf("Netplay: BAD! INPUT QUEUE EMPTY\n"));
         return;
     }
 
@@ -1060,7 +1061,7 @@ void ProcessInput()
     if (frame.FrameNum < NDS::NumFrames)
     {
         // TODO: this situation is a desync
-        printf("Netplay: BAD! LAGGING BEHIND\n");
+        EMUCORED_DIAGNOSTIC_LOG(printf("Netplay: BAD! LAGGING BEHIND\n"));
         while (frame.FrameNum < NDS::NumFrames)
         {
             if (InputQueue.size() < 2) break;
@@ -1076,7 +1077,7 @@ void ProcessInput()
     }
 
     // apply this input frame
-    if (frame.KeyMask != 0xFFF) printf("[%08d] INPUT=%08X (%08d) (backlog=%d)\n", NDS::NumFrames, frame.KeyMask, frame.FrameNum, InputQueue.size());
+    if (frame.KeyMask != 0xFFF) EMUCORED_DIAGNOSTIC_LOG(printf("[%08d] INPUT=%08X (%08d) (backlog=%d)\n", NDS::NumFrames, frame.KeyMask, frame.FrameNum, InputQueue.size()));
     NDS::SetKeyMask(frame.KeyMask);
     if (frame.Touching) NDS::TouchScreen(frame.TouchX, frame.TouchY);
     else                NDS::ReleaseScreen();

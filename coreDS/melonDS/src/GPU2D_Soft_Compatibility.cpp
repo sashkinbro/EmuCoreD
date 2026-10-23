@@ -1,3 +1,4 @@
+#include "../../bridge/ds_diagnostics.h"
 /*
     Copyright 2016-2025 melonDS team
 
@@ -1747,7 +1748,7 @@ void CompatibilitySoftRenderer::DoCapture(u32 line, u32 width, u32 sourceLine)
                                     | (((val1 >> 17) & 0x1Fu) << 10)
                                     | (((val1 >> 24) != 0u) ? 0x8000u : 0u);
 
-                                Platform::Log(
+                                EMUCORED_DIAGNOSTIC_LOG(Platform::Log(
                                     Platform::LogLevel::Warn,
                                     "RendererDebug[CaptureLoop]: label=%s line=%u sourceLine=%u x=%u comp=%u raw3d=%08X val1=%08X val2=%08X val3=%08X packed=%08X",
                                     sample.label,
@@ -1760,7 +1761,7 @@ void CompatibilitySoftRenderer::DoCapture(u32 line, u32 width, u32 sourceLine)
                                     val2,
                                     val3,
                                     packedWord
-                                );
+                                ));
                                 break;
                             }
                         }
@@ -2353,7 +2354,7 @@ void CompatibilitySoftRenderer::DrawScanline_BGOBJ(u32 line)
                 const u32 i = sample.x;
                 if (i >= 256)
                     continue;
-                Platform::Log(
+                EMUCORED_DIAGNOSTIC_LOG(Platform::Log(
                     Platform::LogLevel::Warn,
                     "RendererDebug[BGOBJ]: stage=after_bgmode unit=%u label=%s line=%u x=%u v0=%08X v1=%08X v2=%08X",
                     CurUnit->Num,
@@ -2363,7 +2364,7 @@ void CompatibilitySoftRenderer::DrawScanline_BGOBJ(u32 line)
                     BGOBJLine[i],
                     BGOBJLine[256+i],
                     BGOBJLine[512+i]
-                );
+                ));
             }
         };
 
@@ -2596,7 +2597,7 @@ void CompatibilitySoftRenderer::DrawScanline_BGOBJ(u32 line)
                         if (sample.y != line || sample.x != static_cast<u32>(i))
                             continue;
 
-                        Platform::Log(
+                        EMUCORED_DIAGNOSTIC_LOG(Platform::Log(
                             Platform::LogLevel::Warn,
                             "RendererDebug[BGOBJ]: unit=%u label=%s line=%u x=%u pre0=%08X pre1=%08X pre2=%08X out0=%08X out1=%08X out2=%08X",
                             CurUnit->Num,
@@ -2609,7 +2610,7 @@ void CompatibilitySoftRenderer::DrawScanline_BGOBJ(u32 line)
                             BGOBJLine[i],
                             BGOBJLine[256+i],
                             BGOBJLine[512+i]
-                        );
+                        ));
                         break;
                     }
                 }
@@ -2651,7 +2652,7 @@ void CompatibilitySoftRenderer::DrawScanline_BGOBJ(u32 line)
                         if (sample.y != line || sample.x != static_cast<u32>(i))
                             continue;
 
-                        Platform::Log(
+                        EMUCORED_DIAGNOSTIC_LOG(Platform::Log(
                             Platform::LogLevel::Warn,
                             "RendererDebug[BGOBJ]: unit=%u label=%s line=%u x=%u pre0=%08X pre1=%08X pre2=%08X out0=%08X out1=%08X out2=%08X",
                             CurUnit->Num,
@@ -2664,7 +2665,7 @@ void CompatibilitySoftRenderer::DrawScanline_BGOBJ(u32 line)
                             BGOBJLine[i],
                             BGOBJLine[256+i],
                             BGOBJLine[512+i]
-                        );
+                        ));
                         break;
                     }
                 }
@@ -3735,7 +3736,7 @@ void CompatibilitySoftRenderer::DrawSprite_Rotscale(u32 num, u32 boundwidth, u32
                 {
                     if (const RendererDebugSamplePoint* sample = findRendererDebugSamplePoint(static_cast<u32>(xpos), currentLine))
                     {
-                        Platform::Log(
+                        EMUCORED_DIAGNOSTIC_LOG(Platform::Log(
                             Platform::LogLevel::Warn,
                             "RendererDebug[SpriteBitmap]: unit=%u label=%s sprite=%u rotscale=1 line=%u x=%u color=%04X old=%08X pixelattr=%08X pixelsaddr=%u tilenum=%u srcX=%u srcY=%u attr0=%04X attr1=%04X attr2=%04X",
                             CurUnit->Num,
@@ -3753,7 +3754,7 @@ void CompatibilitySoftRenderer::DrawSprite_Rotscale(u32 num, u32 boundwidth, u32
                             attrib[0],
                             attrib[1],
                             attrib[2]
-                        );
+                        ));
                     }
                 }
 
@@ -3979,7 +3980,7 @@ void CompatibilitySoftRenderer::DrawSprite_Normal(u32 num, u32 width, u32 height
             {
                 if (const RendererDebugSamplePoint* sample = findRendererDebugSamplePoint(static_cast<u32>(xpos), currentLine))
                 {
-                    Platform::Log(
+                    EMUCORED_DIAGNOSTIC_LOG(Platform::Log(
                         Platform::LogLevel::Warn,
                         "RendererDebug[SpriteBitmap]: unit=%u label=%s sprite=%u rotscale=0 line=%u x=%u color=%04X old=%08X pixelattr=%08X pixelsaddr=%u tilenum=%u ypos=%u xoff=%u attr0=%04X attr1=%04X attr2=%04X",
                         CurUnit->Num,
@@ -3997,7 +3998,7 @@ void CompatibilitySoftRenderer::DrawSprite_Normal(u32 num, u32 width, u32 height
                         attrib[0],
                         attrib[1],
                         attrib[2]
-                    );
+                    ));
                 }
             }
 

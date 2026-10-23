@@ -1,3 +1,4 @@
+#include "../../bridge/ds_diagnostics.h"
 /*
     Copyright 2016-2025 melonDS team
 
@@ -207,7 +208,7 @@ void ARMv5::UpdatePURegion(u32 n)
     case 3: privmask |= 0x03; usermask |= 0x03; break;
     case 5: privmask |= 0x01; break;
     case 6: privmask |= 0x01; usermask |= 0x01; break;
-    default: Log(LogLevel::Warn, "!! BAD DATARW VALUE %d\n", datarw&0xF);
+    default: EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Warn, "!! BAD DATARW VALUE %d\n", datarw&0xF));
     }
 
     switch (coderw)
@@ -218,7 +219,7 @@ void ARMv5::UpdatePURegion(u32 n)
     case 3: privmask |= 0x04; usermask |= 0x04; break;
     case 5: privmask |= 0x04; break;
     case 6: privmask |= 0x04; usermask |= 0x04; break;
-    default: Log(LogLevel::Warn, "!! BAD CODERW VALUE %d\n", datarw&0xF);
+    default: EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Warn, "!! BAD CODERW VALUE %d\n", datarw&0xF));
     }
 
     if (datacache & 0x1)
@@ -239,7 +240,7 @@ void ARMv5::UpdatePURegion(u32 n)
         usermask |= 0x40;
     }
 
-    Log(
+    EMUCORED_DIAGNOSTIC_LOG(Log(
         LogLevel::Debug,
         "PU region %d: %08X-%08X, user=%02X priv=%02X, %08X/%08X\n",
         n,
@@ -249,7 +250,7 @@ void ARMv5::UpdatePURegion(u32 n)
         privmask,
         PU_DataRW,
         PU_CodeRW
-    );
+    ));
 
     for (u32 i = start; i < end; i++)
     {
@@ -465,7 +466,7 @@ void ARMv5::CP15Write(u32 id, u32 val)
             {
                 UpdatePURegions((old & 0x1) != (val & 0x1));
             }
-            if (val & (1<<7)) Log(LogLevel::Warn, "!!!! ARM9 BIG ENDIAN MODE. VERY BAD. SHIT GONNA ASPLODE NOW\n");
+            if (val & (1<<7)) EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Warn, "!!!! ARM9 BIG ENDIAN MODE. VERY BAD. SHIT GONNA ASPLODE NOW\n"));
             if (val & (1<<13)) ExceptionBase = 0xFFFF0000;
             else               ExceptionBase = 0x00000000;
         }
@@ -598,7 +599,7 @@ void ARMv5::CP15Write(u32 id, u32 val)
                  val & 0xFFFFF000,
                  (val & 0x3E) >> 1
         );
-        Log(LogLevel::Debug, "%s", log_output);
+        EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Debug, "%s", log_output));
         // Some implementations of Log imply a newline, so we build up the line before printing it
 
         if (CP15Control & (1<<0))
@@ -621,7 +622,7 @@ void ARMv5::CP15Write(u32 id, u32 val)
         //Halt(255);
         return;
     case 0x752:
-        Log(LogLevel::Warn, "CP15: ICACHE INVALIDATE WEIRD. %08X\n", val);
+        EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Warn, "CP15: ICACHE INVALIDATE WEIRD. %08X\n", val));
         //Halt(255);
         return;
 
@@ -681,7 +682,7 @@ void ARMv5::CP15Write(u32 id, u32 val)
         return;
 
     if ((id & 0xF00) != 0x700)
-        Log(LogLevel::Debug, "unknown CP15 write op %03X %08X\n", id, val);
+        EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Debug, "unknown CP15 write op %03X %08X\n", id, val));
 }
 
 u32 ARMv5::CP15Read(u32 id) const
@@ -780,7 +781,7 @@ u32 ARMv5::CP15Read(u32 id) const
     if ((id & 0xF00) == 0xF00) // test/debug shit?
         return 0;
 
-    Log(LogLevel::Debug, "unknown CP15 read op %03X\n", id);
+    EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Debug, "unknown CP15 read op %03X\n", id));
     return 0;
 }
 

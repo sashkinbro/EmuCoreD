@@ -2,6 +2,10 @@
 // Licensed under GPLv2 or any later version
 // Refer to the misc/licenses/gplv2.txt file included.
 
+#include "common/logging/backend.h"
+#include "common/logging/log.h"
+
+#if !defined(EMUCORED_DIAGNOSTICS) || EMUCORED_DIAGNOSTICS
 #include <chrono>
 #include <boost/algorithm/string/replace.hpp>
 #include <boost/regex.hpp>
@@ -617,3 +621,21 @@ void FmtLogMessageImpl(Class log_class, Level log_level, const char* filename,
     }
 }
 } // namespace Common::Log
+#else
+// Release keeps the public lifecycle API safe before or after initialization, without
+// constructing a backend, opening files, installing signal handlers, or starting threads.
+namespace Common::Log {
+void Initialize(std::string_view) {}
+#ifdef HAVE_LIBRETRO
+void LibRetroStart(retro_log_printf_t) {}
+#endif
+void Start() {}
+void Stop() {}
+void DisableLoggingInTests() {}
+void SetGlobalFilter(const Filter&) {}
+bool SetRegexFilter(const std::string&) { return false; }
+void SetColorConsoleBackendEnabled(bool) {}
+void FmtLogMessageImpl(Class, Level, const char*, unsigned int, const char*, fmt::string_view,
+                       const fmt::format_args&) {}
+} // namespace Common::Log
+#endif

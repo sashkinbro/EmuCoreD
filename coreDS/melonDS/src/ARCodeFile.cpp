@@ -1,3 +1,4 @@
+#include "../../bridge/ds_diagnostics.h"
 /*
     Copyright 2016-2025 melonDS team
 
@@ -128,7 +129,7 @@ bool ARCodeFile::Load()
 
             if (ret < retchk)
             {
-                Log(LogLevel::Error, "AR: malformed CAT line: %s\n", start);
+                EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error, "AR: malformed CAT line: %s\n", start));
                 CloseFile(f);
                 return false;
             }
@@ -157,14 +158,14 @@ bool ARCodeFile::Load()
 
             if (ret < 2)
             {
-                Log(LogLevel::Error, "AR: malformed CODE line: %s\n", start);
+                EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error, "AR: malformed CODE line: %s\n", start));
                 CloseFile(f);
                 return false;
             }
 
             if (!isincat)
             {
-                Log(LogLevel::Error, "AR: encountered CODE line with no category started\n");
+                EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error, "AR: encountered CODE line with no category started\n"));
                 CloseFile(f);
                 return false;
             }
@@ -198,7 +199,7 @@ bool ARCodeFile::Load()
                 curcat->Description = desc;
             else
             {
-                Log(LogLevel::Error, "AR: encountered DESC line not part of anything\n");
+                EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error, "AR: encountered DESC line not part of anything\n"));
                 CloseFile(f);
                 return false;
             }
@@ -210,14 +211,14 @@ bool ARCodeFile::Load()
 
             if (ret < 2)
             {
-                Log(LogLevel::Error, "AR: malformed data line: %s\n", start);
+                EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error, "AR: malformed data line: %s\n", start));
                 CloseFile(f);
                 return false;
             }
 
             if (!isincode)
             {
-                Log(LogLevel::Error, "AR: encountered data line with no code started\n");
+                EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error, "AR: encountered data line with no code started\n"));
                 CloseFile(f);
                 return false;
             }

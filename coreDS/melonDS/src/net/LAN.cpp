@@ -1,3 +1,4 @@
+#include "../../../bridge/ds_diagnostics.h"
 /*
     Copyright 2016-2025 melonDS team
 
@@ -104,11 +105,11 @@ LAN::LAN() noexcept : Inited(false)
     // TODO make this somewhat nicer
     if (enet_initialize() != 0)
     {
-        Platform::Log(Platform::LogLevel::Error, "LAN: failed to initialize enet\n");
+        EMUCORED_DIAGNOSTIC_LOG(Platform::Log(Platform::LogLevel::Error, "LAN: failed to initialize enet\n"));
         return;
     }
 
-    Platform::Log(Platform::LogLevel::Info, "LAN: enet initialized\n");
+    EMUCORED_DIAGNOSTIC_LOG(Platform::Log(Platform::LogLevel::Info, "LAN: enet initialized\n"));
     Inited = true;
 }
 
@@ -122,7 +123,7 @@ LAN::~LAN() noexcept
     Platform::Mutex_Free(DiscoveryMutex);
     Platform::Mutex_Free(PlayersMutex);
 
-    Platform::Log(Platform::LogLevel::Info, "LAN: enet deinitialized\n");
+    EMUCORED_DIAGNOSTIC_LOG(Platform::Log(Platform::LogLevel::Info, "LAN: enet deinitialized\n"));
 }
 
 

@@ -1,3 +1,4 @@
+#include "../../bridge/ds_diagnostics.h"
 /*
     Copyright 2016-2025 melonDS team
 
@@ -223,7 +224,7 @@ void AREngine::RunCheat(const ARCode& arcode)
             // in practice could be used for a self-modifying AR code
             // could be implemented with some hackery, but, does anything even
             // use it??
-            Log(LogLevel::Error, "AR: !! THE FUCKING C4000000 OPCODE. TELL ARISOTURA.\n");
+            EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error, "AR: !! THE FUCKING C4000000 OPCODE. TELL ARISOTURA.\n"));
             return;
 
         case 0xC5: // count++ / IF (count & b.l) == b.h
@@ -315,7 +316,7 @@ void AREngine::RunCheat(const ARCode& arcode)
                 case 0x08: datareg *= b; break;
 
                 default:
-                    Log(LogLevel::Warn, "!! bad AR D4 opcode %08X %08X\n", a, b);
+                    EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Warn, "!! bad AR D4 opcode %08X %08X\n", a, b));
                     break;
             }
             break;
@@ -411,7 +412,7 @@ void AREngine::RunCheat(const ARCode& arcode)
             break;
 
         default:
-            Log(LogLevel::Warn, "!! bad AR opcode %08X %08X\n", a, b);
+            EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Warn, "!! bad AR opcode %08X %08X\n", a, b));
             return;
         }
     }

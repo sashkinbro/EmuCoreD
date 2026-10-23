@@ -1,3 +1,4 @@
+#include "../../bridge/ds_diagnostics.h"
 /*
     Copyright 2016-2025 melonDS team
 
@@ -140,7 +141,7 @@ void DSi_I2S::WriteSndExCnt(u16 val, u16 mask)
 
     if ((SndExCnt ^ val) & (1 << 13))
     {
-        Log(LogLevel::Debug, "Changed I2S frequency to %dHz\n", (val & (1 << 13)) ? 47605 : 32728);
+        EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Debug, "Changed I2S frequency to %dHz\n", (val & (1 << 13)) ? 47605 : 32728));
 
         AudioSampleRate rate = (val & (1<<13)) ? AudioSampleRate::_47KHz : AudioSampleRate::_32KHz;
         DSi.SPU.SetSampleRate(rate);

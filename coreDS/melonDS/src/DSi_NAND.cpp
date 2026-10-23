@@ -1,3 +1,4 @@
+#include "../../bridge/ds_diagnostics.h"
 /*
     Copyright 2016-2025 melonDS team
 
@@ -62,7 +63,7 @@ NANDImage::NANDImage(Platform::FileHandle* nandfile, const u8* es_keyY) noexcept
         FileRead(nand_footer, 1, sizeof(nand_footer), nandfile);
         if (memcmp(nand_footer, nand_footer_ref, sizeof(nand_footer)))
         {
-            Log(LogLevel::Error, "ERROR: NAND missing nocash footer\n");
+            EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error, "ERROR: NAND missing nocash footer\n"));
             CloseFile(nandfile);
             return;
         }
@@ -169,7 +170,7 @@ NANDMount::NANDMount(NANDImage& nand) noexcept : Image(&nand)
     res = f_mount(CurFS.get(), "0:", 0);
     if (res != FR_OK)
     {
-        Log(LogLevel::Error, "NAND mounting failed: %d\n", res);
+        EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error, "NAND mounting failed: %d\n", res));
         f_unmount("0:");
         ff_disk_close();
         return;
@@ -454,7 +455,7 @@ bool NANDImage::ESDecrypt(u8* data, u32 len) const
     u32 footerlen = footer[0] | (footer[1] << 8) | (footer[2] << 16);
     if (footerlen != len)
     {
-        Log(LogLevel::Error, "ESDecrypt: bad length %d (expected %d)\n", len, footerlen);
+        EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error, "ESDecrypt: bad length %d (expected %d)\n", len, footerlen));
         return false;
     }
 
@@ -462,7 +463,7 @@ bool NANDImage::ESDecrypt(u8* data, u32 len) const
     {
         if (data[len+i] != mac[15-i])
         {
-            Log(LogLevel::Warn, "ESDecrypt: bad MAC\n");
+            EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Warn, "ESDecrypt: bad MAC\n"));
             return false;
         }
     }
@@ -562,7 +563,7 @@ static bool SaveUserData(const char* filename, const DSiFirmwareSystemSettings& 
     FF_FIL file;
     if (FRESULT res = f_open(&file, filename, FA_OPEN_EXISTING | FA_READ | FA_WRITE); res != FR_OK)
     {
-        Log(LogLevel::Error, "NAND: editing file %s failed: %d\n", filename, res);
+        EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error, "NAND: editing file %s failed: %d\n", filename, res));
         return false;
     }
     // TODO: If the file couldn't be opened, try creating a new one in its place
@@ -574,7 +575,7 @@ static bool SaveUserData(const char* filename, const DSiFirmwareSystemSettings& 
 
     if (res != FR_OK || bytes_written != sizeof(DSiFirmwareSystemSettings))
     {
-        Log(LogLevel::Error, "NAND: editing file %s failed: %d\n", filename, res);
+        EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error, "NAND: editing file %s failed: %d\n", filename, res));
         return false;
     }
 
@@ -607,7 +608,7 @@ void debug_listfiles(const char* path)
 
         char fullname[512];
         snprintf(fullname, sizeof(fullname), "%s/%s", path, info.fname);
-        Log(LogLevel::Debug, "[%c] %s\n", (info.fattrib&AM_DIR)?'D':'F', fullname);
+        EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Debug, "[%c] %s\n", (info.fattrib&AM_DIR)?'D':'F', fullname));
 
         if (info.fattrib & AM_DIR)
         {
@@ -647,7 +648,7 @@ bool NANDMount::ImportFile(const char* path, const u8* data, size_t len)
     }
 
     f_close(&file);
-    Log(LogLevel::Debug, "Imported file from memory to %s\n", path);
+    EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Debug, "Imported file from memory to %s\n", path));
 
     return true;
 }
@@ -687,7 +688,7 @@ bool NANDMount::ImportFile(const char* path, const char* in)
     CloseFile(fin);
     f_close(&file);
 
-    Log(LogLevel::Debug, "Imported file from %s to %s\n", in, path);
+    EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Debug, "Imported file from %s to %s\n", in, path));
 
     return true;
 }
@@ -727,7 +728,7 @@ bool NANDMount::ExportFile(const char* path, const char* out)
     CloseFile(fout);
     f_close(&file);
 
-    Log(LogLevel::Debug, "Exported file from %s to %s\n", path, out);
+    EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Debug, "Exported file from %s to %s\n", path, out));
 
     return true;
 }
@@ -766,7 +767,7 @@ bool NANDMount::ExportFile(const char* path, std::vector<u8>& out)
 
     f_close(&file);
 
-    Log(LogLevel::Debug, "Exported file from %s to memory\n", path);
+    EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Debug, "Exported file from %s to memory\n", path));
 
     return true;
 }
@@ -832,7 +833,7 @@ void NANDMount::RemoveFile(const char* path)
         f_chmod(path, 0, AM_RDO);
 
     f_unlink(path);
-    Log(LogLevel::Debug, "Removed file at %s\n", path);
+    EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Debug, "Removed file at %s\n", path));
 }
 
 void NANDMount::RemoveDir(const char* path)
@@ -886,7 +887,7 @@ void NANDMount::RemoveDir(const char* path)
     }
 
     f_unlink(path);
-    Log(LogLevel::Debug, "Removed directory at %s\n", path);
+    EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Debug, "Removed directory at %s\n", path));
 }
 
 
@@ -920,7 +921,7 @@ void NANDMount::ListTitles(u32 category, std::vector<u32>& titlelist)
     res = f_opendir(&titledir, path);
     if (res != FR_OK)
     {
-        Log(LogLevel::Warn, "NAND: !! no title dir (%s)\n", path);
+        EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Warn, "NAND: !! no title dir (%s)\n", path));
         return;
     }
 
@@ -1013,7 +1014,7 @@ bool NANDMount::CreateTicket(const char* path, u32 titleid0, u32 titleid1, u8 ve
     res = f_open(&file, path, FA_CREATE_ALWAYS | FA_WRITE);
     if (res != FR_OK)
     {
-        Log(LogLevel::Error, "CreateTicket: failed to create file (%d)\n", res);
+        EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error, "CreateTicket: failed to create file (%d)\n", res));
         return false;
     }
 
@@ -1094,7 +1095,7 @@ bool NANDMount::CreateSaveFile(const char* path, u32 len)
     res = f_open(&file, path, FA_CREATE_ALWAYS | FA_WRITE);
     if (res != FR_OK)
     {
-        Log(LogLevel::Error, "CreateSaveFile: failed to create file (%d)\n", res);
+        EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error, "CreateSaveFile: failed to create file (%d)\n", res));
         return false;
     }
 
@@ -1179,7 +1180,7 @@ bool NANDMount::InitTitleFileStructure(const NDSHeader& header, const DSi_TMD::T
         res = f_open(&file, fname, FA_CREATE_ALWAYS | FA_WRITE);
         if (res != FR_OK)
         {
-            Log(LogLevel::Error, "ImportTitle: failed to create banner.sav (%d)\n", res);
+            EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error, "ImportTitle: failed to create banner.sav (%d)\n", res));
             return false;
         }
 
@@ -1196,7 +1197,7 @@ bool NANDMount::InitTitleFileStructure(const NDSHeader& header, const DSi_TMD::T
     res = f_open(&file, fname, FA_CREATE_ALWAYS | FA_WRITE);
     if (res != FR_OK)
     {
-        Log(LogLevel::Error, "ImportTitle: failed to create TMD (%d)\n", res);
+        EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error, "ImportTitle: failed to create TMD (%d)\n", res));
         return false;
     }
 
@@ -1220,15 +1221,15 @@ bool NANDMount::ImportTitle(const char* appfile, const DSi_TMD::TitleMetadata& t
     }
 
     u32 version = tmd.Contents.GetVersion();
-    Log(LogLevel::Info, ".app version: %08x\n", version);
+    EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Info, ".app version: %08x\n", version));
 
     u32 titleid0 = tmd.GetCategory();
     u32 titleid1 = tmd.GetID();
-    Log(LogLevel::Info, "Title ID: %08x/%08x\n", titleid0, titleid1);
+    EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Info, "Title ID: %08x/%08x\n", titleid0, titleid1));
 
     if (!InitTitleFileStructure(header, tmd, readonly))
     {
-        Log(LogLevel::Error, "ImportTitle: failed to initialize file structure for imported title\n");
+        EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error, "ImportTitle: failed to initialize file structure for imported title\n"));
         return false;
     }
 
@@ -1238,7 +1239,7 @@ bool NANDMount::ImportTitle(const char* appfile, const DSi_TMD::TitleMetadata& t
     snprintf(fname, sizeof(fname), "0:/title/%08x/%08x/content/%08x.app", titleid0, titleid1, version);
     if (!ImportFile(fname, appfile))
     {
-        Log(LogLevel::Error, "ImportTitle: failed to create executable\n");
+        EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error, "ImportTitle: failed to create executable\n"));
         return false;
     }
 
@@ -1256,15 +1257,15 @@ bool NANDMount::ImportTitle(const u8* app, size_t appLength, const DSi_TMD::Titl
     memcpy(&header, app, sizeof(header));
 
     u32 version = tmd.Contents.GetVersion();
-    Log(LogLevel::Info, ".app version: %08x\n", version);
+    EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Info, ".app version: %08x\n", version));
 
     u32 titleid0 = tmd.GetCategory();
     u32 titleid1 = tmd.GetID();
-    Log(LogLevel::Info, "Title ID: %08x/%08x\n", titleid0, titleid1);
+    EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Info, "Title ID: %08x/%08x\n", titleid0, titleid1));
 
     if (!InitTitleFileStructure(header, tmd, readonly))
     {
-        Log(LogLevel::Error, "ImportTitle: failed to initialize file structure for imported title\n");
+        EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error, "ImportTitle: failed to initialize file structure for imported title\n"));
         return false;
     }
 
@@ -1274,7 +1275,7 @@ bool NANDMount::ImportTitle(const u8* app, size_t appLength, const DSi_TMD::Titl
     snprintf(fname, sizeof(fname), "0:/title/%08x/%08x/content/%08x.app", titleid0, titleid1, version);
     if (!ImportFile(fname, app, appLength))
     {
-        Log(LogLevel::Error, "ImportTitle: failed to create executable\n");
+        EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error, "ImportTitle: failed to create executable\n"));
         return false;
     }
 

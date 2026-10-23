@@ -1,3 +1,4 @@
+#include "../../bridge/ds_diagnostics.h"
 #include "VulkanContext.h"
 
 #include <array>
@@ -123,7 +124,7 @@ VKAPI_ATTR VkBool32 VKAPI_CALL debugUtilsMessengerCallback(
     const char* message = callbackData != nullptr && callbackData->pMessage != nullptr
         ? callbackData->pMessage
         : "unknown validation message";
-    Platform::Log(logLevel, "VulkanValidation: %s", message);
+    EMUCORED_DIAGNOSTIC_LOG(Platform::Log(logLevel, "VulkanValidation: %s", message));
     return VK_FALSE;
 }
 
@@ -187,7 +188,7 @@ bool VulkanContext::initializeLocked()
 
     if (!VulkanDispatch::Initialize())
     {
-        Platform::Log(Platform::LogLevel::Error, "VulkanContext: failed to initialize Vulkan dispatch");
+        EMUCORED_DIAGNOSTIC_LOG(Platform::Log(Platform::LogLevel::Error, "VulkanContext: failed to initialize Vulkan dispatch"));
         return false;
     }
 
@@ -202,14 +203,14 @@ bool VulkanContext::initializeLocked()
     u32 extensionCount = 0;
     if (vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, nullptr) != VK_SUCCESS)
     {
-        Platform::Log(Platform::LogLevel::Error, "VulkanContext: failed to enumerate instance extensions");
+        EMUCORED_DIAGNOSTIC_LOG(Platform::Log(Platform::LogLevel::Error, "VulkanContext: failed to enumerate instance extensions"));
         return false;
     }
 
     std::vector<VkExtensionProperties> instanceExtensions(extensionCount);
     if (vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, instanceExtensions.data()) != VK_SUCCESS)
     {
-        Platform::Log(Platform::LogLevel::Error, "VulkanContext: failed to read instance extensions");
+        EMUCORED_DIAGNOSTIC_LOG(Platform::Log(Platform::LogLevel::Error, "VulkanContext: failed to read instance extensions"));
         return false;
     }
 
@@ -217,7 +218,7 @@ bool VulkanContext::initializeLocked()
     {
         if (!hasExtension(extension, instanceExtensions))
         {
-            Platform::Log(Platform::LogLevel::Error, "VulkanContext: missing instance extension %s", extension);
+            EMUCORED_DIAGNOSTIC_LOG(Platform::Log(Platform::LogLevel::Error, "VulkanContext: missing instance extension %s", extension));
             return false;
         }
     }
@@ -252,19 +253,19 @@ bool VulkanContext::initializeLocked()
                 enabledInstanceLayers.push_back(kValidationLayerName);
                 debugMessengerCreateInfo = makeDebugUtilsMessengerCreateInfo();
                 enableValidationLayers = true;
-                Platform::Log(Platform::LogLevel::Warn, "VulkanContext: enabling validation layer for debug build");
+                EMUCORED_DIAGNOSTIC_LOG(Platform::Log(Platform::LogLevel::Warn, "VulkanContext: enabling validation layer for debug build"));
             }
             else if (!hasValidationLayer)
             {
-                Platform::Log(Platform::LogLevel::Warn, "VulkanContext: debug build without %s", kValidationLayerName);
+                EMUCORED_DIAGNOSTIC_LOG(Platform::Log(Platform::LogLevel::Warn, "VulkanContext: debug build without %s", kValidationLayerName));
             }
             else
             {
-                Platform::Log(
+                EMUCORED_DIAGNOSTIC_LOG(Platform::Log(
                     Platform::LogLevel::Warn,
                     "VulkanContext: debug build without instance extension %s; validation callback disabled",
                     kOptionalDebugUtilsExtension
-                );
+                ));
             }
         }
     }
@@ -286,7 +287,7 @@ bool VulkanContext::initializeLocked()
 
     if (vkCreateInstance(&instanceCreateInfo, nullptr, &Instance) != VK_SUCCESS)
     {
-        Platform::Log(Platform::LogLevel::Error, "VulkanContext: vkCreateInstance failed");
+        EMUCORED_DIAGNOSTIC_LOG(Platform::Log(Platform::LogLevel::Error, "VulkanContext: vkCreateInstance failed"));
         shutdownLocked();
         return false;
     }
@@ -307,11 +308,11 @@ bool VulkanContext::initializeLocked()
             );
             if (messengerResult != VK_SUCCESS)
             {
-                Platform::Log(
+                EMUCORED_DIAGNOSTIC_LOG(Platform::Log(
                     Platform::LogLevel::Warn,
                     "VulkanContext: failed to create debug utils messenger (%d)",
                     static_cast<int>(messengerResult)
-                );
+                ));
             }
         }
     }
@@ -319,7 +320,7 @@ bool VulkanContext::initializeLocked()
     u32 physicalDeviceCount = 0;
     if (vkEnumeratePhysicalDevices(Instance, &physicalDeviceCount, nullptr) != VK_SUCCESS || physicalDeviceCount == 0)
     {
-        Platform::Log(Platform::LogLevel::Error, "VulkanContext: no physical devices found");
+        EMUCORED_DIAGNOSTIC_LOG(Platform::Log(Platform::LogLevel::Error, "VulkanContext: no physical devices found"));
         shutdownLocked();
         return false;
     }
@@ -353,12 +354,12 @@ bool VulkanContext::initializeLocked()
             if (!hasExtension(requiredExtension, deviceExtensions))
             {
                 hasRequiredExtensions = false;
-                Platform::Log(
+                EMUCORED_DIAGNOSTIC_LOG(Platform::Log(
                     Platform::LogLevel::Warn,
                     "VulkanContext: device '%s' missing extension %s",
                     deviceProperties.deviceName,
                     requiredExtension
-                );
+                ));
                 break;
             }
         }
@@ -383,22 +384,22 @@ bool VulkanContext::initializeLocked()
         }
         else if (hasAndroidHardwareBufferExtension && !hasExternalMemoryExtension)
         {
-            Platform::Log(
+            EMUCORED_DIAGNOSTIC_LOG(Platform::Log(
                 Platform::LogLevel::Warn,
                 "VulkanContext: device '%s' reports %s without %s; disabling AndroidHardwareBuffer interop",
                 deviceProperties.deviceName,
                 kOptionalAndroidHardwareBufferExtension,
                 kOptionalExternalMemoryExtension
-            );
+            ));
         }
         else if (!hasAndroidHardwareBufferExtension)
         {
-            Platform::Log(
+            EMUCORED_DIAGNOSTIC_LOG(Platform::Log(
                 Platform::LogLevel::Warn,
                 "VulkanContext: device '%s' missing optional extension %s; continuing without AndroidHardwareBuffer interop",
                 deviceProperties.deviceName,
                 kOptionalAndroidHardwareBufferExtension
-            );
+            ));
         }
         const bool hasHostQueryReset = hasExtension(kOptionalHostQueryResetExtension, deviceExtensions);
         if (hasHostQueryReset)
@@ -475,28 +476,28 @@ bool VulkanContext::initializeLocked()
         {
             if (ForceDisableTimelineSemaphores)
             {
-                Platform::Log(
+                EMUCORED_DIAGNOSTIC_LOG(Platform::Log(
                     Platform::LogLevel::Warn,
                     "VulkanContext: forcing timeline semaphore fallback on '%s'",
                     deviceProperties.deviceName
-                );
+                ));
             }
             else if (!timelineFeatureAvailable)
             {
-                Platform::Log(
+                EMUCORED_DIAGNOSTIC_LOG(Platform::Log(
                     Platform::LogLevel::Warn,
                     "VulkanContext: device '%s' missing feature timelineSemaphore; using fence-based sync fallback",
                     deviceProperties.deviceName
-                );
+                ));
             }
             else
             {
-                Platform::Log(
+                EMUCORED_DIAGNOSTIC_LOG(Platform::Log(
                     Platform::LogLevel::Warn,
                     "VulkanContext: device '%s' missing extension %s for timeline semaphores; using fence-based sync fallback",
                     deviceProperties.deviceName,
                     kTimelineSemaphoreExtension
-                );
+                ));
             }
         }
 
@@ -508,19 +509,19 @@ bool VulkanContext::initializeLocked()
         {
             if (ForceDisableDynamicTextureIndexing)
             {
-                Platform::Log(
+                EMUCORED_DIAGNOSTIC_LOG(Platform::Log(
                     Platform::LogLevel::Warn,
                     "VulkanContext: forcing dynamic-indexing fallback on '%s'",
                     deviceProperties.deviceName
-                );
+                ));
             }
             else
             {
-                Platform::Log(
+                EMUCORED_DIAGNOSTIC_LOG(Platform::Log(
                     Platform::LogLevel::Warn,
                     "VulkanContext: device '%s' missing feature shaderSampledImageArrayDynamicIndexing; using single-descriptor texture fallback",
                     deviceProperties.deviceName
-                );
+                ));
             }
         }
 
@@ -548,7 +549,7 @@ bool VulkanContext::initializeLocked()
 
         const u32 colasDisponibles =
             queueFamilies[static_cast<size_t>(selectedQueueFamily)].queueCount;
-        static const bool sinCola2 = std::getenv("MELON_SIN_COLA2") != nullptr;
+        static const bool sinCola2 = EMUCORED_DIAGNOSTIC_ENV("MELON_SIN_COLA2") != nullptr;
         const u32 colasPedidas = (!sinCola2 && colasDisponibles >= 2u) ? 2u : 1u;
         const float queuePriorities[2] = {1.0f, 1.0f};
         VkDeviceQueueCreateInfo queueCreateInfo{};
@@ -575,12 +576,12 @@ bool VulkanContext::initializeLocked()
         const VkResult createDeviceResult = vkCreateDevice(candidate, &deviceCreateInfo, nullptr, &Device);
         if (createDeviceResult != VK_SUCCESS)
         {
-            Platform::Log(
+            EMUCORED_DIAGNOSTIC_LOG(Platform::Log(
                 Platform::LogLevel::Warn,
                 "VulkanContext: vkCreateDevice failed for '%s' (%d)",
                 deviceProperties.deviceName,
                 static_cast<int>(createDeviceResult)
-            );
+            ));
             continue;
         }
 
@@ -599,7 +600,7 @@ bool VulkanContext::initializeLocked()
         DisplayTimingSupported = enableDisplayTiming;
         DynamicTextureIndexingSupported = enableDynamicTextureIndexing;
         DeviceProfile = candidateProfile;
-        Platform::Log(
+        EMUCORED_DIAGNOSTIC_LOG(Platform::Log(
             Platform::LogLevel::Warn,
             "VulkanContext: selected '%s' (vendor=%#x device=%#x adreno=%d mali=%d powervr=%d g52=%d timeline=%d dynamicIndexing=%d nonUniformTextures=0 ahbInterop=%d forceTimelineOff=%d forceDynamicOff=%d)",
             deviceProperties.deviceName,
@@ -614,14 +615,14 @@ bool VulkanContext::initializeLocked()
             enableAhbInterop ? 1 : 0,
             ForceDisableTimelineSemaphores ? 1 : 0,
             ForceDisableDynamicTextureIndexing ? 1 : 0
-        );
+        ));
         ahbInteropRequested = enableAhbInterop;
         break;
     }
 
     if (Device == VK_NULL_HANDLE || Queue == VK_NULL_HANDLE)
     {
-        Platform::Log(Platform::LogLevel::Error, "VulkanContext: failed to create logical device");
+        EMUCORED_DIAGNOSTIC_LOG(Platform::Log(Platform::LogLevel::Error, "VulkanContext: failed to create logical device"));
         shutdownLocked();
         return false;
     }
@@ -631,10 +632,10 @@ bool VulkanContext::initializeLocked()
     );
     if (AhbProperties == nullptr && ahbInteropRequested)
     {
-        Platform::Log(
+        EMUCORED_DIAGNOSTIC_LOG(Platform::Log(
             Platform::LogLevel::Warn,
             "VulkanContext: optional proc vkGetAndroidHardwareBufferPropertiesANDROID unavailable; continuing without AndroidHardwareBuffer interop"
-        );
+        ));
     }
 
     WaitSemaphores = reinterpret_cast<PFN_vkWaitSemaphoresKHR>(

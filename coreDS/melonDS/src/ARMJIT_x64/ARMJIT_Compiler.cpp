@@ -1,3 +1,4 @@
+#include "../../../bridge/ds_diagnostics.h"
 /*
     Copyright 2016-2025 melonDS team
 
@@ -692,12 +693,12 @@ JitBlockEntry Compiler::CompileBlock(ARM* cpu, bool thumb, FetchedInstr instrs[]
 {
     if (NearSize - (GetCodePtr() - NearStart) < 1024 * 32) // guess...
     {
-        Log(LogLevel::Debug, "near reset\n");
+        EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Debug, "near reset\n"));
         NDS.JIT.ResetBlockCache();
     }
     if (FarSize - (FarCode - FarStart) < 1024 * 32) // guess...
     {
-        Log(LogLevel::Debug, "far reset\n");
+        EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Debug, "far reset\n"));
         NDS.JIT.ResetBlockCache();
     }
 

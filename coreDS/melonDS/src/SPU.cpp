@@ -1,3 +1,4 @@
+#include "../../bridge/ds_diagnostics.h"
 /*
     Copyright 2016-2025 melonDS team
 
@@ -8796,7 +8797,7 @@ u8 SPU::Read8(u32 addr)
         }
     }
 
-    Log(LogLevel::Warn, "unknown SPU read8 %08X\n", addr);
+    EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Warn, "unknown SPU read8 %08X\n", addr));
     return 0;
 }
 
@@ -8823,7 +8824,7 @@ u16 SPU::Read16(u32 addr)
         }
     }
 
-    Log(LogLevel::Warn, "unknown SPU read16 %08X\n", addr);
+    EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Warn, "unknown SPU read16 %08X\n", addr));
     return 0;
 }
 
@@ -8852,7 +8853,7 @@ u32 SPU::Read32(u32 addr)
         }
     }
 
-    Log(LogLevel::Warn, "unknown SPU read32 %08X\n", addr);
+    EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Warn, "unknown SPU read32 %08X\n", addr));
     return 0;
 }
 
@@ -8892,7 +8893,7 @@ void SPU::Write8(u32 addr, u8 val)
         }
     }
 
-    Log(LogLevel::Warn, "unknown SPU write8 %08X %02X\n", addr, val);
+    EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Warn, "unknown SPU write8 %08X %02X\n", addr, val));
 }
 
 void SPU::Write16(u32 addr, u16 val)
@@ -8940,7 +8941,7 @@ void SPU::Write16(u32 addr, u16 val)
         }
     }
 
-    Log(LogLevel::Warn, "unknown SPU write16 %08X %04X\n", addr, val);
+    EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Warn, "unknown SPU write16 %08X %04X\n", addr, val));
 }
 
 void SPU::Write32(u32 addr, u32 val)

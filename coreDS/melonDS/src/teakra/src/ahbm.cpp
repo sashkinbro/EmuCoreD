@@ -1,3 +1,4 @@
+#include "../../../../bridge/ds_diagnostics.h"
 #include <cstdio>
 #include "ahbm.h"
 #include "../../Savestate.h"
@@ -52,7 +53,7 @@ unsigned Ahbm::Channel::GetBurstSize() {
     case Ahbm::BurstSize::X8:
         return 8;
     default:
-        std::printf("Unknown burst size %04X\n", static_cast<u16>(burst_size));
+        EMUCORED_DIAGNOSTIC_LOG(std::printf("Unknown burst size %04X\n", static_cast<u16>(burst_size)));
         return 1;
     }
 }
@@ -67,7 +68,7 @@ u16 Ahbm::Read16(u16 channel, u32 address) {
 }
 u32 Ahbm::Read32(u16 channel, u32 address) {
     if (channels[channel].direction != Direction::Read) {
-        std::printf("Wrong direction!\n");
+        EMUCORED_DIAGNOSTIC_LOG(std::printf("Wrong direction!\n"));
     }
 
     if (channels[channel].burst_queue.empty()) {
@@ -96,8 +97,8 @@ u32 Ahbm::Read32(u16 channel, u32 address) {
                 break;
             }
             default:
-                std::printf("Unknown unit size %04X\n",
-                            static_cast<u16>(channels[channel].unit_size));
+                EMUCORED_DIAGNOSTIC_LOG(std::printf("Unknown unit size %04X\n",
+                            static_cast<u16>(channels[channel].unit_size)));
                 break;
             }
             channels[channel].burst_queue.push(value);
@@ -120,7 +121,7 @@ void Ahbm::Write32(u16 channel, u32 address, u32 value) {
 
 void Ahbm::WriteInternal(u16 channel, u32 address, u32 value) {
     if (channels[channel].direction != Direction::Write) {
-        std::printf("Wrong direction!\n");
+        EMUCORED_DIAGNOSTIC_LOG(std::printf("Wrong direction!\n"));
     }
 
     if (channels[channel].burst_queue.empty()) {
@@ -173,8 +174,8 @@ void Ahbm::WriteInternal(u16 channel, u32 address, u32 value) {
                 break;
             }
             default:
-                std::printf("Unknown unit size %04X\n",
-                            static_cast<u16>(channels[channel].unit_size));
+                EMUCORED_DIAGNOSTIC_LOG(std::printf("Unknown unit size %04X\n",
+                            static_cast<u16>(channels[channel].unit_size)));
                 break;
             }
         }
@@ -187,7 +188,7 @@ u16 Ahbm::GetChannelForDma(u16 dma_channel) const {
             return channel;
         }
     }
-    std::printf("Could not find AHBM channel for DMA channel %04X\n", dma_channel);
+    EMUCORED_DIAGNOSTIC_LOG(std::printf("Could not find AHBM channel for DMA channel %04X\n", dma_channel));
     return 0;
 }
 

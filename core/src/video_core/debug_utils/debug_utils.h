@@ -191,7 +191,11 @@ extern bool g_is_pica_tracing;
 
 void StartPicaTracing();
 inline bool IsPicaTracing() {
+#if defined(EMUCORED_DIAGNOSTICS) && !EMUCORED_DIAGNOSTICS
+    return false;
+#else
     return g_is_pica_tracing;
+#endif
 }
 void OnPicaRegWrite(u16 cmd_id, u16 mask, u32 value);
 std::unique_ptr<PicaTrace> FinishPicaTracing();

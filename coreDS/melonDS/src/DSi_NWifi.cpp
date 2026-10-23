@@ -1,3 +1,4 @@
+#include "../../bridge/ds_diagnostics.h"
 /*
     Copyright 2016-2025 melonDS team
 
@@ -168,8 +169,8 @@ void DSi_NWifi::Reset()
     const Firmware& fw = DSi.SPI.GetFirmware();
 
     MacAddress mac = fw.GetHeader().MacAddr;
-    Log(LogLevel::Info, "NWifi MAC: %02X:%02X:%02X:%02X:%02X:%02X\n",
-           mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
+    EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Info, "NWifi MAC: %02X:%02X:%02X:%02X:%02X:%02X\n",
+           mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]));
 
     Firmware::WifiBoard type = fw.GetHeader().WifiBoard;
     switch (type)
@@ -190,11 +191,11 @@ void DSi_NWifi::Reset()
         ROMID = 0x2300006F;
         ChipID = 0x0D000001;
         HostIntAddr = 0x00520000;
-        Log(LogLevel::Info, "NWifi: hardware is 3DS type, unchecked\n");
+        EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Info, "NWifi: hardware is 3DS type, unchecked\n"));
         break;
 
     default:
-        Log(LogLevel::Warn, "NWifi: unknown hardware type 0x%x, assuming AR6002\n", static_cast<u8>(type));
+        EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Warn, "NWifi: unknown hardware type 0x%x, assuming AR6002\n", static_cast<u8>(type)));
         ROMID = 0x20000188;
         ChipID = 0x02000001;
         HostIntAddr = 0x00500400;
@@ -365,7 +366,7 @@ u8 DSi_NWifi::F0_Read(u32 addr)
         return CIS1[addr & 0xFF];
     }
 
-    Log(LogLevel::Debug, "NWIFI: unknown func0 read %05X\n", addr);
+    EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Debug, "NWIFI: unknown func0 read %05X\n", addr));
     return 0;
 }
 
@@ -379,7 +380,7 @@ void DSi_NWifi::F0_Write(u32 addr, u8 val)
         return;
     }
 
-    Log(LogLevel::Debug, "NWIFI: unknown func0 write %05X %02X\n", addr, val);
+    EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Debug, "NWIFI: unknown func0 write %05X %02X\n", addr, val));
 }
 
 
@@ -492,7 +493,7 @@ void DSi_NWifi::F1_Write(u32 addr, u8 val)
 {
     if (addr < 0x100)
     {
-        if (Mailbox[0].IsFull()) Log(LogLevel::Debug, "!!! NWIFI: MBOX0 FULL\n");
+        if (Mailbox[0].IsFull()) EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Debug, "!!! NWIFI: MBOX0 FULL\n"));
         Mailbox[0].Write(val);
         if (addr == 0xFF) HandleCommand();
         UpdateIRQ_F1();
@@ -500,21 +501,21 @@ void DSi_NWifi::F1_Write(u32 addr, u8 val)
     }
     else if (addr < 0x200)
     {
-        if (Mailbox[1].IsFull()) Log(LogLevel::Debug, "!!! NWIFI: MBOX1 FULL\n");
+        if (Mailbox[1].IsFull()) EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Debug, "!!! NWIFI: MBOX1 FULL\n"));
         Mailbox[1].Write(val);
         UpdateIRQ_F1();
         return;
     }
     else if (addr < 0x300)
     {
-        if (Mailbox[2].IsFull()) Log(LogLevel::Debug, "!!! NWIFI: MBOX2 FULL\n");
+        if (Mailbox[2].IsFull()) EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Debug, "!!! NWIFI: MBOX2 FULL\n"));
         Mailbox[2].Write(val);
         UpdateIRQ_F1();
         return;
     }
     else if (addr < 0x400)
     {
-        if (Mailbox[3].IsFull()) Log(LogLevel::Debug, "!!! NWIFI: MBOX3 FULL\n");
+        if (Mailbox[3].IsFull()) EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Debug, "!!! NWIFI: MBOX3 FULL\n"));
         Mailbox[3].Write(val);
         UpdateIRQ_F1();
         return;
@@ -555,7 +556,7 @@ void DSi_NWifi::F1_Write(u32 addr, u8 val)
     }
     else if (addr < 0x1000)
     {
-        if (Mailbox[0].IsFull()) Log(LogLevel::Debug, "!!! NWIFI: MBOX0 FULL\n");
+        if (Mailbox[0].IsFull()) EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Debug, "!!! NWIFI: MBOX0 FULL\n"));
         Mailbox[0].Write(val);
         if (addr == 0xFFF) HandleCommand();
         UpdateIRQ_F1();
@@ -563,35 +564,35 @@ void DSi_NWifi::F1_Write(u32 addr, u8 val)
     }
     else if (addr < 0x1800)
     {
-        if (Mailbox[1].IsFull()) Log(LogLevel::Debug, "!!! NWIFI: MBOX1 FULL\n");
+        if (Mailbox[1].IsFull()) EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Debug, "!!! NWIFI: MBOX1 FULL\n"));
         Mailbox[1].Write(val);
         UpdateIRQ_F1();
         return;
     }
     else if (addr < 0x2000)
     {
-        if (Mailbox[2].IsFull()) Log(LogLevel::Debug, "!!! NWIFI: MBOX2 FULL\n");
+        if (Mailbox[2].IsFull()) EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Debug, "!!! NWIFI: MBOX2 FULL\n"));
         Mailbox[2].Write(val);
         UpdateIRQ_F1();
         return;
     }
     else if (addr < 0x2800)
     {
-        if (Mailbox[3].IsFull()) Log(LogLevel::Debug, "!!! NWIFI: MBOX3 FULL\n");
+        if (Mailbox[3].IsFull()) EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Debug, "!!! NWIFI: MBOX3 FULL\n"));
         Mailbox[3].Write(val);
         UpdateIRQ_F1();
         return;
     }
     else
     {
-        if (Mailbox[0].IsFull()) Log(LogLevel::Debug, "!!! NWIFI: MBOX0 FULL\n");
+        if (Mailbox[0].IsFull()) EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Debug, "!!! NWIFI: MBOX0 FULL\n"));
         Mailbox[0].Write(val);
         if (addr == 0x3FFF) HandleCommand(); // CHECKME
         UpdateIRQ_F1();
         return;
     }
 
-    Log(LogLevel::Debug, "NWIFI: unknown func1 write %05X %02X\n", addr, val);
+    EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Debug, "NWIFI: unknown func1 write %05X %02X\n", addr, val));
 }
 
 
@@ -603,7 +604,7 @@ u8 DSi_NWifi::SDIO_Read(u32 func, u32 addr)
     case 1: return F1_Read(addr);
     }
 
-    Log(LogLevel::Debug, "NWIFI: unknown SDIO read %d %05X\n", func, addr);
+    EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Debug, "NWIFI: unknown SDIO read %d %05X\n", func, addr));
     return 0;
 }
 
@@ -615,7 +616,7 @@ void DSi_NWifi::SDIO_Write(u32 func, u32 addr, u8 val)
     case 1: return F1_Write(addr, val);
     }
 
-    Log(LogLevel::Debug, "NWIFI: unknown SDIO write %d %05X %02X\n", func, addr, val);
+    EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Debug, "NWIFI: unknown SDIO write %d %05X %02X\n", func, addr, val));
 }
 
 
@@ -688,12 +689,12 @@ void DSi_NWifi::SendCMD(u8 cmd, u32 param)
         return;
     }
 
-    Log(LogLevel::Warn, "NWIFI: unknown CMD %d %08X\n", cmd, param);
+    EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Warn, "NWIFI: unknown CMD %d %08X\n", cmd, param));
 }
 
 void DSi_NWifi::SendACMD(u8 cmd, u32 param)
 {
-    Log(LogLevel::Warn, "NWIFI: unknown ACMD %d %08X\n", cmd, param);
+    EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Warn, "NWIFI: unknown ACMD %d %08X\n", cmd, param));
 }
 
 void DSi_NWifi::ContinueTransfer()
@@ -784,7 +785,7 @@ void DSi_NWifi::BMI_Command()
     {
     case 0x01: // BMI_DONE
         {
-            Log(LogLevel::Debug, "BMI_DONE\n");
+            EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Debug, "BMI_DONE\n"));
             EEPROMReady = 1; // GROSS FUCKING HACK
             u8 ready_msg[6] = {0x0A, 0x00, 0x08, 0x06, 0x16, 0x00};
             SendWMIEvent(0, 0x0001, ready_msg, 6);
@@ -796,7 +797,7 @@ void DSi_NWifi::BMI_Command()
         {
             u32 addr = MB_Read32(0);
             u32 len = MB_Read32(0);
-            Log(LogLevel::Debug, "BMI mem write %08X %08X\n", addr, len);
+            EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Debug, "BMI mem write %08X %08X\n", addr, len));
 
             for (u32 i = 0; i < len; i++)
             {
@@ -812,7 +813,7 @@ void DSi_NWifi::BMI_Command()
             u32 entry = MB_Read32(0);
             u32 arg = MB_Read32(0);
 
-            Log(LogLevel::Debug, "BMI_EXECUTE %08X %08X\n", entry, arg);
+            EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Debug, "BMI_EXECUTE %08X %08X\n", entry, arg));
         }
         return;
 
@@ -842,14 +843,14 @@ void DSi_NWifi::BMI_Command()
     case 0x0D: // BMI_LZ_STREAM_START
         {
             u32 addr = MB_Read32(0);
-            Log(LogLevel::Debug, "BMI_LZ_STREAM_START %08X\n", addr);
+            EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Debug, "BMI_LZ_STREAM_START %08X\n", addr));
         }
         return;
 
     case 0x0E: // BMI_LZ_DATA
         {
             u32 len = MB_Read32(0);
-            Log(LogLevel::Debug, "BMI LZ write %08X\n", len);
+            EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Debug, "BMI LZ write %08X\n", len));
             //FILE* f = fopen("debug/wififirm.bin", "ab");
 
             for (u32 i = 0; i < len; i++)
@@ -864,7 +865,7 @@ void DSi_NWifi::BMI_Command()
         return;
 
     default:
-        Log(LogLevel::Warn, "unknown BMI command %08X\n", cmd);
+        EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Warn, "unknown BMI command %08X\n", cmd));
         return;
     }
 }
@@ -883,7 +884,7 @@ void DSi_NWifi::HTC_Command()
         {
             u16 svc_id = MB_Read16(0);
             u16 conn_flags = MB_Read16(0);
-            Log(LogLevel::Debug, "service connect %04X %04X %04X\n", svc_id, conn_flags, MB_Read16(0));
+            EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Debug, "service connect %04X %04X %04X\n", svc_id, conn_flags, MB_Read16(0)));
 
             u8 svc_resp[8];
             // responses from hardware:
@@ -920,13 +921,13 @@ void DSi_NWifi::HTC_Command()
         break;
 
     default:
-        Log(LogLevel::Warn, "unknown HTC command %04X\n", cmd);
+        EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Warn, "unknown HTC command %04X\n", cmd));
         for (int i = 0; i < len; i++)
         {
-            printf("%02X ", Mailbox[0].Read());
-            if ((i&0xF)==0xF) printf("\n");
+            EMUCORED_DIAGNOSTIC_LOG(printf("%02X ", Mailbox[0].Read()));
+            if ((i&0xF)==0xF) EMUCORED_DIAGNOSTIC_LOG(printf("\n"));
         }
-        printf("\n");
+        EMUCORED_DIAGNOSTIC_LOG(printf("\n"));
         break;
     }
 
@@ -959,9 +960,9 @@ void DSi_NWifi::WMI_Command()
         case 0x0003: // disconnect
             {
                 if (ConnectionStatus != 1)
-                    Log(LogLevel::Warn, "WMI: ?? trying to disconnect while not connected\n");
+                    EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Warn, "WMI: ?? trying to disconnect while not connected\n"));
 
-                Log(LogLevel::Debug, "WMI: disconnect\n");
+                EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Debug, "WMI: disconnect\n"));
                 ConnectionStatus = 0;
 
                 u8 reply[11];
@@ -997,12 +998,12 @@ void DSi_NWifi::WMI_Command()
                 u8 scantype = Mailbox[0].Read();
                 u8 nchannels = Mailbox[0].Read();
 
-                Log(LogLevel::Debug, "WMI: start scan, forceFG=%d, legacy=%d, scanTime=%d, interval=%d, scanType=%d, chan=%d\n",
-                       forcefg, legacy, scantime, forceinterval, scantype, nchannels);
+                EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Debug, "WMI: start scan, forceFG=%d, legacy=%d, scanTime=%d, interval=%d, scanType=%d, chan=%d\n",
+                       forcefg, legacy, scantime, forceinterval, scantype, nchannels));
 
                 if (ScanTimer > 0)
                 {
-                    Log(LogLevel::Debug, "!! CHECKME: START SCAN BUT WAS ALREADY SCANNING (%d)\n", ScanTimer);
+                    EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Debug, "!! CHECKME: START SCAN BUT WAS ALREADY SCANNING (%d)\n", ScanTimer));
                 }
 
                 // checkme
@@ -1025,7 +1026,7 @@ void DSi_NWifi::WMI_Command()
                 Mailbox[0].Read();
                 u32 iemask = MB_Read32(0);
 
-                Log(LogLevel::Debug, "WMI: set BSS filter, filter=%02X, iemask=%08X\n", bssfilter, iemask);
+                EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Debug, "WMI: set BSS filter, filter=%02X, iemask=%08X\n", bssfilter, iemask));
             }
             break;
 
@@ -1040,7 +1041,7 @@ void DSi_NWifi::WMI_Command()
                     ssid[i] = Mailbox[0].Read();
 
                 // TODO: store it somewhere
-                Log(LogLevel::Debug, "WMI: set probed SSID: id=%d, flags=%02X, len=%d, SSID=%s\n", id, flags, len, ssid);
+                EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Debug, "WMI: set probed SSID: id=%d, flags=%02X, len=%d, SSID=%s\n", id, flags, len, ssid));
                 SendBSSInfo = flags == 0 || strcmp(ssid, WifiAP::APName) == 0;
             }
             break;
@@ -1079,10 +1080,10 @@ void DSi_NWifi::WMI_Command()
                     channels[i] = MB_Read16(0);
 
                 // TODO: store it somewhere
-                Log(LogLevel::Debug, "WMI: set channel params: scan=%d, phymode=%d, len=%d, channels=", scan, phymode, len);
+                EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Debug, "WMI: set channel params: scan=%d, phymode=%d, len=%d, channels=", scan, phymode, len));
                 for (int i = 0; i < len && i < 32; i++)
-                    printf("%d,", channels[i]);
-                printf("\n");
+                    EMUCORED_DIAGNOSTIC_LOG(printf("%d,", channels[i]));
+                EMUCORED_DIAGNOSTIC_LOG(printf("\n"));
             }
             break;
 
@@ -1123,7 +1124,7 @@ void DSi_NWifi::WMI_Command()
                     break;
 
                 default:
-                    Log(LogLevel::Warn, "WMI: unknown ext cmd 002E:%04X\n", extcmd);
+                    EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Warn, "WMI: unknown ext cmd 002E:%04X\n", extcmd));
                     break;
                 }
             }
@@ -1174,13 +1175,13 @@ void DSi_NWifi::WMI_Command()
             break;
 
         default:
-            Log(LogLevel::Warn, "unknown WMI command %04X (header: %04X:%04X:%04X)\n", cmd, h0, len, h2);
+            EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Warn, "unknown WMI command %04X (header: %04X:%04X:%04X)\n", cmd, h0, len, h2));
             for (int i = 0; i < len-2; i++)
             {
-                printf("%02X ", Mailbox[0].Read());
-                if ((i&0xF)==0xF) printf("\n");
+                EMUCORED_DIAGNOSTIC_LOG(printf("%02X ", Mailbox[0].Read()));
+                if ((i&0xF)==0xF) EMUCORED_DIAGNOSTIC_LOG(printf("\n"));
             }
-            printf("\n");
+            EMUCORED_DIAGNOSTIC_LOG(printf("\n"));
             break;
         }
     }
@@ -1223,12 +1224,12 @@ void DSi_NWifi::WMI_ConnectToNetwork()
         (gCryptoType != 0x01) ||
         (memcmp(bssid, WifiAP::APMac, 6)))
     {
-        Log(LogLevel::Error, "WMI_Connect: bad parameters\n");
+        EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error, "WMI_Connect: bad parameters\n"));
         // TODO: send disconnect??
         return;
     }
 
-    Log(LogLevel::Debug, "WMI: connecting to network %s\n", ssid);
+    EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Debug, "WMI: connecting to network %s\n", ssid));
 
     u8 reply[20];
 
@@ -1253,7 +1254,7 @@ void DSi_NWifi::WMI_SendPacket(u16 len)
 {
     if (ConnectionStatus != 1)
     {
-        Log(LogLevel::Warn, "WMI: !! trying to send shit while not connected\n");
+        EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Warn, "WMI: !! trying to send shit while not connected\n"));
         // TODO: report error??
         return;
     }
@@ -1268,7 +1269,7 @@ void DSi_NWifi::WMI_SendPacket(u16 len)
 
     if (type == 2) // data sync
     {
-        Log(LogLevel::Debug, "WMI: data sync\n");
+        EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Debug, "WMI: data sync\n"));
 
         /*Mailbox[8].Write(2);    // eid
         Mailbox[8].Write(0x00);  // flags
@@ -1283,17 +1284,17 @@ void DSi_NWifi::WMI_SendPacket(u16 len)
 
     if (type)
     {
-        Log(LogLevel::Debug, "WMI: special frame %04X len=%d\n", hdr, len);
+        EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Debug, "WMI: special frame %04X len=%d\n", hdr, len));
         for (int i = 0; i < len-2; i++)
         {
-            printf("%02X ", Mailbox[0].Read());
-            if ((i&0xF)==0xF) printf("\n");
+            EMUCORED_DIAGNOSTIC_LOG(printf("%02X ", Mailbox[0].Read()));
+            if ((i&0xF)==0xF) EMUCORED_DIAGNOSTIC_LOG(printf("\n"));
         }
-        printf("\n");
+        EMUCORED_DIAGNOSTIC_LOG(printf("\n"));
         return;
     }
 
-    Log(LogLevel::Debug, "WMI: send packet, hdr=%04X, len=%d\n", hdr, len);
+    EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Debug, "WMI: send packet, hdr=%04X, len=%d\n", hdr, len));
 
     u8 dstmac[6];
     u8 srcmac[6];
@@ -1308,7 +1309,7 @@ void DSi_NWifi::WMI_SendPacket(u16 len)
 
     if (plen > len-16)
     {
-        Log(LogLevel::Error, "WMI: bad packet length %d > %d\n", plen, len-16);
+        EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error, "WMI: bad packet length %d > %d\n", plen, len-16));
         return;
     }
 
@@ -1317,7 +1318,7 @@ void DSi_NWifi::WMI_SendPacket(u16 len)
 
     if (h0 != 0x0003AAAA || h1 != 0x0000)
     {
-        Log(LogLevel::Error, "WMI: bad LLC/SLIP header\n");
+        EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error, "WMI: bad LLC/SLIP header\n"));
         return;
     }
 
@@ -1347,7 +1348,7 @@ void DSi_NWifi::SendWMIEvent(u8 ep, u16 id, u8* data, u32 len)
 {
     if (!Mailbox[8].CanFit(6+len+2+8))
     {
-        Log(LogLevel::Error, "NWifi: !! not enough space in RX buffer for WMI event %04X\n", id);
+        EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error, "NWifi: !! not enough space in RX buffer for WMI event %04X\n", id));
         return;
     }
 
@@ -1380,7 +1381,7 @@ void DSi_NWifi::SendWMIAck(u8 ep)
 {
     if (!Mailbox[8].CanFit(6+12))
     {
-        Log(LogLevel::Error, "NWifi: !! not enough space in RX buffer for WMI ack (ep #%d)\n", ep);
+        EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error, "NWifi: !! not enough space in RX buffer for WMI ack (ep #%d)\n", ep));
         return;
     }
 
@@ -1412,13 +1413,13 @@ void DSi_NWifi::SendWMIAck(u8 ep)
 void DSi_NWifi::SendWMIBSSInfo(u8 type, u8* data, u32 len)
 {
     if (!SendBSSInfo) {
-        Log(LogLevel::Info, "NWifi: melonAP filtered, not sending WMI BSSINFO event\n");
+        EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Info, "NWifi: melonAP filtered, not sending WMI BSSINFO event\n"));
         return;
     }
 
     if (!Mailbox[8].CanFit(6+len+2+16))
     {
-        Log(LogLevel::Error, "NWifi: !! not enough space in RX buffer for WMI BSSINFO event\n");
+        EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error, "NWifi: !! not enough space in RX buffer for WMI BSSINFO event\n"));
         return;
     }
 
@@ -1475,7 +1476,7 @@ void DSi_NWifi::CheckRX()
 
         // packet is good
 
-        Log(LogLevel::Debug, "WMI: receive packet %04X, len=%d\n", *(u16*)&LANBuffer[12], rxlen);
+        EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Debug, "WMI: receive packet %04X, len=%d\n", *(u16*)&LANBuffer[12], rxlen));
 
         /*for (int i = 0; i < rxlen; i++)
         {
@@ -1525,7 +1526,7 @@ void DSi_NWifi::CheckRX()
 
 u32 DSi_NWifi::WindowRead(u32 addr)
 {
-    Log(LogLevel::Debug, "NWifi: window read %08X\n", addr);
+    EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Debug, "NWifi: window read %08X\n", addr));
 
     if ((addr & 0xFFFF00) == HostIntAddr)
     {
@@ -1564,7 +1565,7 @@ u32 DSi_NWifi::WindowRead(u32 addr)
 
 void DSi_NWifi::WindowWrite(u32 addr, u32 val)
 {
-    Log(LogLevel::Debug, "NWifi: window write %08X %08X\n", addr, val);
+    EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Debug, "NWifi: window write %08X %08X\n", addr, val));
 }
 
 
@@ -1610,7 +1611,7 @@ void DSi_NWifi::MSTimer(u32 param)
             };
 
             SendWMIBSSInfo(0x01, beacon, sizeof(beacon));
-            Log(LogLevel::Debug, "send beacon\n");
+            EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Debug, "send beacon\n"));
         }
 
         if (ScanTimer == 0)

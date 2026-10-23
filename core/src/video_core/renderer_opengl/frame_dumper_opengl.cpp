@@ -14,6 +14,7 @@
 
 namespace OpenGL {
 
+#if !defined(EMUCORED_DIAGNOSTICS) || EMUCORED_DIAGNOSTICS
 FrameDumperOpenGL::FrameDumperOpenGL(Core::System& system_, Frontend::EmuWindow& emu_window)
     : system{system_}, context{emu_window.CreateSharedContext()} {}
 
@@ -103,5 +104,13 @@ void FrameDumperOpenGL::CleanupOpenGLObjects() {
         buffer.Release();
     }
 }
+#else
+FrameDumperOpenGL::FrameDumperOpenGL(Core::System&, Frontend::EmuWindow&) {}
+FrameDumperOpenGL::~FrameDumperOpenGL() = default;
+bool FrameDumperOpenGL::IsDumping() const { return false; }
+Layout::FramebufferLayout FrameDumperOpenGL::GetLayout() const { return {}; }
+void FrameDumperOpenGL::StartDumping() {}
+void FrameDumperOpenGL::StopDumping() {}
+#endif
 
 } // namespace OpenGL

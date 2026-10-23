@@ -1,3 +1,4 @@
+#include "../../bridge/ds_diagnostics.h"
 #include "GPU3D_AcceleratedFrontend.h"
 
 #include <algorithm>
@@ -429,8 +430,8 @@ void BuildAcceleratedScene(
         const Polygon* polygon = gpu3d.RenderPolygonRAM[polygonIndex];
 
         {
-            static const char* sondaPolyEnv = getenv("MELON_SONDA_POLY");
-            static const char* sondaPolyNvEnv = getenv("MELON_SONDA_POLY_NV");
+            static const char* sondaPolyEnv = EMUCORED_DIAGNOSTIC_ENV("MELON_SONDA_POLY");
+            static const char* sondaPolyNvEnv = EMUCORED_DIAGNOSTIC_ENV("MELON_SONDA_POLY_NV");
             static int sondaPolyRestantes = sondaPolyEnv ? 2000 : 0;
             static u32 sondaPolyFiltro = sondaPolyEnv ? (u32)strtoul(sondaPolyEnv, nullptr, 16) : 0u;
             static u32 sondaPolyNv = sondaPolyNvEnv ? (u32)strtoul(sondaPolyNvEnv, nullptr, 10) : 0u;
@@ -439,23 +440,23 @@ void BuildAcceleratedScene(
                 && (sondaPolyFiltro == 0u || (polygon->TexParam & 0xFFFFu) == sondaPolyFiltro))
             {
                 if (polygonIndex == 0)
-                    fprintf(stderr, "[polyf] numPolys=%u\n", renderPolygonCount);
+                    EMUCORED_DIAGNOSTIC_LOG(fprintf(stderr, "[polyf] numPolys=%u\n", renderPolygonCount));
                 sondaPolyRestantes--;
-                fprintf(stderr, "[poly] i=%u nv=%u deg=%d wbuf=%d tra=%d texp=%08X attr=%08X\n",
+                EMUCORED_DIAGNOSTIC_LOG(fprintf(stderr, "[poly] i=%u nv=%u deg=%d wbuf=%d tra=%d texp=%08X attr=%08X\n",
                     polygonIndex, polygon->NumVertices, polygon->Degenerate ? 1 : 0,
                     polygon->WBuffer ? 1 : 0, polygon->Translucent ? 1 : 0,
-                    polygon->TexParam, polygon->Attr);
+                    polygon->TexParam, polygon->Attr));
                 for (u32 sv = 0; sv < polygon->NumVertices && sv < 10; sv++)
                 {
                     const Vertex* vv = polygon->Vertices[sv];
-                    if (!vv) { fprintf(stderr, "  v%u NULL\n", sv); continue; }
-                    fprintf(stderr,
+                    if (!vv) { EMUCORED_DIAGNOSTIC_LOG(fprintf(stderr, "  v%u NULL\n", sv)); continue; }
+                    EMUCORED_DIAGNOSTIC_LOG(fprintf(stderr,
                         "  v%u fin=(%d,%d) hi=(%d,%d) w=%d fz=%d fw=%d clip=%d tc=(%d,%d)\n",
                         sv, vv->FinalPosition[0], vv->FinalPosition[1],
                         vv->HiresPosition[0] >> 4, vv->HiresPosition[1] >> 4,
                         vv->Position[3], polygon->FinalZ[sv], polygon->FinalW[sv],
                         vv->Clipped ? 1 : 0,
-                        vv->TexCoords[0] >> 4, vv->TexCoords[1] >> 4);
+                        vv->TexCoords[0] >> 4, vv->TexCoords[1] >> 4));
                 }
             }
         }

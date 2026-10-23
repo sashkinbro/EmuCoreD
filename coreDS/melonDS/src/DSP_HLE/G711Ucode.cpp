@@ -1,3 +1,4 @@
+#include "../../../bridge/ds_diagnostics.h"
 /*
     Copyright 2016-2025 melonDS team
 
@@ -38,7 +39,7 @@ G711Ucode::G711Ucode(melonDS::DSi& dsi, int version) : UcodeBase(dsi)
     UcodeVersion = version;
     DSi.RegisterEventFuncs(Event_DSi_DSPHLE, this, {MakeEventThunk(G711Ucode, FinishCmd)});
 
-    Log(LogLevel::Info, "DSP_HLE: initializing G711 SDK ucode version %02X\n", version);
+    EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Info, "DSP_HLE: initializing G711 SDK ucode version %02X\n", version));
 }
 
 G711Ucode::~G711Ucode()

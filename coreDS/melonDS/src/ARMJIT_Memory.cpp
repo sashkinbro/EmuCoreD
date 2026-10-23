@@ -1,3 +1,4 @@
+#include "../../bridge/ds_diagnostics.h"
 /*
     Copyright 2016-2025 melonDS team
 
@@ -187,7 +188,7 @@ LONG ARMJIT_Memory::ExceptionHandler(EXCEPTION_POINTERS* exceptionInfo)
         return EXCEPTION_CONTINUE_EXECUTION;
     }
 
-    Log(LogLevel::Debug, "it all returns to nothing\n");
+    EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Debug, "it all returns to nothing\n"));
     return EXCEPTION_CONTINUE_SEARCH;
 }
 
@@ -304,7 +305,7 @@ bool ARMJIT_Memory::MapIntoRange(u32 addr, u32 num, u32 offset, u32 size) noexce
             {
                 if (!VirtualFree(dst, size, MEM_RELEASE|MEM_PRESERVE_PLACEHOLDER))
                 {
-                    Log(LogLevel::Debug, "VirtualFree failed with %x\n", GetLastError());
+                    EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Debug, "VirtualFree failed with %x\n", GetLastError()));
                     return false;
                 }
             }
@@ -324,7 +325,7 @@ bool ARMJIT_Memory::MapIntoRange(u32 addr, u32 num, u32 offset, u32 size) noexce
 
             if (!mapViewOfFile3Ptr(MemoryFile, nullptr, dst, offset, size, MEM_REPLACE_PLACEHOLDER, PAGE_READWRITE, nullptr, 0))
             {
-                Log(LogLevel::Debug, "MapViewOfFile3 failed with %x\n", GetLastError());
+                EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Debug, "MapViewOfFile3 failed with %x\n", GetLastError()));
                 return false;
             }
 
@@ -332,7 +333,7 @@ bool ARMJIT_Memory::MapIntoRange(u32 addr, u32 num, u32 offset, u32 size) noexce
         }
     }
 
-    Log(LogLevel::Debug, "no mapping at all found??? %p %x %p\n", dst, size, MemoryBase);
+    EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Debug, "no mapping at all found??? %p %x %p\n", dst, size, MemoryBase));
     return false;
 #else
     return mmap(dst, size, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_FIXED, MemoryFile, offset) != MAP_FAILED;
@@ -353,7 +354,7 @@ bool ARMJIT_Memory::UnmapFromRange(u32 addr, u32 num, u32 offset, u32 size) noex
 #elif defined(_WIN32)
     if (!UnmapViewOfFileEx(dst, MEM_PRESERVE_PLACEHOLDER))
     {
-        Log(LogLevel::Debug, "UnmapViewOfFileEx failed %x\n", GetLastError());
+        EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Debug, "UnmapViewOfFileEx failed %x\n", GetLastError()));
         return false;
     }
 
@@ -422,7 +423,7 @@ bool ARMJIT_Memory::SetCodeProtectionRange(
     }
     if (!success)
     {
-        Log(LogLevel::Debug, "VirtualProtect failed with %x\n", GetLastError());
+        EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Debug, "VirtualProtect failed with %x\n", GetLastError()));
     }
     return success;
 #else
@@ -439,12 +440,12 @@ bool ARMJIT_Memory::SetCodeProtectionRange(
     if (protection == 1 && mprotect(dst, size, PROT_NONE) == 0)
     {
 
-        Log(LogLevel::Warn,
+        EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Warn,
             "mprotect(PROT_READ) failed (%s); using PROT_NONE",
-            strerror(firstError));
+            strerror(firstError)));
         return true;
     }
-    Log(LogLevel::Error, "mprotect failed (%s)", strerror(firstError));
+    EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error, "mprotect failed (%s)", strerror(firstError)));
     return false;
 #endif
 }
@@ -480,7 +481,7 @@ void ARMJIT_Memory::Mapping::Unmap(int region, melonDS::NDS& nds) noexcept
             if (status == memstate_MappedRW)
             {
                 u32 segmentSize = offset - segmentOffset;
-                Log(LogLevel::Debug, "unmapping %x %x %x %x\n", Addr + segmentOffset, Num, segmentOffset + LocalOffset + OffsetsPerRegion[region], segmentSize);
+                EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Debug, "unmapping %x %x %x %x\n", Addr + segmentOffset, Num, segmentOffset + LocalOffset + OffsetsPerRegion[region], segmentSize));
                 bool success = memory.UnmapFromRange(Addr + segmentOffset, Num, segmentOffset + LocalOffset + OffsetsPerRegion[region], segmentSize);
                 assert(success);
             }
@@ -534,9 +535,9 @@ void ARMJIT_Memory::SetCodeProtection(int region, u32 offset, bool protect) noex
         if (!changed && effectiveProtect)
         {
 
-            Log(LogLevel::Error,
+            EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error,
                 "failed to protect fastmem page region=%d offset=%08X",
-                region, offset);
+                region, offset));
             std::abort();
         }
 
@@ -672,7 +673,7 @@ void ARMJIT_Memory::RemapDTCM(u32 newBase, u32 newSize) noexcept
 
     u32 newEnd = newBase + newSize;
 
-    Log(LogLevel::Debug, "remapping DTCM %x %x %x %x\n", newBase, newEnd, oldDTCMBase, oldDTCMEnd);
+    EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Debug, "remapping DTCM %x %x %x %x\n", newBase, newEnd, oldDTCMBase, oldDTCMEnd));
     // unmap all regions containing the old or the current DTCM mapping
     for (int region = 0; region < memregions_Count; region++)
     {
@@ -686,7 +687,7 @@ void ARMJIT_Memory::RemapDTCM(u32 newBase, u32 newSize) noexcept
             u32 start = mapping.Addr;
             u32 end = mapping.Addr + mapping.Size;
 
-            Log(LogLevel::Debug, "unmapping %d %x %x %x %x\n", region, mapping.Addr, mapping.Size, mapping.Num, mapping.LocalOffset);
+            EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Debug, "unmapping %d %x %x %x %x\n", region, mapping.Addr, mapping.Size, mapping.Num, mapping.LocalOffset));
 
             bool overlap = (oldDTCMSize > 0 && oldDTCMBase < end && oldDTCMEnd > start)
                 || (newSize > 0 && newBase < end && newEnd > start);
@@ -748,7 +749,7 @@ void ARMJIT_Memory::RemapNWRAM(int num) noexcept
 
 void ARMJIT_Memory::RemapSWRAM() noexcept
 {
-    Log(LogLevel::Debug, "remapping SWRAM\n");
+    EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Debug, "remapping SWRAM\n"));
     for (int i = 0; i < Mappings[memregion_WRAM7].Length;)
     {
         Mapping& mapping = Mappings[memregion_WRAM7][i];
@@ -801,7 +802,7 @@ bool ARMJIT_Memory::MapAtAddress(u32 addr) noexcept
             // we could technically mask out the DTCM by setting a hole to access permissions
             // but realistically there isn't much of a point in mapping less than 16kb of DTCM
             // so it isn't worth more complex support
-            Log(LogLevel::Info, "DTCM size smaller than 16kb skipping mapping entirely");
+            EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Info, "DTCM size smaller than 16kb skipping mapping entirely"));
             return false;
         }
 
@@ -831,9 +832,9 @@ bool ARMJIT_Memory::MapAtAddress(u32 addr) noexcept
                         OffsetsPerRegion[region] + memoryOffset,
                         dtcmStart - mirrorStart))
                 {
-                    Log(LogLevel::Error,
+                    EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error,
                         "failed to roll back partial fastmem mirror %08X",
-                        mirrorStart);
+                        mirrorStart));
                     std::abort();
                 }
                 return false;
@@ -896,8 +897,8 @@ bool ARMJIT_Memory::MapAtAddress(u32 addr) noexcept
         if (!unmapped)
         {
 
-            Log(LogLevel::Error,
-                "failed to abandon unsafe fastmem mirror %08X", mirrorStart);
+            EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error,
+                "failed to abandon unsafe fastmem mirror %08X", mirrorStart));
             std::abort();
         }
     };
@@ -945,9 +946,9 @@ bool ARMJIT_Memory::MapAtAddress(u32 addr) noexcept
                             + OffsetsPerRegion[region],
                         sectionSize))
                 {
-                    Log(LogLevel::Error,
+                    EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error,
                         "failed to map Switch fastmem section %08X",
-                        mirrorStart + sectionOffset);
+                        mirrorStart + sectionOffset));
                     std::abort();
                 }
             }
@@ -1026,7 +1027,7 @@ void ARMJIT_Memory::RegisterFaultHandler()
 
     if (!virtualAlloc2Ptr)
     {
-        Log(LogLevel::Error, "Could not load new Windows virtual memory functions, fast memory is disabled.\n");
+        EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error, "Could not load new Windows virtual memory functions, fast memory is disabled.\n"));
     }
 #else
     struct sigaction sa;
@@ -1157,14 +1158,14 @@ ARMJIT_Memory::ARMJIT_Memory(melonDS::NDS& nds) : NDS(nds)
     MemoryFile = shm_open(fastmemPidName, O_RDWR | O_CREAT | O_EXCL, 0600);
     if (MemoryFile == -1)
     {
-        Log(LogLevel::Error, "Failed to open memory using shm_open! (%s)", strerror(errno));
+        EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error, "Failed to open memory using shm_open! (%s)", strerror(errno)));
     }
     shm_unlink(fastmemPidName);
 #endif
 #if !defined(__ANDROID__)
     if (ftruncate(MemoryFile, MemoryTotalSize) < 0)
     {
-        Log(LogLevel::Error, "Failed to allocate memory using ftruncate! (%s)", strerror(errno));
+        EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error, "Failed to allocate memory using ftruncate! (%s)", strerror(errno)));
     }
 #endif
 
@@ -1233,7 +1234,7 @@ ARMJIT_Memory::~ARMJIT_Memory() noexcept
         MemoryFile = -1;
     }
 
-    Log(LogLevel::Info, "unmappinged everything\n");
+    EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Info, "unmappinged everything\n"));
 
 #if defined(__ANDROID__)
     if (Libandroid)
@@ -1263,7 +1264,7 @@ void ARMJIT_Memory::Reset() noexcept
         assert(MappingStatus7[i] == memstate_Unmapped);
     }
 
-    Log(LogLevel::Debug, "done resetting jit mem\n");
+    EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Debug, "done resetting jit mem\n"));
 }
 
 bool ARMJIT_Memory::IsFastmemCompatible(int region) const noexcept

@@ -1,3 +1,4 @@
+#include "../../bridge/ds_diagnostics.h"
 /*
     Copyright 2016-2025 melonDS team
 
@@ -92,7 +93,7 @@ void LogStructured2DPerfIfReady()
     const auto drawBSummary = gStructured2DDrawBWindow.SummarizeAndReset();
     const auto spriteASummary = gStructured2DSpriteAWindow.SummarizeAndReset();
     const auto spriteBSummary = gStructured2DSpriteBWindow.SummarizeAndReset();
-    Platform::Log(
+    EMUCORED_DIAGNOSTIC_LOG(Platform::Log(
         Platform::LogLevel::Warn,
         "VulkanPerf[GPU2D]: draw cpu avg=%.3fms p95=%.3fms max=%.3fms a=%.3f/%.3fms b=%.3f/%.3fms sprites cpu avg=%.3fms p95=%.3fms max=%.3fms a=%.3f/%.3fms b=%.3f/%.3fms",
         PerfNsToMs(drawSummary.MeanNs),
@@ -109,7 +110,7 @@ void LogStructured2DPerfIfReady()
         PerfNsToMs(spriteASummary.P95Ns),
         PerfNsToMs(spriteBSummary.MeanNs),
         PerfNsToMs(spriteBSummary.P95Ns)
-    );
+    ));
 }
 }
 
@@ -1812,7 +1813,7 @@ namespace
 
 bool LogVuelcoActivo()
 {
-    static const bool activo = getenv("MELON_LOG_VUELCO") != nullptr;
+    static const bool activo = EMUCORED_DIAGNOSTIC_ENV("MELON_LOG_VUELCO") != nullptr;
     return activo;
 }
 u32 sVuelcoFotograma = 0;
@@ -2003,8 +2004,8 @@ void GPU::MapVRAM_CD(u32 bank, u8 cnt) noexcept
     if (oldcnt == cnt) return;
 
     if (LogVuelcoActivo())
-        fprintf(stderr, "[vuelco] f=%u vc=%u VRAMCNT %c %02X->%02X\n",
-                sVuelcoFotograma, VCount, "ABCD"[bank], oldcnt, cnt);
+        EMUCORED_DIAGNOSTIC_LOG(fprintf(stderr, "[vuelco] f=%u vc=%u VRAMCNT %c %02X->%02X\n",
+                sVuelcoFotograma, VCount, "ABCD"[bank], oldcnt, cnt));
 
     u8 oldofs = (oldcnt >> 3) & 0x7;
     u8 ofs = (cnt >> 3) & 0x7;
@@ -2259,8 +2260,8 @@ void GPU::MapVRAM_H(u32 bank, u8 cnt) noexcept
     if (oldcnt == cnt) return;
 
     if (LogVuelcoActivo())
-        fprintf(stderr, "[vuelco] f=%u vc=%u VRAMCNT H %02X->%02X\n",
-                sVuelcoFotograma, VCount, oldcnt, cnt);
+        EMUCORED_DIAGNOSTIC_LOG(fprintf(stderr, "[vuelco] f=%u vc=%u VRAMCNT H %02X->%02X\n",
+                sVuelcoFotograma, VCount, oldcnt, cnt));
 
     u32 bankmask = 1 << bank;
 
@@ -2325,8 +2326,8 @@ void GPU::MapVRAM_I(u32 bank, u8 cnt) noexcept
     if (oldcnt == cnt) return;
 
     if (LogVuelcoActivo())
-        fprintf(stderr, "[vuelco] f=%u vc=%u VRAMCNT I %02X->%02X\n",
-                sVuelcoFotograma, VCount, oldcnt, cnt);
+        EMUCORED_DIAGNOSTIC_LOG(fprintf(stderr, "[vuelco] f=%u vc=%u VRAMCNT I %02X->%02X\n",
+                sVuelcoFotograma, VCount, oldcnt, cnt));
 
     u32 bankmask = 1 << bank;
 
@@ -2393,9 +2394,9 @@ void GPU::MapVRAM_I(u32 bank, u8 cnt) noexcept
 void GPU::SetPowerCnt(u32 val) noexcept
 {
     if (LogVuelcoActivo())
-        fprintf(stderr, "[vuelco] f=%u vc=%u escribe pow=%04X pow15=%u\n",
+        EMUCORED_DIAGNOSTIC_LOG(fprintf(stderr, "[vuelco] f=%u vc=%u escribe pow=%04X pow15=%u\n",
                 sVuelcoFotograma, VCount, val & 0xFFFFu,
-                (u32)((val >> 15) & 1u));
+                (u32)((val >> 15) & 1u)));
     // POWCNT1 effects:
     // * bit0: asplodes hardware??? not tested.
     // * bit1: disables engine A palette and OAM (zero-filled) (TODO: affects mem timings???)
@@ -2404,7 +2405,7 @@ void GPU::SetPowerCnt(u32 val) noexcept
     // * bit9: disables engine B palette, OAM and rendering (screen turns white)
     // * bit15: screen swap
 
-    if (!(val & (1<<0))) Log(LogLevel::Warn, "!!! CLEARING POWCNT BIT0. DANGER\n");
+    if (!(val & (1<<0))) EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Warn, "!!! CLEARING POWCNT BIT0. DANGER\n"));
 
     GPU2D_A.SetEnabled(val & (1<<1));
     GPU2D_B.SetEnabled(val & (1<<9));
@@ -2457,20 +2458,20 @@ void GPU::StartHBlank(u32 line) noexcept
     {
 
         if (VCount == 96 && LogVuelcoActivo())
-            fprintf(stderr, "[vuelco] f=%u linea96 asignado=%u front=%d\n",
-                    sVuelcoFotograma, sVuelcoSwapAsignado, FrontBuffer);
+            EMUCORED_DIAGNOSTIC_LOG(fprintf(stderr, "[vuelco] f=%u linea96 asignado=%u front=%d\n",
+                    sVuelcoFotograma, sVuelcoSwapAsignado, FrontBuffer));
         // draw
         // note: this should start 48 cycles after the scanline start
         if (line < 192)
         {
             const bool measureStructured2D = ShouldMeasureStructured2D(*this);
-            const u64 drawAStartNs = measureStructured2D ? PerfNowNs() : 0;
+            const u64 drawAStartNs = measureStructured2D ? DiagnosticNowNs() : 0;
             GPU2D_Renderer->DrawScanline(line, &GPU2D_A);
-            const u64 drawBStartNs = measureStructured2D ? PerfNowNs() : 0;
+            const u64 drawBStartNs = measureStructured2D ? DiagnosticNowNs() : 0;
             GPU2D_Renderer->DrawScanline(line, &GPU2D_B);
             if (measureStructured2D)
             {
-                const u64 drawEndNs = PerfNowNs();
+                const u64 drawEndNs = DiagnosticNowNs();
                 gStructured2DFrameDrawANs += drawBStartNs - drawAStartNs;
                 gStructured2DFrameDrawBNs += drawEndNs - drawBStartNs;
                 gStructured2DFrameDrawNs += drawEndNs - drawAStartNs;
@@ -2481,13 +2482,13 @@ void GPU::StartHBlank(u32 line) noexcept
         if (line < 191)
         {
             const bool measureStructured2D = ShouldMeasureStructured2D(*this);
-            const u64 spriteAStartNs = measureStructured2D ? PerfNowNs() : 0;
+            const u64 spriteAStartNs = measureStructured2D ? DiagnosticNowNs() : 0;
             GPU2D_Renderer->DrawSprites(line+1, &GPU2D_A);
-            const u64 spriteBStartNs = measureStructured2D ? PerfNowNs() : 0;
+            const u64 spriteBStartNs = measureStructured2D ? DiagnosticNowNs() : 0;
             GPU2D_Renderer->DrawSprites(line+1, &GPU2D_B);
             if (measureStructured2D)
             {
-                const u64 spriteEndNs = PerfNowNs();
+                const u64 spriteEndNs = DiagnosticNowNs();
                 gStructured2DFrameSpriteANs += spriteBStartNs - spriteAStartNs;
                 gStructured2DFrameSpriteBNs += spriteEndNs - spriteBStartNs;
                 gStructured2DFrameSpriteNs += spriteEndNs - spriteAStartNs;
@@ -2541,10 +2542,10 @@ void GPU::FinishFrame(u32 lines) noexcept
     AssignFramebuffers();
 
     if (LogVuelcoActivo())
-        fprintf(stderr,
+        EMUCORED_DIAGNOSTIC_LOG(fprintf(stderr,
                 "[vuelco] f=%u FIN pow15=%u dispA=%08X dispB=%08X capA=%08X\n",
                 sVuelcoFotograma, (u32)((NDS.PowerControl9 >> 15) & 1u),
-                GPU2D_A.DispCnt, GPU2D_B.DispCnt, GPU2D_A.CaptureCnt);
+                GPU2D_A.DispCnt, GPU2D_B.DispCnt, GPU2D_A.CaptureCnt));
     sVuelcoFotograma++;
 
     TotalScanlines = lines;

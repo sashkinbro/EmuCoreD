@@ -3,6 +3,9 @@
 cmake_minimum_required(VERSION 3.22)
 project(EmuCoreDAndroid LANGUAGES CXX C)
 
+option(EMUCORED_DIAGNOSTICS "Compile diagnostic logging and dump tools" OFF)
+add_compile_definitions(EMUCORED_DIAGNOSTICS=$<BOOL:${EMUCORED_DIAGNOSTICS}>)
+
 # Google Play requires 16 KiB page size support: keep every ELF load segment aligned
 # even when a toolchain default changes.
 add_link_options("-Wl,-z,max-page-size=16384" "-Wl,-z,common-page-size=16384")

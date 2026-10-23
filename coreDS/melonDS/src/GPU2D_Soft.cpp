@@ -1,3 +1,4 @@
+#include "../../bridge/ds_diagnostics.h"
 /*
     Copyright 2016-2025 melonDS team
 
@@ -163,7 +164,7 @@ void RecordStructuredBGObjPerf(u64 setupNs, u64 bgNs, u64 classifyNs, u64 compos
     const auto bgSummary = gStructuredBGObjBgWindow.SummarizeAndReset();
     const auto classifySummary = gStructuredBGObjClassifyWindow.SummarizeAndReset();
     const auto compositeSummary = gStructuredBGObjCompositeWindow.SummarizeAndReset();
-    Platform::Log(
+    EMUCORED_DIAGNOSTIC_LOG(Platform::Log(
         Platform::LogLevel::Warn,
         "VulkanPerf[GPU2D_BGOBJ]: line setup avg=%.3fus p95=%.3fus bg avg=%.3fus p95=%.3fus classify avg=%.3fus p95=%.3fus composite avg=%.3fus p95=%.3fus",
         PerfNsToMs(setupSummary.MeanNs) * 1000.0,
@@ -174,7 +175,7 @@ void RecordStructuredBGObjPerf(u64 setupNs, u64 bgNs, u64 classifyNs, u64 compos
         PerfNsToMs(classifySummary.P95Ns) * 1000.0,
         PerfNsToMs(compositeSummary.MeanNs) * 1000.0,
         PerfNsToMs(compositeSummary.P95Ns) * 1000.0
-    );
+    ));
 }
 
 u32 StructuredVulkan2DSourceClass(u32 value)
@@ -1444,13 +1445,13 @@ bool SoftRenderer::TryStageFaithfulVisibleUniformScanoutLine(
                 FaithfulUniformScanoutProbeFirstReject = reason;
             if (logicalVCount + 1u == kStructuredScreenHeight)
             {
-                Platform::Log(
+                EMUCORED_DIAGNOSTIC_LOG(Platform::Log(
                     Platform::LogLevel::Warn,
                     "VulkanScanoutUniform: accepted=%u rejected=%u objOnly=%u firstReject=%u",
                     FaithfulUniformScanoutProbeAccepted,
                     FaithfulUniformScanoutProbeRejected,
                     FaithfulUniformScanoutProbeObjOnly,
-                    FaithfulUniformScanoutProbeFirstReject);
+                    FaithfulUniformScanoutProbeFirstReject));
             }
         }
         return false;
@@ -1578,13 +1579,13 @@ bool SoftRenderer::TryStageFaithfulVisibleUniformScanoutLine(
                 FaithfulUniformScanoutProbeObjOnly++;
             if (logicalVCount + 1u == kStructuredScreenHeight)
             {
-                Platform::Log(
+                EMUCORED_DIAGNOSTIC_LOG(Platform::Log(
                     Platform::LogLevel::Warn,
                     "VulkanScanoutUniform: accepted=%u rejected=%u objOnly=%u firstReject=%u",
                     FaithfulUniformScanoutProbeAccepted,
                     FaithfulUniformScanoutProbeRejected,
                     FaithfulUniformScanoutProbeObjOnly,
-                    FaithfulUniformScanoutProbeFirstReject);
+                    FaithfulUniformScanoutProbeFirstReject));
             }
         }
         return true;
@@ -2339,15 +2340,15 @@ void SoftRenderer::FinalizeFaithfulVisiblePixelLineage() noexcept
             break;
         }
     }
-    if (std::getenv("MELON_SONDA_VISIBLE_CORE") != nullptr)
+    if (EMUCORED_DIAGNOSTIC_ENV("MELON_SONDA_VISIBLE_CORE") != nullptr)
     {
-        std::fprintf(stderr,
+        EMUCORED_DIAGNOSTIC_LOG(std::fprintf(stderr,
             "[visible-core] generation=%llu products=%u candidates=%u "
             "missing=%u materialMismatch=%u alphaOnly=%u finalized=%u\n",
             static_cast<unsigned long long>(FaithfulVisibleLineageGeneration),
             static_cast<unsigned>(FaithfulVisibleProductCount),
             probeCandidates, probeMissingMaterial, probeMaterialMismatch,
-            probeAlphaOnlyMismatch, probeFinalized);
+            probeAlphaOnlyMismatch, probeFinalized));
     }
 }
 
@@ -3605,13 +3606,13 @@ void SoftRenderer::PublishFaithfulRegisterSnapshot() noexcept
     FaithfulPrevLineRegsStorage = FaithfulLineRegsStorage;
     FaithfulPrevFrameMeta = FaithfulFrameMeta;
     {
-        static const bool sondaL = std::getenv("MELON_SONDA_LATCH") != nullptr;
+        static const bool sondaL = EMUCORED_DIAGNOSTIC_ENV("MELON_SONDA_LATCH") != nullptr;
         if (sondaL)
-            fprintf(stderr, "[lat] COPIA seq=%u prevMeta0=%u\n",
-                    FaithfulFrameSeq, FaithfulPrevFrameMeta[0] & 1u);
+            EMUCORED_DIAGNOSTIC_LOG(fprintf(stderr, "[lat] COPIA seq=%u prevMeta0=%u\n",
+                    FaithfulFrameSeq, FaithfulPrevFrameMeta[0] & 1u));
     }
 
-    if (std::getenv("MELON_SWAP_FLIP") != nullptr)
+    if (EMUCORED_DIAGNOSTIC_ENV("MELON_SWAP_FLIP") != nullptr)
         FaithfulPrevFrameMeta[0] =
             GPU.SwapSelladoBuffer[GPU.FrontBuffer] & 1u;
     FaithfulPrevPaletteLatch = FaithfulPaletteLatch;
@@ -3932,10 +3933,10 @@ void SoftRenderer::CaptureFaithfulLineRegs(u32 line, int n3dline,
 
         FaithfulFrameMeta[10] = 0u;
         {
-            static const bool sondaL = std::getenv("MELON_SONDA_LATCH") != nullptr;
+            static const bool sondaL = EMUCORED_DIAGNOSTIC_ENV("MELON_SONDA_LATCH") != nullptr;
             if (sondaL)
-                fprintf(stderr, "[lat] A0 seq=%u meta0=%u\n",
-                        FaithfulFrameSeq, FaithfulFrameMeta[0] & 1u);
+                EMUCORED_DIAGNOSTIC_LOG(fprintf(stderr, "[lat] A0 seq=%u meta0=%u\n",
+                        FaithfulFrameSeq, FaithfulFrameMeta[0] & 1u));
         }
     }
 
@@ -3948,18 +3949,18 @@ void SoftRenderer::CaptureFaithfulLineRegs(u32 line, int n3dline,
     {
         FaithfulFrameMeta[0] = (GPU.NDS.PowerControl9 & (1u << 15)) ? 1u : 0u;
         {
-            static const bool sondaL = std::getenv("MELON_SONDA_LATCH") != nullptr;
+            static const bool sondaL = EMUCORED_DIAGNOSTIC_ENV("MELON_SONDA_LATCH") != nullptr;
             if (sondaL)
-                fprintf(stderr, "[lat] B191 seq=%u meta0=%u\n",
-                        FaithfulFrameSeq, FaithfulFrameMeta[0] & 1u);
+                EMUCORED_DIAGNOSTIC_LOG(fprintf(stderr, "[lat] B191 seq=%u meta0=%u\n",
+                        FaithfulFrameSeq, FaithfulFrameMeta[0] & 1u));
         }
 
-        static const bool logVuelco = getenv("MELON_LOG_VUELCO") != nullptr;
+        static const bool logVuelco = EMUCORED_DIAGNOSTIC_ENV("MELON_LOG_VUELCO") != nullptr;
         if (logVuelco)
         {
             static u32 latchFot = 0;
-            fprintf(stderr, "[latch] f=%u meta0=%u vcount=%u\n",
-                    latchFot++, FaithfulFrameMeta[0], GPU.VCount);
+            EMUCORED_DIAGNOSTIC_LOG(fprintf(stderr, "[latch] f=%u meta0=%u vcount=%u\n",
+                    latchFot++, FaithfulFrameMeta[0], GPU.VCount));
         }
 
         FaithfulFrameMeta[4] = (u32)GPU.VRAMCNT[0] | ((u32)GPU.VRAMCNT[1] << 8)
@@ -7331,7 +7332,7 @@ void SoftRenderer::DrawScanlineActivePipeline(u32 line, Unit* unit)
             if (line != 0u && line < 192u && AlgunBitFiel(bgDirty))
             {
                 static const bool sinPre =
-                    std::getenv("MELON_SIN_PRECOMPUESTAS") != nullptr;
+                    EMUCORED_DIAGNOSTIC_ENV("MELON_SIN_PRECOMPUESTAS") != nullptr;
                 FaithfulComponerActivo[0] = !sinPre;
                 if (FaithfulComponerActivo[0])
                 {
@@ -7357,14 +7358,14 @@ void SoftRenderer::DrawScanlineActivePipeline(u32 line, Unit* unit)
             if (line != 0u && line < 192u && AlgunBitFiel(bgDirty))
             {
                 static const bool sinPre =
-                    std::getenv("MELON_SIN_PRECOMPUESTAS") != nullptr;
+                    EMUCORED_DIAGNOSTIC_ENV("MELON_SIN_PRECOMPUESTAS") != nullptr;
                 FaithfulComponerActivo[1] = !sinPre;
             }
         }
     }
 
     static const bool c5dSinComposicion =
-        std::getenv("MELON_C5D_APAGADO") == nullptr;
+        EMUCORED_DIAGNOSTIC_ENV("MELON_C5D_APAGADO") == nullptr;
     const bool faithfulMappedBgHasCaptureTags = UseFaithfulVulkan2D()
         && GPU.HasFaithfulVramCaptureTags(
             FaithfulMappedBgPhysicalBankMask(CurUnit->Num));
@@ -8810,7 +8811,7 @@ void SoftRenderer::DoCapture(u32 line, u32 width, u32 sourceLine)
                                 if (sample.y != sourceLine || sample.x != i)
                                     continue;
 
-                                Platform::Log(
+                                EMUCORED_DIAGNOSTIC_LOG(Platform::Log(
                                     Platform::LogLevel::Warn,
                                     "RendererDebug[CaptureFastCopy]: label=%s line=%u sourceLine=%u x=%u dstvram=%u dst=%04X val=%08X packed=%04X cnt=%08X",
                                     sample.label,
@@ -8821,7 +8822,7 @@ void SoftRenderer::DoCapture(u32 line, u32 width, u32 sourceLine)
                                     dstWriteAddr,
                                     val,
                                     packed,
-                                    captureCnt);
+                                    captureCnt));
                                 break;
                             }
                         }
@@ -9106,7 +9107,7 @@ void SoftRenderer::DoCapture(u32 line, u32 width, u32 sourceLine)
                                         | (((val1 >> 17) & 0x1Fu) << 10)
                                         | (((val1 >> 24) != 0u) ? 0x8000u : 0u);
 
-                                    Platform::Log(
+                                    EMUCORED_DIAGNOSTIC_LOG(Platform::Log(
                                         Platform::LogLevel::Warn,
                                         "RendererDebug[CaptureLoop]: label=%s line=%u sourceLine=%u x=%u comp=%u raw3d=%08X val1=%08X val2=%08X val3=%08X packed=%08X",
                                         sample.label,
@@ -9119,7 +9120,7 @@ void SoftRenderer::DoCapture(u32 line, u32 width, u32 sourceLine)
                                         val2,
                                         val3,
                                         packedWord
-                                    );
+                                    ));
                                     break;
                                 }
                             }
@@ -9915,7 +9916,7 @@ void SoftRenderer::DrawScanline_BGOBJ(u32 line)
     const bool useStructuredVulkan2D = UseStructuredVulkan2D();
     const bool measureStructuredBgObj =
         useStructuredVulkan2D && MelonDSAndroid::isVulkanGpu2DPerfLoggingEnabled();
-    const u64 structuredBgObjStartNs = measureStructuredBgObj ? PerfNowNs() : 0;
+    const u64 structuredBgObjStartNs = measureStructuredBgObj ? DiagnosticNowNs() : 0;
 
     auto logHudStageAfterBGMode =
         [&]() {
@@ -9928,7 +9929,7 @@ void SoftRenderer::DrawScanline_BGOBJ(u32 line)
                 const u32 i = sample.x;
                 if (i >= 256)
                     continue;
-                Platform::Log(
+                EMUCORED_DIAGNOSTIC_LOG(Platform::Log(
                     Platform::LogLevel::Warn,
                     "RendererDebug[BGOBJ]: stage=after_bgmode unit=%u label=%s line=%u x=%u v0=%08X v1=%08X v2=%08X",
                     CurUnit->Num,
@@ -9938,7 +9939,7 @@ void SoftRenderer::DrawScanline_BGOBJ(u32 line)
                     BGOBJLine[i],
                     BGOBJLine[256+i],
                     BGOBJLine[512+i]
-                );
+                ));
             }
         };
 
@@ -9996,7 +9997,7 @@ void SoftRenderer::DrawScanline_BGOBJ(u32 line)
     if (forcedBgMode >= 0 && forcedBgMode <= 6)
         bgMode = static_cast<u32>(forcedBgMode);
 
-    const u64 structuredBgObjBgStartNs = measureStructuredBgObj ? PerfNowNs() : 0;
+    const u64 structuredBgObjBgStartNs = measureStructuredBgObj ? DiagnosticNowNs() : 0;
     switch (bgMode)
     {
     case 0: DrawScanlineBGMode<0>(line); break;
@@ -10008,7 +10009,7 @@ void SoftRenderer::DrawScanline_BGOBJ(u32 line)
     case 6: DrawScanlineBGMode6(line); break;
     case 7: DrawScanlineBGMode7(line); break;
     }
-    const u64 structuredBgObjAfterBgNs = measureStructuredBgObj ? PerfNowNs() : 0;
+    const u64 structuredBgObjAfterBgNs = measureStructuredBgObj ? DiagnosticNowNs() : 0;
 
     logHudStageAfterBGMode();
 
@@ -10019,7 +10020,7 @@ void SoftRenderer::DrawScanline_BGOBJ(u32 line)
     {
         if (measureStructuredBgObj)
         {
-            const u64 structuredBgObjEndNs = PerfNowNs();
+            const u64 structuredBgObjEndNs = DiagnosticNowNs();
             RecordStructuredBGObjPerf(
                 structuredBgObjBgStartNs - structuredBgObjStartNs,
                 structuredBgObjAfterBgNs - structuredBgObjBgStartNs,
@@ -10126,7 +10127,7 @@ void SoftRenderer::DrawScanline_BGOBJ(u32 line)
             if (captureBacked3DSourceClass < (sizeof(LastDebugCaptureStats.CaptureBacked3DBestClassCounts) / sizeof(LastDebugCaptureStats.CaptureBacked3DBestClassCounts[0])))
                 LastDebugCaptureStats.CaptureBacked3DBestClassCounts[captureBacked3DSourceClass]++;
         }
-        const u64 structuredBgObjAfterClassifyNs = measureStructuredBgObj ? PerfNowNs() : 0;
+        const u64 structuredBgObjAfterClassifyNs = measureStructuredBgObj ? DiagnosticNowNs() : 0;
 
         if (CurUnit->Num == 0)
         {
@@ -10353,7 +10354,7 @@ void SoftRenderer::DrawScanline_BGOBJ(u32 line)
                         if (sample.y != line || sample.x != static_cast<u32>(i))
                             continue;
 
-                        Platform::Log(
+                        EMUCORED_DIAGNOSTIC_LOG(Platform::Log(
                             Platform::LogLevel::Warn,
                             "RendererDebug[BGOBJ]: unit=%u label=%s line=%u x=%u pre0=%08X pre1=%08X pre2=%08X out0=%08X out1=%08X out2=%08X",
                             CurUnit->Num,
@@ -10366,7 +10367,7 @@ void SoftRenderer::DrawScanline_BGOBJ(u32 line)
                             BGOBJLine[i],
                             BGOBJLine[256+i],
                             BGOBJLine[512+i]
-                        );
+                        ));
                         break;
                     }
                 }
@@ -10465,7 +10466,7 @@ void SoftRenderer::DrawScanline_BGOBJ(u32 line)
                         if (sample.y != line || sample.x != static_cast<u32>(i))
                             continue;
 
-                        Platform::Log(
+                        EMUCORED_DIAGNOSTIC_LOG(Platform::Log(
                             Platform::LogLevel::Warn,
                             "RendererDebug[BGOBJ]: unit=%u label=%s line=%u x=%u pre0=%08X pre1=%08X pre2=%08X out0=%08X out1=%08X out2=%08X",
                             CurUnit->Num,
@@ -10478,7 +10479,7 @@ void SoftRenderer::DrawScanline_BGOBJ(u32 line)
                             BGOBJLine[i],
                             BGOBJLine[256+i],
                             BGOBJLine[512+i]
-                        );
+                        ));
                         break;
                     }
                 }
@@ -10493,7 +10494,7 @@ void SoftRenderer::DrawScanline_BGOBJ(u32 line)
         TrackComposedObjCaptureIdentity = false;
         if (measureStructuredBgObj)
         {
-            const u64 structuredBgObjEndNs = PerfNowNs();
+            const u64 structuredBgObjEndNs = DiagnosticNowNs();
             RecordStructuredBGObjPerf(
                 structuredBgObjBgStartNs - structuredBgObjStartNs,
                 structuredBgObjAfterBgNs - structuredBgObjBgStartNs,
@@ -11946,7 +11947,7 @@ void SoftRenderer::DrawSprite_Rotscale(
                 {
                     if (const RendererDebugSamplePoint* sample = findRendererDebugSamplePoint(static_cast<u32>(xpos), currentLine))
                     {
-                        Platform::Log(
+                        EMUCORED_DIAGNOSTIC_LOG(Platform::Log(
                             Platform::LogLevel::Warn,
                             "RendererDebug[SpriteBitmap]: unit=%u label=%s sprite=%u rotscale=1 line=%u x=%u color=%04X old=%08X pixelattr=%08X pixelsaddr=%u tilenum=%u srcX=%u srcY=%u attr0=%04X attr1=%04X attr2=%04X",
                             CurUnit->Num,
@@ -11964,7 +11965,7 @@ void SoftRenderer::DrawSprite_Rotscale(
                             attrib[0],
                             attrib[1],
                             attrib[2]
-                        );
+                        ));
                     }
                 }
 
@@ -12260,10 +12261,10 @@ void SoftRenderer::DrawSprite_Normal(
             static std::atomic<unsigned> loggedSpans{0u};
             if (loggedSpans.fetch_add(1u, std::memory_order_relaxed) < 8u)
             {
-                Platform::Log(Platform::LogLevel::Warn,
+                EMUCORED_DIAGNOSTIC_LOG(Platform::Log(Platform::LogLevel::Warn,
                     "FaithfulOBJ[UniformSpan]: unit=%u line=%u pixels=%u stride=%d bank=%u",
                     CurUnit->Num, CurrentSpriteRenderLine, xend - xoff,
-                    pixelstride, objTagSpan.StorageBank);
+                    pixelstride, objTagSpan.StorageBank));
             }
         }
 
@@ -12277,7 +12278,7 @@ void SoftRenderer::DrawSprite_Normal(
             {
                 if (const RendererDebugSamplePoint* sample = findRendererDebugSamplePoint(static_cast<u32>(xpos), currentLine))
                 {
-                    Platform::Log(
+                    EMUCORED_DIAGNOSTIC_LOG(Platform::Log(
                         Platform::LogLevel::Warn,
                         "RendererDebug[SpriteBitmap]: unit=%u label=%s sprite=%u rotscale=0 line=%u x=%u color=%04X old=%08X pixelattr=%08X pixelsaddr=%u tilenum=%u ypos=%u xoff=%u attr0=%04X attr1=%04X attr2=%04X",
                         CurUnit->Num,
@@ -12295,7 +12296,7 @@ void SoftRenderer::DrawSprite_Normal(
                         attrib[0],
                         attrib[1],
                         attrib[2]
-                    );
+                    ));
                 }
             }
 

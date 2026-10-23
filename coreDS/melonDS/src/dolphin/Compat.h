@@ -1,3 +1,4 @@
+#include "../../../bridge/ds_diagnostics.h"
 // Copyright 2009 Dolphin Emulator Project
 // Licensed under GPLv2+
 // Refer to the license_dolphin.txt file included.
@@ -54,7 +55,7 @@
 #define PanicAlert(fmt, ...) \
   do \
   { \
-    printf(fmt "\n", ## __VA_ARGS__); \
+    EMUCORED_DIAGNOSTIC_LOG(printf(fmt "\n", ## __VA_ARGS__)); \
     abort(); \
   } while (false)
 
@@ -63,7 +64,7 @@
 #define ERROR_LOG(which, fmt, ...) \
     do \
     { \
-        printf(fmt "\n", ## __VA_ARGS__); \
+        EMUCORED_DIAGNOSTIC_LOG(printf(fmt "\n", ## __VA_ARGS__)); \
     } while (false)
 
 #if __cplusplus < 201703L

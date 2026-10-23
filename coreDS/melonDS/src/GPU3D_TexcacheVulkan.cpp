@@ -1,3 +1,4 @@
+#include "../../bridge/ds_diagnostics.h"
 #include <cstring>
 #include <mutex>
 
@@ -34,7 +35,7 @@ bool TexcacheVulkanLoader::EnsureVulkanState()
     auto& context = VulkanContext::Get();
     if (!context.Acquire())
     {
-        Platform::Log(Platform::LogLevel::Error, "TexcacheVulkan: failed to acquire Vulkan context");
+        EMUCORED_DIAGNOSTIC_LOG(Platform::Log(Platform::LogLevel::Error, "TexcacheVulkan: failed to acquire Vulkan context"));
         return false;
     }
 
@@ -45,7 +46,7 @@ bool TexcacheVulkanLoader::EnsureVulkanState()
 
     if (State->Device == VK_NULL_HANDLE || State->Queue == VK_NULL_HANDLE)
     {
-        Platform::Log(Platform::LogLevel::Error, "TexcacheVulkan: invalid Vulkan context handles");
+        EMUCORED_DIAGNOSTIC_LOG(Platform::Log(Platform::LogLevel::Error, "TexcacheVulkan: invalid Vulkan context handles"));
         CleanupVulkanState();
         return false;
     }
@@ -56,7 +57,7 @@ bool TexcacheVulkanLoader::EnsureVulkanState()
     poolCreateInfo.queueFamilyIndex = State->QueueFamilyIndex;
     if (vkCreateCommandPool(State->Device, &poolCreateInfo, nullptr, &State->CommandPool) != VK_SUCCESS)
     {
-        Platform::Log(Platform::LogLevel::Error, "TexcacheVulkan: failed to create command pool");
+        EMUCORED_DIAGNOSTIC_LOG(Platform::Log(Platform::LogLevel::Error, "TexcacheVulkan: failed to create command pool"));
         CleanupVulkanState();
         return false;
     }
@@ -68,7 +69,7 @@ bool TexcacheVulkanLoader::EnsureVulkanState()
     commandBufferAllocateInfo.commandBufferCount = 1;
     if (vkAllocateCommandBuffers(State->Device, &commandBufferAllocateInfo, &State->CommandBuffer) != VK_SUCCESS)
     {
-        Platform::Log(Platform::LogLevel::Error, "TexcacheVulkan: failed to allocate command buffer");
+        EMUCORED_DIAGNOSTIC_LOG(Platform::Log(Platform::LogLevel::Error, "TexcacheVulkan: failed to allocate command buffer"));
         CleanupVulkanState();
         return false;
     }
@@ -78,7 +79,7 @@ bool TexcacheVulkanLoader::EnsureVulkanState()
     fenceCreateInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
     if (vkCreateFence(State->Device, &fenceCreateInfo, nullptr, &State->UploadFence) != VK_SUCCESS)
     {
-        Platform::Log(Platform::LogLevel::Error, "TexcacheVulkan: failed to create upload fence");
+        EMUCORED_DIAGNOSTIC_LOG(Platform::Log(Platform::LogLevel::Error, "TexcacheVulkan: failed to create upload fence"));
         CleanupVulkanState();
         return false;
     }
@@ -301,7 +302,7 @@ TexcacheVulkanLoader::TextureHandle TexcacheVulkanLoader::GenerateTexture(u32 wi
 
     if (vkCreateImage(State->Device, &imageCreateInfo, nullptr, &textureArray.Image) != VK_SUCCESS)
     {
-        Platform::Log(Platform::LogLevel::Error, "TexcacheVulkan: failed to create image");
+        EMUCORED_DIAGNOSTIC_LOG(Platform::Log(Platform::LogLevel::Error, "TexcacheVulkan: failed to create image"));
         return 0;
     }
 
@@ -321,7 +322,7 @@ TexcacheVulkanLoader::TextureHandle TexcacheVulkanLoader::GenerateTexture(u32 wi
         || vkAllocateMemory(State->Device, &imageMemoryAllocateInfo, nullptr, &textureArray.Memory) != VK_SUCCESS
         || vkBindImageMemory(State->Device, textureArray.Image, textureArray.Memory, 0) != VK_SUCCESS)
     {
-        Platform::Log(Platform::LogLevel::Error, "TexcacheVulkan: failed to allocate image memory");
+        EMUCORED_DIAGNOSTIC_LOG(Platform::Log(Platform::LogLevel::Error, "TexcacheVulkan: failed to allocate image memory"));
         DestroyTextureArray(textureArray);
         return 0;
     }
@@ -339,7 +340,7 @@ TexcacheVulkanLoader::TextureHandle TexcacheVulkanLoader::GenerateTexture(u32 wi
 
     if (vkCreateImageView(State->Device, &arrayViewCreateInfo, nullptr, &textureArray.ArrayView) != VK_SUCCESS)
     {
-        Platform::Log(Platform::LogLevel::Error, "TexcacheVulkan: failed to create array view");
+        EMUCORED_DIAGNOSTIC_LOG(Platform::Log(Platform::LogLevel::Error, "TexcacheVulkan: failed to create array view"));
         DestroyTextureArray(textureArray);
         return 0;
     }
@@ -353,7 +354,7 @@ TexcacheVulkanLoader::TextureHandle TexcacheVulkanLoader::GenerateTexture(u32 wi
                 nullptr,
                 &textureArray.NormalizedArrayView) != VK_SUCCESS)
         {
-            Platform::Log(Platform::LogLevel::Error, "TexcacheVulkan: failed to create normalized array view");
+            EMUCORED_DIAGNOSTIC_LOG(Platform::Log(Platform::LogLevel::Error, "TexcacheVulkan: failed to create normalized array view"));
             DestroyTextureArray(textureArray);
             return 0;
         }
@@ -376,7 +377,7 @@ TexcacheVulkanLoader::TextureHandle TexcacheVulkanLoader::GenerateTexture(u32 wi
     samplerCreateInfo.unnormalizedCoordinates = VK_FALSE;
     if (vkCreateSampler(State->Device, &samplerCreateInfo, nullptr, &textureArray.Sampler) != VK_SUCCESS)
     {
-        Platform::Log(Platform::LogLevel::Error, "TexcacheVulkan: failed to create sampler");
+        EMUCORED_DIAGNOSTIC_LOG(Platform::Log(Platform::LogLevel::Error, "TexcacheVulkan: failed to create sampler"));
         DestroyTextureArray(textureArray);
         return 0;
     }
@@ -389,7 +390,7 @@ TexcacheVulkanLoader::TextureHandle TexcacheVulkanLoader::GenerateTexture(u32 wi
     stagingBufferCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
     if (vkCreateBuffer(State->Device, &stagingBufferCreateInfo, nullptr, &textureArray.StagingBuffer) != VK_SUCCESS)
     {
-        Platform::Log(Platform::LogLevel::Error, "TexcacheVulkan: failed to create staging buffer");
+        EMUCORED_DIAGNOSTIC_LOG(Platform::Log(Platform::LogLevel::Error, "TexcacheVulkan: failed to create staging buffer"));
         DestroyTextureArray(textureArray);
         return 0;
     }
@@ -408,7 +409,7 @@ TexcacheVulkanLoader::TextureHandle TexcacheVulkanLoader::GenerateTexture(u32 wi
         || vkAllocateMemory(State->Device, &stagingMemoryAllocateInfo, nullptr, &textureArray.StagingMemory) != VK_SUCCESS
         || vkBindBufferMemory(State->Device, textureArray.StagingBuffer, textureArray.StagingMemory, 0) != VK_SUCCESS)
     {
-        Platform::Log(Platform::LogLevel::Error, "TexcacheVulkan: failed to allocate staging memory");
+        EMUCORED_DIAGNOSTIC_LOG(Platform::Log(Platform::LogLevel::Error, "TexcacheVulkan: failed to allocate staging memory"));
         DestroyTextureArray(textureArray);
         return 0;
     }
@@ -417,7 +418,7 @@ TexcacheVulkanLoader::TextureHandle TexcacheVulkanLoader::GenerateTexture(u32 wi
         || vkResetFences(State->Device, 1, &State->UploadFence) != VK_SUCCESS
         || vkResetCommandBuffer(State->CommandBuffer, 0) != VK_SUCCESS)
     {
-        Platform::Log(Platform::LogLevel::Error, "TexcacheVulkan: failed to prepare upload sync objects");
+        EMUCORED_DIAGNOSTIC_LOG(Platform::Log(Platform::LogLevel::Error, "TexcacheVulkan: failed to prepare upload sync objects"));
         DestroyTextureArray(textureArray);
         return 0;
     }

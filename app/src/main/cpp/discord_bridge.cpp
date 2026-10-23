@@ -13,7 +13,7 @@
 #include <string>
 
 #define DTAG "EmuCoreDDiscord"
-#ifdef NDEBUG
+#if !EMUCORED_DIAGNOSTICS
 #define DLOGI(...) ((void)0)
 #define DLOGW(...) ((void)0)
 #else
@@ -211,10 +211,12 @@ Java_com_sbro_emucored_discord_DiscordNative_start(JNIEnv* env, jclass, jstring 
 			S().client = std::make_shared<discordpp::Client>();
 			S().client->SetApplicationId(kApplicationId);
 			WireCallbacks(S().client);
+#if EMUCORED_DIAGNOSTICS
 			S().client->AddLogCallback([](std::string message, discordpp::LoggingSeverity severity) {
 				if (severity <= discordpp::LoggingSeverity::Warning)
 					DLOGW("[SDK] %s", message.c_str());
 			}, discordpp::LoggingSeverity::Warning);
+#endif
 		}
 		S().error.clear();
 	}

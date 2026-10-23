@@ -1,3 +1,4 @@
+#include "../../bridge/ds_diagnostics.h"
 /*
     Copyright 2016-2025 melonDS team
 
@@ -93,16 +94,16 @@ void FirmwareMem::Reset()
     //Firmware[userdata+0x64] &= 0xBF;
 
     MacAddress mac = FirmwareData.GetHeader().MacAddr;
-    Log(LogLevel::Info, "MAC: %02X:%02X:%02X:%02X:%02X:%02X\n", mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
+    EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Info, "MAC: %02X:%02X:%02X:%02X:%02X:%02X\n", mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]));
 
     // verify shit
     u32 mask = FirmwareData.Mask();
-    Log(LogLevel::Debug, "FW: WIFI CRC16 = %s\n", VerifyCRC16(0x0000, 0x2C, *(u16*)&FirmwareData.Buffer()[0x2C], 0x2A)?"GOOD":"BAD");
-    Log(LogLevel::Debug, "FW: AP1 CRC16 = %s\n", VerifyCRC16(0x0000, 0x7FA00&mask, 0xFE, 0x7FAFE&mask)?"GOOD":"BAD");
-    Log(LogLevel::Debug, "FW: AP2 CRC16 = %s\n", VerifyCRC16(0x0000, 0x7FB00&mask, 0xFE, 0x7FBFE&mask)?"GOOD":"BAD");
-    Log(LogLevel::Debug, "FW: AP3 CRC16 = %s\n", VerifyCRC16(0x0000, 0x7FC00&mask, 0xFE, 0x7FCFE&mask)?"GOOD":"BAD");
-    Log(LogLevel::Debug, "FW: USER0 CRC16 = %s\n", VerifyCRC16(0xFFFF, 0x7FE00&mask, 0x70, 0x7FE72&mask)?"GOOD":"BAD");
-    Log(LogLevel::Debug, "FW: USER1 CRC16 = %s\n", VerifyCRC16(0xFFFF, 0x7FF00&mask, 0x70, 0x7FF72&mask)?"GOOD":"BAD");
+    EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Debug, "FW: WIFI CRC16 = %s\n", VerifyCRC16(0x0000, 0x2C, *(u16*)&FirmwareData.Buffer()[0x2C], 0x2A)?"GOOD":"BAD"));
+    EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Debug, "FW: AP1 CRC16 = %s\n", VerifyCRC16(0x0000, 0x7FA00&mask, 0xFE, 0x7FAFE&mask)?"GOOD":"BAD"));
+    EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Debug, "FW: AP2 CRC16 = %s\n", VerifyCRC16(0x0000, 0x7FB00&mask, 0xFE, 0x7FBFE&mask)?"GOOD":"BAD"));
+    EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Debug, "FW: AP3 CRC16 = %s\n", VerifyCRC16(0x0000, 0x7FC00&mask, 0xFE, 0x7FCFE&mask)?"GOOD":"BAD"));
+    EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Debug, "FW: USER0 CRC16 = %s\n", VerifyCRC16(0xFFFF, 0x7FE00&mask, 0x70, 0x7FE72&mask)?"GOOD":"BAD"));
+    EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Debug, "FW: USER1 CRC16 = %s\n", VerifyCRC16(0xFFFF, 0x7FF00&mask, 0x70, 0x7FF72&mask)?"GOOD":"BAD"));
 
     Hold = 0;
     CurCmd = 0;
@@ -245,7 +246,7 @@ void FirmwareMem::Write(u8 val)
         break;
 
     default:
-        Log(LogLevel::Warn, "unknown firmware SPI command %02X\n", CurCmd);
+        EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Warn, "unknown firmware SPI command %02X\n", CurCmd));
         Data = 0xFF;
         break;
     }
@@ -513,8 +514,8 @@ void SPIHost::WriteCnt(u16 val)
     // TODO: presumably the transfer speed can be changed during a transfer
     // like with the NDSCart SPI interface
     Cnt = (Cnt & 0x0080) | (val & 0xCF03);
-    if (val & 0x0400) Log(LogLevel::Warn, "!! CRAPOED 16BIT SPI MODE\n");
-    if (Cnt & (1<<7)) Log(LogLevel::Warn, "!! CHANGING SPICNT DURING TRANSFER: %04X\n", val);
+    if (val & 0x0400) EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Warn, "!! CRAPOED 16BIT SPI MODE\n"));
+    if (Cnt & (1<<7)) EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Warn, "!! CHANGING SPICNT DURING TRANSFER: %04X\n", val));
 }
 
 void SPIHost::TransferDone(u32 param)
@@ -555,7 +556,7 @@ void SPIHost::WriteData(u8 val)
     }
     else
     {
-        Log(LogLevel::Warn, "SPI to unknown device %04X %02X\n", Cnt, val);
+        EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Warn, "SPI to unknown device %04X %02X\n", Cnt, val));
     }
 
     // SPI transfers one bit per cycle -> 8 cycles per byte

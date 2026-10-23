@@ -1,3 +1,4 @@
+#include "../ds_diagnostics.h"
 #include "VulkanSurfacePresenter.h"
 
 #include <android/trace.h>
@@ -279,11 +280,11 @@ bool takePrewarmedRetroArchChains(
     auto cached = gPrewarmedRetroArchChains.find(configKey);
     if (cached == gPrewarmedRetroArchChains.end() || cached->second.empty())
     {
-        melonDS::Platform::Log(
+        EMUCORED_DIAGNOSTIC_LOG(melonDS::Platform::Log(
             melonDS::Platform::LogLevel::Warn,
             "VulkanPresenter[RetroArch]: prewarmed chains missing key=%s cached=%zu",
             configKey.c_str(),
-            gPrewarmedRetroArchChains.size());
+            gPrewarmedRetroArchChains.size()));
         return false;
     }
 
@@ -295,11 +296,11 @@ bool takePrewarmedRetroArchChains(
 
     topChain = std::move(chains.topChain);
     bottomChain = std::move(chains.bottomChain);
-    melonDS::Platform::Log(
+    EMUCORED_DIAGNOSTIC_LOG(melonDS::Platform::Log(
         melonDS::Platform::LogLevel::Info,
         "VulkanPresenter[RetroArch]: consumed prewarmed chains key=%s remaining=%zu",
         configKey.c_str(),
-        remaining);
+        remaining));
     return true;
 }
 
@@ -538,7 +539,7 @@ bool VulkanSurfacePresenter::init()
     waitSemaphores = useTimelineSemaphores ? melonDS::VulkanContext::Get().GetWaitSemaphores() : nullptr;
     resetQueryPool = melonDS::VulkanContext::Get().GetResetQueryPool();
     timestampPeriodNs = melonDS::VulkanContext::Get().GetTimestampPeriod();
-    timestampQueriesSupported = melonDS::VulkanContext::Get().SupportsTimestamps();
+    timestampQueriesSupported = EMUCORED_DIAGNOSTICS && melonDS::VulkanContext::Get().SupportsTimestamps();
 
     if (instance == VK_NULL_HANDLE || physicalDevice == VK_NULL_HANDLE || device == VK_NULL_HANDLE || queue == VK_NULL_HANDLE)
     {
@@ -645,10 +646,10 @@ bool VulkanSurfacePresenter::prewarmRetroArchFilter(
     const u32 sourceScreenHeight = nativeSourcePreset ? kNativeScreenHeight : outputScreenHeight;
     const std::string configKey = makeRetroArchConfigKey(config);
 
-    melonDS::Platform::Log(
+    EMUCORED_DIAGNOSTIC_LOG(melonDS::Platform::Log(
         melonDS::Platform::LogLevel::Info,
         "VulkanPresenter[RetroArch]: prewarm start key=%s",
-        configKey.c_str());
+        configKey.c_str()));
 
     {
         std::scoped_lock lock(gPrewarmedRetroArchMutex);
@@ -656,11 +657,11 @@ bool VulkanSurfacePresenter::prewarmRetroArchFilter(
         if (cached != gPrewarmedRetroArchChains.end()
             && cached->second.size() >= kPrewarmedRetroArchSurfaceCount)
         {
-            melonDS::Platform::Log(
+            EMUCORED_DIAGNOSTIC_LOG(melonDS::Platform::Log(
                 melonDS::Platform::LogLevel::Info,
                 "VulkanPresenter[RetroArch]: prewarm already cached key=%s count=%zu",
                 configKey.c_str(),
-                cached->second.size());
+                cached->second.size()));
             return true;
         }
     }
@@ -687,11 +688,11 @@ bool VulkanSurfacePresenter::prewarmRetroArchFilter(
         {
             chains.topChain.shutdown();
             chains.bottomChain.shutdown();
-            melonDS::Platform::Log(
+            EMUCORED_DIAGNOSTIC_LOG(melonDS::Platform::Log(
                 melonDS::Platform::LogLevel::Warn,
                 "VulkanPresenter[RetroArch]: prewarm failed key=%s chainSet=%zu",
                 configKey.c_str(),
-                chainSetIndex);
+                chainSetIndex));
             return false;
         }
         chainSets.emplace_back(std::move(chains));
@@ -703,7 +704,7 @@ bool VulkanSurfacePresenter::prewarmRetroArchFilter(
         gPrewarmedRetroArchChains.emplace(configKey, std::move(chainSets));
     }
 
-    melonDS::Platform::Log(
+    EMUCORED_DIAGNOSTIC_LOG(melonDS::Platform::Log(
         melonDS::Platform::LogLevel::Info,
         "VulkanPresenter[RetroArch]: prewarmed preset=%s source=%ux%u output=%ux%u params=%zu chainSets=%zu",
         config.retroShaderPresetPath.c_str(),
@@ -712,7 +713,7 @@ bool VulkanSurfacePresenter::prewarmRetroArchFilter(
         outputScreenWidth,
         outputScreenHeight,
         config.retroShaderParameterOverrides.size(),
-        kPrewarmedRetroArchSurfaceCount);
+        kPrewarmedRetroArchSurfaceCount));
     return true;
 }
 
@@ -1010,6 +1011,8 @@ void VulkanSurfacePresenter::destroyCommonResources()
 
 bool VulkanSurfacePresenter::createTimestampQueryPool(VkQueryPool& queryPool)
 {
+#if EMUCORED_DIAGNOSTICS
+
     if (!timestampQueriesSupported)
         return true;
 
@@ -1020,18 +1023,23 @@ bool VulkanSurfacePresenter::createTimestampQueryPool(VkQueryPool& queryPool)
 
     if (vkCreateQueryPool(device, &queryPoolCreateInfo, nullptr, &queryPool) != VK_SUCCESS)
     {
-        melonDS::Platform::Log(melonDS::Platform::LogLevel::Warn, "VulkanSurfacePresenter: failed to create timestamp query pool");
+        EMUCORED_DIAGNOSTIC_LOG(melonDS::Platform::Log(melonDS::Platform::LogLevel::Warn, "VulkanSurfacePresenter: failed to create timestamp query pool"));
         queryPool = VK_NULL_HANDLE;
     }
 
     return true;
+
+#else
+    queryPool = VK_NULL_HANDLE;
+    return true;
+#endif
 }
 
 void VulkanSurfacePresenter::destroyTimestampQueryPool(VkQueryPool& queryPool)
 {
     if (queryPool != VK_NULL_HANDLE)
     {
-        vkDestroyQueryPool(device, queryPool, nullptr);
+        EMUCORED_DIAGNOSTIC_LOG(vkDestroyQueryPool(device, queryPool, nullptr));
         queryPool = VK_NULL_HANDLE;
     }
 }
@@ -1402,7 +1410,7 @@ VulkanPresentationResult VulkanSurfacePresenter::presentFrame(
             return frameImage != VK_NULL_HANDLE && frameImageView != VK_NULL_HANDLE;
         }
 
-        const u64 composeSubmitStartNs = PerfNowNs();
+        const u64 composeSubmitStartNs = DiagnosticNowNs();
         if (!output.composeAndSubmitFrame(frame, inputs))
         {
             composeSubmitFailures++;
@@ -1411,16 +1419,16 @@ VulkanPresentationResult VulkanSurfacePresenter::presentFrame(
         }
 
         const u64 composeWaitTimeoutNs = gpuWaitTimeoutNs;
-        const u64 composeWaitStartNs = PerfNowNs();
+        const u64 composeWaitStartNs = DiagnosticNowNs();
         const VulkanCausalWaitResult composeWaitResult = waitRunner(
             "VulkanPump.WaitComposeProduct",
             [&] { return output.waitForFrame(frame, composeWaitTimeoutNs); });
         const bool composeWaitOk =
             composeWaitResult == VulkanCausalWaitResult::Ready;
-        const u64 composeDoneNs = PerfNowNs();
+        const u64 composeDoneNs = DiagnosticNowNs();
         if (composeDoneNs - composeSubmitStartNs > 200'000'000ull)
         {
-            melonDS::Platform::Log(
+            EMUCORED_DIAGNOSTIC_LOG(melonDS::Platform::Log(
                 melonDS::Platform::LogLevel::Warn,
                 "VulkanPresenter[SlowPhase]: compose submitMs=%.1f waitMs=%.1f ok=%u timeoutNs=%llu frameId=%u",
                 static_cast<double>(composeWaitStartNs - composeSubmitStartNs) / 1e6,
@@ -1428,7 +1436,7 @@ VulkanPresentationResult VulkanSurfacePresenter::presentFrame(
                 composeWaitOk ? 1u : 0u,
                 static_cast<unsigned long long>(composeWaitTimeoutNs),
                 frame != nullptr ? static_cast<unsigned>(frame->frameId) : 0u
-            );
+            ));
         }
         if (!composeWaitOk)
         {
@@ -1497,18 +1505,18 @@ VulkanPresentationResult VulkanSurfacePresenter::presentFrame(
         VkImage sampledImage = directPresent ? inputs.sourceImage : frameImage;
         VkImageView sampledImageView = directPresent ? inputs.sourceImageView : frameImageView;
 
-        const u64 ensureSwapchainStartNs = PerfNowNs();
+        const u64 ensureSwapchainStartNs = DiagnosticNowNs();
         const bool swapchainOk = ensureSwapchain(surfaceState);
-        const u64 ensureSwapchainNs = PerfNowNs() - ensureSwapchainStartNs;
+        const u64 ensureSwapchainNs = DiagnosticNowNs() - ensureSwapchainStartNs;
         if (ensureSwapchainNs > 200'000'000ull)
         {
-            melonDS::Platform::Log(
+            EMUCORED_DIAGNOSTIC_LOG(melonDS::Platform::Log(
                 melonDS::Platform::LogLevel::Warn,
                 "VulkanPresenter[SlowPhase]: ensureSwapchain waitMs=%.1f ok=%u frameId=%u",
                 static_cast<double>(ensureSwapchainNs) / 1e6,
                 swapchainOk ? 1u : 0u,
                 frame != nullptr ? static_cast<unsigned>(frame->frameId) : 0u
-            );
+            ));
         }
         if (!swapchainOk)
         {
@@ -1536,7 +1544,7 @@ VulkanPresentationResult VulkanSurfacePresenter::presentFrame(
         const VkFence expectedInFlightFence = surfaceState.inFlightFence;
         SurfaceState* const waitedSurface = &surfaceState;
         VkResult surfaceFenceResult = VK_SUCCESS;
-        const u64 surfaceIdleStartNs = PerfNowNs();
+        const u64 surfaceIdleStartNs = DiagnosticNowNs();
         const VulkanCausalWaitResult surfaceWaitResult = waitRunner(
             "VulkanPump.WaitSurfaceFence",
             [&] {
@@ -1545,7 +1553,7 @@ VulkanPresentationResult VulkanSurfacePresenter::presentFrame(
                     surfaceIdleBudgetNs);
                 return surfaceFenceResult == VK_SUCCESS;
             });
-        const u64 surfaceIdleWaitNs = PerfNowNs() - surfaceIdleStartNs;
+        const u64 surfaceIdleWaitNs = DiagnosticNowNs() - surfaceIdleStartNs;
         (void)surfaceIdleWaitNs;
         if (surfaceWaitResult == VulkanCausalWaitResult::GenerationChanged
             || surfaceWaitResult == VulkanCausalWaitResult::Stopped)
@@ -1563,7 +1571,7 @@ VulkanPresentationResult VulkanSurfacePresenter::presentFrame(
             || surfaceState.inFlightFence != expectedInFlightFence)
         {
             surfaceWaitFailures++;
-            melonDS::Platform::Log(
+            EMUCORED_DIAGNOSTIC_LOG(melonDS::Platform::Log(
                 melonDS::Platform::LogLevel::Error,
                 "VulkanSurfacePresenter: Surface identity changed across wait id=%d/%d epoch=%llu/%llu swapchain=%llu/%llu fenceStable=%u",
                 expectedSurfaceId,
@@ -1572,7 +1580,7 @@ VulkanPresentationResult VulkanSurfacePresenter::presentFrame(
                 static_cast<unsigned long long>(surfaceState.surfaceEpoch),
                 static_cast<unsigned long long>(expectedSwapchainGeneration),
                 static_cast<unsigned long long>(surfaceState.swapchainGeneration),
-                surfaceState.inFlightFence == expectedInFlightFence ? 1u : 0u);
+                surfaceState.inFlightFence == expectedInFlightFence ? 1u : 0u));
             terminalCausalWait = true;
             terminalCausalWaitResult =
                 VulkanPresentationResult::GenerationChanged;
@@ -1596,18 +1604,18 @@ VulkanPresentationResult VulkanSurfacePresenter::presentFrame(
 
         if (!directPresent)
         {
-            const u64 fullComposeStartNs = PerfNowNs();
+            const u64 fullComposeStartNs = DiagnosticNowNs();
             const bool fullComposeOk = ensureFullFrameComposed();
-            const u64 fullComposeNs = PerfNowNs() - fullComposeStartNs;
+            const u64 fullComposeNs = DiagnosticNowNs() - fullComposeStartNs;
             if (fullComposeNs > 200'000'000ull)
             {
-                melonDS::Platform::Log(
+                EMUCORED_DIAGNOSTIC_LOG(melonDS::Platform::Log(
                     melonDS::Platform::LogLevel::Warn,
                     "VulkanPresenter[SlowPhase]: fullFrameCompose waitMs=%.1f ok=%u frameId=%u",
                     static_cast<double>(fullComposeNs) / 1e6,
                     fullComposeOk ? 1u : 0u,
                     frame != nullptr ? static_cast<unsigned>(frame->frameId) : 0u
-                );
+                ));
             }
             if (!fullComposeOk)
             {
@@ -1647,17 +1655,17 @@ VulkanPresentationResult VulkanSurfacePresenter::presentFrame(
             }
         }
 
-        const u64 descriptorStartNs = PerfNowNs();
+        const u64 descriptorStartNs = DiagnosticNowNs();
         if (!updateDescriptorSets(surfaceState, sampledImageView, inputs, effectiveFiltering, directPresent))
         {
             descriptorUpdateFailures++;
             recordDeferredResult(VulkanPresentationResult::FatalError);
             continue;
         }
-        descriptorCpuNs += PerfNowNs() - descriptorStartNs;
+        descriptorCpuNs += DiagnosticNowNs() - descriptorStartNs;
 
         std::vector<DrawCall> drawCalls;
-        const u64 vertexStartNs = PerfNowNs();
+        const u64 vertexStartNs = DiagnosticNowNs();
         if (!updateVertexBuffer(
                 surfaceState,
                 surfaceState.config,
@@ -1671,7 +1679,7 @@ VulkanPresentationResult VulkanSurfacePresenter::presentFrame(
             recordDeferredResult(VulkanPresentationResult::FatalError);
             continue;
         }
-        vertexCpuNs += PerfNowNs() - vertexStartNs;
+        vertexCpuNs += DiagnosticNowNs() - vertexStartNs;
 
         u32 imageIndex = 0;
         const u64 acquireBudgetNs = [&]() -> u64 {
@@ -1685,7 +1693,7 @@ VulkanPresentationResult VulkanSurfacePresenter::presentFrame(
                 return 0;
             return deadlineNs - nowNs;
         }();
-        const u64 acquireStartNs = PerfNowNs();
+        const u64 acquireStartNs = DiagnosticNowNs();
         VkResult acquireResult = vkAcquireNextImageKHR(
             device,
             surfaceState.swapchain,
@@ -1694,7 +1702,7 @@ VulkanPresentationResult VulkanSurfacePresenter::presentFrame(
             VK_NULL_HANDLE,
             &imageIndex
         );
-        acquireCpuNs += PerfNowNs() - acquireStartNs;
+        acquireCpuNs += DiagnosticNowNs() - acquireStartNs;
 
         if (acquireResult == VK_ERROR_OUT_OF_DATE_KHR)
         {
@@ -1853,7 +1861,7 @@ VulkanPresentationResult VulkanSurfacePresenter::presentFrame(
             && bottomClass4ScreenDrawCount == 1u
             && bottomClass4CompatibleDrawCount == 1u
             && countDrawMode(kDrawModeDirectOverlay2DBottom) == 1u;
-        const u64 recordStartNs = PerfNowNs();
+        const u64 recordStartNs = DiagnosticNowNs();
         if (!recordSurfaceCommands(
                 surfaceState,
                 surfaceState.framebuffers[imageIndex],
@@ -1875,9 +1883,9 @@ VulkanPresentationResult VulkanSurfacePresenter::presentFrame(
             recoverSwapchain(surfaceState, "recordSurfaceCommands");
             continue;
         }
-        recordCpuNs += PerfNowNs() - recordStartNs;
+        recordCpuNs += DiagnosticNowNs() - recordStartNs;
 
-        const u64 submitStartNs = PerfNowNs();
+        const u64 submitStartNs = DiagnosticNowNs();
         u64 surfacePresentCpuNs = 0;
         u64 surfacePresentTimelineValue = 0;
         bool queueSubmitSucceeded = false;
@@ -2023,7 +2031,7 @@ VulkanPresentationResult VulkanSurfacePresenter::presentFrame(
             recoverSwapchain(surfaceState, "submitSurfaceCommands");
             continue;
         }
-        submitCpuNs += PerfNowNs() - submitStartNs;
+        submitCpuNs += DiagnosticNowNs() - submitStartNs;
         presentCpuNs += surfacePresentCpuNs;
 
         presentedAnySurface = true;
@@ -2051,23 +2059,23 @@ VulkanPresentationResult VulkanSurfacePresenter::presentFrame(
         if (!obligationIdentityValid || token.surfaceObligations.empty())
         {
             presentFenceTokenErrors++;
-            melonDS::Platform::Log(
+            EMUCORED_DIAGNOSTIC_LOG(melonDS::Platform::Log(
                 melonDS::Platform::LogLevel::Error,
                 "VulkanSurfacePresenter: invalid present obligation identity frame=%llu generation=%llu epoch=%llu count=%zu",
                 static_cast<unsigned long long>(token.frameId),
                 static_cast<unsigned long long>(token.publicationGeneration),
                 static_cast<unsigned long long>(token.presenterEpoch),
-                token.surfaceObligations.size());
+                token.surfaceObligations.size()));
         }
         else if (useTimelineSemaphores)
         {
             if (framePresentTimelineValue == 0)
             {
                 presentFenceTokenErrors++;
-                melonDS::Platform::Log(
+                EMUCORED_DIAGNOSTIC_LOG(melonDS::Platform::Log(
                     melonDS::Platform::LogLevel::Error,
                     "VulkanSurfacePresenter: missing timeline value for submitted frame %llu",
-                    static_cast<unsigned long long>(token.frameId));
+                    static_cast<unsigned long long>(token.frameId)));
             }
             else
             {
@@ -2095,10 +2103,10 @@ VulkanPresentationResult VulkanSurfacePresenter::presentFrame(
         recordCpuWindow.Add(recordCpuNs);
         submitCpuWindow.Add(submitCpuNs);
         presentCpuWindow.Add(presentCpuNs);
-        const u64 wallNs = PerfNowNs() - totalStartNs;
+        const u64 wallNs = EMUCORED_DIAGNOSTICS ? PerfNowNs() - totalStartNs : 0u;
         if (wallNs > 200'000'000ull)
         {
-            melonDS::Platform::Log(
+            EMUCORED_DIAGNOSTIC_LOG(melonDS::Platform::Log(
                 melonDS::Platform::LogLevel::Warn,
                 "VulkanPresenter[SlowPhase]: wallMs=%.1f descMs=%.1f vertexMs=%.1f acquireMs=%.1f recordMs=%.1f submitMs=%.1f presentMs=%.1f frameId=%u",
                 static_cast<double>(wallNs) / 1e6,
@@ -2109,7 +2117,7 @@ VulkanPresentationResult VulkanSurfacePresenter::presentFrame(
                 static_cast<double>(submitCpuNs) / 1e6,
                 static_cast<double>(presentCpuNs) / 1e6,
                 frame != nullptr ? static_cast<unsigned>(frame->frameId) : 0u
-            );
+            ));
         }
         frameWallCpuWindow.Add(wallNs);
         presentedFrames++;
@@ -2164,10 +2172,10 @@ bool VulkanSurfacePresenter::submitPresentFenceMarker(
     if (slotIndex == PresentConsumptionToken::InvalidFenceSlot)
     {
         presentFenceMarkerFailures++;
-        melonDS::Platform::Log(
+        EMUCORED_DIAGNOSTIC_LOG(melonDS::Platform::Log(
             melonDS::Platform::LogLevel::Error,
             "VulkanSurfacePresenter: no signaled terminal fence slot for frame %llu",
-            static_cast<unsigned long long>(token.frameId));
+            static_cast<unsigned long long>(token.frameId)));
         return false;
     }
 
@@ -2175,11 +2183,11 @@ bool VulkanSurfacePresenter::submitPresentFenceMarker(
     if (vkResetFences(device, 1, &slot.fence) != VK_SUCCESS)
     {
         presentFenceMarkerFailures++;
-        melonDS::Platform::Log(
+        EMUCORED_DIAGNOSTIC_LOG(melonDS::Platform::Log(
             melonDS::Platform::LogLevel::Error,
             "VulkanSurfacePresenter: terminal fence reset failed for slot %u frame %llu",
             slotIndex,
-            static_cast<unsigned long long>(token.frameId));
+            static_cast<unsigned long long>(token.frameId)));
         return false;
     }
 
@@ -2194,12 +2202,12 @@ bool VulkanSurfacePresenter::submitPresentFenceMarker(
     if (markerResult != VK_SUCCESS)
     {
         presentFenceMarkerFailures++;
-        melonDS::Platform::Log(
+        EMUCORED_DIAGNOSTIC_LOG(melonDS::Platform::Log(
             melonDS::Platform::LogLevel::Error,
             "VulkanSurfacePresenter: terminal marker submit failed for slot %u frame %llu (%d)",
             slotIndex,
             static_cast<unsigned long long>(token.frameId),
-            static_cast<int>(markerResult));
+            static_cast<int>(markerResult)));
         return false;
     }
 
@@ -2228,14 +2236,14 @@ bool VulkanSurfacePresenter::waitForPresentQueueRecovery(
     const bool traceEnabled = ATrace_isEnabled();
     if (traceEnabled)
         ATrace_beginSection("melonDS::VulkanPresenter::vkQueueWaitIdleRecovery");
-    const u64 waitStartNs = PerfNowNs();
+    const u64 waitStartNs = DiagnosticNowNs();
     VkResult waitResult = VK_ERROR_INITIALIZATION_FAILED;
     {
         std::scoped_lock queueLock(
             melonDS::VulkanContext::Get().GetPresentQueueLock());
         waitResult = vkQueueWaitIdle(queue);
     }
-    const u64 waitElapsedNs = PerfNowNs() - waitStartNs;
+    const u64 waitElapsedNs = DiagnosticNowNs() - waitStartNs;
     if (traceEnabled)
         ATrace_endSection();
 
@@ -2290,7 +2298,7 @@ bool VulkanSurfacePresenter::waitForPresentFenceToken(
     if (!tokenMatches)
     {
         presentFenceTokenErrors++;
-        melonDS::Platform::Log(
+        EMUCORED_DIAGNOSTIC_LOG(melonDS::Platform::Log(
             melonDS::Platform::LogLevel::Error,
             "VulkanSurfacePresenter: terminal fence token mismatch slot=%u serial=%llu frame=%llu generation=%llu epoch=%llu obligations=%zu",
             token.fenceSlot,
@@ -2298,7 +2306,7 @@ bool VulkanSurfacePresenter::waitForPresentFenceToken(
             static_cast<unsigned long long>(token.frameId),
             static_cast<unsigned long long>(token.publicationGeneration),
             static_cast<unsigned long long>(token.presenterEpoch),
-            token.surfaceObligations.size());
+            token.surfaceObligations.size()));
         token.kind = PresentConsumptionKind::QueueIdleRecovery;
         return waitForPresentQueueRecovery(token);
     }
@@ -2306,14 +2314,14 @@ bool VulkanSurfacePresenter::waitForPresentFenceToken(
     const bool traceEnabled = ATrace_isEnabled();
     if (traceEnabled)
         ATrace_beginSection("melonDS::VulkanPresenter::vkWaitForFences");
-    const u64 waitStartNs = PerfNowNs();
+    const u64 waitStartNs = DiagnosticNowNs();
     const VkResult waitResult = vkWaitForFences(
         device,
         1,
         &slot->fence,
         VK_TRUE,
         timeoutNs);
-    const u64 waitElapsedNs = PerfNowNs() - waitStartNs;
+    const u64 waitElapsedNs = DiagnosticNowNs() - waitStartNs;
     if (traceEnabled)
         ATrace_endSection();
 
@@ -2327,12 +2335,12 @@ bool VulkanSurfacePresenter::waitForPresentFenceToken(
     if (waitResult != VK_SUCCESS)
     {
         presentFenceTokenErrors++;
-        melonDS::Platform::Log(
+        EMUCORED_DIAGNOSTIC_LOG(melonDS::Platform::Log(
             melonDS::Platform::LogLevel::Error,
             "VulkanSurfacePresenter: terminal fence wait failed slot=%u serial=%llu (%d)",
             token.fenceSlot,
             static_cast<unsigned long long>(token.completionSerial),
-            static_cast<int>(waitResult));
+            static_cast<int>(waitResult)));
         token.kind = PresentConsumptionKind::QueueIdleRecovery;
         return waitForPresentQueueRecovery(token);
     }
@@ -2390,12 +2398,12 @@ bool VulkanSurfacePresenter::waitForFrameConsumption(Frame* frame, u64 timeoutNs
     if (token.presenterEpoch == 0 || token.presenterEpoch != presenterEpoch)
     {
         presentFenceTokenErrors++;
-        melonDS::Platform::Log(
+        EMUCORED_DIAGNOSTIC_LOG(melonDS::Platform::Log(
             melonDS::Platform::LogLevel::Error,
             "VulkanSurfacePresenter: stale presenter epoch token=%llu current=%llu frame=%llu",
             static_cast<unsigned long long>(token.presenterEpoch),
             static_cast<unsigned long long>(presenterEpoch),
-            static_cast<unsigned long long>(token.frameId));
+            static_cast<unsigned long long>(token.frameId)));
         token.kind = PresentConsumptionKind::QueueIdleRecovery;
         return waitForPresentQueueRecovery(token);
     }
@@ -2717,38 +2725,38 @@ bool VulkanSurfacePresenter::ensureSwapchain(SurfaceState& surfaceState)
     if (!surfaceState.swapchainDirty && surfaceState.swapchain != VK_NULL_HANDLE)
         return true;
 
-    const u64 ensureStartNs = PerfNowNs();
+    const u64 ensureStartNs = DiagnosticNowNs();
     const auto logSlowSegment = [&](const char* segment, u64 segmentStartNs) {
-        const u64 nowNs = PerfNowNs();
+        const u64 nowNs = DiagnosticNowNs();
         if (nowNs - segmentStartNs > 200'000'000ull)
         {
-            melonDS::Platform::Log(
+            EMUCORED_DIAGNOSTIC_LOG(melonDS::Platform::Log(
                 melonDS::Platform::LogLevel::Warn,
                 "VulkanPresenter[SlowPhase]: ensureSwapchain.%s waitMs=%.1f surface=%d hadSwapchain=%u",
                 segment,
                 static_cast<double>(nowNs - segmentStartNs) / 1e6,
                 surfaceState.id,
                 surfaceState.swapchain != VK_NULL_HANDLE ? 1u : 0u
-            );
+            ));
         }
     };
 
     if (surfaceState.swapchain != VK_NULL_HANDLE)
     {
-        const u64 idleStartNs = PerfNowNs();
+        const u64 idleStartNs = DiagnosticNowNs();
         const VkResult idleResult = waitForSurfaceIdle(surfaceState);
         logSlowSegment("idleWait", idleStartNs);
         if (idleResult != VK_SUCCESS)
             return false;
 
-        const u64 presentIdleStartNs = PerfNowNs();
+        const u64 presentIdleStartNs = DiagnosticNowNs();
         const VkResult presentIdleResult = waitForPresentQueueIdleForLifecycle();
         logSlowSegment("presentIdleWait", presentIdleStartNs);
         if (presentIdleResult != VK_SUCCESS)
             return false;
     }
 
-    const u64 queryStartNs = PerfNowNs();
+    const u64 queryStartNs = DiagnosticNowNs();
     VkSurfaceCapabilitiesKHR capabilities{};
     if (vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physicalDevice, surfaceState.surface, &capabilities) != VK_SUCCESS)
     {
@@ -2777,7 +2785,7 @@ bool VulkanSurfacePresenter::ensureSwapchain(SurfaceState& surfaceState)
     logSlowSegment("surfaceQueries", queryStartNs);
     std::vector<VkSurfaceFormatKHR> rankedFormats = rankSurfaceFormats(formats);
     std::vector<VkPresentModeKHR> rankedPresentModes = rankPresentModes(presentModes);
-    const u64 createLoopStartNs = PerfNowNs();
+    const u64 createLoopStartNs = DiagnosticNowNs();
 
     const VkExtent2D logicalExtent = chooseLogicalExtent(
         capabilities, surfaceState.window, surfaceState.requestedWidth, surfaceState.requestedHeight);
@@ -2841,7 +2849,7 @@ bool VulkanSurfacePresenter::ensureSwapchain(SurfaceState& surfaceState)
         failedSwapchainConfigs.insert(configKey);
         if (loggedFailedSwapchainConfigs.insert(configKey).second)
         {
-            melonDS::Platform::Log(
+            EMUCORED_DIAGNOSTIC_LOG(melonDS::Platform::Log(
                 melonDS::Platform::LogLevel::Warn,
                 "VulkanSurfacePresenter: rejected swapchain config after %s surface=%d format=%d colorspace=%d presentMode=%d result=%d",
                 stage != nullptr ? stage : "unknown",
@@ -2850,7 +2858,7 @@ bool VulkanSurfacePresenter::ensureSwapchain(SurfaceState& surfaceState)
                 static_cast<int>(surfaceFormat.colorSpace),
                 static_cast<int>(presentMode),
                 static_cast<int>(result)
-            );
+            ));
         }
 
         destroySwapchain(surfaceState);
@@ -2901,7 +2909,7 @@ bool VulkanSurfacePresenter::ensureSwapchain(SurfaceState& surfaceState)
             failedSwapchainConfigs.insert(configKey);
             if (loggedFailedSwapchainConfigs.insert(configKey).second)
             {
-                melonDS::Platform::Log(
+                EMUCORED_DIAGNOSTIC_LOG(melonDS::Platform::Log(
                     melonDS::Platform::LogLevel::Warn,
                     "VulkanSurfacePresenter: rejected swapchain config surface=%d format=%d colorspace=%d presentMode=%d result=%d",
                     surfaceState.id,
@@ -2909,7 +2917,7 @@ bool VulkanSurfacePresenter::ensureSwapchain(SurfaceState& surfaceState)
                     static_cast<int>(candidateFormat.colorSpace),
                     static_cast<int>(candidatePresentMode),
                     static_cast<int>(swapchainResult)
-                );
+                ));
             }
         }
 
@@ -2921,7 +2929,7 @@ bool VulkanSurfacePresenter::ensureSwapchain(SurfaceState& surfaceState)
     destroyRetiredSwapchain();
     if (!swapchainCreated)
         return false;
-    const u64 postCreateStartNs = PerfNowNs();
+    const u64 postCreateStartNs = DiagnosticNowNs();
     (void)ensureStartNs;
 
     VkAttachmentDescription attachmentDescription{};
@@ -2970,7 +2978,7 @@ bool VulkanSurfacePresenter::ensureSwapchain(SurfaceState& surfaceState)
         || surfaceState.extent.height != extent.height;
     if (swapchainSelectionChanged && MelonDSAndroid::areRendererDebugBgObjLogsEnabled())
     {
-        melonDS::Platform::Log(
+        EMUCORED_DIAGNOSTIC_LOG(melonDS::Platform::Log(
             melonDS::Platform::LogLevel::Info,
             "VulkanSurfacePresenter: creating swapchain for surface %d format=%d colorspace=%d presentMode=%d extent=%ux%u images=%u preTransform=%d currentTransform=%d",
             surfaceState.id,
@@ -2982,7 +2990,7 @@ bool VulkanSurfacePresenter::ensureSwapchain(SurfaceState& surfaceState)
             imageCount,
             static_cast<int>(preTransform),
             static_cast<int>(capabilities.currentTransform)
-        );
+        ));
     }
 
     u32 swapchainImageCount = 0;
@@ -3131,7 +3139,7 @@ bool VulkanSurfacePresenter::ensureSwapchain(SurfaceState& surfaceState)
     pipelineInfo.renderPass = surfaceState.renderPass;
     pipelineInfo.subpass = 0;
 
-    const u64 a1PipelineStartNs = PerfNowNs();
+    const u64 a1PipelineStartNs = DiagnosticNowNs();
 
     ensureSurfacePipelineCache();
     const VkResult createPipelineResult = vkCreateGraphicsPipelines(
@@ -3148,12 +3156,12 @@ bool VulkanSurfacePresenter::ensureSwapchain(SurfaceState& surfaceState)
 
     if (areRendererDebugToolsEnabled())
     {
-        melonDS::Platform::Log(
+        EMUCORED_DIAGNOSTIC_LOG(melonDS::Platform::Log(
             melonDS::Platform::LogLevel::Warn,
             "VulkanPerf[A1Presenter]: pipeline surface=%d ms=%.1f desdePostCreate=%.1f",
             surfaceState.id,
-            static_cast<double>(PerfNowNs() - a1PipelineStartNs) / 1e6,
-            static_cast<double>(PerfNowNs() - postCreateStartNs) / 1e6);
+            static_cast<double>(DiagnosticNowNs() - a1PipelineStartNs) / 1e6,
+            static_cast<double>(DiagnosticNowNs() - postCreateStartNs) / 1e6));
     }
 
     for (u32 i = 0; i < swapchainImageCount; i++)
@@ -3287,12 +3295,12 @@ VkResult VulkanSurfacePresenter::waitForPresentQueueIdleForLifecycle()
 void VulkanSurfacePresenter::recoverSwapchain(SurfaceState& surfaceState, const char* reason)
 {
     swapchainRecoveries++;
-    melonDS::Platform::Log(
+    EMUCORED_DIAGNOSTIC_LOG(melonDS::Platform::Log(
         melonDS::Platform::LogLevel::Error,
         "VulkanSurfacePresenter: recovering swapchain for surface %d after %s",
         surfaceState.id,
         reason != nullptr ? reason : "unknown error"
-    );
+    ));
 
     (void)waitForSurfaceIdle(surfaceState);
     (void)waitForPresentQueueIdleForLifecycle();
@@ -3387,12 +3395,12 @@ void VulkanSurfacePresenter::ensureSurfacePipelineCache()
     }
     surfacePipelineCacheSavedBytes = rejected ? 0 : cacheData.size();
 
-    melonDS::Platform::Log(
+    EMUCORED_DIAGNOSTIC_LOG(melonDS::Platform::Log(
         melonDS::Platform::LogLevel::Warn,
         "VulkanSurfacePresenter: pipeline cache ready (%s, %llu bytes preloaded)",
         surfacePipelineCacheFile.c_str(),
         static_cast<unsigned long long>(cacheData.size())
-    );
+    ));
 }
 
 void VulkanSurfacePresenter::saveSurfacePipelineCache()
@@ -3421,12 +3429,12 @@ void VulkanSurfacePresenter::saveSurfacePipelineCache()
     if (written == cacheSize)
     {
         surfacePipelineCacheSavedBytes = cacheSize;
-        melonDS::Platform::Log(
+        EMUCORED_DIAGNOSTIC_LOG(melonDS::Platform::Log(
             melonDS::Platform::LogLevel::Warn,
             "VulkanSurfacePresenter: saved pipeline cache (%s, %llu bytes)",
             surfacePipelineCacheFile.c_str(),
             static_cast<unsigned long long>(cacheSize)
-        );
+        ));
     }
 }
 
@@ -3465,11 +3473,11 @@ VkResult VulkanSurfacePresenter::waitForSurfaceIdle(SurfaceState& surfaceState, 
     if (surfaceState.inFlightFence == VK_NULL_HANDLE)
         return VK_SUCCESS;
 
-    const u64 waitStartNs = PerfNowNs();
+    const u64 waitStartNs = DiagnosticNowNs();
     const VkResult waitResult = vkWaitForFences(device, 1, &surfaceState.inFlightFence, VK_TRUE, timeoutNs);
     if (waitResult == VK_SUCCESS)
     {
-        waitCpuWindow.Add(PerfNowNs() - waitStartNs);
+        waitCpuWindow.Add(DiagnosticNowNs() - waitStartNs);
         consumeSurfaceGpuTiming(surfaceState);
     }
 
@@ -3489,6 +3497,8 @@ bool VulkanSurfacePresenter::resetSurfaceInFlightFence(SurfaceState& surfaceStat
 
 void VulkanSurfacePresenter::consumeSurfaceGpuTiming(SurfaceState& surfaceState)
 {
+#if EMUCORED_DIAGNOSTICS
+
     if (!surfaceState.timestampPending || surfaceState.timestampQueryPool == VK_NULL_HANDLE || timestampPeriodNs <= 0.0f)
         return;
 
@@ -3510,10 +3520,14 @@ void VulkanSurfacePresenter::consumeSurfaceGpuTiming(SurfaceState& surfaceState)
     }
 
     surfaceState.timestampPending = false;
+
+#endif
 }
 
 void VulkanSurfacePresenter::logPerformanceIfNeeded()
 {
+#if EMUCORED_DIAGNOSTICS
+
     if (!areRendererDebugToolsEnabled())
         return;
 
@@ -3530,7 +3544,7 @@ void VulkanSurfacePresenter::logPerformanceIfNeeded()
     const PerfSampleWindow<120>::Summary presentSummary = presentCpuWindow.SummarizeAndReset();
     const PerfSampleWindow<120>::Summary gpuSummary = presentGpuWindow.SummarizeAndReset();
 
-    melonDS::Platform::Log(
+    EMUCORED_DIAGNOSTIC_LOG(melonDS::Platform::Log(
         melonDS::Platform::LogLevel::Warn,
         "VulkanPerf[Presenter]: mode=%s frame wall avg=%.3fms p95=%.3fms max=%.3fms wait avg=%.3fms p95=%.3fms max=%.3fms acquire avg=%.3fms p95=%.3fms max=%.3fms desc avg=%.3fms vertex avg=%.3fms record avg=%.3fms submit avg=%.3fms present avg=%.3fms gpu avg=%.3fms p95=%.3fms max=%.3fms presented=%llu direct=%llu fallback=%llu drawModes(bg=%llu composite=%llu top=%llu bottom=%llu filterTop=%llu filterBottom=%llu retro=%llu compTop=%llu compBottom=%llu directTop=%llu directBottom=%llu directCarryTop=%llu directCarryBottom=%llu overlay2DTop=%llu overlay2DBottom=%llu overlay2DOnlyTop=%llu overlay2DOnlyBottom=%llu overlay2DOnlyTopP0=%llu overlay2DOnlyBottomP0=%llu overlay2DOnlyTopP1=%llu overlay2DOnlyBottomP1=%llu) skippedWait=%llu acquireTimeouts=%llu deadlineSkipped=%llu recoveries=%llu presentMode=%d swapchainImages=%u reasons(needsReadback=%llu validation=%llu missingHandles=%llu surfaceCount=%llu postFilter=%llu surfaces=%llu dualHistory=%llu unsafeCarry=%llu composedReplay=%llu deferredHistory=%llu carryUnsupported=%llu packedFallback=%llu composedFallback=%llu) fail(frameWait=%llu composeSubmit=%llu composeWait=%llu missingImage=%llu noConfigured=%llu swapchain=%llu surfaceWait=%llu descriptor=%llu vertex=%llu acquire=%llu record=%llu submit=%llu)",
         lastPresentedDirect ? "direct" : "fallback",
@@ -3606,7 +3620,7 @@ void VulkanSurfacePresenter::logPerformanceIfNeeded()
         static_cast<unsigned long long>(acquireFailures),
         static_cast<unsigned long long>(recordFailures),
         static_cast<unsigned long long>(submitFailures)
-    );
+    ));
 
     fallbackReasonNeedsReadback = 0;
     fallbackReasonValidationMode = 0;
@@ -3640,7 +3654,7 @@ void VulkanSurfacePresenter::logPerformanceIfNeeded()
         (void)surfaceId;
         if (!surfaceState.configured)
             continue;
-        melonDS::Platform::Log(
+        EMUCORED_DIAGNOSTIC_LOG(melonDS::Platform::Log(
             melonDS::Platform::LogLevel::Warn,
             "VulkanPerf[P2]: surface=%d preTransform=%d extent=%ux%u logical=%ux%u requested=%ux%u swapchainCreations=%llu suboptimalQueries=%llu",
             surfaceState.id,
@@ -3652,10 +3666,12 @@ void VulkanSurfacePresenter::logPerformanceIfNeeded()
             surfaceState.requestedWidth,
             surfaceState.requestedHeight,
             static_cast<unsigned long long>(swapchainCreations),
-            static_cast<unsigned long long>(presentSuboptimalQueries));
+            static_cast<unsigned long long>(presentSuboptimalQueries)));
     }
     swapchainCreations = 0;
     presentSuboptimalQueries = 0;
+
+#endif
 }
 
 bool VulkanSurfacePresenter::ensureBackgroundTexture(SurfaceState& surfaceState, const VulkanBackgroundImage& backgroundImage)
@@ -3836,7 +3852,7 @@ void VulkanSurfacePresenter::logRetroArchSizingIfNeeded(
         return;
 
     retro.lastSizingLogKey = std::move(logKey);
-    melonDS::Platform::Log(
+    EMUCORED_DIAGNOSTIC_LOG(melonDS::Platform::Log(
         melonDS::Platform::LogLevel::Info,
         "VulkanPresenter[RetroArchSizing]: preset=%s mode=%s source=%ux%u inputAtlas=%ux%u inputScreen=%ux%u outputScreen=%ux%u outputAtlas=%ux%u layoutMax=%ux%u requested=%ux%u clamped=%d surface=%ux%u passes=%u",
         surfaceState.config.retroShaderPresetPath.c_str(),
@@ -3858,7 +3874,7 @@ void VulkanSurfacePresenter::logRetroArchSizingIfNeeded(
         sizing.clamped ? 1 : 0,
         surfaceState.extent.width,
         surfaceState.extent.height,
-        surfaceState.config.retroShaderPassCount);
+        surfaceState.config.retroShaderPassCount));
 }
 
 bool VulkanSurfacePresenter::ensureRetroArchResources(
@@ -3985,7 +4001,7 @@ bool VulkanSurfacePresenter::runRetroArchFilter(
         || sizing.inputScreenWidth > atlasWidth
         || sizing.inputScreenHeight > atlasHeight)
     {
-        melonDS::Platform::Log(
+        EMUCORED_DIAGNOSTIC_LOG(melonDS::Platform::Log(
             melonDS::Platform::LogLevel::Warn,
             "VulkanPresenter[RetroArchSizing]: invalid dimensions preset=%s mode=%s source=%ux%u inputAtlas=%ux%u inputScreen=%ux%u outputScreen=%ux%u outputAtlas=%ux%u surface=%ux%u",
             surfaceState.config.retroShaderPresetPath.c_str(),
@@ -4001,7 +4017,7 @@ bool VulkanSurfacePresenter::runRetroArchFilter(
             sizing.outputAtlasWidth,
             sizing.outputAtlasHeight,
             surfaceState.extent.width,
-            surfaceState.extent.height);
+            surfaceState.extent.height));
         return false;
     }
 
@@ -4014,7 +4030,7 @@ bool VulkanSurfacePresenter::runRetroArchFilter(
             sizing.outputAtlasWidth,
             sizing.outputAtlasHeight))
     {
-        melonDS::Platform::Log(
+        EMUCORED_DIAGNOSTIC_LOG(melonDS::Platform::Log(
             melonDS::Platform::LogLevel::Warn,
             "VulkanPresenter[RetroArchSizing]: resource allocation failed preset=%s mode=%s source=%ux%u inputAtlas=%ux%u inputScreen=%ux%u outputScreen=%ux%u outputAtlas=%ux%u surface=%ux%u",
             surfaceState.config.retroShaderPresetPath.c_str(),
@@ -4030,7 +4046,7 @@ bool VulkanSurfacePresenter::runRetroArchFilter(
             sizing.outputAtlasWidth,
             sizing.outputAtlasHeight,
             surfaceState.extent.width,
-            surfaceState.extent.height);
+            surfaceState.extent.height));
         return false;
     }
 
@@ -4072,7 +4088,7 @@ bool VulkanSurfacePresenter::runRetroArchFilter(
         retro.topChain.shutdown();
         retro.bottomChain.shutdown();
         retro.failedConfigKey = std::move(configKey);
-        melonDS::Platform::Log(
+        EMUCORED_DIAGNOSTIC_LOG(melonDS::Platform::Log(
             melonDS::Platform::LogLevel::Warn,
             "VulkanPresenter[RetroArch]: preset failed to compile/load; preset=%s mode=%s source=%ux%u output=%ux%u outputAtlas=%ux%u passes=%u params=%zu; presenting unfiltered until config changes",
             surfaceState.config.retroShaderPresetPath.c_str(),
@@ -4085,7 +4101,7 @@ bool VulkanSurfacePresenter::runRetroArchFilter(
             sizing.outputAtlasHeight,
             surfaceState.config.retroShaderPassCount,
             surfaceState.config.retroShaderParameterOverrides.size()
-        );
+        ));
         return false;
     }
     retro.failedConfigKey.clear();
@@ -5244,7 +5260,7 @@ bool VulkanSurfacePresenter::updateVertexBuffer(
             const SurfaceVertex& v0 = vertices[drawCall.firstVertex + 0];
             const SurfaceVertex& v1 = vertices[drawCall.firstVertex + 1];
             const SurfaceVertex& v5 = vertices[drawCall.firstVertex + 5];
-            melonDS::Platform::Log(
+            EMUCORED_DIAGNOSTIC_LOG(melonDS::Platform::Log(
                 melonDS::Platform::LogLevel::Info,
                 "VulkanPresenter[Vertices]: surface=%d direct=%d drawMode=%u first=%u count=%u posLTRB=(%.3f,%.3f,%.3f,%.3f) uvTopBottom=(%.3f,%.3f)",
                 surfaceState.id,
@@ -5258,10 +5274,10 @@ bool VulkanSurfacePresenter::updateVertexBuffer(
                 v0.y,
                 v1.v,
                 v0.v
-            );
+            ));
         };
 
-        melonDS::Platform::Log(
+        EMUCORED_DIAGNOSTIC_LOG(melonDS::Platform::Log(
             melonDS::Platform::LogLevel::Info,
             "VulkanPresenter[Config]: surface=%d extent=%ux%u direct=%d topRect=(%d,%d,%d,%d,%d) bottomRect=(%d,%d,%d,%d,%d) hybridTopRect=(%d,%d,%d,%d,%d) hybridBottomRect=(%d,%d,%d,%d,%d) bottomOnTop=%d hybridOnTop=%d drawCalls=%zu",
             surfaceState.id,
@@ -5291,7 +5307,7 @@ bool VulkanSurfacePresenter::updateVertexBuffer(
             config.bottomOnTop ? 1 : 0,
             config.hybridOnTop ? 1 : 0,
             drawCalls.size()
-        );
+        ));
 
         for (const DrawCall& drawCall : drawCalls)
             logDrawVertices(drawCall);
@@ -5360,7 +5376,7 @@ bool VulkanSurfacePresenter::recordSurfaceCommands(
     }
 
     if (surfaceState.timestampQueryPool != VK_NULL_HANDLE && resetQueryPool != nullptr)
-        resetQueryPool(device, surfaceState.timestampQueryPool, 0, 2);
+        EMUCORED_DIAGNOSTIC_LOG(resetQueryPool(device, surfaceState.timestampQueryPool, 0, 2));
 
     if (vkResetCommandBuffer(surfaceState.commandBuffer, 0) != VK_SUCCESS)
         return false;
@@ -5373,7 +5389,7 @@ bool VulkanSurfacePresenter::recordSurfaceCommands(
         return false;
 
     if (surfaceState.timestampQueryPool != VK_NULL_HANDLE)
-        vkCmdWriteTimestamp(surfaceState.commandBuffer, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, surfaceState.timestampQueryPool, 0);
+        EMUCORED_DIAGNOSTIC_LOG(vkCmdWriteTimestamp(surfaceState.commandBuffer, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, surfaceState.timestampQueryPool, 0));
 
     std::array<VkImageMemoryBarrier, 8> sourceBarriers{};
     u32 sourceBarrierCount = 0;
@@ -5694,7 +5710,7 @@ bool VulkanSurfacePresenter::recordSurfaceCommands(
             && drawCall.drawMode <= 20u)
         {
             drawDebugLogsRemaining--;
-            melonDS::Platform::Log(
+            EMUCORED_DIAGNOSTIC_LOG(melonDS::Platform::Log(
                 melonDS::Platform::LogLevel::Warn,
                 "VulkanPresenter[Draw]: surface=%d drawMode=%u scale=%u screenSwap=%u liveSwap=%u prevTop=%u prevBottom=%u cap=%u capSwapValid=%u capSwap=%u pingPong=%u special=%u carryTop(valid=%u req=%u) carryBottom(valid=%u req=%u)",
                 surfaceState.id,
@@ -5713,7 +5729,7 @@ bool VulkanSurfacePresenter::recordSurfaceCommands(
                 pushConstants.topComposedCarryRequired,
                 pushConstants.bottomComposedCarryValid,
                 pushConstants.bottomComposedCarryRequired
-            );
+            ));
         }
         {
             const ComposedPresenterPushConstants composedPushConstants{
@@ -5853,7 +5869,7 @@ bool VulkanSurfacePresenter::recordSurfaceCommands(
     }
 
     if (surfaceState.timestampQueryPool != VK_NULL_HANDLE)
-        vkCmdWriteTimestamp(surfaceState.commandBuffer, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, surfaceState.timestampQueryPool, 1);
+        EMUCORED_DIAGNOSTIC_LOG(vkCmdWriteTimestamp(surfaceState.commandBuffer, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, surfaceState.timestampQueryPool, 1));
 
     return vkEndCommandBuffer(surfaceState.commandBuffer) == VK_SUCCESS;
 }
@@ -5875,12 +5891,12 @@ bool VulkanSurfacePresenter::submitSurfaceCommands(
     if (imageIndex >= surfaceState.renderFinishedSemaphores.size()
         || surfaceState.renderFinishedSemaphores[imageIndex] == VK_NULL_HANDLE)
     {
-        melonDS::Platform::Log(
+        EMUCORED_DIAGNOSTIC_LOG(melonDS::Platform::Log(
             melonDS::Platform::LogLevel::Error,
             "VulkanSurfacePresenter: missing render-finished semaphore for surface %d image %u/%zu",
             surfaceState.id,
             imageIndex,
-            surfaceState.renderFinishedSemaphores.size());
+            surfaceState.renderFinishedSemaphores.size()));
         return false;
     }
     const VkSemaphore renderFinishedSemaphore =
@@ -5981,7 +5997,7 @@ bool VulkanSurfacePresenter::submitSurfaceCommands(
                 for (u32 i = 0; i < std::min(count, static_cast<u32>(timings.size())); ++i)
                 {
                     const auto& timing = timings[i];
-                    melonDS::Platform::Log(melonDS::Platform::LogLevel::Warn,
+                    EMUCORED_DIAGNOSTIC_LOG(melonDS::Platform::Log(melonDS::Platform::LogLevel::Warn,
                         "VulkanDisplayTiming: surface=%d epoch=%llu swapchain=%llu present=%u desired=%llu actual=%llu earliest=%llu margin=%llu",
                         surfaceState.id,
                         static_cast<unsigned long long>(surfaceState.surfaceEpoch),
@@ -5990,7 +6006,7 @@ bool VulkanSurfacePresenter::submitSurfaceCommands(
                         static_cast<unsigned long long>(timing.desiredPresentTime),
                         static_cast<unsigned long long>(timing.actualPresentTime),
                         static_cast<unsigned long long>(timing.earliestPresentTime),
-                        static_cast<unsigned long long>(timing.presentMargin));
+                        static_cast<unsigned long long>(timing.presentMargin)));
                 }
             }
         }
@@ -6009,20 +6025,20 @@ bool VulkanSurfacePresenter::submitSurfaceCommands(
             retro.filterSignalPending = false;
         if (submitResult == VK_SUCCESS)
         {
-            const u64 presentStartNs = PerfNowNs();
+            const u64 presentStartNs = DiagnosticNowNs();
             presentResult = vkQueuePresentKHR(queue, &presentInfo);
-            presentCpuNs += PerfNowNs() - presentStartNs;
+            presentCpuNs += DiagnosticNowNs() - presentStartNs;
         }
     }
     if (submitResult != VK_SUCCESS)
     {
         (void)createInFlightFence(surfaceState, true);
-        melonDS::Platform::Log(
+        EMUCORED_DIAGNOSTIC_LOG(melonDS::Platform::Log(
             melonDS::Platform::LogLevel::Error,
             "VulkanSurfacePresenter: vkQueueSubmit failed for surface %d (%d)",
             surfaceState.id,
             static_cast<int>(submitResult)
-        );
+        ));
         return false;
     }
     queueSubmitSucceededOut = true;
@@ -6069,12 +6085,12 @@ bool VulkanSurfacePresenter::submitSurfaceCommands(
 
     if (presentResult != VK_SUCCESS)
     {
-        melonDS::Platform::Log(
+        EMUCORED_DIAGNOSTIC_LOG(melonDS::Platform::Log(
             melonDS::Platform::LogLevel::Error,
             "VulkanSurfacePresenter: vkQueuePresentKHR failed for surface %d (%d)",
             surfaceState.id,
             static_cast<int>(presentResult)
-        );
+        ));
     }
 
     return presentResult == VK_SUCCESS;

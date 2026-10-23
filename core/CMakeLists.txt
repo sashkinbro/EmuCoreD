@@ -22,6 +22,11 @@ include(DownloadExternals)
 include(CMakeDependentOption)
 
 project(citra LANGUAGES C CXX ASM)
+
+if(ANDROID)
+    option(EMUCORED_DIAGNOSTICS "Compile Android diagnostic logging and dump tools" OFF)
+    add_compile_definitions(EMUCORED_DIAGNOSTICS=$<BOOL:${EMUCORED_DIAGNOSTICS}>)
+endif()
 # must be invoked after project() command when using CMAKE_TOOLCHAIN_FILE
 include(FindPkgConfig)
 

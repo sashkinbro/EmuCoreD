@@ -1,3 +1,4 @@
+#include "../../bridge/ds_diagnostics.h"
 /*
     Copyright 2016-2025 melonDS team
 
@@ -80,7 +81,7 @@ void T_BLX_REG(ARM* cpu)
 {
     if (cpu->Num==1)
     {
-        Log(LogLevel::Warn, "!! THUMB BLX_REG ON ARM7\n");
+        EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Warn, "!! THUMB BLX_REG ON ARM7\n"));
         return;
     }
 

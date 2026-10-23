@@ -2,6 +2,9 @@
 // Licensed under GPLv2 or any later version
 // Refer to the misc/licenses/gplv2.txt file included.
 
+#include "common/logging/text_formatter.h"
+
+#if !defined(EMUCORED_DIAGNOSTICS) || EMUCORED_DIAGNOSTICS
 #include <array>
 #include <cstdio>
 
@@ -141,3 +144,11 @@ void PrintMessageToLogcat([[maybe_unused]] const Entry& entry) {
 #endif
 }
 } // namespace Common::Log
+#else
+namespace Common::Log {
+std::string FormatLogMessage(const Entry&) { return {}; }
+void PrintMessage(const Entry&) {}
+void PrintColoredMessage(const Entry&) {}
+void PrintMessageToLogcat(const Entry&) {}
+} // namespace Common::Log
+#endif

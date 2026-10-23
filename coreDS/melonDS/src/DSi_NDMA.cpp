@@ -1,3 +1,4 @@
+#include "../../bridge/ds_diagnostics.h"
 /*
     Copyright 2016-2025 melonDS team
 
@@ -110,7 +111,7 @@ void DSi_NDMA::WriteCnt(u32 val)
         case 0: DstAddrInc = 1; break;
         case 1: DstAddrInc = -1; break;
         case 2: DstAddrInc = 0; break;
-        case 3: DstAddrInc = 1; Log(LogLevel::Warn, "BAD NDMA DST INC MODE 3\n"); break;
+        case 3: DstAddrInc = 1; EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Warn, "BAD NDMA DST INC MODE 3\n")); break;
         }
 
         switch ((Cnt >> 13) & 0x3)
@@ -138,8 +139,8 @@ void DSi_NDMA::WriteCnt(u32 val)
 
         if (StartMode <= 0x03 || StartMode == 0x05 || (StartMode >= 0x0C && StartMode <= 0x0F) ||
             (StartMode >= 0x20 && StartMode <= 0x23) || StartMode == 0x25 || StartMode == 0x27 || (StartMode >= 0x2D && StartMode <= 0x2F))
-            Log(LogLevel::Warn, "UNIMPLEMENTED ARM%d NDMA%d START MODE %02X, %08X->%08X LEN=%d BLK=%d CNT=%08X\n",
-                   CPU?7:9, Num, StartMode, SrcAddr, DstAddr, TotalLength, BlockLength, Cnt);
+            EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Warn, "UNIMPLEMENTED ARM%d NDMA%d START MODE %02X, %08X->%08X LEN=%d BLK=%d CNT=%08X\n",
+                   CPU?7:9, Num, StartMode, SrcAddr, DstAddr, TotalLength, BlockLength, Cnt));
     }
 }
 

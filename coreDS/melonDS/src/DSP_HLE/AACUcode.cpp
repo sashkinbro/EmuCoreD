@@ -1,3 +1,4 @@
+#include "../../../bridge/ds_diagnostics.h"
 /*
     Copyright 2016-2025 melonDS team
 
@@ -37,12 +38,12 @@ AACUcode::AACUcode(melonDS::DSi& dsi, int version) : UcodeBase(dsi)
 
     Decoder = Platform::AAC_Init();
     if (!Decoder)
-        Log(LogLevel::Error, "DSP_HLE: failed to initialize AAC decoder\n");
+        EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error, "DSP_HLE: failed to initialize AAC decoder\n"));
 
     if (version == -1)
-        Log(LogLevel::Info, "DSP_HLE: initializing AAC decoder ucode (DSi sound app)\n");
+        EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Info, "DSP_HLE: initializing AAC decoder ucode (DSi sound app)\n"));
     else
-        Log(LogLevel::Info, "DSP_HLE: initializing AAC SDK ucode version %02X\n", version);
+        EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Info, "DSP_HLE: initializing AAC SDK ucode version %02X\n", version));
 }
 
 AACUcode::~AACUcode()
@@ -189,7 +190,7 @@ void AACUcode::CmdDecodeFrame()
 
     if ((InputBuf[0] == 0) && (InputBuf[1] == 0) && (InputBuf[2] == 0) && (InputBuf[3] == 0))
     {
-        Log(LogLevel::Warn, "DSP_HLE: skipping zero AAC frame, addr=%08X len=%d\n", frameaddr, framelen);
+        EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Warn, "DSP_HLE: skipping zero AAC frame, addr=%08X len=%d\n", frameaddr, framelen));
 
         DSi.ScheduleEvent(Event_DSi_DSPHLE, false, 512, 0, 2);
         return;
@@ -201,7 +202,7 @@ void AACUcode::CmdDecodeFrame()
     {
         if (!Platform::AAC_Configure(Decoder, freq, chan))
         {
-            Log(LogLevel::Warn, "DSP_HLE: AAC decoder configuration failed, freq=%d chan=%d\n", freq, chan);
+            EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Warn, "DSP_HLE: AAC decoder configuration failed, freq=%d chan=%d\n", freq, chan));
 
             LastFrequency = -1;
             LastChannels = -1;
@@ -217,7 +218,7 @@ void AACUcode::CmdDecodeFrame()
 
     if (!Platform::AAC_DecodeFrame(Decoder, InputBuf, framelen, OutputBuf, 1024*2*sizeof(s16)))
     {
-        Log(LogLevel::Warn, "DSP_HLE: AAC decoding failed, frame addr=%08X len=%d\n", frameaddr, framelen);
+        EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Warn, "DSP_HLE: AAC decoding failed, frame addr=%08X len=%d\n", frameaddr, framelen));
 
         LastFrequency = -1;
         LastChannels = -1;

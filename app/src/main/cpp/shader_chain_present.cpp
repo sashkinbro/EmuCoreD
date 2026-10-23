@@ -7,7 +7,7 @@
 #include <cstdint>
 #include <string>
 
-#ifdef NDEBUG
+#if !EMUCORED_DIAGNOSTICS
 #define SHADER_LOGE(...) ((void)0)
 #else
 #define SHADER_LOGE(...) __android_log_print(ANDROID_LOG_ERROR, "EmuCoreD-Shader", __VA_ARGS__)
@@ -45,7 +45,7 @@ const void* GlLoader(const char* name) {
 }
 
 void ReportError(const char* operation, libra_error_t error) {
-#ifdef NDEBUG
+#if !EMUCORED_DIAGNOSTICS
     (void)operation;
     libra_error_free(&error);
 #else

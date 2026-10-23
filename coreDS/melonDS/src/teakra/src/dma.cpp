@@ -1,3 +1,4 @@
+#include "../../../../bridge/ds_diagnostics.h"
 #include <cstdio>
 #include <cstring>
 #include "ahbm.h"
@@ -82,14 +83,14 @@ void Dma::Channel::Tick(Dma& parent) {
             break;
         }
         case 1:
-            std::printf("Unimplemented MMIO space");
+            EMUCORED_DIAGNOSTIC_LOG(std::printf("Unimplemented MMIO space"));
             value = 0;
             break;
         case 7:
             value = parent.ahbm.Read32(ahbm_channel, current_src);
             break;
         default:
-            std::printf("Unknown SrcSpace %04X\n", src_space);
+            EMUCORED_DIAGNOSTIC_LOG(std::printf("Unknown SrcSpace %04X\n", src_space));
         }
 
         switch (dst_space) {
@@ -101,14 +102,14 @@ void Dma::Channel::Tick(Dma& parent) {
             break;
         }
         case 1:
-            std::printf("Unimplemented MMIO space");
+            EMUCORED_DIAGNOSTIC_LOG(std::printf("Unimplemented MMIO space"));
             value = 0;
             break;
         case 7:
             parent.ahbm.Write32(ahbm_channel, current_dst, value);
             break;
         default:
-            std::printf("Unknown DstSpace %04X\n", dst_space);
+            EMUCORED_DIAGNOSTIC_LOG(std::printf("Unknown DstSpace %04X\n", dst_space));
         }
 
         counter0 += 2;
@@ -119,14 +120,14 @@ void Dma::Channel::Tick(Dma& parent) {
             value = parent.shared_memory.ReadWord(DataMemoryOffset + current_src);
             break;
         case 1:
-            std::printf("Unimplemented MMIO space");
+            EMUCORED_DIAGNOSTIC_LOG(std::printf("Unimplemented MMIO space"));
             value = 0;
             break;
         case 7:
             value = parent.ahbm.Read16(ahbm_channel, current_src);
             break;
         default:
-            std::printf("Unknown SrcSpace %04X\n", src_space);
+            EMUCORED_DIAGNOSTIC_LOG(std::printf("Unknown SrcSpace %04X\n", src_space));
         }
 
         switch (dst_space) {
@@ -134,14 +135,14 @@ void Dma::Channel::Tick(Dma& parent) {
             parent.shared_memory.WriteWord(DataMemoryOffset + current_dst, value);
             break;
         case 1:
-            std::printf("Unimplemented MMIO space");
+            EMUCORED_DIAGNOSTIC_LOG(std::printf("Unimplemented MMIO space"));
             value = 0;
             break;
         case 7:
             parent.ahbm.Write16(ahbm_channel, current_dst, value);
             break;
         default:
-            std::printf("Unknown DstSpace %04X\n", dst_space);
+            EMUCORED_DIAGNOSTIC_LOG(std::printf("Unknown DstSpace %04X\n", dst_space));
         }
 
         counter0 += 1;

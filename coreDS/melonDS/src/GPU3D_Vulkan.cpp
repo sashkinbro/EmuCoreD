@@ -1,3 +1,4 @@
+#include "../../bridge/ds_diagnostics.h"
 /*
     Copyright 2016-2025 melonDS team
 
@@ -378,7 +379,7 @@ void logCaptureDebugState(
     const u32 topLeft = lineCache[0];
     const u32 topMid = lineCache[128];
     const u32 center = lineCache[(96u * 256u) + 128u];
-    Platform::Log(
+    EMUCORED_DIAGNOSTIC_LOG(Platform::Log(
         Platform::LogLevel::Warn,
         "VulkanCapture[%s]: exact=%u pending=%u ready=%u hasCpu=%u fresh=%u fallback=%u topLeft=%08X topMid=%08X center=%08X remaining=%u",
         stage,
@@ -392,7 +393,7 @@ void logCaptureDebugState(
         topMid,
         center,
         remainingLogs
-    );
+    ));
     remainingLogs--;
 }
 
@@ -784,8 +785,8 @@ bool VulkanRenderer3D::flushDeferredRenderSubmission(VkSemaphore dependency, u64
     if (DeferredRenderSubmitResult != VK_SUCCESS)
     {
         context->SubmittedMetadataValid = false;
-        Log(LogLevel::Error, "VulkanRenderer3D: deferred vkQueueSubmit failed (%d)",
-            static_cast<int>(DeferredRenderSubmitResult));
+        EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error, "VulkanRenderer3D: deferred vkQueueSubmit failed (%d)",
+            static_cast<int>(DeferredRenderSubmitResult)));
     }
     return DeferredRenderSubmitResult == VK_SUCCESS;
 }
@@ -800,15 +801,15 @@ void VulkanRenderer3D::RenderFrame(GPU& gpu)
         && (gpu.GPU2D_A.DispCnt & 0x0108u) == 0x0108u;
     ComposeFielPreciso3D = false;
     {
-        static bool sondaRf = getenv("MELON_SONDA_POLY") != nullptr;
+        static bool sondaRf = EMUCORED_DIAGNOSTIC_ENV("MELON_SONDA_POLY") != nullptr;
         static int sondaRfRestantes = 2000;
         if (sondaRf && sondaRfRestantes > 0)
         {
             sondaRfRestantes--;
-            fprintf(stderr, "[rf] np=%u ident=%d raster=%s ca1=%08X disp=%08X\n",
+            EMUCORED_DIAGNOSTIC_LOG(fprintf(stderr, "[rf] np=%u ident=%d raster=%s ca1=%08X disp=%08X\n",
                 gpu.GPU3D.RenderNumPolygons, gpu.GPU3D.RenderFrameIdentical ? 1 : 0,
                 VulkanGraphicsRasterName(), gpu.GPU3D.RenderClearAttr1,
-                gpu.GPU3D.RenderDispCnt);
+                gpu.GPU3D.RenderDispCnt));
         }
     }
 
@@ -842,13 +843,13 @@ void VulkanRenderer3D::RenderFrame(GPU& gpu)
 
     PendingSubmitCaptureCnt = gpu.GPU2D_A.CaptureCnt;
 
-    const u64 renderStartNs = PerfNowNs();
+    const u64 renderStartNs = DiagnosticNowNs();
     auto renderPerfScope = MakeScopeExit([&]() {
-        RenderCpuWindow.Add(PerfNowNs() - renderStartNs);
+        RenderCpuWindow.Add(DiagnosticNowNs() - renderStartNs);
         logPerformanceIfNeeded();
     });
 
-    const u64 textureUpdateStartNs = PerfNowNs();
+    const u64 textureUpdateStartNs = DiagnosticNowNs();
     bool textureCacheInvalidated = false;
     const auto eraseResolvedTextureCacheKey = [&](u64 invalidatedTexcacheKey) {
         for (auto it = GraphicsResolvedTextureCache.begin(); it != GraphicsResolvedTextureCache.end();)
@@ -867,7 +868,7 @@ void VulkanRenderer3D::RenderFrame(GPU& gpu)
         // serializes frames. Texture destruction still waits in the Vulkan
         // texcache loader before freeing images.
     }, &textureCacheInvalidated, eraseResolvedTextureCacheKey);
-    TextureUpdateCpuWindow.Add(PerfNowNs() - textureUpdateStartNs);
+    TextureUpdateCpuWindow.Add(DiagnosticNowNs() - textureUpdateStartNs);
     {
         WarmTextureCpuWindow.Add(0);
     }
@@ -1025,11 +1026,11 @@ void VulkanRenderer3D::RenderFrame(GPU& gpu)
             }
             else
             {
-                const u64 contextWaitStartNs = PerfNowNs();
+                const u64 contextWaitStartNs = DiagnosticNowNs();
                 renderContext = acquireNextRenderContext();
                 renderContextReady = renderContext != nullptr && waitForRenderContext(*renderContext);
                 if (InEarlySubmitAttempt)
-                    CurrentEarlySubmitContextWaitNs += (PerfNowNs() - contextWaitStartNs);
+                    CurrentEarlySubmitContextWaitNs += (DiagnosticNowNs() - contextWaitStartNs);
             }
         }
         if (PostFastForwardDrainFrames > 0)
@@ -1071,9 +1072,9 @@ void VulkanRenderer3D::RenderFrame(GPU& gpu)
     if (eagerNativeProjectionSubmitted && prefetchNativeForCompose)
         NativeComposePrefetchCount++;
 
-    const u64 triangleBuildStartNs = PerfNowNs();
+    const u64 triangleBuildStartNs = DiagnosticNowNs();
     buildTriangleList(gpu);
-    TriangleBuildCpuWindow.Add(PerfNowNs() - triangleBuildStartNs);
+    TriangleBuildCpuWindow.Add(DiagnosticNowNs() - triangleBuildStartNs);
 
     const bool hasExecutableRasterWork =
         !GraphicsOpaqueDrawIndices.empty()
@@ -1101,10 +1102,10 @@ void VulkanRenderer3D::RenderFrame(GPU& gpu)
     {
         const PlainRearPlaneMaterial material =
             BuildPlainRearPlaneMaterial(gpu.GPU3D);
-        const u64 dispatchCpuStartNs = PerfNowNs();
+        const u64 dispatchCpuStartNs = DiagnosticNowNs();
         const bool dispatchOk =
             dispatchPlainRearPlaneOnly(renderContext, material.Rgba8);
-        DispatchCpuWindow.Add(PerfNowNs() - dispatchCpuStartNs);
+        DispatchCpuWindow.Add(DiagnosticNowNs() - dispatchCpuStartNs);
         TriangleCountWindow.Add(0u);
         PassCountWindow.Add(0u);
         if (!dispatchOk)
@@ -1153,7 +1154,7 @@ void VulkanRenderer3D::RenderFrame(GPU& gpu)
         return;
     }
 
-    const u64 bufferPrepStartNs = PerfNowNs();
+    const u64 bufferPrepStartNs = DiagnosticNowNs();
     if (!ensureTriangleBuffer(renderContext, Triangles.size()))
     {
         HasCpuFrame = false;
@@ -1194,12 +1195,12 @@ void VulkanRenderer3D::RenderFrame(GPU& gpu)
         HasCpuFrame = false;
         return;
     }
-    BufferPrepCpuWindow.Add(PerfNowNs() - bufferPrepStartNs);
+    BufferPrepCpuWindow.Add(DiagnosticNowNs() - bufferPrepStartNs);
 
     {
-        const u64 descriptorUpdateStartNs = PerfNowNs();
+        const u64 descriptorUpdateStartNs = DiagnosticNowNs();
         updateGraphicsDescriptorSet(renderContext);
-        DescriptorUpdateCpuWindow.Add(PerfNowNs() - descriptorUpdateStartNs);
+        DescriptorUpdateCpuWindow.Add(DiagnosticNowNs() - descriptorUpdateStartNs);
     }
 
     if (captureEnabled)
@@ -1214,7 +1215,7 @@ void VulkanRenderer3D::RenderFrame(GPU& gpu)
     const bool inlineCaptureReadback =
         captureNeedsGpuCaptureLine
         && scale == 1u;
-    const u64 dispatchCpuStartNs = PerfNowNs();
+    const u64 dispatchCpuStartNs = DiagnosticNowNs();
     const bool dispatchOk = dispatchRasterAndReadback(
             renderContext,
             clearColor,
@@ -1229,7 +1230,7 @@ void VulkanRenderer3D::RenderFrame(GPU& gpu)
             gpu.GPU3D.RenderEdgeTable,
             gpu.GPU3D.RenderToonTable,
             inlineCaptureReadback);
-    DispatchCpuWindow.Add(PerfNowNs() - dispatchCpuStartNs);
+    DispatchCpuWindow.Add(DiagnosticNowNs() - dispatchCpuStartNs);
     if (!dispatchOk)
     {
         HasCpuFrame = false;
@@ -1285,13 +1286,13 @@ void VulkanRenderer3D::RestartFrame(GPU& gpu)
 u32* VulkanRenderer3D::GetLine(int line)
 {
 
-    static const bool logGetLine = getenv("MELON_LOG_TAIL") != nullptr;
+    static const bool logGetLine = EMUCORED_DIAGNOSTIC_ENV("MELON_LOG_TAIL") != nullptr;
     if (logGetLine && line == 0)
     {
         static u32 nGL = 0;
         CaptureSourceIdentity publishedIdentity{};
         (void)GetPublishedRenderIdentity(publishedIdentity);
-        fprintf(stderr,
+        EMUCORED_DIAGNOSTIC_LOG(fprintf(stderr,
                 "[getline] n=%u profile=%s pipeline=%s raster=%s exact=%d ready=%d pend=%d "
                 "ident=%d pub=%d:%llu/%u/%08X/%d\n",
                 nGL++, VulkanProductionProfileName(),
@@ -1303,7 +1304,7 @@ u32* VulkanRenderer3D::GetLine(int line)
                 static_cast<unsigned long long>(publishedIdentity.Sequence),
                 publishedIdentity.PolygonCount,
                 publishedIdentity.CaptureCnt,
-                publishedIdentity.ScreenSwap ? 1 : 0);
+                publishedIdentity.ScreenSwap ? 1 : 0));
     }
 
     if (line < 0)
@@ -1354,7 +1355,7 @@ void VulkanRenderer3D::traceFaithfulCaptureDecision(
     const char* reason,
     const CaptureSourceIdentity& candidate) const noexcept
 {
-    static const bool enabled = std::getenv("MELON_SONDA_CAPID") != nullptr;
+    static const bool enabled = EMUCORED_DIAGNOSTIC_ENV("MELON_SONDA_CAPID") != nullptr;
     static std::atomic<u32> remaining {4096u};
     if (!enabled)
         return;
@@ -1368,7 +1369,7 @@ void VulkanRenderer3D::traceFaithfulCaptureDecision(
     if (available == 0u)
         return;
 
-    std::fprintf(
+    EMUCORED_DIAGNOSTIC_LOG(std::fprintf(
         stderr,
         "[capid-faithful] stage=%s reason=%s "
         "current=%d:%llu:%llu/%u/%08X/%d "
@@ -1389,7 +1390,7 @@ void VulkanRenderer3D::traceFaithfulCaptureDecision(
         candidate.CaptureCnt,
         candidate.ScreenSwap ? 1 : 0,
         CaptureLinePending ? 1 : 0,
-        CaptureLineReady ? 1 : 0);
+        CaptureLineReady ? 1 : 0));
 }
 
 bool VulkanRenderer3D::submitFaithfulNativeProjection(GPU& gpu)
@@ -1423,9 +1424,9 @@ bool VulkanRenderer3D::submitFaithfulNativeProjection(GPU& gpu)
         EscalaEfectiva = previousEffectiveScale;
     });
 
-    const u64 nativeBuildStartNs = PerfNowNs();
+    const u64 nativeBuildStartNs = DiagnosticNowNs();
     buildTriangleList(gpu);
-    TriangleBuildCpuWindow.Add(PerfNowNs() - nativeBuildStartNs);
+    TriangleBuildCpuWindow.Add(DiagnosticNowNs() - nativeBuildStartNs);
 
     const bool nativeResourcesReady =
         ensureTriangleBuffer(nativeContext, Triangles.size())
@@ -1692,7 +1693,7 @@ void VulkanRenderer3D::BeginCaptureFrame()
 
     if (MelonDSAndroid::areRendererDebugToolsEnabled() && CaptureDebugLogsRemaining > 0u)
     {
-        Log(
+        EMUCORED_DIAGNOSTIC_LOG(Log(
             LogLevel::Warn,
             "VulkanCapture[FrameStart]: pending=%u ready=%u hasCpu=%u fresh=%u fallbackValid=%u raster=%s",
             CaptureLinePending ? 1u : 0u,
@@ -1700,7 +1701,7 @@ void VulkanRenderer3D::BeginCaptureFrame()
             HasCpuFrame ? 1u : 0u,
             ExactCaptureLineCacheFresh ? 1u : 0u,
             ExactCaptureFallbackValid ? 1u : 0u,
-            VulkanGraphicsRasterName());
+            VulkanGraphicsRasterName()));
         CaptureDebugLogsRemaining--;
     }
 }
@@ -1807,7 +1808,7 @@ void VulkanRenderer3D::SetRenderSettings(
     GPU& gpu) noexcept
 {
 
-    const bool ringDisabled = std::getenv("MELON_FIEL_SIN_HILO") != nullptr;
+    const bool ringDisabled = EMUCORED_DIAGNOSTIC_ENV("MELON_FIEL_SIN_HILO") != nullptr;
     const bool threadedEfectivo = threaded && !ringDisabled;
     SetThreaded(threadedEfectivo, gpu);
 
@@ -1818,9 +1819,9 @@ void VulkanRenderer3D::SetRenderSettings(
         && hasRetainedRenderProducts();
     if (deferScaleChange)
     {
-        Log(
+        EMUCORED_DIAGNOSTIC_LOG(Log(
             LogLevel::Warn,
-            "VulkanRenderer3D: refusing scale change while a render product is retained");
+            "VulkanRenderer3D: refusing scale change while a render product is retained"));
     }
     BetterPolygons = betterPolygons;
     ScaleFactor = deferScaleChange ? oldScale : requestedScale;
@@ -1896,9 +1897,9 @@ void VulkanRenderer3D::SetThreaded(bool threaded, GPU& gpu) noexcept
 
     if (hasRetainedRenderProducts())
     {
-        Log(
+        EMUCORED_DIAGNOSTIC_LOG(Log(
             LogLevel::Error,
-            "VulkanRenderer3D: refusing threaded mode change while a render product is retained");
+            "VulkanRenderer3D: refusing threaded mode change while a render product is retained"));
         return;
     }
 
@@ -1910,7 +1911,7 @@ void VulkanRenderer3D::SetThreaded(bool threaded, GPU& gpu) noexcept
     PublishedGraphicsRenderContext = nullptr;
     InvalidatePresentationState(false);
     if (MelonDSAndroid::areRendererDebugToolsEnabled())
-        Log(LogLevel::Warn, "VulkanRenderer3D: threaded rendering %s", Threaded ? "enabled" : "disabled");
+        EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Warn, "VulkanRenderer3D: threaded rendering %s", Threaded ? "enabled" : "disabled"));
 }
 
 bool VulkanRenderer3D::IsThreaded() const noexcept
@@ -2386,7 +2387,7 @@ bool VulkanRenderer3D::PrepareRenderTargetsForStart()
     const u32 scale = static_cast<u32>(std::max(1, ScaleFactor));
     const u32 width = 256u * scale;
     const u32 height = 192u * scale;
-    const u64 startNs = PerfNowNs();
+    const u64 startNs = DiagnosticNowNs();
     if (!ensureRenderTarget(width, height))
         return false;
     if (Threaded)
@@ -2397,9 +2398,9 @@ bool VulkanRenderer3D::PrepareRenderTargetsForStart()
                 return false;
         }
     }
-    Log(LogLevel::Warn, "Vulkan prewarm targets: width=%u height=%u contexts=%zu elapsed=%.3fms",
+    EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Warn, "Vulkan prewarm targets: width=%u height=%u contexts=%zu elapsed=%.3fms",
         width, height, Threaded ? GetAsyncRenderContextCount() : 0u,
-        static_cast<double>(PerfNowNs() - startNs) / 1000000.0);
+        static_cast<double>(DiagnosticNowNs() - startNs) / 1000000.0));
     return true;
 }
 
@@ -2413,7 +2414,7 @@ bool VulkanRenderer3D::ensureInitialized()
 
     if (!VulkanContext::Get().Acquire())
     {
-        Log(LogLevel::Error, "VulkanRenderer3D: failed to acquire shared Vulkan context");
+        EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error, "VulkanRenderer3D: failed to acquire shared Vulkan context"));
         InitFailed = true;
         return false;
     }
@@ -2426,12 +2427,12 @@ bool VulkanRenderer3D::ensureInitialized()
     QueueFamilyIndex = VulkanContext::Get().GetQueueFamilyIndex();
     ResetQueryPool = VulkanContext::Get().GetResetQueryPool();
     TimestampPeriodNs = VulkanContext::Get().GetTimestampPeriod();
-    TimestampQueriesSupported = VulkanContext::Get().SupportsTimestamps();
+    TimestampQueriesSupported = EMUCORED_DIAGNOSTICS && VulkanContext::Get().SupportsTimestamps();
     ActiveTextureSamplingPath = resolveTextureSamplingPath();
 
     if (!createCommandObjects() || !createSyncObjects() || !createTextureResources())
     {
-        Log(LogLevel::Error, "VulkanRenderer3D: failed to initialize Vulkan resources");
+        EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error, "VulkanRenderer3D: failed to initialize Vulkan resources"));
         destroyVulkan();
         InitFailed = true;
         return false;
@@ -2439,15 +2440,15 @@ bool VulkanRenderer3D::ensureInitialized()
 
     if (!createPipelineCache(ActiveTextureSamplingPath))
     {
-        Log(
+        EMUCORED_DIAGNOSTIC_LOG(Log(
             LogLevel::Warn,
             "VulkanRenderer3D: pipeline cache unavailable, continuing without persistent cache"
-        );
+        ));
     }
 
     if (!createCaptureExportResources())
     {
-        Log(LogLevel::Error, "VulkanRenderer3D: capture export initialization failed");
+        EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error, "VulkanRenderer3D: capture export initialization failed"));
         destroyVulkan();
         InitFailed = true;
         return false;
@@ -2455,14 +2456,14 @@ bool VulkanRenderer3D::ensureInitialized()
 
     if (!createGraphicsDescriptorObjects())
     {
-        Log(LogLevel::Error, "VulkanRenderer3D: graphics descriptor initialization failed");
+        EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error, "VulkanRenderer3D: graphics descriptor initialization failed"));
         destroyVulkan();
         InitFailed = true;
         return false;
     }
     else if (!createGraphicsPipelines())
     {
-        Log(LogLevel::Error, "VulkanRenderer3D: graphics pipeline initialization failed");
+        EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error, "VulkanRenderer3D: graphics pipeline initialization failed"));
         destroyVulkan();
         InitFailed = true;
         return false;
@@ -3012,7 +3013,7 @@ void VulkanRenderer3D::destroyVulkan()
         destroyFaithfulRasterProductSlot(renderContext.RasterProductSlot);
         if (renderContext.TimestampQueryPool != VK_NULL_HANDLE)
         {
-            vkDestroyQueryPool(Device, renderContext.TimestampQueryPool, nullptr);
+            EMUCORED_DIAGNOSTIC_LOG(vkDestroyQueryPool(Device, renderContext.TimestampQueryPool, nullptr));
             renderContext.TimestampQueryPool = VK_NULL_HANDLE;
         }
         if (renderContext.FrameFence != VK_NULL_HANDLE)
@@ -3048,7 +3049,7 @@ void VulkanRenderer3D::destroyVulkan()
     NativeProjectionContext.FrameFence = VK_NULL_HANDLE;
     if (TimestampQueryPool != VK_NULL_HANDLE)
     {
-        vkDestroyQueryPool(Device, TimestampQueryPool, nullptr);
+        EMUCORED_DIAGNOSTIC_LOG(vkDestroyQueryPool(Device, TimestampQueryPool, nullptr));
         TimestampQueryPool = VK_NULL_HANDLE;
     }
 
@@ -3107,7 +3108,7 @@ bool VulkanRenderer3D::createCommandObjects()
             || vkAllocateCommandBuffers(Device, &extraInfo, &CbFiel[1]) != VK_SUCCESS
             || vkAllocateCommandBuffers(Device, &extraInfo, &CbExport) != VK_SUCCESS)
         {
-            Log(LogLevel::Error, "VulkanRenderer3D: fallo alocando CBs del ping-pong fiel");
+            EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error, "VulkanRenderer3D: fallo alocando CBs del ping-pong fiel"));
             return false;
         }
         NativeProjectionContext.CommandBuffer = CbExport;
@@ -3131,7 +3132,7 @@ bool VulkanRenderer3D::createCommandObjects(VkCommandPool& commandPool, VkComman
 
     if (vkCreateCommandPool(Device, &poolInfo, nullptr, &commandPool) != VK_SUCCESS)
     {
-        Log(LogLevel::Error, "VulkanRenderer3D: failed to create command pool");
+        EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error, "VulkanRenderer3D: failed to create command pool"));
         return false;
     }
 
@@ -3143,7 +3144,7 @@ bool VulkanRenderer3D::createCommandObjects(VkCommandPool& commandPool, VkComman
 
     if (vkAllocateCommandBuffers(Device, &cmdAllocInfo, &commandBuffer) != VK_SUCCESS)
     {
-        Log(LogLevel::Error, "VulkanRenderer3D: failed to allocate command buffer");
+        EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error, "VulkanRenderer3D: failed to allocate command buffer"));
         return false;
     }
 
@@ -3180,7 +3181,7 @@ bool VulkanRenderer3D::createFence(VkFence& fence)
 
     if (vkCreateFence(Device, &fenceCreateInfo, nullptr, &fence) != VK_SUCCESS)
     {
-        Log(LogLevel::Error, "VulkanRenderer3D: failed to create frame fence");
+        EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error, "VulkanRenderer3D: failed to create frame fence"));
         return false;
     }
 
@@ -3189,6 +3190,8 @@ bool VulkanRenderer3D::createFence(VkFence& fence)
 
 bool VulkanRenderer3D::createTimestampQueryPool(VkQueryPool& queryPool)
 {
+#if EMUCORED_DIAGNOSTICS
+
     if (!TimestampQueriesSupported)
         return true;
 
@@ -3199,11 +3202,16 @@ bool VulkanRenderer3D::createTimestampQueryPool(VkQueryPool& queryPool)
 
     if (vkCreateQueryPool(Device, &queryPoolCreateInfo, nullptr, &queryPool) != VK_SUCCESS)
     {
-        Log(LogLevel::Warn, "VulkanRenderer3D: failed to create timestamp query pool");
+        EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Warn, "VulkanRenderer3D: failed to create timestamp query pool"));
         queryPool = VK_NULL_HANDLE;
     }
 
     return true;
+
+#else
+    queryPool = VK_NULL_HANDLE;
+    return true;
+#endif
 }
 
 bool VulkanRenderer3D::waitForRenderContext(RenderContext& context)
@@ -3219,15 +3227,15 @@ bool VulkanRenderer3D::waitForRenderContext(RenderContext& context)
     if (fenceStatus == VK_NOT_READY)
         ContextMissCount++;
 
-    const u64 waitStartNs = PerfNowNs();
+    const u64 waitStartNs = DiagnosticNowNs();
     const VkResult waitResult = vkWaitForFences(Device, 1, &context.FrameFence, VK_TRUE, kFenceWaitTimeoutNs);
     if (waitResult != VK_SUCCESS)
     {
-        Log(LogLevel::Error, "VulkanRenderer3D: render context fence wait failed (%d)", static_cast<int>(waitResult));
+        EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error, "VulkanRenderer3D: render context fence wait failed (%d)", static_cast<int>(waitResult)));
         return false;
     }
 
-    const u64 waitDurationNs = PerfNowNs() - waitStartNs;
+    const u64 waitDurationNs = DiagnosticNowNs() - waitStartNs;
     FenceWaitCpuWindow.Add(waitDurationNs);
     if (waitDurationNs >= 1000000ull)
         LateFrameCount++;
@@ -3261,7 +3269,7 @@ bool VulkanRenderer3D::tryAcquireRenderContext(RenderContext& context, bool coun
         return false;
     }
 
-    Log(LogLevel::Error, "VulkanRenderer3D: render context fence status failed (%d)", static_cast<int>(fenceStatus));
+    EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error, "VulkanRenderer3D: render context fence status failed (%d)", static_cast<int>(fenceStatus)));
     return false;
 }
 
@@ -3342,19 +3350,19 @@ bool VulkanRenderer3D::waitForReadbackSource()
         }
         if (fenceStatus != VK_NOT_READY)
         {
-            Log(LogLevel::Error, "VulkanRenderer3D: frame fence status failed (%d)", static_cast<int>(fenceStatus));
+            EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error, "VulkanRenderer3D: frame fence status failed (%d)", static_cast<int>(fenceStatus)));
             return false;
         }
 
-        const u64 waitStartNs = PerfNowNs();
+        const u64 waitStartNs = DiagnosticNowNs();
         const VkResult waitResult = vkWaitForFences(Device, 1, &FrameFence, VK_TRUE, kFenceWaitTimeoutNs);
         if (waitResult != VK_SUCCESS)
         {
-            Log(LogLevel::Error, "VulkanRenderer3D: frame fence wait failed (%d)", static_cast<int>(waitResult));
+            EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error, "VulkanRenderer3D: frame fence wait failed (%d)", static_cast<int>(waitResult)));
             return false;
         }
 
-        const u64 waitDurationNs = PerfNowNs() - waitStartNs;
+        const u64 waitDurationNs = DiagnosticNowNs() - waitStartNs;
         FenceWaitCpuWindow.Add(waitDurationNs);
         if (waitDurationNs >= 1000000ull)
             LateFrameCount++;
@@ -3386,11 +3394,11 @@ bool VulkanRenderer3D::waitForTextureCacheMutationSafePoint()
         }
         else if (fenceStatus == VK_NOT_READY)
         {
-            const u64 waitStartNs = PerfNowNs();
+            const u64 waitStartNs = DiagnosticNowNs();
             const VkResult waitResult = vkWaitForFences(Device, 1, &FrameFence, VK_TRUE, kFenceWaitTimeoutNs);
             if (waitResult == VK_SUCCESS)
             {
-                const u64 waitDurationNs = PerfNowNs() - waitStartNs;
+                const u64 waitDurationNs = DiagnosticNowNs() - waitStartNs;
                 FenceWaitCpuWindow.Add(waitDurationNs);
                 if (waitDurationNs >= 1000000ull)
                     LateFrameCount++;
@@ -3398,13 +3406,13 @@ bool VulkanRenderer3D::waitForTextureCacheMutationSafePoint()
             }
             else
             {
-                Log(LogLevel::Error, "VulkanRenderer3D: texture cache frame fence wait failed (%d)", static_cast<int>(waitResult));
+                EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error, "VulkanRenderer3D: texture cache frame fence wait failed (%d)", static_cast<int>(waitResult)));
                 ok = false;
             }
         }
         else
         {
-            Log(LogLevel::Error, "VulkanRenderer3D: texture cache frame fence status failed (%d)", static_cast<int>(fenceStatus));
+            EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error, "VulkanRenderer3D: texture cache frame fence status failed (%d)", static_cast<int>(fenceStatus)));
             ok = false;
         }
     }
@@ -3477,10 +3485,10 @@ bool VulkanRenderer3D::finalizeCaptureLineFrame(bool blocking)
 
     {
 
-        static const char* vallaTardeEnv = getenv("MELON_SONDA_VALLA_TARDE");
+        static const char* vallaTardeEnv = EMUCORED_DIAGNOSTIC_ENV("MELON_SONDA_VALLA_TARDE");
         static const int vallaTardeN = vallaTardeEnv ? atoi(vallaTardeEnv) : 0;
         static const bool vallaTardeDura =
-            getenv("MELON_VALLA_TARDE_DURA") != nullptr;
+            EMUCORED_DIAGNOSTIC_ENV("MELON_VALLA_TARDE_DURA") != nullptr;
         static u32 vallaTardeCuenta = 0;
         if (vallaTardeN > 0 && CaptureLinePending
             && (vallaTardeDura || !blocking)
@@ -3505,14 +3513,14 @@ bool VulkanRenderer3D::finalizeCaptureLineFrame(bool blocking)
             }
             else
             {
-                const u64 waitStartNs = PerfNowNs();
+                const u64 waitStartNs = DiagnosticNowNs();
 
                 const u64 waitBudgetNs = NativeProjectionCapturePending
                     ? kFenceWaitTimeoutNs
                     : kCaptureFinalizeWaitBudgetNs;
                 const VkResult waitResult = vkWaitForFences(
                     Device, 1, &pendingContext.FrameFence, VK_TRUE, waitBudgetNs);
-                FenceWaitCpuWindow.Add(PerfNowNs() - waitStartNs);
+                FenceWaitCpuWindow.Add(DiagnosticNowNs() - waitStartNs);
                 if (waitResult == VK_SUCCESS)
                 {
                     consumeGpuTiming(&pendingContext);
@@ -3522,16 +3530,16 @@ bool VulkanRenderer3D::finalizeCaptureLineFrame(bool blocking)
                 else if (waitResult == VK_TIMEOUT
                     && ++CaptureFinalizeTimeoutStreak <= kMaxCaptureFinalizeTimeoutStreak)
                 {
-                    Log(LogLevel::Warn,
+                    EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Warn,
                         "VulkanRenderer3D: capture line finalize wait timed out (streak %u), keeping pending",
-                        CaptureFinalizeTimeoutStreak);
+                        CaptureFinalizeTimeoutStreak));
                     return false;
                 }
                 else
                 {
-                    Log(LogLevel::Warn,
+                    EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Warn,
                         "VulkanRenderer3D: capture line finalize wait failed (%d), resetting",
-                        static_cast<int>(waitResult));
+                        static_cast<int>(waitResult)));
                     CaptureFinalizeTimeoutStreak = 0;
                     waitOk = false;
                 }
@@ -3578,14 +3586,14 @@ bool VulkanRenderer3D::finalizeCaptureLineFrame(bool blocking)
             }
             else
             {
-                const u64 waitStartNs = PerfNowNs();
+                const u64 waitStartNs = DiagnosticNowNs();
                 const u64 waitBudgetNs = NativeProjectionCapturePending
                     ? kFenceWaitTimeoutNs
                     : kCaptureFinalizeWaitBudgetNs;
                 const VkResult waitResult = vkWaitForFences(
                     Device, 1, &captureFence, VK_TRUE,
                     waitBudgetNs);
-                FenceWaitCpuWindow.Add(PerfNowNs() - waitStartNs);
+                FenceWaitCpuWindow.Add(DiagnosticNowNs() - waitStartNs);
                 if (waitResult == VK_SUCCESS)
                 {
                     consumeGpuTiming(nullptr);
@@ -3595,16 +3603,16 @@ bool VulkanRenderer3D::finalizeCaptureLineFrame(bool blocking)
                 else if (waitResult == VK_TIMEOUT
                     && ++CaptureFinalizeTimeoutStreak <= kMaxCaptureFinalizeTimeoutStreak)
                 {
-                    Log(LogLevel::Warn,
+                    EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Warn,
                         "VulkanRenderer3D: capture line finalize wait timed out (streak %u), keeping pending",
-                        CaptureFinalizeTimeoutStreak);
+                        CaptureFinalizeTimeoutStreak));
                     return false;
                 }
                 else
                 {
-                    Log(LogLevel::Warn,
+                    EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Warn,
                         "VulkanRenderer3D: capture line finalize wait failed (%d), resetting",
-                        static_cast<int>(waitResult));
+                        static_cast<int>(waitResult)));
                     CaptureFinalizeTimeoutStreak = 0;
                     waitOk = false;
                 }
@@ -3699,12 +3707,12 @@ bool VulkanRenderer3D::waitForDeviceIdle(const char* reason)
     }
     if (waitResult != VK_SUCCESS)
     {
-        Log(
+        EMUCORED_DIAGNOSTIC_LOG(Log(
             LogLevel::Error,
             "VulkanRenderer3D: vkDeviceWaitIdle failed while waiting for %s (%d)",
             reason != nullptr ? reason : "device idle",
             static_cast<int>(waitResult)
-        );
+        ));
         return false;
     }
 
@@ -3740,6 +3748,8 @@ void VulkanRenderer3D::requestPostFastForwardDrain()
 
 void VulkanRenderer3D::consumeGpuTiming(RenderContext* context)
 {
+#if EMUCORED_DIAGNOSTICS
+
     VkQueryPool queryPool = context != nullptr ? context->TimestampQueryPool : TimestampQueryPool;
     bool& timestampPending = context != nullptr ? context->TimestampPending : TimestampPending;
 
@@ -3778,6 +3788,8 @@ void VulkanRenderer3D::consumeGpuTiming(RenderContext* context)
     }
 
     timestampPending = false;
+
+#endif
 }
 
 static bool perfForzadoPorPropiedadR3D()
@@ -3786,7 +3798,7 @@ static bool perfForzadoPorPropiedadR3D()
 
     static const bool forzado = [] {
         char v[92] = {};
-        const bool leido = __system_property_get("debug.melonds.perf", v) > 0;
+        const bool leido = EMUCORED_DIAGNOSTIC_PROPERTY("debug.melonds.perf", v) > 0;
         return !(leido && v[0] == '0');
     }();
     return forzado;
@@ -3797,8 +3809,10 @@ static bool perfForzadoPorPropiedadR3D()
 
 void VulkanRenderer3D::logPerformanceIfNeeded()
 {
+#if EMUCORED_DIAGNOSTICS
 
-    static const bool perfFuerza = std::getenv("MELON_PERF_FUERZA") != nullptr;
+
+    static const bool perfFuerza = EMUCORED_DIAGNOSTIC_ENV("MELON_PERF_FUERZA") != nullptr;
     if (!perfFuerza && !perfForzadoPorPropiedadR3D()
         && !MelonDSAndroid::areRendererDebugToolsEnabled())
         return;
@@ -3806,10 +3820,10 @@ void VulkanRenderer3D::logPerformanceIfNeeded()
     if (!RenderCpuWindow.Ready())
         return;
 
-    Log(LogLevel::Warn,
+    EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Warn,
         "VulkanPerf[NativeProjection]: composePrefetch=%llu lazy=%llu",
         static_cast<unsigned long long>(NativeComposePrefetchCount),
-        static_cast<unsigned long long>(NativeLazyProjectionCount));
+        static_cast<unsigned long long>(NativeLazyProjectionCount)));
     NativeComposePrefetchCount = 0;
     NativeLazyProjectionCount = 0;
 
@@ -3872,7 +3886,7 @@ void VulkanRenderer3D::logPerformanceIfNeeded()
     const char* activeRasterName = VulkanGraphicsRasterName();
 
     {
-        Log(
+        EMUCORED_DIAGNOSTIC_LOG(Log(
             LogLevel::Warn,
             "VulkanPerf[GPU3D]: profile=%s pipeline=%s raster=%s descriptorPath=%s captureSource=%s scale=%d render cpu avg=%.3fms p95=%.3fms max=%.3fms wait avg=%.3fms p95=%.3fms max=%.3fms gpu avg=%.3fms p95=%.3fms max=%.3fms triangles avg=%llu passes avg=%llu p95=%llu opaqueDraws=%u needOpaqueDraws=%u alphaShadowDraws=%u contextMisses=%llu late=%llu dropped=%llu readbackColor=%llu readbackResult=%llu capturePrepare=%llu captureEnabled=%llu captureSrc3d=%llu capMode=%llu/%llu/%llu/%llu capSize=%llu/%llu/%llu/%llu capExport=%llu capExportCpu avg=%.3fms p95=%.3fms capExportGpu avg=%.3fms p95=%.3fms earlySubmit hit=%llu/%llu miss=%llu skip215=%llu cpu avg=%.3fms p95=%.3fms wait avg=%.3fms p95=%.3fms",
             VulkanProductionProfileName(),
@@ -3925,8 +3939,8 @@ void VulkanRenderer3D::logPerformanceIfNeeded()
             PerfNsToMs(earlySubmitCpuSummary.P95Ns),
             PerfNsToMs(earlySubmitWaitSummary.MeanNs),
             PerfNsToMs(earlySubmitWaitSummary.P95Ns)
-        );
-        Log(
+        ));
+        EMUCORED_DIAGNOSTIC_LOG(Log(
             LogLevel::Warn,
             "VulkanPerf[GPU3DPasses]: sceneBuild cpu avg=%.3fms p95=%.3fms opaque cpu avg=%.3fms p95=%.3fms opaque gpu avg=%.3fms p95=%.3fms opaqueDraw gpu avg=%.3fms p95=%.3fms edge gpu avg=%.3fms p95=%.3fms alphaShadow cpu avg=%.3fms p95=%.3fms alphaShadow gpu avg=%.3fms p95=%.3fms final cpu avg=%.3fms p95=%.3fms final gpu avg=%.3fms p95=%.3fms captureExport cpu avg=%.3fms p95=%.3fms captureExport gpu avg=%.3fms p95=%.3fms opaqueDraws=%u needOpaqueDraws=%u alphaShadowDraws=%u opaqueW=%u opaqueZ=%u opaqueTex=%u opaqueNoTex=%u opaqueMod=%u opaqueDecal=%u opaqueToon=%u opaqueHighlight=%u opaqueLinear=%u opaqueRepeat=%u opaqueMirror=%u opaqueRepeatS=%u opaqueRepeatT=%u opaqueMirrorS=%u opaqueMirrorT=%u opaqueClampS=%u opaqueClampT=%u opaqueFullAlpha=%u highresRepeatModel=%u passNoAttr=%u passReverse=%u passNoDepthNoAttr=%u noAttrMissPolyId=%u noAttrMissDepth=%u noAttrMissFog=%u fogWriteOpaque=%u fogWriteAlpha=%u activeTextures=%u triangles=%zu pipelines=%u",
             PerfNsToMs(graphicsSceneBuildCpuSummary.MeanNs),
@@ -3997,8 +4011,8 @@ void VulkanRenderer3D::logPerformanceIfNeeded()
                 + GraphicsShadowClearPipelineCount
                 + GraphicsShadowBlendBgZeroPipelineCount
                 + GraphicsShadowBlendPipelineCount)
-        );
-        Log(
+        ));
+        EMUCORED_DIAGNOSTIC_LOG(Log(
             LogLevel::Warn,
             "VulkanPerf[GPU3DCpu]: texUpdate avg=%.3fms p95=%.3fms warmTexture avg=%.3fms p95=%.3fms buildTriangles avg=%.3fms p95=%.3fms perPolygonTiming=%u gfxTexLookup avg=%.3fms p95=%.3fms texPersistent avg=%.3fms p95=%.3fms texcacheResolve avg=%.3fms p95=%.3fms texDescriptor avg=%.3fms p95=%.3fms texSlot avg=%.3fms p95=%.3fms constTex avg=%.3fms p95=%.3fms gfxVertexEmit avg=%.3fms p95=%.3fms gfxStats avg=%.3fms p95=%.3fms bufferPrep avg=%.3fms p95=%.3fms descriptor avg=%.3fms p95=%.3fms dispatch avg=%.3fms p95=%.3fms texLookupHit=%u texLookupMiss=%u persistentHit=%u persistentMiss=%u texcacheResolveLast=%.3fms",
             PerfNsToMs(textureUpdateCpuSummary.MeanNs),
@@ -4035,7 +4049,7 @@ void VulkanRenderer3D::logPerformanceIfNeeded()
             LastGraphicsPersistentTextureHitCount,
             LastGraphicsPersistentTextureMissCount,
             PerfNsToMs(LastGraphicsTexcacheResolveCpuNs)
-        );
+        ));
     }
     ContextMissCount = 0;
     LateFrameCount = 0;
@@ -4053,6 +4067,8 @@ void VulkanRenderer3D::logPerformanceIfNeeded()
     EarlySubmitHitCount = 0;
     EarlySubmitMissCount = 0;
     EarlySubmitSkipVCount215Count = 0;
+
+#endif
 }
 
 bool VulkanRenderer3D::createTextureResources()
@@ -4075,7 +4091,7 @@ bool VulkanRenderer3D::createTextureResources()
     };
     if (!texturePolicy.GraphicsLimitsSatisfied(descriptorLimits))
     {
-        Log(
+        EMUCORED_DIAGNOSTIC_LOG(Log(
             LogLevel::Error,
             "VulkanRenderer3D: descriptor limits too low (samplers=%u/%u images=%u/%u buffers=%u/%u resources=%u requiredImagesSamplers=%u requiredBuffers=3 profile=%s path=%s)",
             descriptorLimits.PerStageSamplers, descriptorLimits.SetSamplers,
@@ -4085,13 +4101,13 @@ bool VulkanRenderer3D::createTextureResources()
             texturePolicy.GraphicsCombinedImageSamplerCount(),
             VulkanProductionProfileName(),
             textureSamplingPathName(ActiveTextureSamplingPath)
-        );
+        ));
         return false;
     }
 
     if (MelonDSAndroid::areRendererDebugToolsEnabled())
     {
-        Log(
+        EMUCORED_DIAGNOSTIC_LOG(Log(
             LogLevel::Warn,
             "VulkanDescriptorGraph[TexturePolicy]: profile=%s logicalTextures=%u textureBindingCount=%u pagesPerOwner=%u maxActive=%u fallback=%u graphicsBindings=%u graphicsCombinedSamplers=%u normalized=%u asyncContexts=%llu descriptorOwners=%llu contextStorageCapacity=%llu",
             VulkanProductionProfileName(),
@@ -4106,12 +4122,12 @@ bool VulkanRenderer3D::createTextureResources()
             static_cast<unsigned long long>(renderContextPolicy.AsyncRenderContextCount),
             static_cast<unsigned long long>(renderContextPolicy.DescriptorSetCount()),
             static_cast<unsigned long long>(MaxAsyncRenderContextCount)
-        );
+        ));
     }
 
     const TextureSamplingPath samplingPath = ActiveTextureSamplingPath;
     const VulkanContext& context = VulkanContext::Get();
-    Log(
+    EMUCORED_DIAGNOSTIC_LOG(Log(
         LogLevel::Warn,
         "VulkanRuntime[Capabilities]: swapchain=1 timeline=%d dynamicIndexing=%d nonUniform=0 path=%s forceTimelineOff=%d forceDynamicOff=%d",
         context.SupportsTimelineSemaphores() ? 1 : 0,
@@ -4119,17 +4135,17 @@ bool VulkanRenderer3D::createTextureResources()
         textureSamplingPathName(samplingPath),
         context.IsTimelineSemaphoreForcedOff() ? 1 : 0,
         context.IsDynamicTextureIndexingForcedOff() ? 1 : 0
-    );
-    Log(
+    ));
+    EMUCORED_DIAGNOSTIC_LOG(Log(
         LogLevel::Warn,
         "VulkanRenderer3D: using %s texture sampling path",
         samplingPath == TextureSamplingPath::DynamicUniform
             ? "dynamically-uniform descriptor indexing"
             : "constant switch-descriptor indexing"
-    );
+    ));
     if (!createFallbackTexture())
     {
-        Log(LogLevel::Error, "VulkanRenderer3D: failed to create fallback texture");
+        EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error, "VulkanRenderer3D: failed to create fallback texture"));
         return false;
     }
 
@@ -4202,7 +4218,7 @@ bool VulkanRenderer3D::createGraphicsDescriptorObjects()
 
     if (vkCreateDescriptorSetLayout(Device, &layoutCreateInfo, nullptr, &GraphicsDescriptorSetLayout) != VK_SUCCESS)
     {
-        Log(LogLevel::Error, "VulkanRenderer3D: failed to create graphics descriptor set layout");
+        EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error, "VulkanRenderer3D: failed to create graphics descriptor set layout"));
         return false;
     }
 
@@ -4230,7 +4246,7 @@ bool VulkanRenderer3D::createGraphicsDescriptorObjects()
 
     if (vkCreateDescriptorPool(Device, &poolCreateInfo, nullptr, &GraphicsDescriptorPool) != VK_SUCCESS)
     {
-        Log(LogLevel::Error, "VulkanRenderer3D: failed to create graphics descriptor pool");
+        EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error, "VulkanRenderer3D: failed to create graphics descriptor pool"));
         return false;
     }
 
@@ -4245,7 +4261,7 @@ bool VulkanRenderer3D::createGraphicsDescriptorObjects()
 
     if (vkAllocateDescriptorSets(Device, &descriptorAllocInfo, descriptorSets.data()) != VK_SUCCESS)
     {
-        Log(LogLevel::Error, "VulkanRenderer3D: failed to allocate graphics descriptor sets");
+        EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error, "VulkanRenderer3D: failed to allocate graphics descriptor sets"));
         return false;
     }
 
@@ -4267,7 +4283,7 @@ bool VulkanRenderer3D::createGraphicsDescriptorObjects()
 
     if (cursor != descriptorSets.size())
     {
-        Log(LogLevel::Error, "VulkanRenderer3D: graphics descriptor set allocation mismatch");
+        EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error, "VulkanRenderer3D: graphics descriptor set allocation mismatch"));
         return false;
     }
 
@@ -4342,17 +4358,17 @@ bool VulkanRenderer3D::createPipelineCache(TextureSamplingPath samplingPath)
             cacheData.resize(static_cast<size_t>(cacheSize));
             if (Platform::FileRead(cacheData.data(), 1, cacheSize, cacheFile) != cacheSize)
             {
-                Log(LogLevel::Warn, "VulkanRenderer3D: failed to read pipeline cache %s", ComputePipelineCacheFile.c_str());
+                EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Warn, "VulkanRenderer3D: failed to read pipeline cache %s", ComputePipelineCacheFile.c_str()));
                 cacheData.clear();
             }
             else
             {
-                Log(
+                EMUCORED_DIAGNOSTIC_LOG(Log(
                     LogLevel::Info,
                     "VulkanRenderer3D: loaded pipeline cache (%s, %llu bytes)",
                     ComputePipelineCacheFile.c_str(),
                     static_cast<unsigned long long>(cacheSize)
-                );
+                ));
             }
         }
 
@@ -4367,11 +4383,11 @@ bool VulkanRenderer3D::createPipelineCache(TextureSamplingPath samplingPath)
     VkResult cacheResult = vkCreatePipelineCache(Device, &cacheCreateInfo, nullptr, &ComputePipelineCache);
     if (cacheResult != VK_SUCCESS && !cacheData.empty())
     {
-        Log(
+        EMUCORED_DIAGNOSTIC_LOG(Log(
             LogLevel::Warn,
             "VulkanRenderer3D: pipeline cache data rejected, recreating empty cache (%d)",
             static_cast<int>(cacheResult)
-        );
+        ));
         cacheCreateInfo.initialDataSize = 0;
         cacheCreateInfo.pInitialData = nullptr;
         cacheResult = vkCreatePipelineCache(Device, &cacheCreateInfo, nullptr, &ComputePipelineCache);
@@ -4379,7 +4395,7 @@ bool VulkanRenderer3D::createPipelineCache(TextureSamplingPath samplingPath)
 
     if (cacheResult != VK_SUCCESS)
     {
-        Log(LogLevel::Warn, "VulkanRenderer3D: failed to create pipeline cache (%d)", static_cast<int>(cacheResult));
+        EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Warn, "VulkanRenderer3D: failed to create pipeline cache (%d)", static_cast<int>(cacheResult)));
         ComputePipelineCache = VK_NULL_HANDLE;
         return false;
     }
@@ -4403,7 +4419,7 @@ void VulkanRenderer3D::savePipelineCache()
     Platform::FileHandle* cacheFile = Platform::OpenLocalFile(ComputePipelineCacheFile, Platform::FileMode::ReadWrite);
     if (cacheFile == nullptr)
     {
-        Log(LogLevel::Warn, "VulkanRenderer3D: failed to open pipeline cache for writing (%s)", ComputePipelineCacheFile.c_str());
+        EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Warn, "VulkanRenderer3D: failed to open pipeline cache for writing (%s)", ComputePipelineCacheFile.c_str()));
         return;
     }
 
@@ -4413,22 +4429,22 @@ void VulkanRenderer3D::savePipelineCache()
 
     if (written != cacheSize)
     {
-        Log(
+        EMUCORED_DIAGNOSTIC_LOG(Log(
             LogLevel::Warn,
             "VulkanRenderer3D: incomplete pipeline cache write (%s %llu/%llu)",
             ComputePipelineCacheFile.c_str(),
             static_cast<unsigned long long>(written),
             static_cast<unsigned long long>(cacheSize)
-        );
+        ));
         return;
     }
 
-    Log(
+    EMUCORED_DIAGNOSTIC_LOG(Log(
         LogLevel::Info,
         "VulkanRenderer3D: saved pipeline cache (%s, %llu bytes)",
         ComputePipelineCacheFile.c_str(),
         static_cast<unsigned long long>(cacheSize)
-    );
+    ));
 }
 
 
@@ -4451,7 +4467,7 @@ bool VulkanRenderer3D::createCaptureExportResources()
     layoutInfo.pBindings = bindings.data();
     if (vkCreateDescriptorSetLayout(Device, &layoutInfo, nullptr, &CaptureExportDescriptorSetLayout) != VK_SUCCESS)
     {
-        Log(LogLevel::Error, "VulkanRenderer3D: failed to create capture export descriptor layout");
+        EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error, "VulkanRenderer3D: failed to create capture export descriptor layout"));
         return false;
     }
 
@@ -4470,7 +4486,7 @@ bool VulkanRenderer3D::createCaptureExportResources()
     poolInfo.pPoolSizes = poolSizes.data();
     if (vkCreateDescriptorPool(Device, &poolInfo, nullptr, &CaptureExportDescriptorPool) != VK_SUCCESS)
     {
-        Log(LogLevel::Error, "VulkanRenderer3D: failed to create capture export descriptor pool");
+        EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error, "VulkanRenderer3D: failed to create capture export descriptor pool"));
         return false;
     }
 
@@ -4483,7 +4499,7 @@ bool VulkanRenderer3D::createCaptureExportResources()
     allocateInfo.pSetLayouts = layouts.data();
     if (vkAllocateDescriptorSets(Device, &allocateInfo, sets.data()) != VK_SUCCESS)
     {
-        Log(LogLevel::Error, "VulkanRenderer3D: failed to allocate capture export descriptor sets");
+        EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error, "VulkanRenderer3D: failed to allocate capture export descriptor sets"));
         return false;
     }
     size_t cursor = 0;
@@ -4505,14 +4521,14 @@ bool VulkanRenderer3D::createCaptureExportResources()
     pipelineLayoutInfo.pPushConstantRanges = &pushRange;
     if (vkCreatePipelineLayout(Device, &pipelineLayoutInfo, nullptr, &CaptureExportPipelineLayout) != VK_SUCCESS)
     {
-        Log(LogLevel::Error, "VulkanRenderer3D: failed to create capture export pipeline layout");
+        EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error, "VulkanRenderer3D: failed to create capture export pipeline layout"));
         return false;
     }
 
     const size_t spirvLength = melonDS_gpu3d_vulkan_capture_line_export_comp_spv_len;
     if (spirvLength == 0u)
     {
-        Log(LogLevel::Error, "VulkanRenderer3D: empty capture export SPIR-V blob");
+        EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error, "VulkanRenderer3D: empty capture export SPIR-V blob"));
         return false;
     }
     std::vector<u32> shaderWords((spirvLength + sizeof(u32) - 1u) / sizeof(u32));
@@ -4524,7 +4540,7 @@ bool VulkanRenderer3D::createCaptureExportResources()
     VkShaderModule shaderModule = VK_NULL_HANDLE;
     if (vkCreateShaderModule(Device, &shaderInfo, nullptr, &shaderModule) != VK_SUCCESS)
     {
-        Log(LogLevel::Error, "VulkanRenderer3D: failed to create capture export shader module");
+        EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error, "VulkanRenderer3D: failed to create capture export shader module"));
         return false;
     }
     VkComputePipelineCreateInfo pipelineInfo{};
@@ -4539,7 +4555,7 @@ bool VulkanRenderer3D::createCaptureExportResources()
     vkDestroyShaderModule(Device, shaderModule, nullptr);
     if (result != VK_SUCCESS)
     {
-        Log(LogLevel::Error, "VulkanRenderer3D: failed to create capture export pipeline (%d)", static_cast<int>(result));
+        EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error, "VulkanRenderer3D: failed to create capture export pipeline (%d)", static_cast<int>(result)));
         return false;
     }
     return true;
@@ -4618,18 +4634,18 @@ bool VulkanRenderer3D::createGraphicsPipelines()
         || edgeFogShader.length == 0
         || fogShader.length == 0)
     {
-        Log(LogLevel::Error, "VulkanRenderer3D: empty graphics SPIR-V blob(s)");
+        EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error, "VulkanRenderer3D: empty graphics SPIR-V blob(s)"));
         return false;
     }
 
     if (!selectGraphicsDepthStencilFormat())
     {
-        Log(LogLevel::Error, "VulkanRenderer3D: no supported graphics depth/stencil format");
+        EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error, "VulkanRenderer3D: no supported graphics depth/stencil format"));
         return false;
     }
     if (!selectGraphicsRasterColorFormat())
     {
-        Log(LogLevel::Error, "VulkanRenderer3D: no supported graphics raster color format");
+        EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error, "VulkanRenderer3D: no supported graphics raster color format"));
         return false;
     }
 
@@ -4647,7 +4663,7 @@ bool VulkanRenderer3D::createGraphicsPipelines()
 
     if (vkCreatePipelineLayout(Device, &pipelineLayoutCreateInfo, nullptr, &GraphicsPipelineLayout) != VK_SUCCESS)
     {
-        Log(LogLevel::Error, "VulkanRenderer3D: failed to create graphics pipeline layout");
+        EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error, "VulkanRenderer3D: failed to create graphics pipeline layout"));
         return false;
     }
 
@@ -4662,7 +4678,7 @@ bool VulkanRenderer3D::createGraphicsPipelines()
     samplerCreateInfo.maxLod = 0.0f;
     if (vkCreateSampler(Device, &samplerCreateInfo, nullptr, &GraphicsAttachmentSampler) != VK_SUCCESS)
     {
-        Log(LogLevel::Error, "VulkanRenderer3D: failed to create graphics attachment sampler");
+        EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error, "VulkanRenderer3D: failed to create graphics attachment sampler"));
         return false;
     }
 
@@ -4740,7 +4756,7 @@ bool VulkanRenderer3D::createGraphicsPipelines()
 
     if (vkCreateRenderPass(Device, &rasterRenderPassCreateInfo, nullptr, &GraphicsRasterRenderPass) != VK_SUCCESS)
     {
-        Log(LogLevel::Error, "VulkanRenderer3D: failed to create graphics raster render pass");
+        EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error, "VulkanRenderer3D: failed to create graphics raster render pass"));
         return false;
     }
 
@@ -4760,7 +4776,7 @@ bool VulkanRenderer3D::createGraphicsPipelines()
         sinEscrituraCreateInfo.pAttachments = rasterSinEscrituraAttachments.data();
         if (vkCreateRenderPass(Device, &sinEscrituraCreateInfo, nullptr, &GraphicsRasterSinEscrituraRenderPass) != VK_SUCCESS)
         {
-            Log(LogLevel::Error, "VulkanRenderer3D: failed to create graphics raster sin-escritura render pass");
+            EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error, "VulkanRenderer3D: failed to create graphics raster sin-escritura render pass"));
             return false;
         }
 
@@ -4776,7 +4792,7 @@ bool VulkanRenderer3D::createGraphicsPipelines()
         rasterLoadRenderPassCreateInfo.pAttachments = rasterLoadAttachments.data();
         if (vkCreateRenderPass(Device, &rasterLoadRenderPassCreateInfo, nullptr, &GraphicsRasterLoadRenderPass) != VK_SUCCESS)
         {
-            Log(LogLevel::Error, "VulkanRenderer3D: failed to create graphics raster-load render pass");
+            EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error, "VulkanRenderer3D: failed to create graphics raster-load render pass"));
             return false;
         }
 
@@ -4812,7 +4828,7 @@ bool VulkanRenderer3D::createGraphicsPipelines()
         colorOnlyRenderPassCreateInfo.pDependencies = colorOnlyDependencies.data();
         if (vkCreateRenderPass(Device, &colorOnlyRenderPassCreateInfo, nullptr, &GraphicsColorOnlyRenderPass) != VK_SUCCESS)
         {
-            Log(LogLevel::Error, "VulkanRenderer3D: failed to create graphics color-only render pass");
+            EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error, "VulkanRenderer3D: failed to create graphics color-only render pass"));
             return false;
         }
     }
@@ -4858,7 +4874,7 @@ bool VulkanRenderer3D::createGraphicsPipelines()
 
     if (vkCreateRenderPass(Device, &finalRenderPassCreateInfo, nullptr, &GraphicsFinalRenderPass) != VK_SUCCESS)
     {
-        Log(LogLevel::Error, "VulkanRenderer3D: failed to create graphics final render pass");
+        EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error, "VulkanRenderer3D: failed to create graphics final render pass"));
         return false;
     }
 
@@ -4948,7 +4964,7 @@ bool VulkanRenderer3D::createGraphicsPipelines()
         || edgeFogFragModule == VK_NULL_HANDLE
         || fogFragModule == VK_NULL_HANDLE)
     {
-        Log(LogLevel::Error, "VulkanRenderer3D: failed to create graphics shader modules");
+        EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error, "VulkanRenderer3D: failed to create graphics shader modules"));
         if (rasterVertModule != VK_NULL_HANDLE) vkDestroyShaderModule(Device, rasterVertModule, nullptr);
         if (rasterFragModule != VK_NULL_HANDLE) vkDestroyShaderModule(Device, rasterFragModule, nullptr);
         if (rasterDirectFragModule != VK_NULL_HANDLE) vkDestroyShaderModule(Device, rasterDirectFragModule, nullptr);
@@ -5519,7 +5535,7 @@ bool VulkanRenderer3D::createGraphicsPipelines()
             VK_COMPARE_OP_ALWAYS,
             &GraphicsClearPipeline))
     {
-        Log(LogLevel::Error, "VulkanRenderer3D: failed to create graphics clear pipeline");
+        EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error, "VulkanRenderer3D: failed to create graphics clear pipeline"));
         return false;
     }
 
@@ -5556,11 +5572,11 @@ bool VulkanRenderer3D::createGraphicsPipelines()
                 wMode != 0u && VulkanContext::Get().SupportsDynamicTextureIndexing();
 
             static const bool g2FragDepthViejo = [] {
-                if (std::getenv("MELON_G2_FRAGDEPTH_Z") != nullptr)
+                if (EMUCORED_DIAGNOSTIC_ENV("MELON_G2_FRAGDEPTH_Z") != nullptr)
                     return true;
 #ifdef __ANDROID__
                 char v[92] = {};
-                if (__system_property_get("debug.melonds.g2_fragdepth_z", v) > 0)
+                if (EMUCORED_DIAGNOSTIC_PROPERTY("debug.melonds.g2_fragdepth_z", v) > 0)
                     return v[0] == '1';
 #endif
                 return false;
@@ -5584,7 +5600,7 @@ bool VulkanRenderer3D::createGraphicsPipelines()
                     VK_COMPARE_OP_ALWAYS,
                     &GraphicsOpaquePipelines[makeOpaqueIndex(wMode, depthCompareMode)]))
             {
-                Log(LogLevel::Error, "VulkanRenderer3D: failed to create graphics opaque pipeline");
+                EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error, "VulkanRenderer3D: failed to create graphics opaque pipeline"));
                 return false;
             }
             if (usesGraphicsProductResources
@@ -5601,7 +5617,7 @@ bool VulkanRenderer3D::createGraphicsPipelines()
                     VK_COMPARE_OP_ALWAYS,
                     &GraphicsOpaqueNoAttrPipelines[makeOpaqueIndex(wMode, depthCompareMode)]))
             {
-                Log(LogLevel::Error, "VulkanRenderer3D: failed to create graphics opaque no-attr pipeline");
+                EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error, "VulkanRenderer3D: failed to create graphics opaque no-attr pipeline"));
                 return false;
             }
             if (usesGraphicsProductResources
@@ -5618,7 +5634,7 @@ bool VulkanRenderer3D::createGraphicsPipelines()
                     VK_COMPARE_OP_NOT_EQUAL,
                     &GraphicsOpaqueOcclusionNoAttrPipelines[makeOpaqueIndex(wMode, depthCompareMode)]))
             {
-                Log(LogLevel::Error, "VulkanRenderer3D: failed to create graphics opaque occlusion no-attr pipeline");
+                EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error, "VulkanRenderer3D: failed to create graphics opaque occlusion no-attr pipeline"));
                 return false;
             }
             if (wMode != 0u
@@ -5635,7 +5651,7 @@ bool VulkanRenderer3D::createGraphicsPipelines()
                     VK_COMPARE_OP_ALWAYS,
                     &GraphicsOpaqueFragmentDepthPipelines[makeOpaqueIndex(wMode, depthCompareMode)]))
             {
-                Log(LogLevel::Error, "VulkanRenderer3D: failed to create graphics opaque fragment-depth pipeline");
+                EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error, "VulkanRenderer3D: failed to create graphics opaque fragment-depth pipeline"));
                 return false;
             }
             if (wMode != 0u
@@ -5653,7 +5669,7 @@ bool VulkanRenderer3D::createGraphicsPipelines()
                     VK_COMPARE_OP_ALWAYS,
                     &GraphicsOpaqueFastModulatePlainFragmentDepthPipelines[makeOpaqueIndex(wMode, depthCompareMode)]))
             {
-                Log(LogLevel::Error, "VulkanRenderer3D: failed to create graphics opaque fast-modulate-plain fragment-depth pipeline");
+                EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error, "VulkanRenderer3D: failed to create graphics opaque fast-modulate-plain fragment-depth pipeline"));
                 return false;
             }
             NoColorFragmentSpecialization opaquePrepassSpecializationData{};
@@ -5685,7 +5701,7 @@ bool VulkanRenderer3D::createGraphicsPipelines()
                     VK_COMPARE_OP_ALWAYS,
                     &GraphicsOpaqueFragmentDepthPrepassPipelines[makeOpaqueIndex(wMode, depthCompareMode)]))
             {
-                Log(LogLevel::Error, "VulkanRenderer3D: failed to create graphics opaque fragment-depth prepass pipeline");
+                EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error, "VulkanRenderer3D: failed to create graphics opaque fragment-depth prepass pipeline"));
                 return false;
             }
             if (usesGraphicsProductResources
@@ -5702,7 +5718,7 @@ bool VulkanRenderer3D::createGraphicsPipelines()
                     VK_COMPARE_OP_ALWAYS,
                     &GraphicsOpaqueAlphaFragmentDepthPrepassPipelines[makeOpaqueIndex(wMode, depthCompareMode)]))
             {
-                Log(LogLevel::Error, "VulkanRenderer3D: failed to create graphics opaque alpha fragment-depth prepass pipeline");
+                EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error, "VulkanRenderer3D: failed to create graphics opaque alpha fragment-depth prepass pipeline"));
                 return false;
             }
 
@@ -5728,7 +5744,7 @@ bool VulkanRenderer3D::createGraphicsPipelines()
                     VK_COMPARE_OP_ALWAYS,
                     &GraphicsOpaquePrepassHwDepthPipelines[makeOpaqueIndex(wMode, depthCompareMode)]))
             {
-                Log(LogLevel::Error, "VulkanRenderer3D: failed to create graphics opaque hw-depth prepass pipeline");
+                EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error, "VulkanRenderer3D: failed to create graphics opaque hw-depth prepass pipeline"));
                 return false;
             }
             {
@@ -5750,7 +5766,7 @@ bool VulkanRenderer3D::createGraphicsPipelines()
                         VK_COMPARE_OP_ALWAYS,
                         &GraphicsOpaqueAlphaPrepassHwDepthPipelines[makeOpaqueIndex(wMode, depthCompareMode)]))
                 {
-                    Log(LogLevel::Error, "VulkanRenderer3D: failed to create graphics opaque alpha hw-depth prepass pipeline");
+                    EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error, "VulkanRenderer3D: failed to create graphics opaque alpha hw-depth prepass pipeline"));
                     return false;
                 }
             }
@@ -5768,7 +5784,7 @@ bool VulkanRenderer3D::createGraphicsPipelines()
                     VK_COMPARE_OP_EQUAL,
                     &GraphicsOpaqueStencilResolvePipelines[makeOpaqueIndex(wMode, depthCompareMode)]))
             {
-                Log(LogLevel::Error, "VulkanRenderer3D: failed to create graphics opaque stencil resolve pipeline");
+                EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error, "VulkanRenderer3D: failed to create graphics opaque stencil resolve pipeline"));
                 return false;
             }
             if (depthCompareMode == 0u
@@ -5785,7 +5801,7 @@ bool VulkanRenderer3D::createGraphicsPipelines()
                     VK_COMPARE_OP_ALWAYS,
                     &GraphicsOpaqueUiOverlayPipelines[wMode]))
             {
-                Log(LogLevel::Error, "VulkanRenderer3D: failed to create graphics opaque UI overlay pipeline");
+                EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error, "VulkanRenderer3D: failed to create graphics opaque UI overlay pipeline"));
                 return false;
             }
             if (useDirectWBufferOpaqueTextureIndexing)
@@ -5803,7 +5819,7 @@ bool VulkanRenderer3D::createGraphicsPipelines()
                         VK_COMPARE_OP_ALWAYS,
                         &GraphicsOpaqueFastModulatePipelines[makeOpaqueIndex(wMode, depthCompareMode)]))
                 {
-                    Log(LogLevel::Error, "VulkanRenderer3D: failed to create graphics opaque fast-modulate pipeline");
+                    EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error, "VulkanRenderer3D: failed to create graphics opaque fast-modulate pipeline"));
                     return false;
                 }
                 if (usesGraphicsProductResources
@@ -5820,7 +5836,7 @@ bool VulkanRenderer3D::createGraphicsPipelines()
                         VK_COMPARE_OP_ALWAYS,
                         &GraphicsOpaqueFastModulateNoAttrPipelines[makeOpaqueIndex(wMode, depthCompareMode)]))
                 {
-                    Log(LogLevel::Error, "VulkanRenderer3D: failed to create graphics opaque fast-modulate no-attr pipeline");
+                    EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error, "VulkanRenderer3D: failed to create graphics opaque fast-modulate no-attr pipeline"));
                     return false;
                 }
                 if (usesGraphicsProductResources
@@ -5837,7 +5853,7 @@ bool VulkanRenderer3D::createGraphicsPipelines()
                         VK_COMPARE_OP_NOT_EQUAL,
                         &GraphicsOpaqueFastModulateOcclusionNoAttrPipelines[makeOpaqueIndex(wMode, depthCompareMode)]))
                 {
-                    Log(LogLevel::Error, "VulkanRenderer3D: failed to create graphics opaque fast-modulate occlusion no-attr pipeline");
+                    EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error, "VulkanRenderer3D: failed to create graphics opaque fast-modulate occlusion no-attr pipeline"));
                     return false;
                 }
                 if (!createRasterPipeline(
@@ -5853,7 +5869,7 @@ bool VulkanRenderer3D::createGraphicsPipelines()
                         VK_COMPARE_OP_ALWAYS,
                         &GraphicsOpaqueFastModulateToonPipelines[makeOpaqueIndex(wMode, depthCompareMode)]))
                 {
-                    Log(LogLevel::Error, "VulkanRenderer3D: failed to create graphics opaque fast-modulate-toon pipeline");
+                    EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error, "VulkanRenderer3D: failed to create graphics opaque fast-modulate-toon pipeline"));
                     return false;
                 }
                 if (usesGraphicsProductResources
@@ -5870,7 +5886,7 @@ bool VulkanRenderer3D::createGraphicsPipelines()
                         VK_COMPARE_OP_ALWAYS,
                         &GraphicsOpaqueFastModulateToonNoAttrPipelines[makeOpaqueIndex(wMode, depthCompareMode)]))
                 {
-                    Log(LogLevel::Error, "VulkanRenderer3D: failed to create graphics opaque fast-modulate-toon no-attr pipeline");
+                    EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error, "VulkanRenderer3D: failed to create graphics opaque fast-modulate-toon no-attr pipeline"));
                     return false;
                 }
                 if (usesGraphicsProductResources
@@ -5887,7 +5903,7 @@ bool VulkanRenderer3D::createGraphicsPipelines()
                         VK_COMPARE_OP_NOT_EQUAL,
                         &GraphicsOpaqueFastModulateToonOcclusionNoAttrPipelines[makeOpaqueIndex(wMode, depthCompareMode)]))
                 {
-                    Log(LogLevel::Error, "VulkanRenderer3D: failed to create graphics opaque fast-modulate-toon occlusion no-attr pipeline");
+                    EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error, "VulkanRenderer3D: failed to create graphics opaque fast-modulate-toon occlusion no-attr pipeline"));
                     return false;
                 }
                 if (!createRasterPipeline(
@@ -5903,7 +5919,7 @@ bool VulkanRenderer3D::createGraphicsPipelines()
                         VK_COMPARE_OP_ALWAYS,
                         &GraphicsOpaqueFastModulatePlainPipelines[makeOpaqueIndex(wMode, depthCompareMode)]))
                 {
-                    Log(LogLevel::Error, "VulkanRenderer3D: failed to create graphics opaque fast-modulate-plain pipeline");
+                    EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error, "VulkanRenderer3D: failed to create graphics opaque fast-modulate-plain pipeline"));
                     return false;
                 }
                 if (usesGraphicsProductResources
@@ -5920,7 +5936,7 @@ bool VulkanRenderer3D::createGraphicsPipelines()
                         VK_COMPARE_OP_ALWAYS,
                         &GraphicsOpaqueFastModulatePlainNoAttrPipelines[makeOpaqueIndex(wMode, depthCompareMode)]))
                 {
-                    Log(LogLevel::Error, "VulkanRenderer3D: failed to create graphics opaque fast-modulate-plain no-attr pipeline");
+                    EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error, "VulkanRenderer3D: failed to create graphics opaque fast-modulate-plain no-attr pipeline"));
                     return false;
                 }
                 if (usesGraphicsProductResources
@@ -5937,7 +5953,7 @@ bool VulkanRenderer3D::createGraphicsPipelines()
                         VK_COMPARE_OP_NOT_EQUAL,
                         &GraphicsOpaqueFastModulatePlainOcclusionNoAttrPipelines[makeOpaqueIndex(wMode, depthCompareMode)]))
                 {
-                    Log(LogLevel::Error, "VulkanRenderer3D: failed to create graphics opaque fast-modulate-plain occlusion no-attr pipeline");
+                    EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error, "VulkanRenderer3D: failed to create graphics opaque fast-modulate-plain occlusion no-attr pipeline"));
                     return false;
                 }
                 if (!createRasterPipeline(
@@ -5953,7 +5969,7 @@ bool VulkanRenderer3D::createGraphicsPipelines()
                         VK_COMPARE_OP_ALWAYS,
                         &GraphicsOpaqueFastModulateOpaqueAlphaToonPipelines[makeOpaqueIndex(wMode, depthCompareMode)]))
                 {
-                    Log(LogLevel::Error, "VulkanRenderer3D: failed to create graphics opaque fast-modulate-opaque-alpha-toon pipeline");
+                    EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error, "VulkanRenderer3D: failed to create graphics opaque fast-modulate-opaque-alpha-toon pipeline"));
                     return false;
                 }
                 if (usesGraphicsProductResources
@@ -5970,7 +5986,7 @@ bool VulkanRenderer3D::createGraphicsPipelines()
                         VK_COMPARE_OP_ALWAYS,
                         &GraphicsOpaqueFastModulateOpaqueAlphaToonNoAttrPipelines[makeOpaqueIndex(wMode, depthCompareMode)]))
                 {
-                    Log(LogLevel::Error, "VulkanRenderer3D: failed to create graphics opaque fast-modulate-opaque-alpha-toon no-attr pipeline");
+                    EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error, "VulkanRenderer3D: failed to create graphics opaque fast-modulate-opaque-alpha-toon no-attr pipeline"));
                     return false;
                 }
                 if (usesGraphicsProductResources
@@ -5987,7 +6003,7 @@ bool VulkanRenderer3D::createGraphicsPipelines()
                         VK_COMPARE_OP_NOT_EQUAL,
                         &GraphicsOpaqueFastModulateOpaqueAlphaToonOcclusionNoAttrPipelines[makeOpaqueIndex(wMode, depthCompareMode)]))
                 {
-                    Log(LogLevel::Error, "VulkanRenderer3D: failed to create graphics opaque fast-modulate-opaque-alpha-toon occlusion no-attr pipeline");
+                    EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error, "VulkanRenderer3D: failed to create graphics opaque fast-modulate-opaque-alpha-toon occlusion no-attr pipeline"));
                     return false;
                 }
                 if (!createRasterPipeline(
@@ -6003,7 +6019,7 @@ bool VulkanRenderer3D::createGraphicsPipelines()
                         VK_COMPARE_OP_ALWAYS,
                         &GraphicsOpaqueFastModulateOpaqueAlphaPlainPipelines[makeOpaqueIndex(wMode, depthCompareMode)]))
                 {
-                    Log(LogLevel::Error, "VulkanRenderer3D: failed to create graphics opaque fast-modulate-opaque-alpha-plain pipeline");
+                    EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error, "VulkanRenderer3D: failed to create graphics opaque fast-modulate-opaque-alpha-plain pipeline"));
                     return false;
                 }
                 if (usesGraphicsProductResources
@@ -6020,7 +6036,7 @@ bool VulkanRenderer3D::createGraphicsPipelines()
                         VK_COMPARE_OP_ALWAYS,
                         &GraphicsOpaqueFastModulateOpaqueAlphaPlainFragmentDepthPipelines[makeOpaqueIndex(wMode, depthCompareMode)]))
                 {
-                    Log(LogLevel::Error, "VulkanRenderer3D: failed to create graphics opaque fast-modulate-opaque-alpha-plain fragment-depth pipeline");
+                    EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error, "VulkanRenderer3D: failed to create graphics opaque fast-modulate-opaque-alpha-plain fragment-depth pipeline"));
                     return false;
                 }
                 if (usesGraphicsProductResources
@@ -6037,7 +6053,7 @@ bool VulkanRenderer3D::createGraphicsPipelines()
                         VK_COMPARE_OP_ALWAYS,
                         &GraphicsOpaqueFastModulateOpaqueAlphaPlainNoAttrPipelines[makeOpaqueIndex(wMode, depthCompareMode)]))
                 {
-                    Log(LogLevel::Error, "VulkanRenderer3D: failed to create graphics opaque fast-modulate-opaque-alpha-plain no-attr pipeline");
+                    EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error, "VulkanRenderer3D: failed to create graphics opaque fast-modulate-opaque-alpha-plain no-attr pipeline"));
                     return false;
                 }
                 if (usesGraphicsProductResources
@@ -6047,7 +6063,7 @@ bool VulkanRenderer3D::createGraphicsPipelines()
                         opaqueBlendAttachments[0],
                         &GraphicsOpaqueFastModulateOpaqueAlphaPlainColorOnlyPipelines[makeOpaqueIndex(wMode, depthCompareMode)]))
                 {
-                    Log(LogLevel::Error, "VulkanRenderer3D: failed to create graphics opaque fast-modulate-opaque-alpha-plain color-only pipeline");
+                    EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error, "VulkanRenderer3D: failed to create graphics opaque fast-modulate-opaque-alpha-plain color-only pipeline"));
                     return false;
                 }
                 if (usesGraphicsProductResources
@@ -6064,7 +6080,7 @@ bool VulkanRenderer3D::createGraphicsPipelines()
                         VK_COMPARE_OP_NOT_EQUAL,
                         &GraphicsOpaqueFastModulateOpaqueAlphaPlainOcclusionNoAttrPipelines[makeOpaqueIndex(wMode, depthCompareMode)]))
                 {
-                    Log(LogLevel::Error, "VulkanRenderer3D: failed to create graphics opaque fast-modulate-opaque-alpha-plain occlusion no-attr pipeline");
+                    EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error, "VulkanRenderer3D: failed to create graphics opaque fast-modulate-opaque-alpha-plain occlusion no-attr pipeline"));
                     return false;
                 }
                 if (usesGraphicsProductResources
@@ -6081,7 +6097,7 @@ bool VulkanRenderer3D::createGraphicsPipelines()
                         VK_COMPARE_OP_NOT_EQUAL,
                         &GraphicsOpaqueFastModulateOpaqueAlphaPlainNoDepthOcclusionNoAttrPipelines[makeOpaqueIndex(wMode, depthCompareMode)]))
                 {
-                    Log(LogLevel::Error, "VulkanRenderer3D: failed to create graphics opaque fast-modulate-opaque-alpha-plain no-depth occlusion no-attr pipeline");
+                    EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error, "VulkanRenderer3D: failed to create graphics opaque fast-modulate-opaque-alpha-plain no-depth occlusion no-attr pipeline"));
                     return false;
                 }
             }
@@ -6101,7 +6117,7 @@ bool VulkanRenderer3D::createGraphicsPipelines()
                     translucentSpecializationInfo.dataSize = sizeof(translucentSpecializationData);
                     translucentSpecializationInfo.pData = &translucentSpecializationData;
 
-                    static const bool sinR1a = std::getenv("MELON_SIN_R1A") != nullptr;
+                    static const bool sinR1a = EMUCORED_DIAGNOSTIC_ENV("MELON_SIN_R1A") != nullptr;
 
                     const VkShaderModule translucentFragModule =
                         (wMode == 0u && !sinR1a)
@@ -6139,7 +6155,7 @@ bool VulkanRenderer3D::createGraphicsPipelines()
                             VK_COMPARE_OP_NOT_EQUAL,
                             &GraphicsTranslucentPipelines[makeTranslucentIndex(wMode, depthCompareMode, depthWriteMode, fogWriteMode, 1u)]))
                     {
-                        Log(LogLevel::Error, "VulkanRenderer3D: failed to create graphics translucent pipeline");
+                        EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error, "VulkanRenderer3D: failed to create graphics translucent pipeline"));
                         return false;
                     }
 
@@ -6158,7 +6174,7 @@ bool VulkanRenderer3D::createGraphicsPipelines()
                             VK_COMPARE_OP_NOT_EQUAL,
                             &GraphicsTranslucentFastModulatePlainFragmentDepthPipelines[makeTranslucentIndex(wMode, depthCompareMode, depthWriteMode, fogWriteMode, 1u)]))
                     {
-                        Log(LogLevel::Error, "VulkanRenderer3D: failed to create graphics translucent fast-modulate-plain fragment-depth pipeline");
+                        EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error, "VulkanRenderer3D: failed to create graphics translucent fast-modulate-plain fragment-depth pipeline"));
                         return false;
                     }
 
@@ -6175,7 +6191,7 @@ bool VulkanRenderer3D::createGraphicsPipelines()
                             VK_COMPARE_OP_NOT_EQUAL,
                             &GraphicsTranslucentPipelines[makeTranslucentIndex(wMode, depthCompareMode, depthWriteMode, fogWriteMode, 0u)]))
                     {
-                        Log(LogLevel::Error, "VulkanRenderer3D: failed to create graphics translucent-replace pipeline");
+                        EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error, "VulkanRenderer3D: failed to create graphics translucent-replace pipeline"));
                         return false;
                     }
 
@@ -6192,7 +6208,7 @@ bool VulkanRenderer3D::createGraphicsPipelines()
                             VK_COMPARE_OP_EQUAL,
                             &GraphicsBgZeroTranslucentPipelines[makeBgZeroTranslucentIndex(wMode, depthCompareMode, depthWriteMode, fogWriteMode)]))
                     {
-                        Log(LogLevel::Error, "VulkanRenderer3D: failed to create graphics bg-zero translucent pipeline");
+                        EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error, "VulkanRenderer3D: failed to create graphics bg-zero translucent pipeline"));
                         return false;
                     }
 
@@ -6211,7 +6227,7 @@ bool VulkanRenderer3D::createGraphicsPipelines()
                             VK_COMPARE_OP_EQUAL,
                             &GraphicsBgZeroFastModulatePlainPipelines[makeBgZeroTranslucentIndex(wMode, depthCompareMode, depthWriteMode, fogWriteMode)]))
                     {
-                        Log(LogLevel::Error, "VulkanRenderer3D: failed to create graphics bg-zero fast-modulate-plain pipeline");
+                        EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error, "VulkanRenderer3D: failed to create graphics bg-zero fast-modulate-plain pipeline"));
                         return false;
                     }
 
@@ -6230,7 +6246,7 @@ bool VulkanRenderer3D::createGraphicsPipelines()
                             VK_COMPARE_OP_EQUAL,
                             &GraphicsShadowBlendBgZeroPipelines[makeTranslucentIndex(wMode, depthCompareMode, depthWriteMode, fogWriteMode, 1u)]))
                     {
-                        Log(LogLevel::Error, "VulkanRenderer3D: failed to create graphics bg-zero shadow-blend pipeline");
+                        EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error, "VulkanRenderer3D: failed to create graphics bg-zero shadow-blend pipeline"));
                         return false;
                     }
 
@@ -6249,7 +6265,7 @@ bool VulkanRenderer3D::createGraphicsPipelines()
                             VK_COMPARE_OP_EQUAL,
                             &GraphicsShadowBlendBgZeroPipelines[makeTranslucentIndex(wMode, depthCompareMode, depthWriteMode, fogWriteMode, 0u)]))
                     {
-                        Log(LogLevel::Error, "VulkanRenderer3D: failed to create graphics bg-zero shadow-blend-replace pipeline");
+                        EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error, "VulkanRenderer3D: failed to create graphics bg-zero shadow-blend-replace pipeline"));
                         return false;
                     }
 
@@ -6268,7 +6284,7 @@ bool VulkanRenderer3D::createGraphicsPipelines()
                             VK_COMPARE_OP_EQUAL,
                             &GraphicsShadowBlendPipelines[makeTranslucentIndex(wMode, depthCompareMode, depthWriteMode, fogWriteMode, 1u)]))
                     {
-                        Log(LogLevel::Error, "VulkanRenderer3D: failed to create graphics shadow-blend pipeline");
+                        EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error, "VulkanRenderer3D: failed to create graphics shadow-blend pipeline"));
                         return false;
                     }
 
@@ -6287,7 +6303,7 @@ bool VulkanRenderer3D::createGraphicsPipelines()
                             VK_COMPARE_OP_EQUAL,
                             &GraphicsShadowBlendPipelines[makeTranslucentIndex(wMode, depthCompareMode, depthWriteMode, fogWriteMode, 0u)]))
                     {
-                        Log(LogLevel::Error, "VulkanRenderer3D: failed to create graphics shadow-blend-replace pipeline");
+                        EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error, "VulkanRenderer3D: failed to create graphics shadow-blend-replace pipeline"));
                         return false;
                     }
                 }
@@ -6332,7 +6348,7 @@ bool VulkanRenderer3D::createGraphicsPipelines()
                 &GraphicsEdgeMarkPipelines[wMode],
                 VK_PRIMITIVE_TOPOLOGY_LINE_LIST))
         {
-            Log(LogLevel::Error, "VulkanRenderer3D: failed to create graphics edge-mark pipeline");
+            EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error, "VulkanRenderer3D: failed to create graphics edge-mark pipeline"));
             return false;
         }
         if (wMode != 0u && edgeMarkAlphaFragModule != VK_NULL_HANDLE
@@ -6350,7 +6366,7 @@ bool VulkanRenderer3D::createGraphicsPipelines()
                 &GraphicsEdgeMarkAlphaPipelines[wMode],
                 VK_PRIMITIVE_TOPOLOGY_LINE_LIST))
         {
-            Log(LogLevel::Error, "VulkanRenderer3D: failed to create graphics alpha-only edge-mark pipeline");
+            EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error, "VulkanRenderer3D: failed to create graphics alpha-only edge-mark pipeline"));
             return false;
         }
 
@@ -6383,7 +6399,7 @@ bool VulkanRenderer3D::createGraphicsPipelines()
                 VK_COMPARE_OP_EQUAL,
                 &GraphicsShadowMaskBgZeroPipelines[wMode]))
         {
-            Log(LogLevel::Error, "VulkanRenderer3D: failed to create graphics shadow-mask-bgzero pipeline");
+            EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error, "VulkanRenderer3D: failed to create graphics shadow-mask-bgzero pipeline"));
             return false;
         }
 
@@ -6400,7 +6416,7 @@ bool VulkanRenderer3D::createGraphicsPipelines()
                 VK_COMPARE_OP_ALWAYS,
                 &GraphicsShadowMaskPipelines[wMode]))
         {
-            Log(LogLevel::Error, "VulkanRenderer3D: failed to create graphics shadow-mask pipeline");
+            EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error, "VulkanRenderer3D: failed to create graphics shadow-mask pipeline"));
             return false;
         }
 
@@ -6418,7 +6434,7 @@ bool VulkanRenderer3D::createGraphicsPipelines()
                 VK_COMPARE_OP_ALWAYS,
                 &GraphicsShadowMaskDepthComplementPipelines[wMode]))
         {
-            Log(LogLevel::Error, "VulkanRenderer3D: failed to create graphics shadow-mask depth-complement pipeline");
+            EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error, "VulkanRenderer3D: failed to create graphics shadow-mask depth-complement pipeline"));
             return false;
         }
 
@@ -6437,7 +6453,7 @@ bool VulkanRenderer3D::createGraphicsPipelines()
                     VK_COMPARE_OP_EQUAL,
                     &GraphicsShadowClearPipelines[makeOpaqueIndex(wMode, depthCompareMode)]))
             {
-                Log(LogLevel::Error, "VulkanRenderer3D: failed to create graphics shadow-clear pipeline");
+                EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error, "VulkanRenderer3D: failed to create graphics shadow-clear pipeline"));
                 return false;
             }
         }
@@ -6469,7 +6485,7 @@ bool VulkanRenderer3D::createGraphicsPipelines()
             VK_COMPARE_OP_ALWAYS,
             &GraphicsStencilBitClearPipeline))
     {
-        Log(LogLevel::Error, "VulkanRenderer3D: failed to create graphics stencil-clear pipeline");
+        EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error, "VulkanRenderer3D: failed to create graphics stencil-clear pipeline"));
         return false;
     }
 
@@ -6489,7 +6505,7 @@ bool VulkanRenderer3D::createGraphicsPipelines()
         VK_BLEND_OP_ADD);
     if (!createFinalPipeline(edgeFragModule, finalEdgeBlendAttachment, &GraphicsFinalEdgePipeline))
     {
-        Log(LogLevel::Error, "VulkanRenderer3D: failed to create graphics final-edge pipeline");
+        EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error, "VulkanRenderer3D: failed to create graphics final-edge pipeline"));
         return false;
     }
 
@@ -6504,7 +6520,7 @@ bool VulkanRenderer3D::createGraphicsPipelines()
         VK_BLEND_OP_ADD);
     if (!createFinalPipeline(edgeFogFragModule, finalEdgeFogBlendAttachment, &GraphicsFinalEdgeFogPipeline))
     {
-        Log(LogLevel::Error, "VulkanRenderer3D: failed to create graphics final-edge-fog pipeline");
+        EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error, "VulkanRenderer3D: failed to create graphics final-edge-fog pipeline"));
         return false;
     }
 
@@ -6519,7 +6535,7 @@ bool VulkanRenderer3D::createGraphicsPipelines()
         VK_BLEND_OP_ADD);
     if (!createFinalPipeline(fogFragModule, finalFogBlendAttachment, &GraphicsFinalFogPipeline))
     {
-        Log(LogLevel::Error, "VulkanRenderer3D: failed to create graphics final-fog pipeline");
+        EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error, "VulkanRenderer3D: failed to create graphics final-fog pipeline"));
         return false;
     }
 
@@ -6675,7 +6691,7 @@ bool VulkanRenderer3D::ensureRenderTarget(u32 width, u32 height)
             ColorImageMemory,
             ColorImageView))
     {
-        Log(LogLevel::Error, "VulkanRenderer3D: failed to create color target");
+        EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error, "VulkanRenderer3D: failed to create color target"));
         destroyRenderTarget();
         return false;
     }
@@ -6690,7 +6706,7 @@ bool VulkanRenderer3D::ensureRenderTarget(u32 width, u32 height)
                 AttrImageMemory,
                 AttrImageView))
         {
-            Log(LogLevel::Error, "VulkanRenderer3D: failed to create attr target");
+            EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error, "VulkanRenderer3D: failed to create attr target"));
             destroyRenderTarget();
             return false;
         }
@@ -6705,7 +6721,7 @@ bool VulkanRenderer3D::ensureRenderTarget(u32 width, u32 height)
                 DepthStencilImageMemory,
                 DepthStencilImageView))
         {
-            Log(LogLevel::Error, "VulkanRenderer3D: failed to create depth-stencil target");
+            EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error, "VulkanRenderer3D: failed to create depth-stencil target"));
             destroyRenderTarget();
             return false;
         }
@@ -6715,7 +6731,7 @@ bool VulkanRenderer3D::ensureRenderTarget(u32 width, u32 height)
                 VK_IMAGE_ASPECT_DEPTH_BIT,
                 DepthStencilDepthImageView))
         {
-            Log(LogLevel::Error, "VulkanRenderer3D: failed to create depth-sample view");
+            EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error, "VulkanRenderer3D: failed to create depth-sample view"));
             destroyRenderTarget();
             return false;
         }
@@ -6735,7 +6751,7 @@ bool VulkanRenderer3D::ensureRenderTarget(u32 width, u32 height)
         rasterFramebufferCreateInfo.layers = 1;
         if (vkCreateFramebuffer(Device, &rasterFramebufferCreateInfo, nullptr, &GraphicsRasterFramebuffer) != VK_SUCCESS)
         {
-            Log(LogLevel::Error, "VulkanRenderer3D: failed to create graphics raster framebuffer");
+            EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error, "VulkanRenderer3D: failed to create graphics raster framebuffer"));
             destroyRenderTarget();
             return false;
         }
@@ -6743,7 +6759,7 @@ bool VulkanRenderer3D::ensureRenderTarget(u32 width, u32 height)
             rasterFramebufferCreateInfo.renderPass = GraphicsRasterLoadRenderPass;
             if (vkCreateFramebuffer(Device, &rasterFramebufferCreateInfo, nullptr, &GraphicsRasterLoadFramebuffer) != VK_SUCCESS)
             {
-                Log(LogLevel::Error, "VulkanRenderer3D: failed to create graphics raster-load framebuffer");
+                EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error, "VulkanRenderer3D: failed to create graphics raster-load framebuffer"));
                 destroyRenderTarget();
                 return false;
             }
@@ -6757,7 +6773,7 @@ bool VulkanRenderer3D::ensureRenderTarget(u32 width, u32 height)
             colorOnlyFramebufferCreateInfo.layers = 1;
             if (vkCreateFramebuffer(Device, &colorOnlyFramebufferCreateInfo, nullptr, &GraphicsColorOnlyFramebuffer) != VK_SUCCESS)
             {
-                Log(LogLevel::Error, "VulkanRenderer3D: failed to create graphics color-only framebuffer");
+                EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error, "VulkanRenderer3D: failed to create graphics color-only framebuffer"));
                 destroyRenderTarget();
                 return false;
             }
@@ -6773,7 +6789,7 @@ bool VulkanRenderer3D::ensureRenderTarget(u32 width, u32 height)
         finalFramebufferCreateInfo.layers = 1;
         if (vkCreateFramebuffer(Device, &finalFramebufferCreateInfo, nullptr, &GraphicsFinalFramebuffer) != VK_SUCCESS)
         {
-            Log(LogLevel::Error, "VulkanRenderer3D: failed to create graphics final framebuffer");
+            EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error, "VulkanRenderer3D: failed to create graphics final framebuffer"));
             destroyRenderTarget();
             return false;
         }
@@ -7182,7 +7198,7 @@ bool VulkanRenderer3D::ensureTriangleBuffer(RenderContext* context, size_t trian
             triangleMemory,
             &triangleMapped))
     {
-        Log(LogLevel::Error, "VulkanRenderer3D: failed to allocate triangle buffer");
+        EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error, "VulkanRenderer3D: failed to allocate triangle buffer"));
         destroyTriangleBuffer(context);
         return false;
     }
@@ -7253,7 +7269,7 @@ bool VulkanRenderer3D::ensureGraphicsVertexBuffer(RenderContext* context, size_t
             graphicsVertexMemory,
             &graphicsVertexMapped))
     {
-        Log(LogLevel::Error, "VulkanRenderer3D: failed to allocate graphics vertex buffer");
+        EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error, "VulkanRenderer3D: failed to allocate graphics vertex buffer"));
         destroyGraphicsVertexBuffer(context);
         return false;
     }
@@ -7321,7 +7337,7 @@ bool VulkanRenderer3D::ensureGraphicsSceneVertexBuffer(size_t vertexCount, Rende
             graphicsSceneVertexMemory,
             &graphicsSceneVertexMapped))
     {
-        Log(LogLevel::Error, "VulkanRenderer3D: failed to allocate graphics scene vertex buffer");
+        EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error, "VulkanRenderer3D: failed to allocate graphics scene vertex buffer"));
         destroyGraphicsSceneVertexBuffer(context);
         return false;
     }
@@ -7391,7 +7407,7 @@ bool VulkanRenderer3D::ensureGraphicsEdgeIndexBuffer(size_t indexCount, RenderCo
             graphicsEdgeIndexMemory,
             &graphicsEdgeIndexMapped))
     {
-        Log(LogLevel::Error, "VulkanRenderer3D: failed to allocate graphics edge index buffer");
+        EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error, "VulkanRenderer3D: failed to allocate graphics edge index buffer"));
         destroyGraphicsEdgeIndexBuffer(context);
         return false;
     }
@@ -7456,7 +7472,7 @@ bool VulkanRenderer3D::ensureToonBuffer(RenderContext* context)
             toonMemory,
             &toonMapped))
     {
-        Log(LogLevel::Error, "VulkanRenderer3D: failed to allocate toon buffer");
+        EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error, "VulkanRenderer3D: failed to allocate toon buffer"));
         destroyToonBuffer(context);
         return false;
     }
@@ -7546,7 +7562,7 @@ bool VulkanRenderer3D::ensureGraphicsClearBuffer(RenderContext* context)
             clearMemory,
             &clearMapped))
     {
-        Log(LogLevel::Error, "VulkanRenderer3D: failed to allocate graphics clear buffer");
+        EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error, "VulkanRenderer3D: failed to allocate graphics clear buffer"));
         destroyGraphicsClearBuffer(context);
         return false;
     }
@@ -7694,7 +7710,7 @@ bool VulkanRenderer3D::ensureCaptureLineBuffer(RenderContext* context)
             captureLineMemory,
             &captureLineMapped))
     {
-        Log(LogLevel::Error, "VulkanRenderer3D: failed to allocate capture line buffer");
+        EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error, "VulkanRenderer3D: failed to allocate capture line buffer"));
         destroyCaptureLineBuffer(context);
         return false;
     }
@@ -7779,7 +7795,7 @@ bool VulkanRenderer3D::createFallbackTexture()
     imageCreateInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
     if (vkCreateImage(Device, &imageCreateInfo, nullptr, &FallbackTextureImage) != VK_SUCCESS)
     {
-        Log(LogLevel::Error, "VulkanRenderer3D: failed to create fallback texture image");
+        EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error, "VulkanRenderer3D: failed to create fallback texture image"));
         return false;
     }
 
@@ -7796,7 +7812,7 @@ bool VulkanRenderer3D::createFallbackTexture()
         || vkAllocateMemory(Device, &imageMemoryAllocateInfo, nullptr, &FallbackTextureMemory) != VK_SUCCESS
         || vkBindImageMemory(Device, FallbackTextureImage, FallbackTextureMemory, 0) != VK_SUCCESS)
     {
-        Log(LogLevel::Error, "VulkanRenderer3D: failed to allocate fallback texture memory");
+        EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error, "VulkanRenderer3D: failed to allocate fallback texture memory"));
         destroyFallbackTexture();
         return false;
     }
@@ -7813,7 +7829,7 @@ bool VulkanRenderer3D::createFallbackTexture()
     imageViewCreateInfo.subresourceRange.layerCount = 1;
     if (vkCreateImageView(Device, &imageViewCreateInfo, nullptr, &FallbackTextureView) != VK_SUCCESS)
     {
-        Log(LogLevel::Error, "VulkanRenderer3D: failed to create fallback texture view");
+        EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error, "VulkanRenderer3D: failed to create fallback texture view"));
         destroyFallbackTexture();
         return false;
     }
@@ -7826,7 +7842,7 @@ bool VulkanRenderer3D::createFallbackTexture()
                 nullptr,
                 &FallbackTextureNormalizedView) != VK_SUCCESS)
         {
-            Log(LogLevel::Error, "VulkanRenderer3D: failed to create fallback normalized texture view");
+            EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error, "VulkanRenderer3D: failed to create fallback normalized texture view"));
             destroyFallbackTexture();
             return false;
         }
@@ -7849,7 +7865,7 @@ bool VulkanRenderer3D::createFallbackTexture()
     samplerCreateInfo.unnormalizedCoordinates = VK_FALSE;
     if (vkCreateSampler(Device, &samplerCreateInfo, nullptr, &FallbackTextureSampler) != VK_SUCCESS)
     {
-        Log(LogLevel::Error, "VulkanRenderer3D: failed to create fallback texture sampler");
+        EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error, "VulkanRenderer3D: failed to create fallback texture sampler"));
         destroyFallbackTexture();
         return false;
     }
@@ -7871,7 +7887,7 @@ bool VulkanRenderer3D::createFallbackTexture()
                 VkSampler& sampler = TextureWrapSamplers[sMode + (tMode * 3u)];
                 if (vkCreateSampler(Device, &samplerCreateInfo, nullptr, &sampler) != VK_SUCCESS)
                 {
-                    Log(LogLevel::Error, "VulkanRenderer3D: failed to create texture wrap sampler");
+                    EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error, "VulkanRenderer3D: failed to create texture wrap sampler"));
                     destroyFallbackTexture();
                     return false;
                 }
@@ -7886,7 +7902,7 @@ bool VulkanRenderer3D::createFallbackTexture()
     stagingCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
     if (vkCreateBuffer(Device, &stagingCreateInfo, nullptr, &FallbackTextureStagingBuffer) != VK_SUCCESS)
     {
-        Log(LogLevel::Error, "VulkanRenderer3D: failed to create fallback staging buffer");
+        EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error, "VulkanRenderer3D: failed to create fallback staging buffer"));
         destroyFallbackTexture();
         return false;
     }
@@ -7905,7 +7921,7 @@ bool VulkanRenderer3D::createFallbackTexture()
         || vkAllocateMemory(Device, &stagingMemoryAllocateInfo, nullptr, &FallbackTextureStagingMemory) != VK_SUCCESS
         || vkBindBufferMemory(Device, FallbackTextureStagingBuffer, FallbackTextureStagingMemory, 0) != VK_SUCCESS)
     {
-        Log(LogLevel::Error, "VulkanRenderer3D: failed to allocate fallback staging memory");
+        EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error, "VulkanRenderer3D: failed to allocate fallback staging memory"));
         destroyFallbackTexture();
         return false;
     }
@@ -8027,7 +8043,7 @@ bool VulkanRenderer3D::createFallbackTexture()
         const VkResult submitResult = vkQueueSubmit(Queue, 1, &submitInfo, FrameFence);
         if (submitResult != VK_SUCCESS)
         {
-            Log(LogLevel::Error, "VulkanRenderer3D: fallback texture vkQueueSubmit failed (%d)", static_cast<int>(submitResult));
+            EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error, "VulkanRenderer3D: fallback texture vkQueueSubmit failed (%d)", static_cast<int>(submitResult)));
             destroyFallbackTexture();
             return false;
         }
@@ -8109,7 +8125,7 @@ bool VulkanRenderer3D::createReadbackBuffer(u32 width, u32 height)
 
     if (vkCreateBuffer(Device, &bufferCreateInfo, nullptr, &ReadbackBuffer) != VK_SUCCESS)
     {
-        Log(LogLevel::Error, "VulkanRenderer3D: failed to create readback buffer");
+        EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error, "VulkanRenderer3D: failed to create readback buffer"));
         return false;
     }
 
@@ -8133,28 +8149,28 @@ bool VulkanRenderer3D::createReadbackBuffer(u32 width, u32 height)
 
     if (memoryAllocateInfo.memoryTypeIndex == UINT32_MAX)
     {
-        Log(LogLevel::Error, "VulkanRenderer3D: unable to find memory type for readback buffer");
+        EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error, "VulkanRenderer3D: unable to find memory type for readback buffer"));
         destroyReadbackBuffer();
         return false;
     }
 
     if (vkAllocateMemory(Device, &memoryAllocateInfo, nullptr, &ReadbackMemory) != VK_SUCCESS)
     {
-        Log(LogLevel::Error, "VulkanRenderer3D: failed to allocate readback memory");
+        EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error, "VulkanRenderer3D: failed to allocate readback memory"));
         destroyReadbackBuffer();
         return false;
     }
 
     if (vkBindBufferMemory(Device, ReadbackBuffer, ReadbackMemory, 0) != VK_SUCCESS)
     {
-        Log(LogLevel::Error, "VulkanRenderer3D: failed to bind readback memory");
+        EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error, "VulkanRenderer3D: failed to bind readback memory"));
         destroyReadbackBuffer();
         return false;
     }
 
     if (vkMapMemory(Device, ReadbackMemory, 0, ReadbackSize, 0, &ReadbackMapped) != VK_SUCCESS)
     {
-        Log(LogLevel::Error, "VulkanRenderer3D: failed to map readback memory");
+        EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error, "VulkanRenderer3D: failed to map readback memory"));
         destroyReadbackBuffer();
         return false;
     }
@@ -8673,7 +8689,7 @@ bool VulkanRenderer3D::dispatchPlainRearPlaneOnly(
 
     const bool useSynchronousContext = context == nullptr;
     static const bool disableFaithfulPingPong =
-        std::getenv("MELON_SIN_PINGPONG") != nullptr;
+        EMUCORED_DIAGNOSTIC_ENV("MELON_SIN_PINGPONG") != nullptr;
     const bool faithfulPingPong = useSynchronousContext
         && !disableFaithfulPingPong
         && CbFiel[0] != VK_NULL_HANDLE
@@ -8699,18 +8715,18 @@ bool VulkanRenderer3D::dispatchPlainRearPlaneOnly(
         return false;
 
     {
-        const u64 waitStartNs = PerfNowNs();
+        const u64 waitStartNs = DiagnosticNowNs();
         const VkResult waitResult = vkWaitForFences(
             Device, 1, &frameFence, VK_TRUE, kFenceWaitTimeoutNs);
         if (waitResult != VK_SUCCESS)
         {
-            Log(
+            EMUCORED_DIAGNOSTIC_LOG(Log(
                 LogLevel::Error,
                 "VulkanRenderer3D: plain rear-plane fence wait failed (%d)",
-                static_cast<int>(waitResult));
+                static_cast<int>(waitResult)));
             return false;
         }
-        FenceWaitCpuWindow.Add(PerfNowNs() - waitStartNs);
+        FenceWaitCpuWindow.Add(DiagnosticNowNs() - waitStartNs);
         if (useSynchronousContext)
             consumeGpuTiming(nullptr);
     }
@@ -8728,14 +8744,14 @@ bool VulkanRenderer3D::dispatchPlainRearPlaneOnly(
         timestampQueryPool != VK_NULL_HANDLE && ResetQueryPool != nullptr;
     if (recordTimestamps)
     {
-        ResetQueryPool(Device, timestampQueryPool, 0, TimestampQueryCount);
+        EMUCORED_DIAGNOSTIC_LOG(ResetQueryPool(Device, timestampQueryPool, 0, TimestampQueryCount));
         for (u32 query = 0u; query < 4u; query++)
         {
-            vkCmdWriteTimestamp(
+            EMUCORED_DIAGNOSTIC_LOG(vkCmdWriteTimestamp(
                 commandBuffer,
                 VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
                 timestampQueryPool,
-                query);
+                query));
         }
     }
 
@@ -8812,11 +8828,11 @@ bool VulkanRenderer3D::dispatchPlainRearPlaneOnly(
     {
         for (u32 query = 4u; query < TimestampQueryCount; query++)
         {
-            vkCmdWriteTimestamp(
+            EMUCORED_DIAGNOSTIC_LOG(vkCmdWriteTimestamp(
                 commandBuffer,
                 VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
                 timestampQueryPool,
-                query);
+                query));
         }
     }
 
@@ -8909,10 +8925,10 @@ bool VulkanRenderer3D::dispatchPlainRearPlaneOnly(
             vkQueueSubmit(Queue, 1, &submitInfo, frameFence);
         if (submitResult != VK_SUCCESS)
         {
-            Log(
+            EMUCORED_DIAGNOSTIC_LOG(Log(
                 LogLevel::Error,
                 "VulkanRenderer3D: plain rear-plane submit failed (%d)",
-                static_cast<int>(submitResult));
+                static_cast<int>(submitResult)));
             return false;
         }
     }
@@ -9016,11 +9032,11 @@ bool VulkanRenderer3D::dispatchGraphicsRasterAndReadback(
         192u * effectiveRasterScale);
 
     static const bool sonda3dMini = [] {
-        if (std::getenv("MELON_SONDA_3D_MINI") != nullptr)
+        if (EMUCORED_DIAGNOSTIC_ENV("MELON_SONDA_3D_MINI") != nullptr)
             return true;
 #ifdef __ANDROID__
         char v[92] = {};
-        if (__system_property_get("debug.melonds.sonda_3d_mini", v) > 0)
+        if (EMUCORED_DIAGNOSTIC_PROPERTY("debug.melonds.sonda_3d_mini", v) > 0)
             return v[0] == '1';
 #endif
         return false;
@@ -9058,7 +9074,7 @@ bool VulkanRenderer3D::dispatchGraphicsRasterAndReadback(
 
     const bool useSynchronousContext = context == nullptr;
 
-    static const bool sinPingPong = std::getenv("MELON_SIN_PINGPONG") != nullptr;
+    static const bool sinPingPong = EMUCORED_DIAGNOSTIC_ENV("MELON_SIN_PINGPONG") != nullptr;
     const bool pingPongFiel = useSynchronousContext
         && !sinPingPong
         && CbFiel[0] != VK_NULL_HANDLE
@@ -9117,15 +9133,15 @@ bool VulkanRenderer3D::dispatchGraphicsRasterAndReadback(
         return false;
 
     {
-        const u64 waitStartNs = PerfNowNs();
+        const u64 waitStartNs = DiagnosticNowNs();
         const VkResult waitResult = vkWaitForFences(Device, 1, &frameFence, VK_TRUE, kFenceWaitTimeoutNs);
         if (waitResult != VK_SUCCESS)
         {
-            Log(LogLevel::Error, "VulkanRenderer3D: graphics vkWaitForFences failed (%d)", static_cast<int>(waitResult));
+            EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error, "VulkanRenderer3D: graphics vkWaitForFences failed (%d)", static_cast<int>(waitResult)));
             return false;
         }
 
-        FenceWaitCpuWindow.Add(PerfNowNs() - waitStartNs);
+        FenceWaitCpuWindow.Add(DiagnosticNowNs() - waitStartNs);
         if (useSynchronousContext)
             consumeGpuTiming(nullptr);
     }
@@ -9327,19 +9343,19 @@ bool VulkanRenderer3D::dispatchGraphicsRasterAndReadback(
 
     if (timestampQueryPool != VK_NULL_HANDLE && ResetQueryPool != nullptr)
     {
-        ResetQueryPool(Device, timestampQueryPool, 0, TimestampQueryCount);
+        EMUCORED_DIAGNOSTIC_LOG(ResetQueryPool(Device, timestampQueryPool, 0, TimestampQueryCount));
         timestampPending = true;
-        vkCmdWriteTimestamp(commandBuffer, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, timestampQueryPool, 0);
-        vkCmdWriteTimestamp(commandBuffer, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, timestampQueryPool, 1);
-        vkCmdWriteTimestamp(commandBuffer, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, timestampQueryPool, 2);
+        EMUCORED_DIAGNOSTIC_LOG(vkCmdWriteTimestamp(commandBuffer, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, timestampQueryPool, 0));
+        EMUCORED_DIAGNOSTIC_LOG(vkCmdWriteTimestamp(commandBuffer, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, timestampQueryPool, 1));
+        EMUCORED_DIAGNOSTIC_LOG(vkCmdWriteTimestamp(commandBuffer, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, timestampQueryPool, 2));
     }
 
     static const bool perfSecciones = [] {
-        if (std::getenv("MELON_PERF_SECCIONES") != nullptr)
+        if (EMUCORED_DIAGNOSTIC_ENV("MELON_PERF_SECCIONES") != nullptr)
             return true;
 #ifdef __ANDROID__
         char v[92] = {};
-        if (__system_property_get("debug.melonds.perf_secciones", v) > 0)
+        if (EMUCORED_DIAGNOSTIC_PROPERTY("debug.melonds.perf_secciones", v) > 0)
             return v[0] == '1';
 #endif
         return false;
@@ -9646,7 +9662,7 @@ bool VulkanRenderer3D::dispatchGraphicsRasterAndReadback(
                 [&](const GraphicsPolygonDraw& d) {
                     return (d.polyAttr & (1u << 15u)) != 0u;
                 }));
-    static const bool sinR3b = std::getenv("MELON_SIN_R3B") != nullptr;
+    static const bool sinR3b = EMUCORED_DIAGNOSTIC_ENV("MELON_SIN_R3B") != nullptr;
     const bool usarPassSinEscritura =
         usesGraphicsProductResources
         && !sinR3b
@@ -9661,13 +9677,13 @@ bool VulkanRenderer3D::dispatchGraphicsRasterAndReadback(
         if (static_cast<int>(usarPassSinEscritura) != g1UltimoSinEscritura)
         {
             g1UltimoSinEscritura = static_cast<int>(usarPassSinEscritura);
-            Log(LogLevel::Warn,
+            EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Warn,
                 "VulkanG1: sinEscritura=%d (edgeR3b=%d nieblaR3b=%d densidad=%d clear15=%d)\n",
                 g1UltimoSinEscritura,
                 fotogramaNecesitaEdgeR3b ? 1 : 0,
                 fotogramaNecesitaNieblaR3b ? 1 : 0,
                 nieblaDensidadNoCero ? 1 : 0,
-                (clearAttr & (1u << 15u)) != 0u ? 1 : 0);
+                (clearAttr & (1u << 15u)) != 0u ? 1 : 0));
         }
     }
 
@@ -9792,7 +9808,7 @@ bool VulkanRenderer3D::dispatchGraphicsRasterAndReadback(
     const VkDeviceSize graphicsVertexOffset = MitadVerticesActiva;
     vkCmdBindVertexBuffers(commandBuffer, 0, 1, &graphicsVertexBuffer, &graphicsVertexOffset);
 
-    const u64 graphicsMainCpuStartNs = PerfNowNs();
+    const u64 graphicsMainCpuStartNs = DiagnosticNowNs();
     u32 drawCount = 0;
     struct GraphicsPassDebugStats
     {
@@ -9993,11 +10009,11 @@ bool VulkanRenderer3D::dispatchGraphicsRasterAndReadback(
     const auto requiresWBufferFragmentDepth = [&](const GraphicsPolygonDraw& draw) -> bool {
 
         static const bool sondaSinWDepth = [] {
-            if (std::getenv("MELON_SONDA_SIN_WDEPTH") != nullptr)
+            if (EMUCORED_DIAGNOSTIC_ENV("MELON_SONDA_SIN_WDEPTH") != nullptr)
                 return true;
 #ifdef __ANDROID__
             char v[92] = {};
-            if (__system_property_get("debug.melonds.sonda_sin_wdepth", v) > 0)
+            if (EMUCORED_DIAGNOSTIC_PROPERTY("debug.melonds.sonda_sin_wdepth", v) > 0)
                 return v[0] == '1';
 #endif
             return false;
@@ -10051,11 +10067,11 @@ bool VulkanRenderer3D::dispatchGraphicsRasterAndReadback(
     };
 
     static const bool sondaFsBarato = [] {
-        if (std::getenv("MELON_SONDA_FS_BARATO") != nullptr)
+        if (EMUCORED_DIAGNOSTIC_ENV("MELON_SONDA_FS_BARATO") != nullptr)
             return true;
 #ifdef __ANDROID__
         char v[92] = {};
-        if (__system_property_get("debug.melonds.sonda_fs_barato", v) > 0)
+        if (EMUCORED_DIAGNOSTIC_PROPERTY("debug.melonds.sonda_fs_barato", v) > 0)
             return v[0] == '1';
 #endif
         return false;
@@ -10348,7 +10364,7 @@ bool VulkanRenderer3D::dispatchGraphicsRasterAndReadback(
 
         {
             static const bool sondaSinAlfa =
-                std::getenv("MELON_SONDA_SIN_ALFA") != nullptr;
+                EMUCORED_DIAGNOSTIC_ENV("MELON_SONDA_SIN_ALFA") != nullptr;
             if (sondaSinAlfa
                 && currentGraphicsDebugPassKind == GraphicsDebugPassKind::Alpha)
                 return false;
@@ -10367,7 +10383,7 @@ bool VulkanRenderer3D::dispatchGraphicsRasterAndReadback(
             {
                 if (GraphicsDrawDispatchMissingLogCooldown == 0u)
                 {
-                    Log(
+                    EMUCORED_DIAGNOSTIC_LOG(Log(
                         LogLevel::Warn,
                         "VulkanGraphics[DispatchMissing]: draw=%u push=%u bindPipeline=%u bindDescriptors=%u stencilCompare=%u stencilWrite=%u stencilReference=%u",
                         vkCmdDraw != nullptr ? 1u : 0u,
@@ -10376,7 +10392,7 @@ bool VulkanRenderer3D::dispatchGraphicsRasterAndReadback(
                         vkCmdBindDescriptorSets != nullptr ? 1u : 0u,
                         vkCmdSetStencilCompareMask != nullptr ? 1u : 0u,
                         vkCmdSetStencilWriteMask != nullptr ? 1u : 0u,
-                        vkCmdSetStencilReference != nullptr ? 1u : 0u);
+                        vkCmdSetStencilReference != nullptr ? 1u : 0u));
                     GraphicsDrawDispatchMissingLogCooldown = 180u;
                 }
                 else
@@ -10645,13 +10661,13 @@ bool VulkanRenderer3D::dispatchGraphicsRasterAndReadback(
             {
                 if (GraphicsDrawDispatchMissingLogCooldown == 0u)
                 {
-                    Log(
+                    EMUCORED_DIAGNOSTIC_LOG(Log(
                         LogLevel::Warn,
                         "VulkanGraphics[EdgeDispatchMissing]: drawIndexed=%u push=%u bindPipeline=%u bindDescriptors=%u",
                         vkCmdDrawIndexed != nullptr ? 1u : 0u,
                         vkCmdPushConstants != nullptr ? 1u : 0u,
                         vkCmdBindPipeline != nullptr ? 1u : 0u,
-                        vkCmdBindDescriptorSets != nullptr ? 1u : 0u);
+                        vkCmdBindDescriptorSets != nullptr ? 1u : 0u));
                     GraphicsDrawDispatchMissingLogCooldown = 120u;
                 }
                 else
@@ -10989,7 +11005,7 @@ bool VulkanRenderer3D::dispatchGraphicsRasterAndReadback(
         const TriangleGpu& firstTriangle = Triangles[draw.firstTriangle];
         const u32 flags = firstTriangle.flags;
 
-        static const bool sinR4b = std::getenv("MELON_SIN_R4B") != nullptr;
+        static const bool sinR4b = EMUCORED_DIAGNOSTIC_ENV("MELON_SIN_R4B") != nullptr;
         const bool zPuro = (flags & kTriangleFlagWBuffer) == 0u;
         if (!requiresWBufferFragmentDepth(draw) && (sinR4b || !zPuro))
             return false;
@@ -11014,12 +11030,12 @@ bool VulkanRenderer3D::dispatchGraphicsRasterAndReadback(
             static_cast<float>(ColorImageWidth) * static_cast<float>(ColorImageHeight);
 
         static const float umbralR4 = [] {
-            if (const char* e = std::getenv("MELON_R4_UMBRAL"))
+            if (const char* e = EMUCORED_DIAGNOSTIC_ENV("MELON_R4_UMBRAL"))
                 return static_cast<float>(std::atoi(e)) / 100.0f;
 #ifdef __ANDROID__
 
             char v[92] = {};
-            if (__system_property_get("debug.melonds.r4_umbral", v) > 0)
+            if (EMUCORED_DIAGNOSTIC_PROPERTY("debug.melonds.r4_umbral", v) > 0)
                 return static_cast<float>(std::atoi(v)) / 100.0f;
 #endif
             return 0.25f;
@@ -11028,11 +11044,11 @@ bool VulkanRenderer3D::dispatchGraphicsRasterAndReadback(
     };
 
     static const bool cullSobreescritura = [] {
-        if (std::getenv("MELON_CULL_SOBREESCRITURA") != nullptr)
+        if (EMUCORED_DIAGNOSTIC_ENV("MELON_CULL_SOBREESCRITURA") != nullptr)
             return true;
 #ifdef __ANDROID__
         char v[92] = {};
-        if (__system_property_get("debug.melonds.cull_sobreescritura", v) > 0)
+        if (EMUCORED_DIAGNOSTIC_PROPERTY("debug.melonds.cull_sobreescritura", v) > 0)
             return v[0] == '1';
 #endif
         return false;
@@ -11113,7 +11129,7 @@ bool VulkanRenderer3D::dispatchGraphicsRasterAndReadback(
 
     {
         static const bool sondaSinCapas =
-            std::getenv("MELON_SONDA_SIN_CAPAS") != nullptr;
+            EMUCORED_DIAGNOSTIC_ENV("MELON_SONDA_SIN_CAPAS") != nullptr;
         if (sondaSinCapas && GraphicsOpaqueDrawIndices.size() >= 2u)
             for (size_t i = 0; i + 1u < GraphicsOpaqueDrawIndices.size(); i++)
                 if (GraphicsOpaqueDrawIndices[i] < opaqueOverwriteCulledDraws.size())
@@ -11308,11 +11324,11 @@ bool VulkanRenderer3D::dispatchGraphicsRasterAndReadback(
     currentGraphicsDebugPassKind = GraphicsDebugPassKind::Opaque;
 
     static const bool prepassGlobal = [] {
-        if (std::getenv("MELON_PREPASS_GLOBAL") != nullptr)
+        if (EMUCORED_DIAGNOSTIC_ENV("MELON_PREPASS_GLOBAL") != nullptr)
             return true;
 #ifdef __ANDROID__
         char v[92] = {};
-        if (__system_property_get("debug.melonds.prepass_global", v) > 0)
+        if (EMUCORED_DIAGNOSTIC_PROPERTY("debug.melonds.prepass_global", v) > 0)
             return v[0] == '1';
 #endif
         return false;
@@ -11554,8 +11570,8 @@ bool VulkanRenderer3D::dispatchGraphicsRasterAndReadback(
                 {
                     static std::atomic<unsigned> loggedBatches{0u};
                     if (loggedBatches.fetch_add(1u, std::memory_order_relaxed) < 8u)
-                        Log(LogLevel::Warn, "VulkanGraphics[GenericOpaqueBatch]: scale=%u sourceDraws=%u triangles=%u",
-                            effectiveRasterScale, mergedSourceDraws, mergedTriangleCount);
+                        EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Warn, "VulkanGraphics[GenericOpaqueBatch]: scale=%u sourceDraws=%u triangles=%u",
+                            effectiveRasterScale, mergedSourceDraws, mergedTriangleCount));
                 }
                 continue;
             }
@@ -11569,7 +11585,7 @@ bool VulkanRenderer3D::dispatchGraphicsRasterAndReadback(
     }
     currentGraphicsDebugPassKind = GraphicsDebugPassKind::Other;
     if ((timestampQueryPool != VK_NULL_HANDLE) && timestampPending && perfSecciones)
-        vkCmdWriteTimestamp(commandBuffer, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, timestampQueryPool, 3);
+        EMUCORED_DIAGNOSTIC_LOG(vkCmdWriteTimestamp(commandBuffer, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, timestampQueryPool, 3));
 
     if ((dispCnt & (1u << 5u)) != 0u)
     {
@@ -11659,8 +11675,8 @@ bool VulkanRenderer3D::dispatchGraphicsRasterAndReadback(
         {
             static std::atomic<unsigned> loggedBatches{0u};
             if (loggedBatches.fetch_add(1u, std::memory_order_relaxed) < 8u)
-                Log(LogLevel::Warn, "VulkanGraphics[EdgeAlphaBatch]: scale=%u commands=%u saved=%u",
-                    effectiveRasterScale, edgeBatchCommands, edgeBatchSaved);
+                EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Warn, "VulkanGraphics[EdgeAlphaBatch]: scale=%u commands=%u saved=%u",
+                    effectiveRasterScale, edgeBatchCommands, edgeBatchSaved));
         }
 
         vkCmdBindVertexBuffers(commandBuffer, 0, 1, &graphicsVertexBuffer, &graphicsVertexOffset);
@@ -11668,12 +11684,12 @@ bool VulkanRenderer3D::dispatchGraphicsRasterAndReadback(
 
     if ((timestampQueryPool != VK_NULL_HANDLE) && timestampPending && perfSecciones)
     {
-        vkCmdWriteTimestamp(commandBuffer, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, timestampQueryPool, 4);
-        vkCmdWriteTimestamp(commandBuffer, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, timestampQueryPool, 5);
+        EMUCORED_DIAGNOSTIC_LOG(vkCmdWriteTimestamp(commandBuffer, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, timestampQueryPool, 4));
+        EMUCORED_DIAGNOSTIC_LOG(vkCmdWriteTimestamp(commandBuffer, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, timestampQueryPool, 5));
     }
-    GraphicsMainCpuWindow.Add(PerfNowNs() - graphicsMainCpuStartNs);
+    GraphicsMainCpuWindow.Add(DiagnosticNowNs() - graphicsMainCpuStartNs);
 
-    const u64 graphicsAlphaCpuStartNs = PerfNowNs();
+    const u64 graphicsAlphaCpuStartNs = DiagnosticNowNs();
     currentGraphicsDebugPassKind = GraphicsDebugPassKind::Alpha;
     const auto canUseFastTranslucentTextureSampling = [&](const GraphicsPolygonDraw& draw) {
         const TriangleGpu& triangle = Triangles[draw.firstTriangle];
@@ -11778,9 +11794,9 @@ bool VulkanRenderer3D::dispatchGraphicsRasterAndReadback(
                         const u32 scaleClass = effectiveRasterScale > 1u ? 1u : 0u;
                         if (logged[scaleClass] < 4u)
                         {
-                            Log(LogLevel::Warn,
+                            EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Warn,
                                 "VulkanGraphics[BgZeroFastPlain]: scale=%u triangles=%u polyAttr=%#x",
-                                effectiveRasterScale, draw.triangleCount, draw.polyAttr);
+                                effectiveRasterScale, draw.triangleCount, draw.polyAttr));
                             logged[scaleClass]++;
                         }
                     }
@@ -11865,12 +11881,12 @@ bool VulkanRenderer3D::dispatchGraphicsRasterAndReadback(
                 && MelonDSAndroid::areRendererDebugToolsEnabled()
                 && ShadowMaskDepthComplementLogsRemaining > 0u)
             {
-                Log(
+                EMUCORED_DIAGNOSTIC_LOG(Log(
                     LogLevel::Warn,
                     "VulkanGraphics[ShadowMaskDepthComplement]: maskPolyAttr=%#x shadows=%zu clearAttr=%#x",
                     draw.polyAttr,
                     shadowProtocolDrawCount,
-                    clearAttr);
+                    clearAttr));
                 ShadowMaskDepthComplementLogsRemaining--;
             }
             if (bindAndDrawGraphics(draw, pipeline, 0x80u, 0x80u, 0x80u))
@@ -11983,16 +11999,16 @@ bool VulkanRenderer3D::dispatchGraphicsRasterAndReadback(
             graphicsPassDebugStats.paletteUiOpaqueReplay++;
         }
     }
-    GraphicsAlphaCpuWindow.Add(PerfNowNs() - graphicsAlphaCpuStartNs);
+    GraphicsAlphaCpuWindow.Add(DiagnosticNowNs() - graphicsAlphaCpuStartNs);
     if ((timestampQueryPool != VK_NULL_HANDLE) && timestampPending && perfSecciones)
-        vkCmdWriteTimestamp(commandBuffer, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, timestampQueryPool, 6);
+        EMUCORED_DIAGNOSTIC_LOG(vkCmdWriteTimestamp(commandBuffer, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, timestampQueryPool, 6));
 
     if (MelonDSAndroid::areRendererDebugToolsEnabled())
     {
         const bool paletteUiOpaqueReplayActive = graphicsPassDebugStats.paletteUiOpaqueReplay > 0u;
         if (PaletteUiOpaqueReplayLogCooldown == 0u || paletteUiOpaqueReplayActive != PaletteUiOpaqueReplayLastActive)
         {
-            Log(
+            EMUCORED_DIAGNOSTIC_LOG(Log(
                 LogLevel::Warn,
                 "VulkanGraphics[PaletteUiOpaqueReplay]: active=%u replayed=%u firstDraw=%u firstPolyId=%u firstTexParam=%08X clearAlphaZero=%u alphaBlend=%u",
                 paletteUiOpaqueReplayActive ? 1u : 0u,
@@ -12001,7 +12017,7 @@ bool VulkanRenderer3D::dispatchGraphicsRasterAndReadback(
                 paletteUiOpaqueReplayFirstPolyId,
                 paletteUiOpaqueReplayFirstTexParam,
                 clearPlaneAlphaZero ? 1u : 0u,
-                alphaBlendEnabled ? 1u : 0u);
+                alphaBlendEnabled ? 1u : 0u));
             PaletteUiOpaqueReplayLogCooldown = paletteUiOpaqueReplayActive ? 60u : 180u;
             PaletteUiOpaqueReplayLastActive = paletteUiOpaqueReplayActive;
         }
@@ -12066,7 +12082,7 @@ bool VulkanRenderer3D::dispatchGraphicsRasterAndReadback(
         const bool paletteUiGateActive = paletteUiGateCandidates > 0u;
         if (PaletteUiGateLogCooldown == 0u || paletteUiGateActive != PaletteUiGateLastActive)
         {
-            Log(
+            EMUCORED_DIAGNOSTIC_LOG(Log(
                 LogLevel::Warn,
                 "VulkanGraphics[PaletteUiGate]: candidates=%u firstDraw=%u firstPolyId=%u firstAlpha5=%u clearAlphaZero=%u alphaBlend=%u",
                 paletteUiGateCandidates,
@@ -12074,7 +12090,7 @@ bool VulkanRenderer3D::dispatchGraphicsRasterAndReadback(
                 paletteUiGateFirstPolyId,
                 paletteUiGateFirstAlpha5,
                 clearPlaneAlphaZero ? 1u : 0u,
-                alphaBlendEnabled ? 1u : 0u);
+                alphaBlendEnabled ? 1u : 0u));
             PaletteUiGateLogCooldown = paletteUiGateActive ? 60u : 180u;
             PaletteUiGateLastActive = paletteUiGateActive;
         }
@@ -12086,7 +12102,7 @@ bool VulkanRenderer3D::dispatchGraphicsRasterAndReadback(
 
     if (MelonDSAndroid::areRendererDebugToolsEnabled() && CaptureDebugLogsRemaining > 0u)
     {
-        Log(
+        EMUCORED_DIAGNOSTIC_LOG(Log(
             LogLevel::Warn,
                 "VulkanGraphics[Passes]: clearAlphaZero=%u clearPolyId=%u alphaBlend=%u opaque=%u edge=%u bgZeroShadowMask=%u bgZeroNeedOpaque=%u bgZeroShadowBlend=%u bgZeroTrans=%u bgZeroShadowSkipPolyId=%u mainShadowMask=%u mainNeedOpaque=%u mainShadowClear=%u mainShadowBlend=%u mainTrans=%u paletteUiOpaqueReplay=%u wBufferFragmentDepth=%u opaqueNoAttr=%u reverseOcclusion=%u noDepthNoAttr=%u overwriteCull=%u stencilClears=%u fastOpaqueBatchCommands=%u fastOpaqueBatchSavedDraws=%u fogWriteOpaque=%u fogWriteAlpha=%u",
             clearPlaneAlphaZero ? 1u : 0u,
@@ -12114,7 +12130,7 @@ bool VulkanRenderer3D::dispatchGraphicsRasterAndReadback(
             graphicsPassDebugStats.fastOpaqueBatchCommands,
             graphicsPassDebugStats.fastOpaqueBatchSavedDraws,
             graphicsPassDebugStats.fogWriteOpaque,
-            graphicsPassDebugStats.fogWriteAlpha);
+            graphicsPassDebugStats.fogWriteAlpha));
         CaptureDebugLogsRemaining--;
     }
 
@@ -12132,7 +12148,7 @@ bool VulkanRenderer3D::dispatchGraphicsRasterAndReadback(
         && graphicsPassDebugStats.opaque >= 120u
         && graphicsPassDebugStats.opaque <= 240u)
     {
-        Log(
+        EMUCORED_DIAGNOSTIC_LOG(Log(
             LogLevel::Warn,
             "VulkanGraphics[DenseOpaquePass]: opaque=%u noAttr=%u fast=%u fastMiss=%u batchCmds=%u batchSaved=%u noAttrMiss polyId=%u depth=%u fog=%u batchBreak nonContig=%u polyAttr=%u pipeline=%u texture=%u other=%u polyAttrOnly polyId=%u depth=%u fog=%u alpha=%u mix=%u",
             graphicsPassDebugStats.opaque,
@@ -12153,7 +12169,7 @@ bool VulkanRenderer3D::dispatchGraphicsRasterAndReadback(
             graphicsPassDebugStats.denseOpaqueBatchBreakPolyDepthOnly,
             graphicsPassDebugStats.denseOpaqueBatchBreakPolyFogOnly,
             graphicsPassDebugStats.denseOpaqueBatchBreakPolyAlphaOnly,
-            graphicsPassDebugStats.denseOpaqueBatchBreakPolyMiscOnly);
+            graphicsPassDebugStats.denseOpaqueBatchBreakPolyMiscOnly));
         DenseOpaquePassLogsRemaining--;
     }
 
@@ -12205,7 +12221,7 @@ bool VulkanRenderer3D::dispatchGraphicsRasterAndReadback(
         const float sparseOpaqueOverdrawX = sparseOpaqueUnionPixels > 0u
             ? static_cast<float>(sparseOpaqueBboxPixels) / static_cast<float>(sparseOpaqueUnionPixels)
             : 0.0f;
-        Log(
+        EMUCORED_DIAGNOSTIC_LOG(Log(
             LogLevel::Warn,
             "VulkanGraphics[SparseOpaquePass]: opaque=%u list=%zu noAttr=%u fast=%u batchCmds=%u batchSaved=%u bounds=%u bboxPx=%llu unionPx=%llu coverage=%.1f%% bboxOverUnion=%.2fx union=(%u,%u)..(%u,%u)",
             graphicsPassDebugStats.opaque,
@@ -12222,7 +12238,7 @@ bool VulkanRenderer3D::dispatchGraphicsRasterAndReadback(
             sparseOpaqueUnionLeft,
             sparseOpaqueUnionTop,
             sparseOpaqueUnionRight,
-            sparseOpaqueUnionBottom);
+            sparseOpaqueUnionBottom));
         SparseOpaqueDetailLogsRemaining--;
 
         for (u32 drawIndex : GraphicsOpaqueDrawIndices)
@@ -12237,7 +12253,7 @@ bool VulkanRenderer3D::dispatchGraphicsRasterAndReadback(
             const float coveragePct = sparseOpaqueScreenPixels > 0u
                 ? (static_cast<float>(pixels) * 100.0f) / static_cast<float>(sparseOpaqueScreenPixels)
                 : 0.0f;
-            Log(
+            EMUCORED_DIAGNOSTIC_LOG(Log(
                 LogLevel::Warn,
                 "VulkanGraphics[SparseOpaquePassDraw]: draw=%u triBase=%u triCount=%u polyAttr=%#x flags=%#x triFlags=%#x texDesc=%u texLayer=%u texSize=%ux%u texParam=%#x clip=(%d,%d)..(%d,%d) pixels=%llu screen=%.1f%% yBounds=%#x",
                 drawIndex,
@@ -12257,7 +12273,7 @@ bool VulkanRenderer3D::dispatchGraphicsRasterAndReadback(
                 scissor.offset.y + static_cast<int32_t>(scissor.extent.height),
                 static_cast<unsigned long long>(pixels),
                 coveragePct,
-                tri != nullptr ? tri->yBounds : 0u);
+                tri != nullptr ? tri->yBounds : 0u));
             SparseOpaqueDetailLogsRemaining--;
         }
     }
@@ -12275,12 +12291,12 @@ bool VulkanRenderer3D::dispatchGraphicsRasterAndReadback(
             1u, std::memory_order_relaxed) + 1u;
         if (bootstrapCount == 1u)
         {
-            Log(LogLevel::Warn,
+            EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Warn,
                 "VulkanH9: capture graphics state bootstrap count=%llu triangles=%zu polygons=%zu draws=%u\n",
                 static_cast<unsigned long long>(bootstrapCount),
                 Triangles.size(),
                 GraphicsPolygons.size(),
-                drawCount);
+                drawCount));
         }
     }
 
@@ -12288,10 +12304,10 @@ bool VulkanRenderer3D::dispatchGraphicsRasterAndReadback(
 
     if ((timestampQueryPool != VK_NULL_HANDLE) && timestampPending && !perfSecciones)
     {
-        vkCmdWriteTimestamp(commandBuffer, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, timestampQueryPool, 3);
-        vkCmdWriteTimestamp(commandBuffer, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, timestampQueryPool, 4);
-        vkCmdWriteTimestamp(commandBuffer, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, timestampQueryPool, 5);
-        vkCmdWriteTimestamp(commandBuffer, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, timestampQueryPool, 6);
+        EMUCORED_DIAGNOSTIC_LOG(vkCmdWriteTimestamp(commandBuffer, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, timestampQueryPool, 3));
+        EMUCORED_DIAGNOSTIC_LOG(vkCmdWriteTimestamp(commandBuffer, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, timestampQueryPool, 4));
+        EMUCORED_DIAGNOSTIC_LOG(vkCmdWriteTimestamp(commandBuffer, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, timestampQueryPool, 5));
+        EMUCORED_DIAGNOSTIC_LOG(vkCmdWriteTimestamp(commandBuffer, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, timestampQueryPool, 6));
     }
 
     const bool useSeparateRasterColor = RasterColorImage != ColorImage;
@@ -12459,14 +12475,14 @@ bool VulkanRenderer3D::dispatchGraphicsRasterAndReadback(
             && ((((clearAttr) & (1u << 15u)) != 0u)
                 || graphicsFogWriteObserved))
         : ((dispCnt & (1u << 7u)) != 0u);
-    const u64 finalCpuStartNs = PerfNowNs();
+    const u64 finalCpuStartNs = DiagnosticNowNs();
 
     static const bool sondaSinNiebla = [] {
-        if (std::getenv("MELON_SONDA_SIN_NIEBLA") != nullptr)
+        if (EMUCORED_DIAGNOSTIC_ENV("MELON_SONDA_SIN_NIEBLA") != nullptr)
             return true;
 #ifdef __ANDROID__
         char v[92] = {};
-        if (__system_property_get("debug.melonds.sonda_sin_niebla", v) > 0)
+        if (EMUCORED_DIAGNOSTIC_PROPERTY("debug.melonds.sonda_sin_niebla", v) > 0)
             return v[0] == '1';
 #endif
         return false;
@@ -12568,10 +12584,10 @@ bool VulkanRenderer3D::dispatchGraphicsRasterAndReadback(
             1,
             &colorToGeneralBarrier);
     }
-    FinalCpuWindow.Add(PerfNowNs() - finalCpuStartNs);
+    FinalCpuWindow.Add(DiagnosticNowNs() - finalCpuStartNs);
 
     if ((timestampQueryPool != VK_NULL_HANDLE) && timestampPending)
-        vkCmdWriteTimestamp(commandBuffer, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, timestampQueryPool, 7);
+        EMUCORED_DIAGNOSTIC_LOG(vkCmdWriteTimestamp(commandBuffer, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, timestampQueryPool, 7));
 
     if (captureReadbackPath)
     {
@@ -12669,7 +12685,7 @@ bool VulkanRenderer3D::dispatchGraphicsRasterAndReadback(
     }
 
     if ((timestampQueryPool != VK_NULL_HANDLE) && timestampPending)
-        vkCmdWriteTimestamp(commandBuffer, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, timestampQueryPool, 8);
+        EMUCORED_DIAGNOSTIC_LOG(vkCmdWriteTimestamp(commandBuffer, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, timestampQueryPool, 8));
 
     if (vkEndCommandBuffer(commandBuffer) != VK_SUCCESS)
         return false;
@@ -12765,7 +12781,7 @@ bool VulkanRenderer3D::dispatchGraphicsRasterAndReadback(
         const VkResult submitResult = vkQueueSubmit(Queue, 1, &submitInfo, frameFence);
         if (submitResult != VK_SUCCESS)
         {
-            Log(LogLevel::Error, "VulkanRenderer3D: graphics vkQueueSubmit failed (%d)", static_cast<int>(submitResult));
+            EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error, "VulkanRenderer3D: graphics vkQueueSubmit failed (%d)", static_cast<int>(submitResult)));
             return false;
         }
     }
@@ -12912,11 +12928,11 @@ bool VulkanRenderer3D::submitGraphicsCaptureExportForCurrentFrame()
         "submit",
         useGlobalPublishedSource ? "select-current-global" : "select-current-context",
         sourceIdentity);
-    if (std::getenv("MELON_SONDA_CAPID") != nullptr)
+    if (EMUCORED_DIAGNOSTIC_ENV("MELON_SONDA_CAPID") != nullptr)
     {
         CaptureSourceIdentity publishedIdentity{};
         (void)GetPublishedRenderIdentity(publishedIdentity);
-        std::fprintf(stderr,
+        EMUCORED_DIAGNOSTIC_LOG(std::fprintf(stderr,
             "[capid-export] srcctx=%d pinned=%d pubctx=%d "
             "src=%d:%llu/%u/%08X/%d pub=%d:%llu/%u/%08X/%d\n",
             sourceContext != nullptr ? 1 : 0,
@@ -12931,7 +12947,7 @@ bool VulkanRenderer3D::submitGraphicsCaptureExportForCurrentFrame()
             static_cast<unsigned long long>(publishedIdentity.Sequence),
             publishedIdentity.PolygonCount,
             publishedIdentity.CaptureCnt,
-            publishedIdentity.ScreenSwap ? 1 : 0);
+            publishedIdentity.ScreenSwap ? 1 : 0));
     }
     const VkImage sourceColorImage = sourceTarget != nullptr ? sourceTarget->ColorImage : ColorImage;
     const u32 sourceColorWidth = sourceTarget != nullptr ? sourceTarget->Width : ColorImageWidth;
@@ -13148,9 +13164,9 @@ bool VulkanRenderer3D::submitGraphicsCaptureExportForCurrentFrame()
             FrameFence = VK_NULL_HANDLE;
             if (!createFence(FrameFence))
             {
-                Log(
+                EMUCORED_DIAGNOSTIC_LOG(Log(
                     LogLevel::Error,
-                    "VulkanRenderer3D: failed to restore capture export fence");
+                    "VulkanRenderer3D: failed to restore capture export fence"));
             }
             return false;
         }
@@ -13431,7 +13447,7 @@ bool VulkanRenderer3D::readbackColorTargetToCpu()
         const VkResult submitResult = vkQueueSubmit(Queue, 1, &submitInfo, FrameFence);
         if (submitResult != VK_SUCCESS)
         {
-            Log(LogLevel::Error, "VulkanRenderer3D: readback vkQueueSubmit failed (%d)", static_cast<int>(submitResult));
+            EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error, "VulkanRenderer3D: readback vkQueueSubmit failed (%d)", static_cast<int>(submitResult)));
             return false;
         }
     }
@@ -13517,9 +13533,9 @@ void VulkanRenderer3D::buildGraphicsTriangleList(GPU& gpu)
     sceneBuildConfig.CoverageFix.PaletteUiClampPx = 0.5f;
 
     const bool perPolygonTiming = MelonDSAndroid::areRendererDebugToolsEnabled();
-    const u64 sceneBuildCpuStartNs = PerfNowNs();
+    const u64 sceneBuildCpuStartNs = DiagnosticNowNs();
     BuildAcceleratedScene(gpu.GPU3D, sceneBuildConfig, SharedGraphicsScene);
-    GraphicsSceneBuildCpuWindow.Add(PerfNowNs() - sceneBuildCpuStartNs);
+    GraphicsSceneBuildCpuWindow.Add(DiagnosticNowNs() - sceneBuildCpuStartNs);
 
     const size_t estimatedTriangleCount =
         SharedGraphicsScene.Triangles.size() + (SharedGraphicsScene.Draws.size() * 2u);
@@ -13915,7 +13931,7 @@ void VulkanRenderer3D::buildGraphicsTriangleList(GPU& gpu)
         bool textureLayerOpaque = false;
         u32 texWidth = 0u;
         u32 texHeight = 0u;
-        const u64 graphicsTextureLookupStartNs = perPolygonTiming ? PerfNowNs() : 0u;
+        const u64 graphicsTextureLookupStartNs = perPolygonTiming ? DiagnosticNowNs() : 0u;
         if (polygonTextured)
         {
             texWidth = TextureWidth(polygon->TexParam);
@@ -13937,11 +13953,11 @@ void VulkanRenderer3D::buildGraphicsTriangleList(GPU& gpu)
                     textureLookupMissCount++;
                     GraphicsResolvedTextureCacheEntry resolvedTexture{};
                     bool resolvedTextureValid = false;
-                    const u64 persistentTextureLookupStartNs = perPolygonTiming ? PerfNowNs() : 0u;
+                    const u64 persistentTextureLookupStartNs = perPolygonTiming ? DiagnosticNowNs() : 0u;
                     const auto persistentTextureIt = persistentTextureCacheAllowed
                         ? GraphicsResolvedTextureCache.find(textureKey.Key)
                         : GraphicsResolvedTextureCache.end();
-                    if (perPolygonTiming) graphicsTexturePersistentCpuNs += PerfNowNs() - persistentTextureLookupStartNs;
+                    if (perPolygonTiming) graphicsTexturePersistentCpuNs += DiagnosticNowNs() - persistentTextureLookupStartNs;
                     if (persistentTextureIt != GraphicsResolvedTextureCache.end())
                     {
                         persistentTextureHitCount++;
@@ -13951,7 +13967,7 @@ void VulkanRenderer3D::buildGraphicsTriangleList(GPU& gpu)
                     else
                     {
                         persistentTextureMissCount++;
-                        const u64 texcacheResolveStartNs = perPolygonTiming ? PerfNowNs() : 0u;
+                        const u64 texcacheResolveStartNs = perPolygonTiming ? DiagnosticNowNs() : 0u;
                         Texcache.GetTexture(
                             gpu,
                             polygon->TexParam,
@@ -13960,11 +13976,11 @@ void VulkanRenderer3D::buildGraphicsTriangleList(GPU& gpu)
                             textureLayer,
                             helper
                         );
-                        if (perPolygonTiming) graphicsTexcacheResolveCpuNs += PerfNowNs() - texcacheResolveStartNs;
+                        if (perPolygonTiming) graphicsTexcacheResolveCpuNs += DiagnosticNowNs() - texcacheResolveStartNs;
 
                         VkDescriptorImageInfo textureDescriptorInfo{};
                         VkDescriptorImageInfo normalizedTextureDescriptorInfo{};
-                        const u64 textureDescriptorStartNs = perPolygonTiming ? PerfNowNs() : 0u;
+                        const u64 textureDescriptorStartNs = perPolygonTiming ? DiagnosticNowNs() : 0u;
                         const bool descriptorValid = getGraphicsTextureDescriptors(
                             textureHandle,
                             &textureDescriptorInfo,
@@ -13972,7 +13988,7 @@ void VulkanRenderer3D::buildGraphicsTriangleList(GPU& gpu)
                         bool layerOpaque = false;
                         if (descriptorValid)
                             layerOpaque = Texcache.GetLoader().IsTextureLayerOpaque(textureHandle, textureLayer);
-                        if (perPolygonTiming) graphicsTextureDescriptorCpuNs += PerfNowNs() - textureDescriptorStartNs;
+                        if (perPolygonTiming) graphicsTextureDescriptorCpuNs += DiagnosticNowNs() - textureDescriptorStartNs;
                         if (descriptorValid)
                         {
                             textureDescriptorInfo.sampler = textureSamplerForTexParam(polygon->TexParam);
@@ -13991,7 +14007,7 @@ void VulkanRenderer3D::buildGraphicsTriangleList(GPU& gpu)
                         }
                     }
 
-                    const u64 textureSlotStartNs = perPolygonTiming ? PerfNowNs() : 0u;
+                    const u64 textureSlotStartNs = perPolygonTiming ? DiagnosticNowNs() : 0u;
                     const auto reservedAlphaTextureIt = reservedAlphaTextureKeys.find(textureKey);
                     const bool reservedAlphaTexture = reservedAlphaTextureIt != reservedAlphaTextureKeys.end();
                     const u32 reservedAlphaTextureCount =
@@ -14047,7 +14063,7 @@ void VulkanRenderer3D::buildGraphicsTriangleList(GPU& gpu)
                                 texHeight,
                             });
                     }
-                    if (perPolygonTiming) graphicsTextureSlotCpuNs += PerfNowNs() - textureSlotStartNs;
+                    if (perPolygonTiming) graphicsTextureSlotCpuNs += DiagnosticNowNs() - textureSlotStartNs;
                 }
                 else
                 {
@@ -14068,7 +14084,7 @@ void VulkanRenderer3D::buildGraphicsTriangleList(GPU& gpu)
         bool constantTextureCollapsed = false;
         u32 constantTextureTexel = 0u;
         constexpr bool kEnableConstantTextureCollapse = false;
-        const u64 constantTextureStartNs = perPolygonTiming ? PerfNowNs() : 0u;
+        const u64 constantTextureStartNs = perPolygonTiming ? DiagnosticNowNs() : 0u;
         if (kEnableConstantTextureCollapse
             && hasTexture
             && textureHandle != 0
@@ -14146,10 +14162,10 @@ void VulkanRenderer3D::buildGraphicsTriangleList(GPU& gpu)
                 constantTextureCollapseCount++;
             }
         }
-        if (perPolygonTiming) graphicsConstantTextureCpuNs += PerfNowNs() - constantTextureStartNs;
-        if (perPolygonTiming) graphicsTextureLookupCpuNs += PerfNowNs() - graphicsTextureLookupStartNs;
+        if (perPolygonTiming) graphicsConstantTextureCpuNs += DiagnosticNowNs() - constantTextureStartNs;
+        if (perPolygonTiming) graphicsTextureLookupCpuNs += DiagnosticNowNs() - graphicsTextureLookupStartNs;
 
-        const u64 graphicsVertexEmitStartNs = perPolygonTiming ? PerfNowNs() : 0u;
+        const u64 graphicsVertexEmitStartNs = perPolygonTiming ? DiagnosticNowNs() : 0u;
         u32 sceneVertexFlags = 0u;
         if (hasTexture)
         {
@@ -14526,7 +14542,7 @@ void VulkanRenderer3D::buildGraphicsTriangleList(GPU& gpu)
 
             appendLineSegment(vertexIndex0, vertexIndex1);
             enqueueGraphicsDraw(Triangles.size() - polygonTriangleBase);
-            if (perPolygonTiming) graphicsVertexEmitCpuNs += PerfNowNs() - graphicsVertexEmitStartNs;
+            if (perPolygonTiming) graphicsVertexEmitCpuNs += DiagnosticNowNs() - graphicsVertexEmitStartNs;
             continue;
         }
 
@@ -14589,7 +14605,7 @@ void VulkanRenderer3D::buildGraphicsTriangleList(GPU& gpu)
             if (loggedWireframePolygonCount < 24u && MelonDSAndroid::areRendererDebugToolsEnabled())
             {
                 const u32 yBounds = debugYBounds.value_or(0u);
-                Log(
+                EMUCORED_DIAGNOSTIC_LOG(Log(
                     LogLevel::Warn,
                     "VulkanGraphics[AlphaZeroWireframe]: sample=%u polyId=%u blend=%u flags=%#x hasTexture=%u texParam=%#x vertexCount=%u edgeIndexCount=%u originalTriCount=%u emittedBoundaryEdgeCount=%u hiddenLayerAlphaZero=%u lineColor=%#x edgeColorOverrideMask=%#x finalEdgePolyIdOverride=%u y=%u..%u",
                     loggedWireframePolygonCount,
@@ -14607,7 +14623,7 @@ void VulkanRenderer3D::buildGraphicsTriangleList(GPU& gpu)
                     wireframeEdgeColorOverrideMask,
                     GraphicsHiddenAlphaZeroFinalEdgePolyIdOverride < 64u ? GraphicsHiddenAlphaZeroFinalEdgePolyIdOverride : 0xFFFFFFFFu,
                     yBounds & 0xFFFFu,
-                    (yBounds >> 16u) & 0xFFFFu);
+                    (yBounds >> 16u) & 0xFFFFu));
                 loggedWireframePolygonCount++;
             }
 
@@ -14616,7 +14632,7 @@ void VulkanRenderer3D::buildGraphicsTriangleList(GPU& gpu)
                 false,
                 wireframeEdgeColorOverrideMask,
                 wireframeEdgeColorOverridePacked);
-            if (perPolygonTiming) graphicsVertexEmitCpuNs += PerfNowNs() - graphicsVertexEmitStartNs;
+            if (perPolygonTiming) graphicsVertexEmitCpuNs += DiagnosticNowNs() - graphicsVertexEmitStartNs;
             continue;
         }
 
@@ -14658,10 +14674,10 @@ void VulkanRenderer3D::buildGraphicsTriangleList(GPU& gpu)
         }
 
         enqueueGraphicsDraw(Triangles.size() - polygonTriangleBase);
-        if (perPolygonTiming) graphicsVertexEmitCpuNs += PerfNowNs() - graphicsVertexEmitStartNs;
+        if (perPolygonTiming) graphicsVertexEmitCpuNs += DiagnosticNowNs() - graphicsVertexEmitStartNs;
     }
 
-    const u64 graphicsStatsStartNs = PerfNowNs();
+    const u64 graphicsStatsStartNs = DiagnosticNowNs();
     LastGraphicsTextureLookupHitCount = textureLookupHitCount;
     LastGraphicsTextureLookupMissCount = textureLookupMissCount;
     LastGraphicsPersistentTextureHitCount = persistentTextureHitCount;
@@ -14670,7 +14686,7 @@ void VulkanRenderer3D::buildGraphicsTriangleList(GPU& gpu)
     if (constantTextureCollapseCount > 0u
         && MelonDSAndroid::areRendererDebugToolsEnabled())
     {
-        Log(LogLevel::Warn, "VulkanGraphics[ConstantTextureCollapse]: collapsed=%u", constantTextureCollapseCount);
+        EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Warn, "VulkanGraphics[ConstantTextureCollapse]: collapsed=%u", constantTextureCollapseCount));
     }
     LastGraphicsOpaqueDrawCount = static_cast<u32>(GraphicsOpaqueDrawIndices.size());
     LastGraphicsNeedOpaqueDrawCount = static_cast<u32>(GraphicsNeedOpaqueDrawIndices.size());
@@ -14887,7 +14903,7 @@ void VulkanRenderer3D::buildGraphicsTriangleList(GPU& gpu)
         const float sparseOpaqueOverdrawX = sparseOpaqueUnionPixels > 0u
             ? static_cast<float>(sparseOpaqueBboxPixels) / static_cast<float>(sparseOpaqueUnionPixels)
             : 0.0f;
-        Log(
+        EMUCORED_DIAGNOSTIC_LOG(Log(
             LogLevel::Warn,
             "VulkanGraphics[SparseOpaqueScene]: scale=%d opaque=%u needOpaque=%u alpha=%u textures=%u triangles=%zu repeat=%u mirror=%u clampT=%u fullAlpha=%u bounds=%u bboxPx=%llu unionPx=%llu coverage=%.1f%% bboxOverUnion=%.2fx union=(%u,%u)..(%u,%u)",
             ScaleFactor,
@@ -14908,7 +14924,7 @@ void VulkanRenderer3D::buildGraphicsTriangleList(GPU& gpu)
             sparseOpaqueUnionLeft,
             sparseOpaqueUnionTop,
             sparseOpaqueUnionRight,
-            sparseOpaqueUnionBottom);
+            sparseOpaqueUnionBottom));
         SparseOpaqueDetailLogsRemaining--;
 
         for (u32 drawIndex : GraphicsOpaqueDrawIndices)
@@ -14951,7 +14967,7 @@ void VulkanRenderer3D::buildGraphicsTriangleList(GPU& gpu)
             const float drawCoveragePct = sparseOpaqueScreenPixels > 0u
                 ? (static_cast<float>(drawBounds.pixels) * 100.0f) / static_cast<float>(sparseOpaqueScreenPixels)
                 : 0.0f;
-            Log(
+            EMUCORED_DIAGNOSTIC_LOG(Log(
                 LogLevel::Warn,
                 "VulkanGraphics[SparseOpaqueDraw]: draw=%u triBase=%u triCount=%u polyAttr=%#x flags=%#x triFlags=%#x texDesc=%u texLayer=%u texSize=%ux%u texParam=%#x xy=(%.1f,%.1f)..(%.1f,%.1f) clip=(%u,%u)..(%u,%u) pixels=%llu screen=%.1f%% uv=(%.1f,%.1f)..(%.1f,%.1f) yBounds=%#x",
                 drawIndex,
@@ -14979,7 +14995,7 @@ void VulkanRenderer3D::buildGraphicsTriangleList(GPU& gpu)
                 minV,
                 maxU,
                 maxV,
-                tri.yBounds);
+                tri.yBounds));
             SparseOpaqueDetailLogsRemaining--;
         }
     }
@@ -14989,7 +15005,7 @@ void VulkanRenderer3D::buildGraphicsTriangleList(GPU& gpu)
         const u32 firstTranslucentDraw = SharedGraphicsScene.FirstTranslucentDraw == std::numeric_limits<u32>::max()
             ? 0xFFFFFFFFu
             : SharedGraphicsScene.FirstTranslucentDraw;
-        Log(
+        EMUCORED_DIAGNOSTIC_LOG(Log(
             LogLevel::Warn,
             "VulkanGraphics[Scene]: draws=%zu triangles=%zu vertices=%zu indices=%zu firstTranslucent=%u opaque=%u needOpaque=%u alpha=%zu shadowMask=%zu shadow=%zu",
             GraphicsPolygons.size(),
@@ -15001,14 +15017,14 @@ void VulkanRenderer3D::buildGraphicsTriangleList(GPU& gpu)
             LastGraphicsNeedOpaqueDrawCount,
             GraphicsAlphaDrawIndices.size(),
             GraphicsShadowMaskDrawIndices.size(),
-            GraphicsShadowDrawIndices.size());
+            GraphicsShadowDrawIndices.size()));
         CaptureDebugLogsRemaining--;
 
         const auto logGraphicsBucket = [&](const char* label, const std::vector<u32>& drawIndices) {
             if (CaptureDebugLogsRemaining == 0u)
                 return;
 
-            Log(LogLevel::Warn, "VulkanGraphics[%s]: count=%zu", label, drawIndices.size());
+            EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Warn, "VulkanGraphics[%s]: count=%zu", label, drawIndices.size()));
             CaptureDebugLogsRemaining--;
 
             const size_t maxSampleCount = std::strcmp(label, "AlphaBucket") == 0 ? 24u : 3u;
@@ -15026,7 +15042,7 @@ void VulkanRenderer3D::buildGraphicsTriangleList(GPU& gpu)
                 const u32 yBounds = draw.firstTriangle < Triangles.size()
                     ? Triangles[draw.firstTriangle].yBounds
                     : 0u;
-                Log(
+                EMUCORED_DIAGNOSTIC_LOG(Log(
                     LogLevel::Warn,
                     "VulkanGraphics[%s]: sample=%zu draw=%u triBase=%u triCount=%u polyId=%u alpha5=%u blend=%u flags=%#x depthEq=%u depthWrite=%u fogWrite=%u y=%u..%u",
                     label,
@@ -15042,13 +15058,13 @@ void VulkanRenderer3D::buildGraphicsTriangleList(GPU& gpu)
                     (draw.polyAttr & (1u << 11u)) != 0u ? 1u : 0u,
                     (draw.flags & AcceleratedPolygonFlagFogWrite) != 0u ? 1u : 0u,
                     yBounds & 0xFFFFu,
-                    (yBounds >> 16u) & 0xFFFFu);
+                    (yBounds >> 16u) & 0xFFFFu));
                 CaptureDebugLogsRemaining--;
 
                 if (draw.firstTriangle < Triangles.size() && CaptureDebugLogsRemaining > 0u)
                 {
                     const TriangleGpu& tri = Triangles[draw.firstTriangle];
-                    Log(
+                    EMUCORED_DIAGNOSTIC_LOG(Log(
                         LogLevel::Warn,
                         "VulkanGraphics[%sDetail]: draw=%u triFlags=%#x texDesc=%u texLayer=%u texSize=%ux%u texParam=%#x color=%#x,%#x,%#x pos=(%.3f,%.3f)->(%.3f,%.3f)->(%.3f,%.3f) uv=(%.3f,%.3f)->(%.3f,%.3f)->(%.3f,%.3f) w=(%.3f,%.3f,%.3f) yBounds=%#x",
                         label,
@@ -15069,7 +15085,7 @@ void VulkanRenderer3D::buildGraphicsTriangleList(GPU& gpu)
                         tri.u1, tri.v1,
                         tri.u2, tri.v2,
                         tri.w0, tri.w1, tri.w2,
-                        tri.yBounds);
+                        tri.yBounds));
                     CaptureDebugLogsRemaining--;
                 }
             }
@@ -15107,7 +15123,7 @@ void VulkanRenderer3D::buildGraphicsTriangleList(GPU& gpu)
         const float rawW0 = triangle.w0 > 0.000001f ? (1.0f / triangle.w0) : 0.0f;
         const float rawW1 = triangle.w1 > 0.000001f ? (1.0f / triangle.w1) : 0.0f;
         const float rawW2 = triangle.w2 > 0.000001f ? (1.0f / triangle.w2) : 0.0f;
-        Log(
+        EMUCORED_DIAGNOSTIC_LOG(Log(
             LogLevel::Warn,
             "VulkanGraphics[Triangles]: scale=%d count=%zu viewportIntersect=%zu nonDegenerate=%zu textures=%u first tri pos=(%.3f,%.3f,%.3f,w=%.3f)->(%.3f,%.3f,%.3f,w=%.3f)->(%.3f,%.3f,%.3f,w=%.3f) flags=%#x texDesc=%u texLayer=%u texSize=%ux%u texParam=%#x polyAttr=%#x yBounds=%#x",
             ScaleFactor,
@@ -15125,11 +15141,11 @@ void VulkanRenderer3D::buildGraphicsTriangleList(GPU& gpu)
             triangle.texHeight,
             triangle.texParam,
             triangle.polyAttr,
-            triangle.yBounds);
+            triangle.yBounds));
         if (!GraphicsPolygons.empty())
         {
             const GraphicsPolygonDraw& draw = GraphicsPolygons.front();
-            Log(
+            EMUCORED_DIAGNOSTIC_LOG(Log(
                 LogLevel::Warn,
                 "VulkanGraphics[Draws]: polygons=%zu opaque=%u needOpaque=%u alphaShadow=%u shadowMask=%zu shadow=%zu first firstTriangle=%u triangleCount=%u polyAttr=%#x flags=%#x dispCnt=%#x alphaRef=%u",
                 GraphicsPolygons.size(),
@@ -15143,7 +15159,7 @@ void VulkanRenderer3D::buildGraphicsTriangleList(GPU& gpu)
                 draw.polyAttr,
                 draw.flags,
                 gpu.GPU3D.RenderDispCnt,
-                gpu.GPU3D.RenderAlphaRef);
+                gpu.GPU3D.RenderAlphaRef));
         }
         loggedGraphicsTriangleSummary = true;
     }
@@ -15154,7 +15170,7 @@ void VulkanRenderer3D::buildGraphicsTriangleList(GPU& gpu)
     GraphicsTextureSlotCpuWindow.Add(graphicsTextureSlotCpuNs);
     GraphicsConstantTextureCpuWindow.Add(graphicsConstantTextureCpuNs);
     GraphicsVertexEmitCpuWindow.Add(graphicsVertexEmitCpuNs);
-    GraphicsStatsCpuWindow.Add(PerfNowNs() - graphicsStatsStartNs);
+    GraphicsStatsCpuWindow.Add(DiagnosticNowNs() - graphicsStatsStartNs);
 }
 
 void VulkanRenderer3D::buildTriangleList(GPU& gpu)

@@ -1,3 +1,4 @@
+#include "../../../bridge/ds_diagnostics.h"
 /*
     Copyright 2016-2025 melonDS team, RSDuck
 
@@ -57,7 +58,7 @@ u8* Compiler::RewriteMemAccess(u8* pc)
 
         return pc + (ptrdiff_t)patch.PatchOffset;
     }
-    Log(LogLevel::Error, "this is a JIT bug! %08x\n", __builtin_bswap32(*(u32*)pc));
+    EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error, "this is a JIT bug! %08x\n", __builtin_bswap32(*(u32*)pc)));
     abort();
 }
 
@@ -336,7 +337,7 @@ void Compiler::Comp_MemAccess(int rd, int rn, Op2 offset, int size, int flags)
     if (CurInstr.Info.Branches())
     {
         if (size < 32)
-            Log(LogLevel::Debug, "LDR size < 32 branching?\n");
+            EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Debug, "LDR size < 32 branching?\n"));
         Comp_JumpTo(rdMapped, Num == 0, false);
     }
 }

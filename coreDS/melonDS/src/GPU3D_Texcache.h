@@ -1,3 +1,4 @@
+#include "../../bridge/ds_diagnostics.h"
 #ifndef GPU3D_TEXCACHE
 #define GPU3D_TEXCACHE
 
@@ -82,7 +83,7 @@ public:
     {
         u32 startBit = start / VRAMDirtyGranularity;
         u32 bitsCount = ((start + size + VRAMDirtyGranularity - 1) / VRAMDirtyGranularity) - startBit;
-    
+
         u32 startEntry = startBit >> 6;
         u64 entriesCount = ((startBit + bitsCount + 0x3F) >> 6) - startEntry;
         for (u32 j = startEntry; j < startEntry + entriesCount; j++)
@@ -272,7 +273,9 @@ public:
         }
 
         {
-            static const char* vt = std::getenv("MELON_VOLCAR_TEX");
+#if EMUCORED_DIAGNOSTICS
+
+            static const char* vt = EMUCORED_DIAGNOSTIC_ENV("MELON_VOLCAR_TEX");
             if (vt != nullptr
                 && (texParam & ~0xC00F0000u)
                        == (std::strtoul(vt, nullptr, 16) & ~0xC00F0000u))
@@ -282,11 +285,13 @@ public:
                     std::fwrite(DecodingBuffer, 4, width * height, fT);
                     std::fclose(fT);
                 }
-                std::fprintf(stderr, "[tex-dec] %08X %ux%u pal=%u vuelca\n",
+                EMUCORED_DIAGNOSTIC_LOG(std::fprintf(stderr, "[tex-dec] %08X %ux%u pal=%u vuelca\n",
                              texParam, width, height,
-                             (unsigned)entry.TexPalStart);
+                             (unsigned)entry.TexPalStart));
             }
-        }
+
+#endif
+}
 
         for (int i = 0; i < 2; i++)
         {

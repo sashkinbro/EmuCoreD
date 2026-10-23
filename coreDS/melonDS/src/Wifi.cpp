@@ -1,3 +1,4 @@
+#include "../../bridge/ds_diagnostics.h"
 /*
     Copyright 2016-2025 melonDS team
 
@@ -33,7 +34,7 @@ using Platform::LogLevel;
 //#define WIFI_LOG printf
 #define WIFI_LOG(...) {}
 
-#define PRINT_MAC(pf, mac) Log(LogLevel::Debug, "%s: %02X:%02X:%02X:%02X:%02X:%02X\n", pf, (mac)[0], (mac)[1], (mac)[2], (mac)[3], (mac)[4], (mac)[5]);
+#define PRINT_MAC(pf, mac) EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Debug, "%s: %02X:%02X:%02X:%02X:%02X:%02X\n", pf, (mac)[0], (mac)[1], (mac)[2], (mac)[3], (mac)[4], (mac)[5]));
 
 #define IOPORT(x) IO[(x)>>1]
 #define IOPORT8(x) ((u8*)IO)[x]
@@ -192,7 +193,7 @@ void Wifi::Reset()
         IOPORT(0x000) = 0xC340; // DSi has the modern DS-wifi variant
     else
     {
-        Log(LogLevel::Warn, "wifi: unknown console type %02X\n", console);
+        EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Warn, "wifi: unknown console type %02X\n", console));
         IOPORT(0x000) = 0x1440;
     }
 
@@ -350,7 +351,7 @@ void Wifi::UpdatePowerOn()
     PowerOn = on;
     if (on)
     {
-        Log(LogLevel::Debug, "WIFI: ON\n");
+        EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Debug, "WIFI: ON\n"));
 
         ScheduleTimer(true);
 
@@ -358,7 +359,7 @@ void Wifi::UpdatePowerOn()
     }
     else
     {
-        Log(LogLevel::Debug, "WIFI: OFF\n");
+        EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Debug, "WIFI: OFF\n"));
 
         NDS.CancelEvent(Event_Wifi);
 
@@ -416,7 +417,7 @@ void Wifi::SetIRQ14(int source) // 0=USCOMPARE 1=BEACONCOUNT 2=forced
     SetIRQ(14);
 
     if (source == 2)
-        Log(LogLevel::Debug, "wifi: weird forced IRQ14\n");
+        EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Debug, "wifi: weird forced IRQ14\n"));
 
     IOPORT(W_BeaconCount2) = 0xFFFF;
     IOPORT(W_TXReqRead) &= 0xFFF2;
@@ -540,7 +541,7 @@ void Wifi::UpdatePowerStatus(int power) // 1=on 0=no change -1=off
         IOPORT(W_PowerState) |= (1<<8);
         if ((!(curflags & 2)) && (USUntilPowerOn == 0))
         {
-            Log(LogLevel::Debug, "wifi: TRX power ON\n");
+            EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Debug, "wifi: TRX power ON\n"));
 
             USUntilPowerOn = -2048;
             SetIRQ(11);
@@ -551,7 +552,7 @@ void Wifi::UpdatePowerStatus(int power) // 1=on 0=no change -1=off
         // power off
 
         if (curflags & 2)
-            Log(LogLevel::Debug, "wifi: TRX power OFF\n");
+            EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Debug, "wifi: TRX power OFF\n"));
 
         IOPORT(W_PowerState) &= ~(1<<0);
         IOPORT(W_PowerState) &= ~(1<<8);
@@ -676,7 +677,7 @@ void Wifi::StartTX_LocN(int nslot, int loc)
     TXSlot* slot = &TXSlots[nslot];
 
     if (IOPORT(W_TXSlotLoc1 + (loc*4)) & 0x7000)
-        Log(LogLevel::Warn, "wifi: unusual loc%d bits set %04X\n", loc, IOPORT(W_TXSlotLoc1 + (loc*4)));
+        EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Warn, "wifi: unusual loc%d bits set %04X\n", loc, IOPORT(W_TXSlotLoc1 + (loc*4))));
 
     slot->Valid = true;
 
@@ -696,7 +697,7 @@ void Wifi::StartTX_Cmd()
     TXSlot* slot = &TXSlots[1];
 
     if (IOPORT(W_TXSlotCmd) & 0x3000)
-        Log(LogLevel::Warn,"wifi: !! unusual TXSLOT_CMD bits set %04X\n", IOPORT(W_TXSlotCmd));
+        EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Warn,"wifi: !! unusual TXSLOT_CMD bits set %04X\n", IOPORT(W_TXSlotCmd)));
 
     slot->Valid = true;
 
@@ -1009,13 +1010,13 @@ bool Wifi::ProcessTX(TXSlot* slot, int num)
                 if ((framectl & 0x00FF) == 0x0010)
                 {
                     u16 aid = *(u16*)&RAM[slot->Addr + 0xC + 24 + 4];
-                    if (aid) Log(LogLevel::Debug, "[HOST] syncing client %04X, sync=%016llX\n", aid, USTimestamp);
+                    if (aid) EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Debug, "[HOST] syncing client %04X, sync=%016llX\n", aid, USTimestamp));
                 }
                 else if ((framectl & 0x00FF) == 0x00C0)
                 {
                     if (IsMPClient)
                     {
-                        Log(LogLevel::Info, "[CLIENT] deauth\n");
+                        EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Info, "[CLIENT] deauth\n"));
                         IsMP = false;
                         IsMPClient = false;
                     }
@@ -1600,14 +1601,14 @@ bool Wifi::CheckRX(int type) // 0=regular 1=MP replies 2=MP host frames
         framelen = *(u16*)&RXBuffer[10];
         if (framelen != rxlen-12)
         {
-            Log(LogLevel::Error, "bad frame length %d/%d\n", framelen, rxlen-12);
+            EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error, "bad frame length %d/%d\n", framelen, rxlen-12));
             continue;
         }
 
         chan = RXBuffer[9];
         if (chan != CurChannel || CurChannel == 0)
         {
-            Log(LogLevel::Debug, "received frame but bad channel %d (expected %d)\n", chan, CurChannel);
+            EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Debug, "received frame but bad channel %d (expected %d)\n", chan, CurChannel));
             continue;
         }
 
@@ -1667,7 +1668,7 @@ bool Wifi::CheckRX(int type) // 0=regular 1=MP replies 2=MP host frames
 
         if (aid)
         {
-            Log(LogLevel::Debug, "[CLIENT %01X] host sync=%016llX\n", aid&0xF, timestamp);
+            EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Debug, "[CLIENT %01X] host sync=%016llX\n", aid&0xF, timestamp));
 
             IsMP = true;
             IsMPClient = true;
@@ -1908,12 +1909,12 @@ void Wifi::USTimer(u32 param)
                 // TODO: properly check the crossing of the read cursor
                 // (for example, if it is outside of the RX buffer)
 
-                Log(LogLevel::Debug, "wifi: RX buffer full (buf=%04X/%04X rd=%04X wr=%04X rxtx=%04X power=%04X com=%d rxcnt=%04X filter=%04X/%04X frame=%04X/%04X len=%d)\n",
+                EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Debug, "wifi: RX buffer full (buf=%04X/%04X rd=%04X wr=%04X rxtx=%04X power=%04X com=%d rxcnt=%04X filter=%04X/%04X frame=%04X/%04X len=%d)\n",
                        (IOPORT(W_RXBufBegin)>>1)&0xFFF, (IOPORT(W_RXBufEnd)>>1)&0xFFF,
                        IOPORT(W_RXBufReadCursor), IOPORT(W_RXBufWriteCursor),
                        IOPORT(W_RXTXAddr), IOPORT(W_PowerState), ComStatus,
                        IOPORT(W_RXCnt), IOPORT(W_RXFilter), IOPORT(W_RXFilter2),
-                       *(u16*)&RXBuffer[0], *(u16*)&RXBuffer[12], *(u16*)&RXBuffer[8]);
+                       *(u16*)&RXBuffer[0], *(u16*)&RXBuffer[12], *(u16*)&RXBuffer[8]));
                 RXTime = 0;
                 SetStatus(1);
                 if (TXCurSlot == 0xFFFFFFFF)
@@ -1952,9 +1953,9 @@ void Wifi::ChangeChannel()
     }
 
     if (CurChannel > 0)
-        Log(LogLevel::Debug, "wifi: switching to channel %d\n", CurChannel);
+        EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Debug, "wifi: switching to channel %d\n", CurChannel));
     else
-        Log(LogLevel::Debug, "wifi: invalid channel values %05X:%05X\n", val1, val2);
+        EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Debug, "wifi: invalid channel values %05X:%05X\n", val1, val2));
 }
 
 void Wifi::RFTransfer_Type2()
@@ -2038,7 +2039,7 @@ u16 Wifi::Read(u32 addr)
     case W_BBRead:
         if ((IOPORT(W_BBCnt) & 0xF000) != 0x6000)
         {
-            Log(LogLevel::Error, "WIFI: bad BB read, CNT=%04X\n", IOPORT(W_BBCnt));
+            EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error, "WIFI: bad BB read, CNT=%04X\n", IOPORT(W_BBCnt)));
             return 0;
         }
         return BBRegs[IOPORT(W_BBCnt) & 0xFF];
@@ -2210,7 +2211,7 @@ void Wifi::Write(u32 addr, u16 val)
             u16 oldflags = IOPORT(W_IF) & IOPORT(W_IE);
             IOPORT(W_IF) |= (val & 0xFBFF);
             CheckIRQ(oldflags);
-            Log(LogLevel::Debug, "wifi: force-setting IF %04X\n", val);
+            EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Debug, "wifi: force-setting IF %04X\n", val));
         }
         return;
 
@@ -2274,7 +2275,7 @@ void Wifi::Write(u32 addr, u16 val)
         }
         
         if (val != 0 && val != 3)
-            Log(LogLevel::Warn, "wifi: unusual W_PowerDownCtrl value %04X\n", val);
+            EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Warn, "wifi: unusual W_PowerDownCtrl value %04X\n", val));
 
         UpdatePowerStatus(0);
         return;
@@ -2335,11 +2336,11 @@ void Wifi::Write(u32 addr, u16 val)
             FireTX();
         }
         val &= 0xFF0E;
-        if (val & 0x7FFF) Log(LogLevel::Warn, "wifi: unknown RXCNT bits set %04X\n", val);
+        if (val & 0x7FFF) EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Warn, "wifi: unknown RXCNT bits set %04X\n", val));
         break;
 
     case W_RXBufDataRead:
-        Log(LogLevel::Warn, "wifi: writing to RXBUF_DATA_READ. wat\n");
+        EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Warn, "wifi: writing to RXBUF_DATA_READ. wat\n"));
         if (IOPORT(W_RXBufCount) > 0)
         {
             IOPORT(W_RXBufCount)--;
@@ -2376,7 +2377,7 @@ void Wifi::Write(u32 addr, u16 val)
         // checkme: any bits affecting the beacon slot?
         if (val & 0x0040) IOPORT(W_TXSlotReply2) &= 0x7FFF;
         if (val & 0x0080) IOPORT(W_TXSlotReply1) &= 0x7FFF;
-        if ((val & 0xFF30) && (val != 0xFFFF)) Log(LogLevel::Warn, "unusual TXSLOTRESET %04X\n", val);
+        if ((val & 0xFF30) && (val != 0xFFFF)) EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Warn, "unusual TXSLOTRESET %04X\n", val));
         val = 0; // checkme (write-only port)
         break;
 

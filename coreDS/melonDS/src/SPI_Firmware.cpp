@@ -1,3 +1,4 @@
+#include "../../bridge/ds_diagnostics.h"
 /*
     Copyright 2016-2025 melonDS team
 
@@ -181,7 +182,7 @@ u32 Firmware::FixFirmwareLength(u32 originalLength)
 {
     if (originalLength != 0x20000 && originalLength != 0x40000 && originalLength != 0x80000)
     {
-        Log(LogLevel::Warn, "Bad firmware size %d, ", originalLength);
+        EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Warn, "Bad firmware size %d, ", originalLength));
 
         // pick the nearest power-of-two length
         originalLength |= (originalLength >> 1);
@@ -195,7 +196,7 @@ u32 Firmware::FixFirmwareLength(u32 originalLength)
         if (originalLength > 0x80000) originalLength = 0x80000;
         else if (originalLength < 0x20000) originalLength = 0x20000;
 
-        Log(LogLevel::Debug, "assuming %d\n", originalLength);
+        EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Debug, "assuming %d\n", originalLength));
     }
     return originalLength;
 }

@@ -1,3 +1,4 @@
+#include "../../../../bridge/ds_diagnostics.h"
 
 #include <stdarg.h>
 #include <stdlib.h>
@@ -17,13 +18,13 @@ public:
 
 	u32 ReadReg(Gdb::Register reg) override
 	{
-		printf("[==>] read reg %d\n", (int)reg);
+		EMUCORED_DIAGNOSTIC_LOG(printf("[==>] read reg %d\n", (int)reg));
 		if (reg == Gdb::Register::pc) return 0x000000df; // cpsr: irq,fiq disabled, arm, sys mode
 		else return 0x69420;
 	}
 	void WriteReg(Gdb::Register reg, u32 value) override
 	{
-		printf("[==>] write reg %d: 0x%08x\n", (int)reg, value);
+		EMUCORED_DIAGNOSTIC_LOG(printf("[==>] write reg %d: 0x%08x\n", (int)reg, value));
 	}
 
 	u32 ReadMem(u32 addr, int len) override
@@ -35,23 +36,23 @@ public:
 			0
 		};
 
-		printf("[==>] read mem 0x%08x (size %u)\n", addr, len);
+		EMUCORED_DIAGNOSTIC_LOG(printf("[==>] read mem 0x%08x (size %u)\n", addr, len));
 
 		// $: b $ (arm)
 		return words[(addr>>2)&3] & ((1uLL<<len)-1);
 	}
 	void WriteMem(u32 addr, int len, u32 value) override
 	{
-		printf("[==>] write addr 0x%08x (size %u): 0x%08x\n", addr, len, value);
+		EMUCORED_DIAGNOSTIC_LOG(printf("[==>] write addr 0x%08x (size %u): 0x%08x\n", addr, len, value));
 	}
 
 	void ResetGdb() override
 	{
-		printf("[==>] RESET!!!\n");
+		EMUCORED_DIAGNOSTIC_LOG(printf("[==>] RESET!!!\n"));
 	}
 	int RemoteCmd(const u8* cmd, size_t len) override
 	{
-		printf("[==>] Rcmd: %s\n", cmd);
+		EMUCORED_DIAGNOSTIC_LOG(printf("[==>] Rcmd: %s\n", cmd));
 		return 0;
 	}
 };
@@ -80,22 +81,22 @@ int main(int argc, char** argv) {
 			switch (s)
 			{
 			case Gdb::StubState::Attach:
-				printf("[==>] attached\n");
+				EMUCORED_DIAGNOSTIC_LOG(printf("[==>] attached\n"));
 				break;
 			case Gdb::StubState::Break:
-				printf("[==>] break execution\n");
+				EMUCORED_DIAGNOSTIC_LOG(printf("[==>] break execution\n"));
 				stub.SignalStatus(Gdb::TgtStatus::BreakReq, ~(u32)0);
 				break;
 			case Gdb::StubState::Continue:
-				printf("[==>] continue execution\n");
+				EMUCORED_DIAGNOSTIC_LOG(printf("[==>] continue execution\n"));
 				// TODO: send signal status on SIGSTOP? eh.
 				break;
 			case Gdb::StubState::Step:
-				printf("[==>] single-step\n");
+				EMUCORED_DIAGNOSTIC_LOG(printf("[==>] single-step\n"));
 				stub.SignalStatus(Gdb::TgtStatus::SingleStep, ~(u32)0);
 				break;
 			case Gdb::StubState::Disconnect:
-				printf("[==>] disconnect\n");
+				EMUCORED_DIAGNOSTIC_LOG(printf("[==>] disconnect\n"));
 				stub.SignalStatus(Gdb::TgtStatus::None, ~(u32)0);
 				break;
 			}

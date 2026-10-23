@@ -1,3 +1,4 @@
+#include "../../../bridge/ds_diagnostics.h"
 /*
     Copyright 2016-2025 melonDS team
 
@@ -228,7 +229,7 @@ void Compiler::A_Comp_Arith()
         Comp_ArithTriOp(&Compiler::AND, rd, rn, op2, carryUsed, sFlag|opSymmetric|opInvertOp2);
         break;
     default:
-        Log(LogLevel::Error, "this is a JIT bug! %04x\n", op);
+        EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error, "this is a JIT bug! %04x\n", op));
         abort();
     }
 

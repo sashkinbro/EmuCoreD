@@ -1,3 +1,4 @@
+#include "../../bridge/ds_diagnostics.h"
 /*
     Copyright 2016-2025 melonDS team
 
@@ -649,7 +650,7 @@ void RTC::CmdRead()
     {
         if (NDS.ConsoleType != 1)
         {
-            Log(LogLevel::Debug, "RTC: unknown read command %02X\n", CurCmd);
+            EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Debug, "RTC: unknown read command %02X\n", CurCmd));
             return;
         }
 
@@ -673,14 +674,14 @@ void RTC::CmdRead()
             break;
 
         default:
-            Log(LogLevel::Debug, "RTC: unknown read command %02X\n", CurCmd);
+            EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Debug, "RTC: unknown read command %02X\n", CurCmd));
             break;
         }
 
         return;
     }
 
-    Log(LogLevel::Debug, "RTC: unknown read command %02X\n", CurCmd);
+    EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Debug, "RTC: unknown read command %02X\n", CurCmd));
 }
 
 void RTC::CmdWrite(u8 val)
@@ -799,14 +800,14 @@ void RTC::CmdWrite(u8 val)
     {
         if (NDS.ConsoleType != 1)
         {
-            Log(LogLevel::Debug, "RTC: unknown write command %02X\n", CurCmd);
+            EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Debug, "RTC: unknown write command %02X\n", CurCmd));
             return;
         }
 
         switch (CurCmd & 0x70)
         {
         case 0x00:
-            Log(LogLevel::Debug, "RTC: trying to write read-only minute counter\n");
+            EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Debug, "RTC: trying to write read-only minute counter\n"));
             break;
 
         case 0x40:
@@ -830,14 +831,14 @@ void RTC::CmdWrite(u8 val)
             break;
 
         default:
-            Log(LogLevel::Debug, "RTC: unknown write command %02X\n", CurCmd);
+            EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Debug, "RTC: unknown write command %02X\n", CurCmd));
             break;
         }
 
         return;
     }
 
-    Log(LogLevel::Debug, "RTC: unknown write command %02X\n", CurCmd);
+    EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Debug, "RTC: unknown write command %02X\n", CurCmd));
 }
 
 void RTC::ByteIn(u8 val)

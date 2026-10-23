@@ -1,3 +1,4 @@
+#include "../../../../bridge/ds_diagnostics.h"
 #include <functional>
 #include <string>
 #include <type_traits>
@@ -13,11 +14,11 @@
 namespace Teakra {
 
 auto NoSet(const std::string& debug_string) {
-    return [debug_string](u16) { printf("Warning: NoSet on %s\n", debug_string.data()); };
+    return [debug_string](u16) { EMUCORED_DIAGNOSTIC_LOG(printf("Warning: NoSet on %s\n", debug_string.data())); };
 }
 auto NoGet(const std::string& debug_string) {
     return [debug_string]() -> u16 {
-        printf("Warning: NoGet on %s\n", debug_string.data());
+        EMUCORED_DIAGNOSTIC_LOG(printf("Warning: NoGet on %s\n", debug_string.data()));
         return 0;
     };
 }
@@ -52,10 +53,10 @@ struct Cell {
         std::shared_ptr<u16> storage = std::make_shared<u16>(0);
         set = [storage, this](u16 value) {
             *storage = value;
-            std::printf("MMIO: cell %04X set = %04X\n", index, value);
+            EMUCORED_DIAGNOSTIC_LOG(std::printf("MMIO: cell %04X set = %04X\n", index, value));
         };
         get = [storage, this]() -> u16 {
-            std::printf("MMIO: cell %04X get\n", index);
+            EMUCORED_DIAGNOSTIC_LOG(std::printf("MMIO: cell %04X get\n", index));
             return *storage;
         };
     }

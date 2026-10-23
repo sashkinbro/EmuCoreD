@@ -29,9 +29,11 @@ constexpr std::size_t MAX_UPLOADS_PER_TICK = 8;
 
 using namespace Common::Literals;
 
+#if !defined(EMUCORED_DIAGNOSTICS) || EMUCORED_DIAGNOSTICS
 bool IsPow2(u32 value) {
     return value != 0 && (value & (value - 1)) == 0;
 }
+#endif
 
 CustomFileFormat MakeFileFormat(std::string_view ext) {
     if (ext == "png") {
@@ -173,6 +175,7 @@ bool CustomTexManager::ParseFilename(const FileUtil::FSTEntry& file, CustomTextu
 }
 
 void CustomTexManager::PrepareDumping(u64 title_id) {
+#if !defined(EMUCORED_DIAGNOSTICS) || EMUCORED_DIAGNOSTICS
     // If a pack exists in the load folder that uses the old hash, dump textures using the old hash.
     // This occurs either if a configuration file doesn't exist or that file sets the old hash.
     const std::string load_path =
@@ -202,6 +205,7 @@ void CustomTexManager::PrepareDumping(u64 title_id) {
     FileUtil::IOFile file{pack_config, "w"};
     const std::string output = json.dump(4);
     file.WriteString(output);
+#endif
 }
 
 void CustomTexManager::PreloadTextures(const std::atomic_bool& stop_run,
@@ -240,6 +244,7 @@ void CustomTexManager::PreloadTextures(const std::atomic_bool& stop_run,
 
 void CustomTexManager::DumpTexture(const SurfaceParams& params, u32 level, std::span<u8> data,
                                    u64 data_hash) {
+#if !defined(EMUCORED_DIAGNOSTICS) || EMUCORED_DIAGNOSTICS
     const u64 program_id = system.Kernel().GetCurrentProcess()->codeset->program_id;
     const u32 data_size = static_cast<u32>(data.size());
     const u32 width = params.width;
@@ -285,6 +290,7 @@ void CustomTexManager::DumpTexture(const SurfaceParams& params, u32 level, std::
     }
     workers->QueueWork(std::move(dump));
     dumped_textures.insert(data_hash);
+#endif
 }
 
 Material* CustomTexManager::GetMaterial(u64 data_hash) {

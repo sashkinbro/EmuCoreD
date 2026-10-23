@@ -1,3 +1,4 @@
+#include "../ds_diagnostics.h"
 #include "renderer/OpenGlRetroArchFilterChain.h"
 
 #include <dlfcn.h>
@@ -221,7 +222,7 @@ bool OpenGlRetroArchFilterChain::createChain(
     successEntry.outputHeight = outputHeight;
     ShaderDiagnostics::get().record(successEntry);
 
-    melonDS::Platform::Log(
+    EMUCORED_DIAGNOSTIC_LOG(melonDS::Platform::Log(
         melonDS::Platform::LogLevel::Info,
         "OpenGlPresenter[RetroArch]: preset=%s source=%ux%u output=%ux%u params=%zu",
         presetPath.c_str(),
@@ -229,7 +230,7 @@ bool OpenGlRetroArchFilterChain::createChain(
         sourceHeight,
         outputWidth,
         outputHeight,
-        parameterOverrides.size());
+        parameterOverrides.size()));
     return true;
 }
 
@@ -309,12 +310,12 @@ std::string OpenGlRetroArchFilterChain::describeError(const char* context, libra
     if (libra_error_write(error, &message) == 0 && message != nullptr)
     {
         description = message;
-        melonDS::Platform::Log(melonDS::Platform::LogLevel::Error, "%s failed: %s", context, message);
+        EMUCORED_DIAGNOSTIC_LOG(melonDS::Platform::Log(melonDS::Platform::LogLevel::Error, "%s failed: %s", context, message));
         (void)libra_error_free_string(&message);
     }
     else
     {
-        melonDS::Platform::Log(melonDS::Platform::LogLevel::Error, "%s failed", context);
+        EMUCORED_DIAGNOSTIC_LOG(melonDS::Platform::Log(melonDS::Platform::LogLevel::Error, "%s failed", context));
     }
     (void)libra_error_free(&error);
 

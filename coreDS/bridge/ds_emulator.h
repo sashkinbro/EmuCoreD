@@ -8,6 +8,7 @@
 #include <string>
 #include <thread>
 #include <vector>
+#include "ds_frame_trace.h"
 
 struct ANativeWindow;
 struct AAudioStreamStruct;
@@ -91,6 +92,7 @@ private:
     std::atomic<bool> running_{false};
     std::atomic<bool> stop_requested_{false};
     std::atomic<bool> paused_{false};
+    std::atomic<bool> presentation_dirty_{false};
     std::atomic<bool> swap_screens_{false};
     std::atomic<int> screen_layout_{0};
     std::atomic<int> requested_renderer_{1};
@@ -98,6 +100,7 @@ private:
     std::atomic<int> active_scale_{1};
     std::atomic<int> pending_scale_{0};
     std::atomic<uint64_t> frame_count_{0};
+    DsFrameTrace frame_trace_;
     std::mutex state_call_mutex_;
     std::mutex state_mutex_;
     std::condition_variable state_cv_;

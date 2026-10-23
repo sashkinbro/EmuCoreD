@@ -1,3 +1,4 @@
+#include "../../bridge/ds_diagnostics.h"
 /*
     Copyright 2016-2025 melonDS team
 
@@ -29,11 +30,11 @@ using Platform::Log;
 using Platform::LogLevel;
 
 
-#define _printhex(str, size) { for (int z = 0; z < (size); z++) printf("%02X", (str)[z]); printf("\n"); }
-#define _printhex2(str, size) { for (int z = 0; z < (size); z++) printf("%02X", (str)[z]); }
+#define _printhex(str, size) { for (int z = 0; z < (size); z++) EMUCORED_DIAGNOSTIC_LOG(printf("%02X", (str)[z])); EMUCORED_DIAGNOSTIC_LOG(printf("\n")); }
+#define _printhex2(str, size) { for (int z = 0; z < (size); z++) EMUCORED_DIAGNOSTIC_LOG(printf("%02X", (str)[z])); }
 
-#define _printhexR(str, size) { for (int z = 0; z < (size); z++) printf("%02X", (str)[((size)-1)-z]); printf("\n"); }
-#define _printhex2R(str, size) { for (int z = 0; z < (size); z++) printf("%02X", (str)[((size)-1)-z]); }
+#define _printhexR(str, size) { for (int z = 0; z < (size); z++) EMUCORED_DIAGNOSTIC_LOG(printf("%02X", (str)[((size)-1)-z])); EMUCORED_DIAGNOSTIC_LOG(printf("\n")); }
+#define _printhex2R(str, size) { for (int z = 0; z < (size); z++) EMUCORED_DIAGNOSTIC_LOG(printf("%02X", (str)[((size)-1)-z])); }
 
 
 DSi_AES::DSi_AES(melonDS::DSi& dsi) : DSi(dsi)
@@ -280,7 +281,7 @@ void DSi_AES::WriteCnt(u32 val)
 
         OutputMACDue = false;
 
-        if (AESMode == 0 && (!(val & (1<<20)))) Log(LogLevel::Debug, "AES: CCM-DECRYPT MAC FROM WRFIFO, TODO\n");
+        if (AESMode == 0 && (!(val & (1<<20)))) EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Debug, "AES: CCM-DECRYPT MAC FROM WRFIFO, TODO\n"));
 
         if ((RemBlocks > 0) || (RemExtra > 0))
         {
@@ -338,7 +339,7 @@ void DSi_AES::WriteBlkCnt(u32 val)
 
 u32 DSi_AES::ReadOutputFIFO()
 {
-    if (OutputFIFO.IsEmpty()) Log(LogLevel::Warn, "!!! AES OUTPUT FIFO EMPTY\n");
+    if (OutputFIFO.IsEmpty()) EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Warn, "!!! AES OUTPUT FIFO EMPTY\n"));
 
     u32 ret = OutputFIFO.Read();
 
@@ -371,7 +372,7 @@ void DSi_AES::WriteInputFIFO(u32 val)
 {
     // TODO: add some delay to processing
 
-    if (InputFIFO.IsFull()) Log(LogLevel::Warn, "!!! AES INPUT FIFO FULL\n");
+    if (InputFIFO.IsFull()) EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Warn, "!!! AES INPUT FIFO FULL\n"));
 
     InputFIFO.Write(val);
 

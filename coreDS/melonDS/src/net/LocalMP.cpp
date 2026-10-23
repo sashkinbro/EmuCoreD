@@ -1,3 +1,4 @@
+#include "../../../bridge/ds_diagnostics.h"
 /*
     Copyright 2016-2025 melonDS team
 
@@ -47,7 +48,7 @@ LocalMP::LocalMP() noexcept :
         SemPool[i] = Semaphore_Create();
     }
 
-    Log(LogLevel::Info, "MP comm init OK\n");
+    EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Info, "MP comm init OK\n"));
 }
 
 LocalMP::~LocalMP() noexcept
@@ -153,7 +154,7 @@ int LocalMP::SendPacketGeneric(int inst, u32 type, u8* packet, int len, u64 time
 {
     if (len > kMaxFrameSize)
     {
-        Log(LogLevel::Warn, "wifi: attempting to send frame too big (len=%d max=%d)\n", len, kMaxFrameSize);
+        EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Warn, "wifi: attempting to send frame too big (len=%d max=%d)\n", len, kMaxFrameSize));
         return 0;
     }
 
@@ -224,7 +225,7 @@ int LocalMP::RecvPacketGeneric(int inst, u8* packet, bool block, u64* timestamp)
 
         if (pktheader.Magic != 0x4946494E)
         {
-            Log(LogLevel::Warn, "PACKET FIFO OVERFLOW\n");
+            EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Warn, "PACKET FIFO OVERFLOW\n"));
             PacketReadOffset[inst] = MPStatus.PacketWriteOffset;
             Semaphore_Reset(SemPool[inst]);
             Mutex_Unlock(MPQueueLock);
@@ -323,7 +324,7 @@ u16 LocalMP::RecvReplies(int inst, u8* packets, u64 timestamp, u16 aidmask)
 
         if (pktheader.Magic != 0x4946494E)
         {
-            Log(LogLevel::Warn, "REPLY FIFO OVERFLOW\n");
+            EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Warn, "REPLY FIFO OVERFLOW\n"));
             ReplyReadOffset[inst] = MPStatus.ReplyWriteOffset;
             Semaphore_Reset(SemPool[16 + inst]);
             Mutex_Unlock(MPQueueLock);

@@ -1,3 +1,4 @@
+#include "../../../bridge/ds_diagnostics.h"
 /*
     Copyright 2016-2025 melonDS team, RSDuck
 
@@ -226,7 +227,7 @@ Compiler::Compiler(melonDS::NDS& nds) : Arm64Gen::ARM64XEmitter(), NDS(nds)
             break;
         if (i++ > 8)
         {
-            Log(LogLevel::Error, "couldn't find unmapped place for jit memory\n");
+            EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error, "couldn't find unmapped place for jit memory\n"));
             JitRXStart = NULL;
         }
     }
@@ -677,12 +678,12 @@ JitBlockEntry Compiler::CompileBlock(ARM* cpu, bool thumb, FetchedInstr instrs[]
 {
     if (JitMemMainSize - GetCodeOffset() < 1024 * 16)
     {
-        Log(LogLevel::Debug, "JIT near memory full, resetting...\n");
+        EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Debug, "JIT near memory full, resetting...\n"));
         NDS.JIT.ResetBlockCache();
     }
     if ((JitMemMainSize +  JitMemSecondarySize) - OtherCodeRegion < 1024 * 8)
     {
-        Log(LogLevel::Debug, "JIT far memory full, resetting...\n");
+        EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Debug, "JIT far memory full, resetting...\n"));
         NDS.JIT.ResetBlockCache();
     }
 

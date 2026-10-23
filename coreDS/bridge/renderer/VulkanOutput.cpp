@@ -1,3 +1,4 @@
+#include "../ds_diagnostics.h"
 #include "VulkanOutput.h"
 #include "FaithfulLiveRoutePolicy.h"
 
@@ -87,11 +88,11 @@ bool faithfulPassTimingEnabled()
         return false;
 
     static const bool explicitlyRequested = [] {
-        if (std::getenv("MELON_VULKAN_FAITHFUL_PASS_TIMING") != nullptr)
+        if (EMUCORED_DIAGNOSTIC_ENV("MELON_VULKAN_FAITHFUL_PASS_TIMING") != nullptr)
             return true;
 #ifdef __ANDROID__
         char value[PROP_VALUE_MAX] = {};
-        return __system_property_get(
+        return EMUCORED_DIAGNOSTIC_PROPERTY(
                    "debug.melonds.vulkan.faithful_pass_timing", value) > 0
             && value[0] == '1';
 #else
@@ -148,7 +149,7 @@ bool VulkanOutput::init()
 
     if (!melonDS::VulkanContext::Get().Acquire())
     {
-        melonDS::Platform::Log(melonDS::Platform::LogLevel::Error, "VulkanOutput: failed to acquire shared Vulkan context");
+        EMUCORED_DIAGNOSTIC_LOG(melonDS::Platform::Log(melonDS::Platform::LogLevel::Error, "VulkanOutput: failed to acquire shared Vulkan context"));
         return false;
     }
 
@@ -163,16 +164,16 @@ bool VulkanOutput::init()
     getSemaphoreCounterValue = useTimelineSemaphores ? melonDS::VulkanContext::Get().GetSemaphoreCounterValue() : nullptr;
     resetQueryPool = melonDS::VulkanContext::Get().GetResetQueryPool();
     timestampPeriodNs = melonDS::VulkanContext::Get().GetTimestampPeriod();
-    timestampQueriesSupported = melonDS::VulkanContext::Get().SupportsTimestamps();
+    timestampQueriesSupported = EMUCORED_DIAGNOSTICS && melonDS::VulkanContext::Get().SupportsTimestamps();
 
     faithfulPassTimingSessionEnabled = faithfulPassTimingEnabled();
 
     if (useTimelineSemaphores && (waitSemaphores == nullptr || getSemaphoreCounterValue == nullptr))
     {
-        melonDS::Platform::Log(
+        EMUCORED_DIAGNOSTIC_LOG(melonDS::Platform::Log(
             melonDS::Platform::LogLevel::Warn,
             "VulkanOutput: timeline semaphore support reported but required functions are unavailable; using fence-based fallback"
-        );
+        ));
         useTimelineSemaphores = false;
         waitSemaphores = nullptr;
         getSemaphoreCounterValue = nullptr;
@@ -180,7 +181,7 @@ bool VulkanOutput::init()
 
     if (device == VK_NULL_HANDLE || queue == VK_NULL_HANDLE)
     {
-        melonDS::Platform::Log(melonDS::Platform::LogLevel::Error, "VulkanOutput: shared context is incomplete");
+        EMUCORED_DIAGNOSTIC_LOG(melonDS::Platform::Log(melonDS::Platform::LogLevel::Error, "VulkanOutput: shared context is incomplete"));
         shutdown();
         return false;
     }
@@ -196,11 +197,11 @@ bool VulkanOutput::init()
     for (FaithfulUse& use : faithfulSlotUse)
         use = {};
     faithfulTemporalUse = {};
-    melonDS::Platform::Log(
+    EMUCORED_DIAGNOSTIC_LOG(melonDS::Platform::Log(
         melonDS::Platform::LogLevel::Warn,
         "VulkanOutput: sync path initialized (timeline=%d)",
         useTimelineSemaphores ? 1 : 0
-    );
+    ));
     return true;
 }
 
@@ -323,11 +324,11 @@ void VulkanOutput::releaseTemporalFrameReferences()
     std::lock_guard<std::mutex> lock(temporalReferenceLock);
     if (areRendererDebugBgObjLogsEnabled())
     {
-        melonDS::Platform::Log(
+        EMUCORED_DIAGNOSTIC_LOG(melonDS::Platform::Log(
             melonDS::Platform::LogLevel::Warn,
             "VulkanTemporal[Release]: releaseTemporalFrameReferences flips=%u",
             consecutiveLive3dOwnerFlips
-        );
+        ));
     }
     lastPreparedFrame = nullptr;
     lastTopRendererSourceFrame = nullptr;
@@ -393,13 +394,13 @@ bool VulkanOutput::releaseTemporalFrameReferencesFor(Frame* frame)
 
     if (areRendererDebugBgObjLogsEnabled())
     {
-        melonDS::Platform::Log(
+        EMUCORED_DIAGNOSTIC_LOG(melonDS::Platform::Log(
             melonDS::Platform::LogLevel::Warn,
             "VulkanTemporal[ReleaseFor]: frameId=%u topSrc=%u bottomSrc=%u",
             static_cast<unsigned>(frame->frameId),
             lastTopRendererSourceFrame == frame ? 1u : 0u,
             lastBottomRendererSourceFrame == frame ? 1u : 0u
-        );
+        ));
     }
     if (lastPreparedFrame == frame)
         lastPreparedFrame = nullptr;
@@ -462,10 +463,10 @@ void VulkanOutput::invalidateTemporalHistory()
     setFaithfulNativeFallbackIdentity(0u, 0u, false);
     if (areRendererDebugBgObjLogsEnabled())
     {
-        melonDS::Platform::Log(
+        EMUCORED_DIAGNOSTIC_LOG(melonDS::Platform::Log(
             melonDS::Platform::LogLevel::Warn,
             "VulkanTemporal[Invalidate]: invalidateTemporalHistory"
-        );
+        ));
     }
     releaseTemporalFrameReferences();
     for (SameBankMode2SourceCache& cache : sameBankMode2SourceCaches)
@@ -568,7 +569,7 @@ bool VulkanOutput::createSyncObjects()
 
     if (vkCreateSemaphore(device, &semaphoreCreateInfo, nullptr, &timelineSemaphore) != VK_SUCCESS)
     {
-        melonDS::Platform::Log(melonDS::Platform::LogLevel::Error, "VulkanOutput: failed to create timeline semaphore");
+        EMUCORED_DIAGNOSTIC_LOG(melonDS::Platform::Log(melonDS::Platform::LogLevel::Error, "VulkanOutput: failed to create timeline semaphore"));
         return false;
     }
 
@@ -584,7 +585,7 @@ bool VulkanOutput::createCommandObjects()
 
     if (vkCreateCommandPool(device, &commandPoolCreateInfo, nullptr, &commandPool) != VK_SUCCESS)
     {
-        melonDS::Platform::Log(melonDS::Platform::LogLevel::Error, "VulkanOutput: failed to create command pool");
+        EMUCORED_DIAGNOSTIC_LOG(melonDS::Platform::Log(melonDS::Platform::LogLevel::Error, "VulkanOutput: failed to create command pool"));
         return false;
     }
 
@@ -593,6 +594,8 @@ bool VulkanOutput::createCommandObjects()
 
 bool VulkanOutput::createTimestampQueryPool(VkQueryPool& queryPool)
 {
+#if EMUCORED_DIAGNOSTICS
+
     if (!timestampQueriesSupported)
         return true;
 
@@ -604,11 +607,16 @@ bool VulkanOutput::createTimestampQueryPool(VkQueryPool& queryPool)
 
     if (vkCreateQueryPool(device, &queryPoolCreateInfo, nullptr, &queryPool) != VK_SUCCESS)
     {
-        melonDS::Platform::Log(melonDS::Platform::LogLevel::Warn, "VulkanOutput: failed to create timestamp query pool");
+        EMUCORED_DIAGNOSTIC_LOG(melonDS::Platform::Log(melonDS::Platform::LogLevel::Warn, "VulkanOutput: failed to create timestamp query pool"));
         queryPool = VK_NULL_HANDLE;
     }
 
     return true;
+
+#else
+    queryPool = VK_NULL_HANDLE;
+    return true;
+#endif
 }
 
 namespace {
@@ -634,6 +642,15 @@ constexpr VkDeviceSize kFaithfulAtlasSize       = 0x26D000;
 
 constexpr VkDeviceSize kFaithfulAtlasVivo       = kFaithfulAtlasSize;
 constexpr VkDeviceSize kFaithfulAtlasTotal      = 2u * kFaithfulAtlasSize;
+
+unsigned long long traceWordHash(const void* data, size_t bytes)
+{
+    const auto* words = static_cast<const u32*>(data);
+    u64 hash = 1469598103934665603ull;
+    for (size_t index = 0u; index < bytes / sizeof(u32); ++index)
+        hash = (hash ^ words[index]) * 1099511628211ull;
+    return static_cast<unsigned long long>(hash);
+}
 
 constexpr u32 kFaithfulCausalAbiVersion = 6u;
 constexpr u32 kFaithfulCausalHeaderRoutesValid = 1u << 0u;
@@ -1002,9 +1019,9 @@ bool VulkanOutput::ensureFaithfulAtlas()
                          | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT))
         {
             destroyFaithfulAtlas();
-            melonDS::Platform::Log(
+            EMUCORED_DIAGNOSTIC_LOG(melonDS::Platform::Log(
                 melonDS::Platform::LogLevel::Error,
-                "VulkanOutput: fallo creando el atlas fiel");
+                "VulkanOutput: fallo creando el atlas fiel"));
             return false;
         }
     }
@@ -1013,7 +1030,7 @@ bool VulkanOutput::ensureFaithfulAtlas()
     {
         for (u32 j = 0; j < kFielRanuras; j++)
         {
-            melonDS::Platform::Log(
+            EMUCORED_DIAGNOSTIC_LOG(melonDS::Platform::Log(
                 melonDS::Platform::LogLevel::Warn,
                 "VulkanRuntime[FaithfulAtlasMemory]: slot=%u type=%u "
                 "flags=0x%X cached=%u coherent=%u flush=%u bytes=%llu "
@@ -1027,7 +1044,7 @@ bool VulkanOutput::ensureFaithfulAtlas()
                 (faithfulAtlasMemoryFlags[j]
                     & VK_MEMORY_PROPERTY_HOST_COHERENT_BIT) == 0u ? 1u : 0u,
                 static_cast<unsigned long long>(kFaithfulAtlasTotal),
-                anilloCacheado ? 1u : 0u);
+                anilloCacheado ? 1u : 0u));
         }
     }
     return true;
@@ -1063,10 +1080,10 @@ bool VulkanOutput::flushFaithfulAtlasWritesLocked(u32 slot)
     faithfulAtlasDeviceVisible[slot] = result == VK_SUCCESS;
     if (result != VK_SUCCESS)
     {
-        melonDS::Platform::Log(
+        EMUCORED_DIAGNOSTIC_LOG(melonDS::Platform::Log(
             melonDS::Platform::LogLevel::Error,
             "VulkanOutput: faithful atlas flush failed slot=%u result=%d",
-            slot, static_cast<int>(result));
+            slot, static_cast<int>(result)));
     }
     return result == VK_SUCCESS;
 }
@@ -1109,10 +1126,10 @@ static bool ssaaTecho()
 static bool faithfulCaptureHighresEnabled()
 {
     static const bool enabled = [] {
-        if (std::getenv("MELON_SIN_CAP_HIGHRES") != nullptr)
+        if (EMUCORED_DIAGNOSTIC_ENV("MELON_SIN_CAP_HIGHRES") != nullptr)
             return false;
         char value[PROP_VALUE_MAX] = {};
-        if (__system_property_get(
+        if (EMUCORED_DIAGNOSTIC_PROPERTY(
                 "debug.melonds.cap_highres", value) > 0
             && value[0] == '0')
         {
@@ -1126,10 +1143,10 @@ static bool faithfulCaptureHighresEnabled()
 static bool trazaCapActiva()
 {
     static const bool activa = [] {
-        if (std::getenv("MELON_TRAZA_CAP") != nullptr)
+        if (EMUCORED_DIAGNOSTIC_ENV("MELON_TRAZA_CAP") != nullptr)
             return true;
         char v[PROP_VALUE_MAX] = {};
-        return __system_property_get("debug.melonds.traza_cap", v) > 0
+        return EMUCORED_DIAGNOSTIC_PROPERTY("debug.melonds.traza_cap", v) > 0
                && v[0] == '1';
     }();
     return activa;
@@ -1396,25 +1413,25 @@ void VulkanOutput::uploadFaithfulAtlasPreFrameLocked(melonDS::GPU& gpu,
                              : gpu.VRAMCNT[banco];
         };
 
-        static const bool logTail = getenv("MELON_LOG_TAIL") != nullptr;
+        static const bool logTail = EMUCORED_DIAGNOSTIC_ENV("MELON_LOG_TAIL") != nullptr;
         static u32 logTailFot = 0;
         if (logTail)
-            fprintf(stderr,
+            EMUCORED_DIAGNOSTIC_LOG(fprintf(stderr,
                     "[tail] t=%u swapVivo=%u swapLatch=%u capVivo=%08X "
                     "capLatch=%08X cntVivo=%02X%02X%02X%02X cntLatch=%08X capRan=%u\n",
                     logTailFot++, (u32)((gpu.NDS.PowerControl9 >> 15) & 1u),
                     sr->GetFaithfulFrameMeta()[0] & 1u,
                     gpu.GPU2D_A.CaptureCnt, sr->GetFaithfulFrameMeta()[5],
                     gpu.VRAMCNT[3], gpu.VRAMCNT[2], gpu.VRAMCNT[1], gpu.VRAMCNT[0],
-                    cntLatchPack, sr->GetFaithfulFrameMeta()[1]);
+                    cntLatchPack, sr->GetFaithfulFrameMeta()[1]));
 
         static const bool tintaBanco = [] {
 #ifdef __ANDROID__
             char v[92] = {};
-            if (__system_property_get("debug.melonds.tinta_banco", v) > 0)
+            if (EMUCORED_DIAGNOSTIC_PROPERTY("debug.melonds.tinta_banco", v) > 0)
                 return v[0] == '1';
 #endif
-            return std::getenv("MELON_TINTA_BANCO") != nullptr;
+            return EMUCORED_DIAGNOSTIC_ENV("MELON_TINTA_BANCO") != nullptr;
         }();
         for (u32 bancoCap : {capDestPrevio, capDestActual})
         {
@@ -1454,13 +1471,13 @@ void VulkanOutput::uploadFaithfulAtlasPreFrameLocked(melonDS::GPU& gpu,
                 if (destinoFlat != SIZE_MAX)
                     copyPre(atlas + destinoFlat, gpu.VRAM[bancoCap], 0x20000u);
                 if (logTail)
-                    fprintf(stderr,
+                    EMUCORED_DIAGNOSTIC_LOG(fprintf(stderr,
                             "[tail]   empuje banco=%u cnt=%02X mst=%u ofs=%u flat=%zX\n",
-                            bancoCap, cnt, mst, ofs, destinoFlat);
+                            bancoCap, cnt, mst, ofs, destinoFlat));
             }
             else if (logTail)
-                fprintf(stderr, "[tail]   empuje banco=%u cnt=%02X SIN habilitar\n",
-                        bancoCap, cnt);
+                EMUCORED_DIAGNOSTIC_LOG(fprintf(stderr, "[tail]   empuje banco=%u cnt=%02X SIN habilitar\n",
+                        bancoCap, cnt));
             if (capDestActual == capDestPrevio) break;
         }
         capDestPrevio = capDestActual;
@@ -1516,8 +1533,21 @@ void VulkanOutput::uploadFaithfulAtlasPreFrameLocked(melonDS::GPU& gpu,
 
     sr->ClearFaithfulDirty();
     faithfulPreListo = true;
+#if EMUCORED_DIAGNOSTICS
+    auto& traceStamp = faithfulAtlasTrace[ranuraPre];
+    traceStamp.valid = frameTrace.isCapturing();
+    if (traceStamp.valid)
+    {
+        traceStamp.fromTail = desdeTail;
+        traceStamp.guestFrame = gpu.NDS.NumFrames;
+        traceStamp.metaFrame = sr->GetFaithfulFrameMeta()[8];
+        traceStamp.hash = traceWordHash(atlas, kFaithfulAtlasPalette);
+    }
+#endif
 
-    if (const char* prefF = getenv("MELON_VOLCAR_FLATS"))
+
+#if EMUCORED_DIAGNOSTICS
+    if (const char* prefF = EMUCORED_DIAGNOSTIC_ENV("MELON_VOLCAR_FLATS"))
     {
         static u32 nF = 0;
         char rutaF[512];
@@ -1536,6 +1566,8 @@ void VulkanOutput::uploadFaithfulAtlasPreFrameLocked(melonDS::GPU& gpu,
         }
         nF++;
     }
+#endif
+
 }
 
 bool VulkanOutput::uploadFaithfulCaptureRecipeLocked(
@@ -1998,14 +2030,14 @@ void VulkanOutput::uploadFaithfulCausalPrevLocked(melonDS::GPU& gpu)
     const u64 routeGeneration =
         sr->GetFaithfulPrevPhysicalScanoutGeneration();
     const auto routeUnavailable = [&](const char* reason) {
-        if (std::getenv("MELON_SONDA_RUTA_FISICA") != nullptr
-            || std::getenv("MELON_SONDA_REGISTRY") != nullptr)
+        if (EMUCORED_DIAGNOSTIC_ENV("MELON_SONDA_RUTA_FISICA") != nullptr
+            || EMUCORED_DIAGNOSTIC_ENV("MELON_SONDA_REGISTRY") != nullptr)
         {
-            std::fprintf(stderr,
+            EMUCORED_DIAGNOSTIC_LOG(std::fprintf(stderr,
                 "[causal-route] valid=0 full=0 reason=%s epoch=%llu "
                 "generation=%llu\n",
                 reason, static_cast<unsigned long long>(captureEpoch),
-                static_cast<unsigned long long>(routeGeneration));
+                static_cast<unsigned long long>(routeGeneration)));
         }
     };
     if (captureEpoch == 0u || routeGeneration == 0u
@@ -2106,15 +2138,15 @@ void VulkanOutput::uploadFaithfulCausalPrevLocked(melonDS::GPU& gpu)
     std::atomic_thread_fence(std::memory_order_release);
     std::memcpy(bytes, &routeHeader, sizeof(routeHeader));
     const auto keepRouteOnly = [&](const char* reason) {
-        if (std::getenv("MELON_SONDA_RUTA_FISICA") != nullptr
-            || std::getenv("MELON_SONDA_REGISTRY") != nullptr)
+        if (EMUCORED_DIAGNOSTIC_ENV("MELON_SONDA_RUTA_FISICA") != nullptr
+            || EMUCORED_DIAGNOSTIC_ENV("MELON_SONDA_REGISTRY") != nullptr)
         {
-            std::fprintf(stderr,
+            EMUCORED_DIAGNOSTIC_LOG(std::fprintf(stderr,
                 "[causal-route] valid=1 full=0 reason=%s epoch=%llu "
                 "generation=%llu lines=%zu\n",
                 reason, static_cast<unsigned long long>(captureEpoch),
                 static_cast<unsigned long long>(routeGeneration),
-                kFaithfulCausalRouteLineCount);
+                kFaithfulCausalRouteLineCount));
         }
     };
 
@@ -2151,9 +2183,9 @@ void VulkanOutput::uploadFaithfulCausalPrevLocked(melonDS::GPU& gpu)
     const u64 requiredTerminalGeneration =
         sr->GetFaithfulRequiredCaptureTerminalGeneration();
     const auto rejectTerminalAck = [&](const char* reason) {
-        if (std::getenv("MELON_SONDA_REGISTRY") != nullptr)
+        if (EMUCORED_DIAGNOSTIC_ENV("MELON_SONDA_REGISTRY") != nullptr)
         {
-            std::fprintf(stderr,
+            EMUCORED_DIAGNOSTIC_LOG(std::fprintf(stderr,
                 "[capture-terminal-ack] accepted=0 reason=%s "
                 "captureEpoch=%llu published=%llu:%llu/%u "
                 "required=%llu:%llu/%u\n",
@@ -2166,7 +2198,7 @@ void VulkanOutput::uploadFaithfulCausalPrevLocked(melonDS::GPU& gpu)
                 static_cast<unsigned>(faithfulPublishedCaptureTerminalCount),
                 static_cast<unsigned long long>(requiredTerminalEpoch),
                 static_cast<unsigned long long>(requiredTerminalGeneration),
-                static_cast<unsigned>(requiredTerminalCount));
+                static_cast<unsigned>(requiredTerminalCount)));
         }
     };
     if (captureEpoch == 0u || requiredTerminalCount > 4u
@@ -2240,9 +2272,9 @@ void VulkanOutput::uploadFaithfulCausalPrevLocked(melonDS::GPU& gpu)
     faithfulPublishedCaptureTerminalCount = 0u;
     faithfulPublishedCaptureTerminalEpoch = 0u;
     faithfulPublishedCaptureTerminalGeneration = 0u;
-    if (std::getenv("MELON_SONDA_REGISTRY") != nullptr)
+    if (EMUCORED_DIAGNOSTIC_ENV("MELON_SONDA_REGISTRY") != nullptr)
     {
-        std::fprintf(stderr,
+        EMUCORED_DIAGNOSTIC_LOG(std::fprintf(stderr,
             "[capture-terminal-ack] accepted=1 epoch=%llu generation=%llu "
             "published=%u required=%u subset=1 required0=%llu\n",
             static_cast<unsigned long long>(requiredTerminalEpoch),
@@ -2251,7 +2283,7 @@ void VulkanOutput::uploadFaithfulCausalPrevLocked(melonDS::GPU& gpu)
             static_cast<unsigned>(faithfulRequiredCaptureTerminalCount),
             static_cast<unsigned long long>(
                 faithfulRequiredCaptureTerminalCount != 0u
-                    ? faithfulRequiredCaptureTerminals[0].id : 0u));
+                    ? faithfulRequiredCaptureTerminals[0].id : 0u)));
     }
 
     auto plan = std::make_shared<FaithfulCaptureMaterializationPlan>();
@@ -2454,7 +2486,7 @@ void VulkanOutput::uploadFaithfulCausalPrevLocked(melonDS::GPU& gpu)
             frontierReason = "rejects";
         return frontierReason != nullptr;
     };
-    const bool sondaRegistry = std::getenv("MELON_SONDA_REGISTRY") != nullptr
+    const bool sondaRegistry = EMUCORED_DIAGNOSTIC_ENV("MELON_SONDA_REGISTRY") != nullptr
         || areRendererDebugBgObjLogsEnabled();
     if (sondaRegistry)
     {
@@ -2467,14 +2499,14 @@ void VulkanOutput::uploadFaithfulCausalPrevLocked(melonDS::GPU& gpu)
             ringIdentities +=
                 ringResource.renderer3dSnapshotSourceIdentityValid ? 1u : 0u;
         }
-        melonDS::Platform::Log(melonDS::Platform::LogLevel::Warn,
+        EMUCORED_DIAGNOSTIC_LOG(melonDS::Platform::Log(melonDS::Platform::LogLevel::Warn,
             "[capture-ring] resources=%zu snapshots=%u identities=%u valid=%zu "
             "sameEpoch=%u complete=%u epoch=%llu min=%llu",
             resources.size(), ringSnapshots, ringIdentities, ringCount,
             ringSameEpoch ? 1u : 0u, ringComplete ? 1u : 0u,
             static_cast<unsigned long long>(ringEpoch),
             static_cast<unsigned long long>(
-                ringComplete ? ringMinSequence : 0u));
+                ringComplete ? ringMinSequence : 0u)));
     }
     const auto noteFrontier = [&](const auto& key, const char* reason) {
         if (std::find(plan->nativeFrontiers.begin(),
@@ -2484,10 +2516,10 @@ void VulkanOutput::uploadFaithfulCausalPrevLocked(melonDS::GPU& gpu)
             return;
         }
         plan->nativeFrontiers.push_back(key);
-        if (std::getenv("MELON_SONDA_REGISTRY") != nullptr
+        if (EMUCORED_DIAGNOSTIC_ENV("MELON_SONDA_REGISTRY") != nullptr
             || areRendererDebugBgObjLogsEnabled())
         {
-            melonDS::Platform::Log(melonDS::Platform::LogLevel::Warn,
+            EMUCORED_DIAGNOSTIC_LOG(melonDS::Platform::Log(melonDS::Platform::LogLevel::Warn,
                 "[capture-frontier] epoch=%llu key=%llu reason=%s "
                 "ringComplete=%u ringMin=%llu rejects=%u",
                 static_cast<unsigned long long>(key.epoch),
@@ -2495,7 +2527,7 @@ void VulkanOutput::uploadFaithfulCausalPrevLocked(melonDS::GPU& gpu)
                 ringComplete ? 1u : 0u,
                 static_cast<unsigned long long>(
                     ringComplete ? ringMinSequence : 0u),
-                capHighresRejectStreak);
+                capHighresRejectStreak));
         }
     };
 
@@ -2767,7 +2799,7 @@ void VulkanOutput::uploadFaithfulCausalPrevLocked(melonDS::GPU& gpu)
         plan->nativeFrontiers.end()), plan->nativeFrontiers.end());
     if (sondaRegistry)
     {
-        melonDS::Platform::Log(melonDS::Platform::LogLevel::Warn,
+        EMUCORED_DIAGNOSTIC_LOG(melonDS::Platform::Log(melonDS::Platform::LogLevel::Warn,
             "[capture-plan] roots=%zu nodes=%zu working=%zu required=%zu "
             "current=%llu currentWorking=%zu exact=%u currentExact=%u "
             "overflow=%u currentOverflow=%u missing=%u cycle=%u ambiguous=%u "
@@ -2779,7 +2811,7 @@ void VulkanOutput::uploadFaithfulCausalPrevLocked(melonDS::GPU& gpu)
             plan->visibleExact ? 1u : 0u, plan->currentExact ? 1u : 0u,
             plan->overflow ? 1u : 0u, plan->currentOverflow ? 1u : 0u,
             plan->missing ? 1u : 0u, plan->cycle ? 1u : 0u,
-            plan->ambiguousPixels, plan->nativeFrontiers.size());
+            plan->ambiguousPixels, plan->nativeFrontiers.size()));
     }
     faithfulNativeFrontiers.fill({});
     faithfulNativeFrontierCount = 0u;
@@ -2846,7 +2878,7 @@ void VulkanOutput::uploadFaithfulCausalPrevLocked(melonDS::GPU& gpu)
     }
 
     if (!visibleAllNative
-        && std::getenv("MELON_SONDA_CAUSAL_B2") != nullptr)
+        && EMUCORED_DIAGNOSTIC_ENV("MELON_SONDA_CAUSAL_B2") != nullptr)
     {
         for (size_t screen = 0u; screen < 2u; screen++)
         {
@@ -2910,7 +2942,7 @@ void VulkanOutput::uploadFaithfulCausalPrevLocked(melonDS::GPU& gpu)
                     }
                 }
             }
-            std::fprintf(stderr,
+            EMUCORED_DIAGNOSTIC_LOG(std::fprintf(stderr,
                 "[causal-b2] gen=%016llX epoch=%016llX products=%u "
                 "screen=%zu native=%u ambiguous=%u replace=%u exact=%u "
                 "handle=%u capture=%u epochMatch=%u coords=%u "
@@ -2920,7 +2952,7 @@ void VulkanOutput::uploadFaithfulCausalPrevLocked(melonDS::GPU& gpu)
                 static_cast<unsigned>(productCount), screen,
                 native, ambiguous, replace, exact, handleInRange,
                 captureKind, epochMatch, coordinatesValid, b2Candidate,
-                productHi, productLo);
+                productHi, productLo));
         }
     }
 
@@ -2948,10 +2980,10 @@ void VulkanOutput::uploadFaithfulCausalPrevLocked(melonDS::GPU& gpu)
             : kFaithfulCausalHeaderFullLineageValid);
     std::atomic_thread_fence(std::memory_order_release);
     std::memcpy(bytes, &header, sizeof(header));
-    if (std::getenv("MELON_SONDA_RUTA_FISICA") != nullptr
-        || std::getenv("MELON_SONDA_REGISTRY") != nullptr)
+    if (EMUCORED_DIAGNOSTIC_ENV("MELON_SONDA_RUTA_FISICA") != nullptr
+        || EMUCORED_DIAGNOSTIC_ENV("MELON_SONDA_REGISTRY") != nullptr)
     {
-        std::fprintf(stderr,
+        EMUCORED_DIAGNOSTIC_LOG(std::fprintf(stderr,
             "[causal-route] valid=1 full=%u allNative=%u "
             "reason=complete epoch=%llu generation=%llu lines=%zu "
             "products=%u\n",
@@ -2960,7 +2992,7 @@ void VulkanOutput::uploadFaithfulCausalPrevLocked(melonDS::GPU& gpu)
             static_cast<unsigned long long>(captureEpoch),
             static_cast<unsigned long long>(generation),
             kFaithfulCausalRouteLineCount,
-            static_cast<unsigned>(visibleAllNative ? 0u : productCount));
+            static_cast<unsigned>(visibleAllNative ? 0u : productCount)));
     }
 }
 
@@ -2998,6 +3030,7 @@ void VulkanOutput::uploadFaithfulAtlas(melonDS::GPU& gpu)
     faithfulPreListo = false;
 
     faithfulRing = (faithfulRing + 1u) % kFielRanuras;
+    faithfulTailGuestFrame[faithfulRing] = gpu.NDS.NumFrames;
     faithfulDiagnosticPayload.invalidateSlot(faithfulRing);
     if (faithfulAtlasMappedPtr[faithfulRing] == nullptr)
         return;
@@ -3007,10 +3040,10 @@ void VulkanOutput::uploadFaithfulAtlas(melonDS::GPU& gpu)
             waitFaithfulUseLocked(faithfulSlotUse[faithfulRing]);
         if (!retired)
         {
-            melonDS::Platform::Log(
+            EMUCORED_DIAGNOSTIC_LOG(melonDS::Platform::Log(
                 melonDS::Platform::LogLevel::Error,
                 "VulkanOutput: faithful tail upload could not retire slot %u",
-                faithfulRing);
+                faithfulRing));
             return;
         }
     }
@@ -3150,10 +3183,10 @@ void VulkanOutput::uploadFaithfulAtlas(melonDS::GPU& gpu)
                 }
             }
         }
-        if (std::getenv("MELON_SONDA_CAPID") != nullptr
+        if (EMUCORED_DIAGNOSTIC_ENV("MELON_SONDA_CAPID") != nullptr
             || areRendererDebugBgObjLogsEnabled())
         {
-            melonDS::Platform::Log(melonDS::Platform::LogLevel::Warn,
+            EMUCORED_DIAGNOSTIC_LOG(melonDS::Platform::Log(melonDS::Platform::LogLevel::Warn,
                 "RendererDebug[FaithfulMaterialSeal]: ring=%u epoch=%llu "
                 "product=%llu "
                 "mismatches=%u compared=%u material=%u/%u source=%u/%u "
@@ -3174,7 +3207,7 @@ void VulkanOutput::uploadFaithfulAtlas(melonDS::GPU& gpu)
                 static_cast<unsigned long long>(submittedAttempt),
                 expectedKeyMatches ? 1u : 0u,
                 expectedAttemptMatches ? 1u : 0u,
-                certified ? 1u : 0u);
+                certified ? 1u : 0u));
         }
     }
     faithfulSealReadbackPending[faithfulRing] = false;
@@ -3203,12 +3236,12 @@ void VulkanOutput::uploadFaithfulAtlas(melonDS::GPU& gpu)
                     sr->GetFaithfulLineRegs(1), 192u * 32u * 4u);
 
         static const bool swapVivoEnv =
-            std::getenv("MELON_SWAP_VIVO") != nullptr;
+            EMUCORED_DIAGNOSTIC_ENV("MELON_SWAP_VIVO") != nullptr;
         if (swapVivoEnv)
             reinterpret_cast<u32*>(regs + 2u * 192u * 32u * 4u)[0] =
                 sr->GetFaithfulFrameMeta()[0];
 
-        else if (std::getenv("MELON_SWAP_SCANOUT") != nullptr)
+        else if (EMUCORED_DIAGNOSTIC_ENV("MELON_SWAP_SCANOUT") != nullptr)
             reinterpret_cast<u32*>(regs + 2u * 192u * 32u * 4u)[0] =
                 sr->GetFaithfulPrevSwapScanout() & 1u;
 
@@ -3217,7 +3250,7 @@ void VulkanOutput::uploadFaithfulAtlas(melonDS::GPU& gpu)
         {
 
             static const bool fichaViva =
-                std::getenv("MELON_FICHA_VIVA") != nullptr;
+                EMUCORED_DIAGNOSTIC_ENV("MELON_FICHA_VIVA") != nullptr;
             const u32* metaPrev = fichaViva ? sr->GetFaithfulFrameMeta()
                                             : sr->GetFaithfulPrevFrameMeta();
             capFichaActiva = metaPrev[1] != 0u;
@@ -3293,12 +3326,12 @@ void VulkanOutput::uploadFaithfulAtlas(melonDS::GPU& gpu)
         std::memcpy(regs + (2u * 192u * 32u + 3u) * 4u, &capHighresIniBBG, 4u);
         std::memcpy(regs + (2u * 192u * 32u + 7u) * 4u, &capHighresIniObj, 4u);
         if (trazaCapActiva())
-            melonDS::Platform::Log(melonDS::Platform::LogLevel::Warn,
+            EMUCORED_DIAGNOSTIC_LOG(melonDS::Platform::Log(melonDS::Platform::LogLevel::Warn,
                 "[cap] act=%d cnt=%08X iniA=%08X iniB=%08X",
                 capFichaActiva ? 1 : 0, capFichaCnt,
-                capHighresIniABG, capHighresIniBBG);
+                capHighresIniABG, capHighresIniBBG));
 
-        if (std::getenv("MELON_SONDA_RUTA_FISICA") != nullptr)
+        if (EMUCORED_DIAGNOSTIC_ENV("MELON_SONDA_RUTA_FISICA") != nullptr)
         {
             const u32 swapShader = reinterpret_cast<const u32*>(
                 regs + 2u * 192u * 32u * 4u)[0] & 1u;
@@ -3469,7 +3502,7 @@ void VulkanOutput::uploadFaithfulAtlas(melonDS::GPU& gpu)
                 sr->GetFaithfulPrevVisiblePixelLineage(
                     melonDS::GPU2D::PhysicalScreen::Bottom),
                 prevVisibleTable, prevVisibleCount);
-            std::fprintf(stderr,
+            EMUCORED_DIAGNOSTIC_LOG(std::fprintf(stderr,
                 "[ruta-fisica] frame=%u swapShader=%u valid=%u mismatch=%u "
                 "direct=%u missingProduct=%u topSeq=%llu/%u botSeq=%llu/%u "
                 "lineageBcur=%llu:%llu/%u/%u lineageBprev=%llu:%llu/%u/%u\n",
@@ -3484,12 +3517,12 @@ void VulkanOutput::uploadFaithfulAtlas(melonDS::GPU& gpu)
                 lineageActual.exactas, lineageActual.uniforme ? 1u : 0u,
                 static_cast<unsigned long long>(lineagePrevio.epoch),
                 static_cast<unsigned long long>(lineagePrevio.product),
-                lineagePrevio.exactas, lineagePrevio.uniforme ? 1u : 0u);
+                lineagePrevio.exactas, lineagePrevio.uniforme ? 1u : 0u));
             const auto imprimirVisible = [sr](const char* generation,
                                                const char* screen,
                                                u64 generationId,
                                                const ResumenVisibleFisico& v) {
-                std::fprintf(stderr,
+                EMUCORED_DIAGNOSTIC_LOG(std::fprintf(stderr,
                     "[visible-fisico] frame=%u generation=%s:%llu screen=%s "
                     "native=%u ambiguous=%u capture=%u live=%u unknown=%u "
                     "exact=%u captureKey=%llu:%llu/%u\n",
@@ -3499,7 +3532,7 @@ void VulkanOutput::uploadFaithfulAtlas(melonDS::GPU& gpu)
                     v.exact,
                     static_cast<unsigned long long>(v.captureEpoch),
                     static_cast<unsigned long long>(v.captureProduct),
-                    v.captureUniform ? 1u : 0u);
+                    v.captureUniform ? 1u : 0u));
             };
             imprimirVisible("current", "top",
                 sr->GetFaithfulVisibleLineageGeneration(), visibleCurrentTop);
@@ -3530,7 +3563,7 @@ void VulkanOutput::uploadFaithfulAtlas(melonDS::GPU& gpu)
     std::memcpy(atlas + kFaithfulAtlasOAM,     sr->GetFaithfulPrevOAMLatch(),     0x800);
 
     static const bool faseNM2 =
-        std::getenv("MELON_M2_FILAS_N") != nullptr;
+        EMUCORED_DIAGNOSTIC_ENV("MELON_M2_FILAS_N") != nullptr;
     {
         std::memcpy(atlas + kFaithfulAtlasModo2,
                     faseNM2 ? sr->GetFaithfulModo2Linea()
@@ -3583,7 +3616,7 @@ void VulkanOutput::uploadFaithfulAtlas(melonDS::GPU& gpu)
                 capProductoVivo.productEpoch, capProductoVivo.productId);
             if (material != nullptr)
             {
-                if (std::getenv("MELON_SONDA_CAPID") != nullptr)
+                if (EMUCORED_DIAGNOSTIC_ENV("MELON_SONDA_CAPID") != nullptr)
                 {
                     u64 hash = 1469598103934665603ull;
                     u32 noCero = 0u;
@@ -3596,7 +3629,7 @@ void VulkanOutput::uploadFaithfulAtlas(melonDS::GPU& gpu)
                         hash ^= static_cast<u8>(pixel >> 8u);
                         hash *= 1099511628211ull;
                     }
-                    std::fprintf(stderr,
+                    EMUCORED_DIAGNOSTIC_LOG(std::fprintf(stderr,
                         "[cap-material] epoch=%llu product=%llu "
                         "render=%llu:%llu nonzero=%u hash=%016llX\n",
                         static_cast<unsigned long long>(
@@ -3607,7 +3640,7 @@ void VulkanOutput::uploadFaithfulAtlas(melonDS::GPU& gpu)
                             capProductoVivo.sourceRenderProductEpoch),
                         static_cast<unsigned long long>(
                             capProductoVivo.sourceSequence),
-                        noCero, static_cast<unsigned long long>(hash));
+                        noCero, static_cast<unsigned long long>(hash)));
                 }
             }
         }
@@ -3823,17 +3856,17 @@ bool VulkanOutput::ensureFaithfulPipelineCache()
     if (cacheResult != VK_SUCCESS)
     {
         faithfulPipelineCache = VK_NULL_HANDLE;
-        melonDS::Platform::Log(
+        EMUCORED_DIAGNOSTIC_LOG(melonDS::Platform::Log(
             melonDS::Platform::LogLevel::Warn,
-            "VulkanOutput: pipeline cache unavailable (%d)", static_cast<int>(cacheResult));
+            "VulkanOutput: pipeline cache unavailable (%d)", static_cast<int>(cacheResult)));
         return false;
     }
     faithfulPipelineCacheSavedBytes = rejected ? 0 : cacheData.size();
-    melonDS::Platform::Log(
+    EMUCORED_DIAGNOSTIC_LOG(melonDS::Platform::Log(
         melonDS::Platform::LogLevel::Warn,
         "VulkanOutput: pipeline cache ready (%s, %llu bytes preloaded, rejected=%d)",
         faithfulPipelineCacheFile.c_str(),
-        static_cast<unsigned long long>(cacheData.size()), rejected ? 1 : 0);
+        static_cast<unsigned long long>(cacheData.size()), rejected ? 1 : 0));
     return true;
 }
 
@@ -3859,10 +3892,10 @@ void VulkanOutput::saveFaithfulPipelineCacheIfGrown()
     if (written == cacheSize)
     {
         faithfulPipelineCacheSavedBytes = cacheSize;
-        melonDS::Platform::Log(
+        EMUCORED_DIAGNOSTIC_LOG(melonDS::Platform::Log(
             melonDS::Platform::LogLevel::Warn,
             "VulkanOutput: saved pipeline cache (%s, %llu bytes)",
-            faithfulPipelineCacheFile.c_str(), static_cast<unsigned long long>(cacheSize));
+            faithfulPipelineCacheFile.c_str(), static_cast<unsigned long long>(cacheSize)));
     }
 }
 
@@ -3888,18 +3921,18 @@ bool VulkanOutput::ensureFaithfulPipeline()
     destroyFaithfulDebugLocked();
 
     const bool a1Traza = areRendererDebugToolsEnabled();
-    const u64 a1InicioNs = a1Traza ? PerfNowNs() : 0u;
+    const u64 a1InicioNs = a1Traza ? DiagnosticNowNs() : 0u;
     u64 a1PasoNs = a1InicioNs;
     const auto a1Marca = [&](const char* paso) {
         if (!a1Traza)
             return;
-        const u64 ahora = PerfNowNs();
-        melonDS::Platform::Log(
+        const u64 ahora = DiagnosticNowNs();
+        EMUCORED_DIAGNOSTIC_LOG(melonDS::Platform::Log(
             melonDS::Platform::LogLevel::Warn,
             "VulkanPerf[A1Faithful]: paso=%s ms=%.1f acum=%.1f",
             paso,
             static_cast<double>(ahora - a1PasoNs) / 1e6,
-            static_cast<double>(ahora - a1InicioNs) / 1e6);
+            static_cast<double>(ahora - a1InicioNs) / 1e6));
         a1PasoNs = ahora;
     };
     if (!ensureFaithfulAtlas())
@@ -4158,13 +4191,13 @@ bool VulkanOutput::ensureFaithfulPipeline()
     faithfulFinalNativeSubtileSize =
         computeSubgroupsSupported && subgroupProperties.subgroupSize >= 64u
             ? 2u : 4u;
-    melonDS::Platform::Log(
+    EMUCORED_DIAGNOSTIC_LOG(melonDS::Platform::Log(
         melonDS::Platform::LogLevel::Warn,
         "VulkanOutput: faithful final specialization subgroup=%u "
         "compute=%u subtile=%u",
         subgroupProperties.subgroupSize,
         computeSubgroupsSupported ? 1u : 0u,
-        faithfulFinalNativeSubtileSize);
+        faithfulFinalNativeSubtileSize));
     specialization.mode = 1u;
     specialization.captureRecipeEncoding = 0xFFFFFFFFu;
     specialization.finalInvocationMode = 1u;
@@ -4478,8 +4511,8 @@ bool VulkanOutput::ensureCapturaHighres(u32 escala)
         const VkResult rImg = vkCreateImage(device, &ii, nullptr, &capHighresImage[j]);
         if (rImg != VK_SUCCESS)
         {
-            melonDS::Platform::Log(melonDS::Platform::LogLevel::Error,
-                "[capd] ensureCapturaHighres: vkCreateImage fallo (%d) esc=%u", (int)rImg, escala);
+            EMUCORED_DIAGNOSTIC_LOG(melonDS::Platform::Log(melonDS::Platform::LogLevel::Error,
+                "[capd] ensureCapturaHighres: vkCreateImage fallo (%d) esc=%u", (int)rImg, escala));
             return false;
         }
         VkMemoryRequirements req{}; vkGetImageMemoryRequirements(device, capHighresImage[j], &req);
@@ -4491,9 +4524,9 @@ bool VulkanOutput::ensureCapturaHighres(u32 escala)
             || vkAllocateMemory(device, &ai, nullptr, &capHighresMem[j]) != VK_SUCCESS
             || vkBindImageMemory(device, capHighresImage[j], capHighresMem[j], 0) != VK_SUCCESS)
         {
-            melonDS::Platform::Log(melonDS::Platform::LogLevel::Error,
+            EMUCORED_DIAGNOSTIC_LOG(melonDS::Platform::Log(melonDS::Platform::LogLevel::Error,
                 "[capd] ensureCapturaHighres: memoria fallo (tipo=%u) esc=%u",
-                ai.memoryTypeIndex, escala);
+                ai.memoryTypeIndex, escala));
             return false;
         }
         VkImageViewCreateInfo vi{};
@@ -4523,12 +4556,12 @@ bool VulkanOutput::dispatchFaithfulCompositor(Frame* frame, FrameResource& resou
     const auto rejectCompose = [&](const char* reason) {
         if (areRendererDebugToolsEnabled())
         {
-            melonDS::Platform::Log(melonDS::Platform::LogLevel::Warn,
+            EMUCORED_DIAGNOSTIC_LOG(melonDS::Platform::Log(melonDS::Platform::LogLevel::Warn,
                 "VulkanCompose[Rejected]: reason=%s frameId=%llu generation=%llu size=%ux%u",
                 reason,
                 static_cast<unsigned long long>(frame != nullptr ? frame->frameId : 0u),
                 static_cast<unsigned long long>(frame != nullptr ? frame->publicationGeneration : 0u),
-                resource.width, resource.height);
+                resource.width, resource.height));
         }
         return false;
     };
@@ -4539,7 +4572,7 @@ bool VulkanOutput::dispatchFaithfulCompositor(Frame* frame, FrameResource& resou
     if (escala < 1u || escala > 8u
         || resource.width != 256u * escala || resource.height != 386u * escala)
     {
-        if (trazas < 3) { trazas++; std::fprintf(stderr, "[fiel-disp] tam %ux%u\n", resource.width, resource.height); }
+        if (trazas < 3) { trazas++; EMUCORED_DIAGNOSTIC_LOG(std::fprintf(stderr, "[fiel-disp] tam %ux%u\n", resource.width, resource.height)); }
         return rejectCompose("output_geometry");
     }
     std::scoped_lock lifetimeLock(faithfulLifetimeLock);
@@ -4605,13 +4638,13 @@ bool VulkanOutput::dispatchFaithfulCompositor(Frame* frame, FrameResource& resou
         ? inputs->rendererWidth / (256u * escala) : 1u;
 
     static const bool f2Sampler = [] {
-        if (std::getenv("MELON_SIN_F2") != nullptr)
+        if (EMUCORED_DIAGNOSTIC_ENV("MELON_SIN_F2") != nullptr)
             return false;
-        if (std::getenv("MELON_F2_SAMPLER") != nullptr)
+        if (EMUCORED_DIAGNOSTIC_ENV("MELON_F2_SAMPLER") != nullptr)
             return true;
 #ifdef __ANDROID__
         char vF2[PROP_VALUE_MAX] = {};
-        if (__system_property_get("debug.melonds.f2_sampler", vF2) > 0
+        if (EMUCORED_DIAGNOSTIC_PROPERTY("debug.melonds.f2_sampler", vF2) > 0
             && vF2[0] == '1')
             return true;
 #endif
@@ -4620,15 +4653,15 @@ bool VulkanOutput::dispatchFaithfulCompositor(Frame* frame, FrameResource& resou
     const bool f2Activo = f2Sampler && escala > 1u && !stash3dForzado
         && inputs != nullptr && inputs->sourceImage != VK_NULL_HANDLE
         && inputs->sourceImageView != VK_NULL_HANDLE;
-    if (std::getenv("MELON_FIEL_TRAZA3D") != nullptr && escala > 1u)
-        std::fprintf(stderr, "[fiel-3d] esc=%u stash=%d r=%ux%u vista=%d\n",
+    if (EMUCORED_DIAGNOSTIC_ENV("MELON_FIEL_TRAZA3D") != nullptr && escala > 1u)
+        EMUCORED_DIAGNOSTIC_LOG(std::fprintf(stderr, "[fiel-3d] esc=%u stash=%d r=%ux%u vista=%d\n",
             escala, stash3dForzado ? 1 : 0,
             inputs != nullptr ? inputs->rendererWidth : 0u,
             inputs != nullptr ? inputs->rendererHeight : 0u,
-            (inputs != nullptr && inputs->sourceImageView != VK_NULL_HANDLE) ? 1 : 0);
+            (inputs != nullptr && inputs->sourceImageView != VK_NULL_HANDLE) ? 1 : 0));
     if (!ensureFaithfulPipeline())
     {
-        if (trazas < 6) { trazas++; std::fprintf(stderr, "[fiel-disp] sin pipeline\n"); }
+        if (trazas < 6) { trazas++; EMUCORED_DIAGNOSTIC_LOG(std::fprintf(stderr, "[fiel-disp] sin pipeline\n")); }
         return rejectCompose("pipeline_unavailable");
     }
     std::scoped_lock commandLock(commandPoolLock);
@@ -4704,18 +4737,18 @@ bool VulkanOutput::dispatchFaithfulCompositor(Frame* frame, FrameResource& resou
     if (!causalRouteHeaderCpuValid)
     {
         snapshotDiferidoRenderer = nullptr;
-        if (std::getenv("MELON_SONDA_RUTA_FISICA") != nullptr
-            || std::getenv("MELON_SONDA_REGISTRY") != nullptr)
+        if (EMUCORED_DIAGNOSTIC_ENV("MELON_SONDA_RUTA_FISICA") != nullptr
+            || EMUCORED_DIAGNOSTIC_ENV("MELON_SONDA_REGISTRY") != nullptr)
         {
-            std::fprintf(stderr,
+            EMUCORED_DIAGNOSTIC_LOG(std::fprintf(stderr,
                 "[causal-route-dispatch] accepted=0 reason=%s ring=%u\n",
-                causalRouteRejectReason, faithfulRing);
+                causalRouteRejectReason, faithfulRing));
         }
         return rejectCompose(causalRouteRejectReason);
     }
-    if (trazas < 9) { trazas++; std::fprintf(stderr, "[fiel-disp] DISPARANDO\n"); }
+    if (trazas < 9) { trazas++; EMUCORED_DIAGNOSTIC_LOG(std::fprintf(stderr, "[fiel-disp] DISPARANDO\n")); }
     {
-        static const bool logDisp = getenv("MELON_LOG_TAIL") != nullptr;
+        static const bool logDisp = EMUCORED_DIAGNOSTIC_ENV("MELON_LOG_TAIL") != nullptr;
         if (logDisp)
         {
             static u32 nDisp = 0;
@@ -4737,10 +4770,11 @@ bool VulkanOutput::dispatchFaithfulCompositor(Frame* frame, FrameResource& resou
                 for (u32 i = 0; i < 64u * 1024u; i += 64u)
                     if (bobj[i] != 0) bobjNz++;
             }
-            std::fprintf(stderr, "[disp] n=%u ring=%u meta0=%u bbgNz=%u bobjNz=%u\n",
-                         nDisp, faithfulRing, meta0, bbgNz, bobjNz);
+            EMUCORED_DIAGNOSTIC_LOG(std::fprintf(stderr, "[disp] n=%u ring=%u meta0=%u bbgNz=%u bobjNz=%u\n",
+                         nDisp, faithfulRing, meta0, bbgNz, bobjNz));
 
-            if (const char* pref = getenv("MELON_VOLCAR_STAGING"))
+#if EMUCORED_DIAGNOSTICS
+            if (const char* pref = EMUCORED_DIAGNOSTIC_ENV("MELON_VOLCAR_STAGING"))
             {
                 char ruta[512];
                 std::snprintf(ruta, sizeof(ruta), "%s-regs-%u.bin", pref, nDisp);
@@ -4766,6 +4800,8 @@ bool VulkanOutput::dispatchFaithfulCompositor(Frame* frame, FrameResource& resou
                         std::fclose(f);
                     }
             }
+#endif
+
             nDisp++;
         }
     }
@@ -5128,11 +5164,11 @@ bool VulkanOutput::dispatchFaithfulCompositor(Frame* frame, FrameResource& resou
             }
         }
     }
-    if (std::getenv("MELON_SONDA_REGISTRY") != nullptr
+    if (EMUCORED_DIAGNOSTIC_ENV("MELON_SONDA_REGISTRY") != nullptr
         || areRendererDebugBgObjLogsEnabled())
     {
 
-        melonDS::Platform::Log(melonDS::Platform::LogLevel::Warn,
+        EMUCORED_DIAGNOSTIC_LOG(melonDS::Platform::Log(melonDS::Platform::LogLevel::Warn,
             "[capture-slots] target=%llu write=%u resident=%u ready=%u "
             "planExact=%u overflow=%u "
             "s0=%u:%llu%s s1=%u:%llu%s s2=%u:%llu%s s3=%u:%llu%s",
@@ -5152,16 +5188,16 @@ bool VulkanOutput::dispatchFaithfulCompositor(Frame* frame, FrameResource& resou
             captureSlotPinned[2] ? "p" : "",
             static_cast<unsigned>(capHighresSlotState[3]),
             static_cast<unsigned long long>(capHighresProducto[3].productId),
-            captureSlotPinned[3] ? "p" : "");
+            captureSlotPinned[3] ? "p" : ""));
     }
     const bool capHighresUsable = capHighresProp && capHighresValida
         && capHighresEscala == escala && escala > 1u;
 
     static const bool sinPase =
-        std::getenv("MELON_SIN_PASE_CAPTURA") != nullptr;
+        EMUCORED_DIAGNOSTIC_ENV("MELON_SIN_PASE_CAPTURA") != nullptr;
 
     static const bool lineasDma =
-        std::getenv("MELON_SIN_LINEAS_DMA") == nullptr;
+        EMUCORED_DIAGNOSTIC_ENV("MELON_SIN_LINEAS_DMA") == nullptr;
     if (capFichaSalto)
     {
 
@@ -5219,13 +5255,13 @@ bool VulkanOutput::dispatchFaithfulCompositor(Frame* frame, FrameResource& resou
     bool paseFuenteExacta = !requiereFuenteA;
 
     static const bool tailComposeCompleto =
-        std::getenv("MELON_TAIL_COMPOSE_COMPLETO") != nullptr;
+        EMUCORED_DIAGNOSTIC_ENV("MELON_TAIL_COMPOSE_COMPLETO") != nullptr;
     const bool rutaCorta = inputs != nullptr && inputs->soloMaterializar
         && escala > 1u && !tailComposeCompleto;
     bool paseFuenteMetadataCompleta = !requiereFuenteA;
     bool paseFuenteEsRecursoActual = false;
     const bool sourceSealDiagnosticEnabled =
-        std::getenv("MELON_SONDA_CAPID") != nullptr
+        EMUCORED_DIAGNOSTIC_ENV("MELON_SONDA_CAPID") != nullptr
         || areRendererDebugBgObjLogsEnabled();
     bool sourceSealDiagnosticAvailable = false;
 
@@ -5259,17 +5295,17 @@ bool VulkanOutput::dispatchFaithfulCompositor(Frame* frame, FrameResource& resou
             capSwapRetenidos = 0u;
 
         if (cambio && capSwapCambioReciente == 0u)
-            melonDS::Platform::Log(melonDS::Platform::LogLevel::Warn,
+            EMUCORED_DIAGNOSTIC_LOG(melonDS::Platform::Log(melonDS::Platform::LogLevel::Warn,
                 "[swapev] swap %u->%u act=%d salto=%d vent=%02X cnt=%08X "
                 "dispA=%08X preA=%d preB=%d",
                 capSwapPrevio, swapAhora, capFichaActiva ? 1 : 0,
                 capFichaSalto ? 1 : 0, capSwapVentana,
                 capFichaCnt, capFichaDispA0,
-                capFichaPreA ? 1 : 0, capFichaPreB ? 1 : 0);
+                capFichaPreA ? 1 : 0, capFichaPreB ? 1 : 0));
         capSwapPrevio = swapAhora;
     }
-    static const bool genPrevGlobal = std::getenv("MELON_GEN_PREV") != nullptr;
-    static const bool genVivaGlobal = std::getenv("MELON_GEN_ACTUAL") != nullptr;
+    static const bool genPrevGlobal = EMUCORED_DIAGNOSTIC_ENV("MELON_GEN_PREV") != nullptr;
+    static const bool genVivaGlobal = EMUCORED_DIAGNOSTIC_ENV("MELON_GEN_ACTUAL") != nullptr;
     const bool genSaltoActivo = !genVivaGlobal
         && (genPrevGlobal || capSwapCambioReciente > 0u);
 
@@ -5282,7 +5318,7 @@ bool VulkanOutput::dispatchFaithfulCompositor(Frame* frame, FrameResource& resou
             capSelloPrev = capSelloPar[jSello];
         capSelloPar[jSello] = capFichaSwap ? 1u : 0u;
     }
-    static const bool sinVetoTop = std::getenv("MELON_SIN_VETO_TOP") != nullptr;
+    static const bool sinVetoTop = EMUCORED_DIAGNOSTIC_ENV("MELON_SIN_VETO_TOP") != nullptr;
     bool selloVeto = false;
 
     if (!sinVetoTop && !genPrevGlobal && !genVivaGlobal
@@ -5302,11 +5338,11 @@ bool VulkanOutput::dispatchFaithfulCompositor(Frame* frame, FrameResource& resou
         && (capSwapCambioReciente == 0u || capSwapRetenidos >= 1u);
 
     static const u32 capTinte = [] {
-        const char* v = std::getenv("MELON_CAPHR_TINTE");
+        const char* v = EMUCORED_DIAGNOSTIC_ENV("MELON_CAPHR_TINTE");
         return v != nullptr ? (u32)(std::strtoul(v, nullptr, 0) & 3u) : 0u;
     }();
 
-    static const bool modo2Vivo = std::getenv("MELON_MODO2_VIVO") != nullptr;
+    static const bool modo2Vivo = EMUCORED_DIAGNOSTIC_ENV("MELON_MODO2_VIVO") != nullptr;
 
     const u32 bancoBitsCapHR = (modo2Ok ? bancoDisp2 : capHighresBanco) & 3u;
     const bool vetoIdentidad = capVetoIdentidadPar[bancoBitsCapHR & 1u];
@@ -5397,9 +5433,9 @@ bool VulkanOutput::dispatchFaithfulCompositor(Frame* frame, FrameResource& resou
         if (!recordFaithfulPassTiming
             || resource.timestampQueryPool == VK_NULL_HANDLE)
             return;
-        vkCmdWriteTimestamp(
+        EMUCORED_DIAGNOSTIC_LOG(vkCmdWriteTimestamp(
             resource.commandBuffer, stage,
-            resource.timestampQueryPool, query);
+            resource.timestampQueryPool, query));
     };
     writeFaithfulTimestamp(0u, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT);
 
@@ -5661,10 +5697,15 @@ bool VulkanOutput::dispatchFaithfulCompositor(Frame* frame, FrameResource& resou
         }
     }
 
+#if EMUCORED_DIAGNOSTICS
     char dsTraceProperty[PROP_VALUE_MAX]{};
-    if (frame != nullptr && frame->frameId % 120u == 1u
-        && __system_property_get("debug.emucored.ds_trace", dsTraceProperty) > 0
-        && dsTraceProperty[0] == '1')
+    const bool sampledTraceFrame = frame != nullptr && frame->frameId % 120u == 1u;
+    if (frame != nullptr && frameTrace.shouldPoll(sampledTraceFrame))
+    {
+        const int length = EMUCORED_DIAGNOSTIC_PROPERTY("debug.emucored.ds_trace", dsTraceProperty);
+        frameTrace.observe(length > 0 ? dsTraceProperty[0] - '0' : 0);
+    }
+    if (frame != nullptr && frameTrace.take(sampledTraceFrame))
     {
         const auto* header = causalRouteHeaderCpu;
         u32 precomposedLines = 0u, direct3dLines = 0u;
@@ -5678,7 +5719,7 @@ bool VulkanOutput::dispatchFaithfulCompositor(Frame* frame, FrameResource& resou
                 direct3dLines += (row[0] & 0x0108u) == 0x0108u ? 1u : 0u;
             }
         }
-        melonDS::Platform::Log(melonDS::Platform::LogLevel::Warn,
+        EMUCORED_DIAGNOSTIC_LOG(melonDS::Platform::Log(melonDS::Platform::LogLevel::Warn,
             "DSCompose3D frame=%llu ring=%u routeValid=%u headerValid=%u bits=%08X "
             "products=%u captureEpoch=%llu generation=%llu live=%llu:%llu "
             "matches=%u ambiguous=%u bound=%u projection=%ux%u sourcePolys=%u "
@@ -5697,8 +5738,45 @@ bool VulkanOutput::dispatchFaithfulCompositor(Frame* frame, FrameResource& resou
             liveCausalSource != nullptr ? liveCausalSource->renderer3dSnapshotSourcePolygonCount : 0u,
             liveCausalSource != nullptr && liveCausalSource->renderer3dSnapshotSourceScreenSwap ? 1u : 0u,
             faithfulNativeFallbackSource != nullptr ? 1u : 0u, faithful3dStash.size(),
-            precomposedLines, direct3dLines);
+            precomposedLines, direct3dLines));
+
+        // Correlate ordinary BG/OBJ changes with the atlas slot, not only 3D identities.
+        // Hashing is deliberately inside the opt-in trace window.
+        if (faithfulAtlasMappedPtr[faithfulRing] != nullptr
+            && faithfulRegsMapped[faithfulRing] != nullptr)
+        {
+            const auto* atlas = static_cast<const u8*>(faithfulAtlasMappedPtr[faithfulRing]);
+            const auto* regs = static_cast<const u32*>(faithfulRegsMapped[faithfulRing]);
+            const u32* meta = regs + 2u * 192u * 32u;
+            const auto& stamp = faithfulAtlasTrace[faithfulRing];
+            const auto consumedHash = traceWordHash(atlas, kFaithfulAtlasPalette);
+            EMUCORED_DIAGNOSTIC_LOG(melonDS::Platform::Log(melonDS::Platform::LogLevel::Warn,
+                "DSAtlasPhase frame=%llu ring=%u lowLatency=%u tailGuest=%u metaFrame=%u "
+                "preValid=%u preFromTail=%u preGuest=%u preMeta=%u preHash=%016llX "
+                "consumedHash=%016llX hashMatches=%u",
+                static_cast<unsigned long long>(frame->frameId), faithfulRing,
+                lowLatencyEnabled ? 1u : 0u, faithfulTailGuestFrame[faithfulRing], meta[8],
+                stamp.valid ? 1u : 0u, stamp.fromTail ? 1u : 0u,
+                stamp.guestFrame, stamp.metaFrame, static_cast<unsigned long long>(stamp.hash),
+                consumedHash, stamp.valid && stamp.hash == consumedHash ? 1u : 0u));
+            EMUCORED_DIAGNOSTIC_LOG(melonDS::Platform::Log(melonDS::Platform::LogLevel::Warn,
+                "DSCompose2D frame=%llu ring=%u scale=%u metaFrame=%u swap=%u flags=%08X "
+                "abg=%016llX bbg=%016llX aobj=%016llX bobj=%016llX "
+                "extpal=%016llX palette=%016llX oam=%016llX regs=%016llX",
+                static_cast<unsigned long long>(frame->frameId), faithfulRing, escala,
+                meta[8], meta[0], meta[6],
+                traceWordHash(atlas + kFaithfulAtlasABG, 0x80000u),
+                traceWordHash(atlas + kFaithfulAtlasBBG, 0x20000u),
+                traceWordHash(atlas + kFaithfulAtlasAOBJ, 0x40000u),
+                traceWordHash(atlas + kFaithfulAtlasBOBJ, 0x20000u),
+                traceWordHash(atlas + kFaithfulAtlasABGExtPal, 0x14000u),
+                traceWordHash(atlas + kFaithfulAtlasPalette, 0x800u),
+                traceWordHash(atlas + kFaithfulAtlasOAM, 0x800u),
+                traceWordHash(regs, 2u * 192u * 32u * sizeof(u32))));
+        }
     }
+#endif
+
 
     if (boundLive != nullptr && liveCausalSource != nullptr)
     {
@@ -5751,11 +5829,11 @@ bool VulkanOutput::dispatchFaithfulCompositor(Frame* frame, FrameResource& resou
 
     static u32 liveCausalLogsRemaining = 240u;
     if (liveCausalLogsRemaining > 0u
-        && (std::getenv("MELON_SONDA_CAPID") != nullptr
+        && (EMUCORED_DIAGNOSTIC_ENV("MELON_SONDA_CAPID") != nullptr
             || areRendererDebugBgObjLogsEnabled()))
     {
         liveCausalLogsRemaining--;
-        melonDS::Platform::Log(melonDS::Platform::LogLevel::Warn,
+        EMUCORED_DIAGNOSTIC_LOG(melonDS::Platform::Log(melonDS::Platform::LogLevel::Warn,
             "RendererDebug[FaithfulLiveBound]: frame=%u ring=%u "
             "header=%u ambiguous=%u expected=%llu:%llu matches=%u "
             "bound=%u size=%ux%u currentSnapshot=%llu:%llu remaining=%u",
@@ -5770,7 +5848,7 @@ bool VulkanOutput::dispatchFaithfulCompositor(Frame* frame, FrameResource& resou
                 resource.renderer3dSnapshotSourceEpoch),
             static_cast<unsigned long long>(
                 resource.renderer3dSnapshotSourceSequence),
-            liveCausalLogsRemaining);
+            liveCausalLogsRemaining));
     }
 
     VkDescriptorBufferInfo sourceSealDummy{
@@ -6021,9 +6099,9 @@ bool VulkanOutput::dispatchFaithfulCompositor(Frame* frame, FrameResource& resou
             if (slot >= 4u)
             {
                 exactRoots = false;
-                if (std::getenv("MELON_SONDA_CAPID") != nullptr)
+                if (EMUCORED_DIAGNOSTIC_ENV("MELON_SONDA_CAPID") != nullptr)
                 {
-                    std::fprintf(stderr,
+                    EMUCORED_DIAGNOSTIC_LOG(std::fprintf(stderr,
                         "[capws-root] root=%zu key=%016llX:%016llX "
                         "handles=%u handle=%u slot=none target=%u:%016llX:%016llX "
                         "pass=%u states=%u,%u,%u,%u\n",
@@ -6038,13 +6116,13 @@ bool VulkanOutput::dispatchFaithfulCompositor(Frame* frame, FrameResource& resou
                         static_cast<unsigned>(capHighresSlotState[0]),
                         static_cast<unsigned>(capHighresSlotState[1]),
                         static_cast<unsigned>(capHighresSlotState[2]),
-                        static_cast<unsigned>(capHighresSlotState[3]));
+                        static_cast<unsigned>(capHighresSlotState[3])));
                 }
                 break;
             }
-            if (std::getenv("MELON_SONDA_CAPID") != nullptr)
+            if (EMUCORED_DIAGNOSTIC_ENV("MELON_SONDA_CAPID") != nullptr)
             {
-                std::fprintf(stderr,
+                EMUCORED_DIAGNOSTIC_LOG(std::fprintf(stderr,
                     "[capws-root] root=%zu key=%016llX:%016llX "
                     "handles=%u handle=%u slot=%u target=%u:%016llX:%016llX "
                     "pass=%u states=%u,%u,%u,%u\n",
@@ -6059,7 +6137,7 @@ bool VulkanOutput::dispatchFaithfulCompositor(Frame* frame, FrameResource& resou
                     static_cast<unsigned>(capHighresSlotState[0]),
                     static_cast<unsigned>(capHighresSlotState[1]),
                     static_cast<unsigned>(capHighresSlotState[2]),
-                    static_cast<unsigned>(capHighresSlotState[3]));
+                    static_cast<unsigned>(capHighresSlotState[3])));
             }
             rootHandles[rootIndex] = static_cast<u16>(matchingHandle);
             rootSlots[rootIndex] = slot;
@@ -6260,9 +6338,9 @@ bool VulkanOutput::dispatchFaithfulCompositor(Frame* frame, FrameResource& resou
     writeFaithfulTimestamp(3u, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT);
 
     static u32 capdCadencia = 0;
-    static const bool capdCada = std::getenv("MELON_LOG_TAIL") != nullptr;
+    static const bool capdCada = EMUCORED_DIAGNOSTIC_ENV("MELON_LOG_TAIL") != nullptr;
     if (trazaCapActiva() || capdCada || (capdCadencia++ % 120u) == 0u)
-        melonDS::Platform::Log(melonDS::Platform::LogLevel::Warn,
+        EMUCORED_DIAGNOSTIC_LOG(melonDS::Platform::Log(melonDS::Platform::LogLevel::Warn,
             "[capd] frameId=%d inv=%u prop=%d val=%d escI=%u esc=%u usable=%d banco=%u act=%d "
             "ini0=%d ini1=%d iniA=%08X iniB=%08X iniO=%08X pase=%d m2=%d "
             "fr0=%d fr1=%d salto=%d dispA=%08X dispB=%08X preA=%d preB=%d "
@@ -6283,7 +6361,7 @@ bool VulkanOutput::dispatchFaithfulCompositor(Frame* frame, FrameResource& resou
             capFichaPreA ? 1 : 0, capFichaPreB ? 1 : 0,
             capFichaSwap ? 1 : 0, capFichaCnt, bitsCapHR,
             capSelloPar[0], capSelloPar[1], capSelloPrev,
-            selloVeto ? 1 : 0, capFichaNp, capFichaNpPrev);
+            selloVeto ? 1 : 0, capFichaNp, capFichaNpPrev));
 
     if (f2Activo)
     {
@@ -6568,7 +6646,7 @@ bool VulkanOutput::dispatchFaithfulCompositor(Frame* frame, FrameResource& resou
         }
     }
 
-    const bool trazaProducto = std::getenv("MELON_SONDA_CAPID") != nullptr
+    const bool trazaProducto = EMUCORED_DIAGNOSTIC_ENV("MELON_SONDA_CAPID") != nullptr
         || areRendererDebugBgObjLogsEnabled();
     if (trazaProducto && captureTargetStamp.valid)
     {
@@ -6599,7 +6677,7 @@ bool VulkanOutput::dispatchFaithfulCompositor(Frame* frame, FrameResource& resou
             legadoDisplay |= 1u << 16u;
         exigir(!paseSinRecursos || recursosCaptura, 18u);
         exigir(fuente3dExacta, 19u);
-        melonDS::Platform::Log(melonDS::Platform::LogLevel::Warn,
+        EMUCORED_DIAGNOSTIC_LOG(melonDS::Platform::Log(melonDS::Platform::LogLevel::Warn,
             "RendererDebug[FaithfulProduct]: frame=%u epoch=%llu product=%llu "
             "capture=%08X dst=%u:%u reject=%08X legacyDisplay=%08X pass=%u "
             "expected=%u:%llu/%u/%08X/%u acquired=%u:%llu/%u/%08X/%u "
@@ -6626,7 +6704,7 @@ bool VulkanOutput::dispatchFaithfulCompositor(Frame* frame, FrameResource& resou
             paseFuenteMetadataCompleta ? 1u : 0u,
             paseFuenteEsRecursoActual ? 1u : 0u,
             paseFuenteAncho,
-            paseFuenteAlto);
+            paseFuenteAlto));
     }
     grabarPase();
     writeFaithfulTimestamp(4u, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT);
@@ -6688,10 +6766,10 @@ bool VulkanOutput::dispatchFaithfulCompositor(Frame* frame, FrameResource& resou
             0u, 0u, nullptr, 2u, compactReady, 0u, nullptr);
     }
     writeFaithfulTimestamp(5u, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT);
-    static const bool trazaCapId = std::getenv("MELON_SONDA_CAPID") != nullptr;
+    static const bool trazaCapId = EMUCORED_DIAGNOSTIC_ENV("MELON_SONDA_CAPID") != nullptr;
     if (trazaCapId && (!visibleCaptureKeys.empty()
         || captureTargetStamp.valid || capProductoVivo.valid))
-        std::fprintf(stderr,
+        EMUCORED_DIAGNOSTIC_LOG(std::fprintf(stderr,
             "[capws] gen=%llu roots=%zu resident=%u all=%u "
             "target=%016llX:%016llX parents=%zu write=%u "
             "missing=%u cycle=%u overflow=%u ambiguous=%u slots="
@@ -6712,7 +6790,7 @@ bool VulkanOutput::dispatchFaithfulCompositor(Frame* frame, FrameResource& resou
             static_cast<unsigned long long>(capHighresProducto[0].productId),
             static_cast<unsigned long long>(capHighresProducto[1].productId),
             static_cast<unsigned long long>(capHighresProducto[2].productId),
-            static_cast<unsigned long long>(capHighresProducto[3].productId));
+            static_cast<unsigned long long>(capHighresProducto[3].productId)));
     if (!rutaCorta)
     {
     const u32 empuje[3] = {1u,
@@ -6803,9 +6881,9 @@ bool VulkanOutput::dispatchFaithfulCompositor(Frame* frame, FrameResource& resou
     if (recordFaithfulPassTiming
         && resource.timestampQueryPool != VK_NULL_HANDLE)
     {
-        vkCmdWriteTimestamp(
+        EMUCORED_DIAGNOSTIC_LOG(vkCmdWriteTimestamp(
             resource.commandBuffer, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
-            resource.timestampQueryPool, 7u);
+            resource.timestampQueryPool, 7u));
         resource.faithfulTimestampBreakdownPending = true;
     }
     if (!submitFrameCommand(frame, resource, true))
@@ -6937,11 +7015,11 @@ bool VulkanOutput::dispatchFaithfulCompositor(Frame* frame, FrameResource& resou
         {
             static u32 rutaCortaTrazas = 0u;
             if (trazaCapActiva() || (rutaCortaTrazas++ % 60u) == 0u)
-                melonDS::Platform::Log(melonDS::Platform::LogLevel::Warn,
+                EMUCORED_DIAGNOSTIC_LOG(melonDS::Platform::Log(melonDS::Platform::LogLevel::Warn,
                     "VulkanCompose[RutaCorta]: frameId=%llu snapshot=%u pase=%u sello=%u",
                     static_cast<unsigned long long>(frame != nullptr ? frame->frameId : 0u),
                     resource.snapshotFromInitializedTarget ? 1u : 0u, paseCaptura ? 1u : 0u,
-                    materialSealEmitido ? 1u : 0u);
+                    materialSealEmitido ? 1u : 0u));
         }
         return true;
     }
@@ -6949,6 +7027,7 @@ bool VulkanOutput::dispatchFaithfulCompositor(Frame* frame, FrameResource& resou
     if (frame != nullptr)
     {
         resource.faithfulComposedFrameId = frame->frameId;
+#if EMUCORED_DIAGNOSTICS
         constexpr u32 regsWords = 2u * (2u * 192u * 32u) + 16u;
         constexpr u32 causalWords = kFaithfulCausalBufferSize / sizeof(u32);
         FaithfulDiagnosticPayload::Header header{};
@@ -6998,6 +7077,7 @@ bool VulkanOutput::dispatchFaithfulCompositor(Frame* frame, FrameResource& resou
         header[48] = 256u;
         header[49] = 192u;
         faithfulDiagnosticPayload.publish(faithfulRing, header);
+#endif
     }
     markFramePreviousSourcesSubmitted(frame);
     lastTopComposedFrame = frame;
@@ -7007,6 +7087,7 @@ bool VulkanOutput::dispatchFaithfulCompositor(Frame* frame, FrameResource& resou
 
 std::vector<u32> VulkanOutput::captureFaithfulDiagnosticPayload(u64 expectedFrameId)
 {
+#if EMUCORED_DIAGNOSTICS
     std::scoped_lock lifetimeLock(faithfulLifetimeLock);
     if (!faithfulDiagnosticPayload.matches(expectedFrameId))
         return {};
@@ -7019,10 +7100,14 @@ std::vector<u32> VulkanOutput::captureFaithfulDiagnosticPayload(u64 expectedFram
         2u * (2u * 192u * 32u) + 16u,
         static_cast<const u32*>(faithfulCausalMapped[slot]),
         kFaithfulCausalBufferSize / sizeof(u32));
+#else
+    return {};
+#endif
 }
 
 bool VulkanOutput::composeFaithfulDebug(melonDS::GPU& gpu, u32* out)
 {
+#if EMUCORED_DIAGNOSTICS
     constexpr u32 kAncho = 256, kAlto = 384;
     constexpr VkDeviceSize kRegsBytes = (2u * (2u * 192u * 32u) + 16u) * 4u;
     constexpr VkDeviceSize kSalidaBytes = kAncho * kAlto * 4u;
@@ -7207,13 +7292,16 @@ bool VulkanOutput::composeFaithfulDebug(melonDS::GPU& gpu, u32* out)
 
     std::memcpy(out, faithfulReadMapped, kSalidaBytes);
     return true;
+#else
+    return false;
+#endif
 }
 
 void VulkanOutput::destroyTimestampQueryPool(VkQueryPool& queryPool)
 {
     if (queryPool != VK_NULL_HANDLE)
     {
-        vkDestroyQueryPool(device, queryPool, nullptr);
+        EMUCORED_DIAGNOSTIC_LOG(vkDestroyQueryPool(device, queryPool, nullptr));
         queryPool = VK_NULL_HANDLE;
     }
 }
@@ -7245,7 +7333,7 @@ bool VulkanOutput::createFrameResource(Frame* frame, u32 width, u32 height)
     VkImage image = VK_NULL_HANDLE;
     if (vkCreateImage(device, &imageCreateInfo, nullptr, &image) != VK_SUCCESS)
     {
-        melonDS::Platform::Log(melonDS::Platform::LogLevel::Error, "VulkanOutput: failed to create frame image");
+        EMUCORED_DIAGNOSTIC_LOG(melonDS::Platform::Log(melonDS::Platform::LogLevel::Error, "VulkanOutput: failed to create frame image"));
         return false;
     }
 
@@ -7466,9 +7554,9 @@ bool VulkanOutput::createFrameResource(Frame* frame, u32 width, u32 height)
     const auto insertResult = resources.emplace(frame, std::move(*resource));
     if (!insertResult.second)
     {
-        melonDS::Platform::Log(
+        EMUCORED_DIAGNOSTIC_LOG(melonDS::Platform::Log(
             melonDS::Platform::LogLevel::Error,
-            "VulkanOutput: frame resource unexpectedly already existed during creation");
+            "VulkanOutput: frame resource unexpectedly already existed during creation"));
         vkDestroyFence(device, submitFence, nullptr);
         vkFreeCommandBuffers(device, commandPool, 1, &commandBuffer);
         vkFreeMemory(device, stagingMemory, nullptr);
@@ -7510,10 +7598,10 @@ void VulkanOutput::destroyFrameResource(Frame* frame)
         const VkResult idleResult = vkDeviceWaitIdle(device);
         if (idleResult != VK_SUCCESS)
         {
-            melonDS::Platform::Log(
+            EMUCORED_DIAGNOSTIC_LOG(melonDS::Platform::Log(
                 melonDS::Platform::LogLevel::Error,
                 "VulkanOutput: live snapshot teardown wait failed (%d)",
-                static_cast<int>(idleResult));
+                static_cast<int>(idleResult)));
         }
         resource.faithfulLiveConsumerTimelineValue = 0u;
         resource.faithfulLiveConsumerFenceOwner = nullptr;
@@ -7622,11 +7710,11 @@ bool VulkanOutput::waitFaithfulUseLocked(FaithfulUse& use)
             device, &waitInfo, UINT64_MAX);
         if (waitResult != VK_SUCCESS)
         {
-            melonDS::Platform::Log(
+            EMUCORED_DIAGNOSTIC_LOG(melonDS::Platform::Log(
                 melonDS::Platform::LogLevel::Error,
                 "VulkanOutput: faithful timeline wait failed (%d, value=%llu)",
                 static_cast<int>(waitResult),
-                static_cast<unsigned long long>(use.timelineValue));
+                static_cast<unsigned long long>(use.timelineValue)));
             return false;
         }
     }
@@ -7637,14 +7725,14 @@ bool VulkanOutput::waitFaithfulUseLocked(FaithfulUse& use)
             || use.fenceOwner->submitFence == VK_NULL_HANDLE
             || use.fenceOwner->submissionValue != use.ownerSubmissionValue)
         {
-            melonDS::Platform::Log(
+            EMUCORED_DIAGNOSTIC_LOG(melonDS::Platform::Log(
                 melonDS::Platform::LogLevel::Error,
                 "VulkanOutput: stale faithful fence association "
                 "(expected=%llu, actual=%llu)",
                 static_cast<unsigned long long>(use.ownerSubmissionValue),
                 static_cast<unsigned long long>(
                     use.fenceOwner != nullptr
-                        ? use.fenceOwner->submissionValue : 0u));
+                        ? use.fenceOwner->submissionValue : 0u)));
             return false;
         }
 
@@ -7652,11 +7740,11 @@ bool VulkanOutput::waitFaithfulUseLocked(FaithfulUse& use)
             device, 1, &use.fenceOwner->submitFence, VK_TRUE, UINT64_MAX);
         if (waitResult != VK_SUCCESS)
         {
-            melonDS::Platform::Log(
+            EMUCORED_DIAGNOSTIC_LOG(melonDS::Platform::Log(
                 melonDS::Platform::LogLevel::Error,
                 "VulkanOutput: faithful fence wait failed (%d, value=%llu)",
                 static_cast<int>(waitResult),
-                static_cast<unsigned long long>(use.ownerSubmissionValue));
+                static_cast<unsigned long long>(use.ownerSubmissionValue)));
             return false;
         }
     }
@@ -7746,12 +7834,12 @@ bool VulkanOutput::beginFrameCommand(FrameResource& resource, u64 waitTimeoutNs)
     const VkResult waitResult = vkWaitForFences(device, 1, &resource.submitFence, VK_TRUE, waitTimeoutNs);
     if (waitResult != VK_SUCCESS)
     {
-        melonDS::Platform::Log(
+        EMUCORED_DIAGNOSTIC_LOG(melonDS::Platform::Log(
             melonDS::Platform::LogLevel::Error,
             "VulkanOutput: beginFrameCommand fence wait failed (%d, timeoutNs=%llu)",
             static_cast<int>(waitResult),
             static_cast<unsigned long long>(waitTimeoutNs)
-        );
+        ));
         return false;
     }
 
@@ -7761,9 +7849,9 @@ bool VulkanOutput::beginFrameCommand(FrameResource& resource, u64 waitTimeoutNs)
 
     if (resource.timestampQueryPool != VK_NULL_HANDLE && resetQueryPool != nullptr)
     {
-        resetQueryPool(
+        EMUCORED_DIAGNOSTIC_LOG(resetQueryPool(
             device, resource.timestampQueryPool, 0,
-            faithfulPassTimingSessionEnabled ? 8u : 2u);
+            faithfulPassTimingSessionEnabled ? 8u : 2u));
     }
     resource.faithfulTimestampBreakdownPending = false;
 
@@ -7961,11 +8049,11 @@ bool VulkanOutput::preservePublishedRenderer3dSnapshot(const Frame* frame,
     const bool submitted = submitFrameCommand(&bridgeRenderer3dFrame, bridge, true);
     bridge.timestampPending = false;
     if (areRendererDebugToolsEnabled())
-        melonDS::Platform::Log(melonDS::Platform::LogLevel::Warn,
+        EMUCORED_DIAGNOSTIC_LOG(melonDS::Platform::Log(melonDS::Platform::LogLevel::Warn,
             "VulkanTail[LiveBridge]: epoch=%llu sequence=%llu copied=%u submitted=%u",
             static_cast<unsigned long long>(identity.RenderProductEpoch),
             static_cast<unsigned long long>(identity.Sequence),
-            copied ? 1u : 0u, submitted ? 1u : 0u);
+            copied ? 1u : 0u, submitted ? 1u : 0u));
     return copied && submitted;
 }
 
@@ -8206,9 +8294,9 @@ bool VulkanOutput::composeAndSubmitFrame(
 
     FrameResource& resource = iterator->second;
 
-    const u64 composeStartNs = PerfNowNs();
+    const u64 composeStartNs = DiagnosticNowNs();
     const bool dispatched = dispatchCompositor(frame, resource, inputs);
-    composeCpuWindow.Add(PerfNowNs() - composeStartNs);
+    composeCpuWindow.Add(DiagnosticNowNs() - composeStartNs);
     logPerformanceIfNeeded();
     return dispatched;
 }
@@ -9207,7 +9295,7 @@ bool VulkanOutput::recordExactTopDisplayedCaptureRenderer3dSnapshotCopy(
         && exactTopDisplayedCaptureDebugLogsRemaining > 0u)
     {
         exactTopDisplayedCaptureDebugLogsRemaining--;
-        melonDS::Platform::Log(
+        EMUCORED_DIAGNOSTIC_LOG(melonDS::Platform::Log(
             melonDS::Platform::LogLevel::Warn,
             "VulkanExact[TopDisplayedCapture]: seq=%llu poly=%u captureCnt=%08X sourceSwap=%u bank=%u exactLines=%u remaining=%u",
             static_cast<unsigned long long>(expectedIdentity.sequence),
@@ -9216,7 +9304,7 @@ bool VulkanOutput::recordExactTopDisplayedCaptureRenderer3dSnapshotCopy(
             expectedIdentity.screenSwap ? 1u : 0u,
             expectedIdentity.vramBank,
             expectedIdentity.exactLineCount,
-            exactTopDisplayedCaptureDebugLogsRemaining);
+            exactTopDisplayedCaptureDebugLogsRemaining));
     }
     return true;
 }
@@ -10101,8 +10189,8 @@ bool VulkanOutput::dispatchCompositor(
         if (!avisado)
         {
             avisado = true;
-            melonDS::Platform::Log(melonDS::Platform::LogLevel::Warn,
-                "VulkanOutput: faithful composition unavailable; frame not submitted");
+            EMUCORED_DIAGNOSTIC_LOG(melonDS::Platform::Log(melonDS::Platform::LogLevel::Warn,
+                "VulkanOutput: faithful composition unavailable; frame not submitted"));
         }
         return false;
     }
@@ -10207,11 +10295,11 @@ bool VulkanOutput::validateFrameSubmission(Frame* frame, u64 waitTimeoutNs)
     resource.hasContent = true;
     if (!waitForFrame(frame, waitTimeoutNs))
     {
-        melonDS::Platform::Log(
+        EMUCORED_DIAGNOSTIC_LOG(melonDS::Platform::Log(
             melonDS::Platform::LogLevel::Error,
             "VulkanOutput: validateFrameSubmission timed out (timeoutNs=%llu)",
             static_cast<unsigned long long>(waitTimeoutNs)
-        );
+        ));
         return false;
     }
 
@@ -10250,7 +10338,7 @@ bool VulkanOutput::waitForFrame(const Frame* frame, u64 timeoutNs,
         return false;
     }
 
-    const u64 waitStartNs = PerfNowNs();
+    const u64 waitStartNs = DiagnosticNowNs();
     bool waitSucceeded = false;
 
     if (useTimelineSemaphores && waitSemaphores != nullptr && timelineSemaphore != VK_NULL_HANDLE)
@@ -10282,7 +10370,7 @@ bool VulkanOutput::waitForFrame(const Frame* frame, u64 timeoutNs,
         return false;
     }
 
-    const u64 waitElapsedNs = PerfNowNs() - waitStartNs;
+    const u64 waitElapsedNs = DiagnosticNowNs() - waitStartNs;
     waitCpuWindow.Add(waitElapsedNs);
     if (site == WaitSite::Presentation)
         waitPresentationCpuWindow.Add(waitElapsedNs);
@@ -10440,6 +10528,8 @@ bool VulkanOutput::isFrameReferencedAsPendingPreviousSource(const Frame* frame) 
 
 void VulkanOutput::consumeFrameGpuTiming(FrameResource& resource)
 {
+#if EMUCORED_DIAGNOSTICS
+
     if (!resource.timestampPending || resource.timestampQueryPool == VK_NULL_HANDLE || timestampPeriodNs <= 0.0f)
         return;
 
@@ -10481,6 +10571,8 @@ void VulkanOutput::consumeFrameGpuTiming(FrameResource& resource)
 
     resource.timestampPending = false;
     resource.faithfulTimestampBreakdownPending = false;
+
+#endif
 }
 
 static bool perfForzadoPorPropiedadVO()
@@ -10488,7 +10580,7 @@ static bool perfForzadoPorPropiedadVO()
 #ifdef __ANDROID__
     static const bool forzado = [] {
         char v[92] = {};
-        return __system_property_get("debug.melonds.perf", v) > 0 && v[0] == '1';
+        return EMUCORED_DIAGNOSTIC_PROPERTY("debug.melonds.perf", v) > 0 && v[0] == '1';
     }();
     return forzado;
 #else
@@ -10498,8 +10590,10 @@ static bool perfForzadoPorPropiedadVO()
 
 void VulkanOutput::logPerformanceIfNeeded()
 {
+#if EMUCORED_DIAGNOSTICS
 
-    static const bool perfFuerza = std::getenv("MELON_PERF_FUERZA") != nullptr;
+
+    static const bool perfFuerza = EMUCORED_DIAGNOSTIC_ENV("MELON_PERF_FUERZA") != nullptr;
     if (!perfFuerza && !perfForzadoPorPropiedadVO() && !areRendererDebugToolsEnabled())
         return;
 
@@ -10530,7 +10624,7 @@ void VulkanOutput::logPerformanceIfNeeded()
     const PerfSampleWindow<120>::Summary faithfulReadbackGpuSummary =
         faithfulReadbackGpuWindow.SummarizeAndReset();
 
-    melonDS::Platform::Log(
+    EMUCORED_DIAGNOSTIC_LOG(melonDS::Platform::Log(
         melonDS::Platform::LogLevel::Warn,
         "VulkanPerf[Output]: compose cpu avg=%.3fms p95=%.3fms max=%.3fms packed avg=%.3fms p95=%.3fms max=%.3fms lock avg=%.3fms begin avg=%.3fms desc avg=%.3fms record avg=%.3fms p95=%.3fms submit avg=%.3fms p95=%.3fms wait avg=%.3fms p95=%.3fms max=%.3fms gpu avg=%.3fms p95=%.3fms max=%.3fms waitFail(invalid=%llu timelineZero=%llu resourceMissing=%llu finiteTimeout=%llu infinite=%llu)",
         PerfNsToMs(composeSummary.MeanNs),
@@ -10557,22 +10651,22 @@ void VulkanOutput::logPerformanceIfNeeded()
         static_cast<unsigned long long>(waitFailureResourceMissing),
         static_cast<unsigned long long>(waitFailureFiniteTimeout),
         static_cast<unsigned long long>(waitFailureInfinite)
-    );
+    ));
     {
 
         const PerfSampleWindow<120>::Summary waitPresentation =
             waitPresentationCpuWindow.SummarizeAndReset();
         const PerfSampleWindow<120>::Summary waitOther =
             waitOtherCpuWindow.SummarizeAndReset();
-        melonDS::Platform::Log(
+        EMUCORED_DIAGNOSTIC_LOG(melonDS::Platform::Log(
             melonDS::Platform::LogLevel::Warn,
             "VulkanPerf[OutputWait]: presentation avg=%.3fms p95=%.3fms n=%zu other avg=%.3fms p95=%.3fms n=%zu",
             PerfNsToMs(waitPresentation.MeanNs), PerfNsToMs(waitPresentation.P95Ns), waitPresentation.Count,
-            PerfNsToMs(waitOther.MeanNs), PerfNsToMs(waitOther.P95Ns), waitOther.Count);
+            PerfNsToMs(waitOther.MeanNs), PerfNsToMs(waitOther.P95Ns), waitOther.Count));
     }
     if (faithfulSnapshotGpuSummary.Count != 0u)
     {
-        melonDS::Platform::Log(
+        EMUCORED_DIAGNOSTIC_LOG(melonDS::Platform::Log(
             melonDS::Platform::LogLevel::Warn,
             "VulkanPerf[FaithfulGpuPasses]: snapshot=%.3fms obj=%.3fms b1=%.3fms capture=%.3fms compact=%.3fms final=%.3fms readback=%.3fms",
             PerfNsToMs(faithfulSnapshotGpuSummary.MeanNs),
@@ -10581,17 +10675,21 @@ void VulkanOutput::logPerformanceIfNeeded()
             PerfNsToMs(faithfulCaptureGpuSummary.MeanNs),
             PerfNsToMs(faithfulCompactGpuSummary.MeanNs),
             PerfNsToMs(faithfulFinalGpuSummary.MeanNs),
-            PerfNsToMs(faithfulReadbackGpuSummary.MeanNs));
+            PerfNsToMs(faithfulReadbackGpuSummary.MeanNs)));
     }
     waitFailureInvalidFrame = 0;
     waitFailureTimelineZero = 0;
     waitFailureResourceMissing = 0;
     waitFailureFiniteTimeout = 0;
     waitFailureInfinite = 0;
+
+#endif
 }
 
 void VulkanOutput::logDirectPerformanceIfNeeded()
 {
+#if EMUCORED_DIAGNOSTICS
+
     if (!areRendererDebugToolsEnabled())
         return;
 
@@ -10606,7 +10704,7 @@ void VulkanOutput::logDirectPerformanceIfNeeded()
     const PerfSampleWindow<120>::Summary barrierSummary = directBarrierCpuWindow.SummarizeAndReset();
     const PerfSampleWindow<120>::Summary submitSummary = directSubmitCpuWindow.SummarizeAndReset();
 
-    melonDS::Platform::Log(
+    EMUCORED_DIAGNOSTIC_LOG(melonDS::Platform::Log(
         melonDS::Platform::LogLevel::Warn,
         "VulkanPerf[OutputDirect]: prep avg=%.3fms p95=%.3fms max=%.3fms lock avg=%.3fms begin avg=%.3fms source avg=%.3fms p95=%.3fms accum avg=%.3fms p95=%.3fms barrier avg=%.3fms submit avg=%.3fms p95=%.3fms",
         PerfNsToMs(prepSummary.MeanNs),
@@ -10621,11 +10719,15 @@ void VulkanOutput::logDirectPerformanceIfNeeded()
         PerfNsToMs(barrierSummary.MeanNs),
         PerfNsToMs(submitSummary.MeanNs),
         PerfNsToMs(submitSummary.P95Ns)
-    );
+    ));
+
+#endif
 }
 
 void VulkanOutput::logPreparePerformanceIfNeeded()
 {
+#if EMUCORED_DIAGNOSTICS
+
     if (!areRendererDebugToolsEnabled())
         return;
 
@@ -10643,7 +10745,7 @@ void VulkanOutput::logPreparePerformanceIfNeeded()
     const PerfSampleWindow<120>::Summary directSummary = prepareDirectCpuWindow.SummarizeAndReset();
     const PerfSampleWindow<120>::Summary finalizeSummary = prepareFinalizeCpuWindow.SummarizeAndReset();
 
-    melonDS::Platform::Log(
+    EMUCORED_DIAGNOSTIC_LOG(melonDS::Platform::Log(
         melonDS::Platform::LogLevel::Warn,
         "VulkanPerf[Prepare]: total avg=%.3fms p95=%.3fms max=%.3fms packed avg=%.3fms p95=%.3fms capture avg=%.3fms p95=%.3fms capMerge avg=%.3fms p95=%.3fms capPrep avg=%.3fms p95=%.3fms capLines avg=%.3fms p95=%.3fms capLazyRgba avg=%.3fms state avg=%.3fms p95=%.3fms direct avg=%.3fms p95=%.3fms finalize avg=%.3fms p95=%.3fms",
         PerfNsToMs(prepareSummary.MeanNs),
@@ -10666,7 +10768,9 @@ void VulkanOutput::logPreparePerformanceIfNeeded()
         PerfNsToMs(directSummary.P95Ns),
         PerfNsToMs(finalizeSummary.MeanNs),
         PerfNsToMs(finalizeSummary.P95Ns)
-    );
+    ));
+
+#endif
 }
 
 bool VulkanOutput::readResourceImagePixels(
@@ -10839,7 +10943,7 @@ bool VulkanOutput::readPreparedRenderer3dPixels(
 
     if (areRendererDebugToolsEnabled())
     {
-        melonDS::Platform::Log(
+        EMUCORED_DIAGNOSTIC_LOG(melonDS::Platform::Log(
             melonDS::Platform::LogLevel::Warn,
             "VulkanDebug[Renderer3dReadback]: frame=%llu generation=%llu source=owned_snapshot size=%ux%u labelSwap=%u zeroPolygons=%u sourceIdentityValid=%u sourceEpoch=%llu sourceSequence=%llu",
             static_cast<unsigned long long>(frame->frameId),
@@ -10850,7 +10954,7 @@ bool VulkanOutput::readPreparedRenderer3dPixels(
             resource.renderer3dSnapshotZeroPolygons ? 1u : 0u,
             resource.renderer3dSnapshotSourceIdentityValid ? 1u : 0u,
             static_cast<unsigned long long>(resource.renderer3dSnapshotSourceEpoch),
-            static_cast<unsigned long long>(resource.renderer3dSnapshotSourceSequence));
+            static_cast<unsigned long long>(resource.renderer3dSnapshotSourceSequence)));
     }
 
     return readResourceImagePixels(

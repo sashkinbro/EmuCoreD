@@ -1,3 +1,4 @@
+#include "../../../bridge/ds_diagnostics.h"
 /*
     Copyright 2016-2025 melonDS team
 
@@ -131,7 +132,7 @@ void UcodeBase::SendData(u8 index, u16 val)
     // TODO less ambiguous naming for those functions
     if (CmdWritten[index])
     {
-        printf("??? trying to write cmd but there's already one\n");
+        EMUCORED_DIAGNOSTIC_LOG(printf("??? trying to write cmd but there's already one\n"));
         return; // CHECKME
     }
 
@@ -163,7 +164,7 @@ void UcodeBase::SendReply(u8 index, u16 val)
 {
     if (ReplyWritten[index])
     {
-        printf("??? trying to write reply but there's already one\n");
+        EMUCORED_DIAGNOSTIC_LOG(printf("??? trying to write reply but there's already one\n"));
         return;
     }
 
@@ -390,7 +391,7 @@ u32 UcodeBase::GetPipeLength(u16* pipe)
         ret = wrptr - rdptr;
     }
 
-    if (ret & 1) printf("HUH? pipe length is odd? (%d)\n", ret);
+    if (ret & 1) EMUCORED_DIAGNOSTIC_LOG(printf("HUH? pipe length is odd? (%d)\n", ret));
     return ret >> 1;
 }
 
@@ -442,7 +443,7 @@ u32 UcodeBase::WritePipe(u16* pipe, const u16* data, u32 len)
         }
         if (wrptr == rdptr)
         {
-            Log(LogLevel::Error, "DSP_HLE: PIPE %d IS FULL!!\n", pipe[4]);
+            EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error, "DSP_HLE: PIPE %d IS FULL!!\n", pipe[4]));
             break;
         }
     }

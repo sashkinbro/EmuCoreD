@@ -1,3 +1,4 @@
+#include "../../bridge/ds_diagnostics.h"
 /*
     Copyright 2016-2025 melonDS team
 
@@ -188,7 +189,7 @@ void DSi_TSC::Write(u8 val)
                     TSCMode = val;
                     if (TSCMode == 0x00)
                     {
-                        Log(LogLevel::Debug, "DSi_SPI_TSC: DS-compatibility mode\n");
+                        EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Debug, "DSi_SPI_TSC: DS-compatibility mode\n"));
                         DataPos = 0;
                         NDS.KeyInput |= (1 << (16+6));
                         return;
@@ -198,7 +199,7 @@ void DSi_TSC::Write(u8 val)
         }
         else
         {
-            Log(LogLevel::Debug, "DSi_SPI_TSC: unknown IO, bank=%02X, index=%02X (%02X %s)\n", Bank, Index, Index>>1, (Index&1)?"read":"write");
+            EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Debug, "DSi_SPI_TSC: unknown IO, bank=%02X, index=%02X (%02X %s)\n", Bank, Index, Index>>1, (Index&1)?"read":"write"));
         }
 
         Index += (1<<1); // increment index

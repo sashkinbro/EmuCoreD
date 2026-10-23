@@ -1,3 +1,4 @@
+#include "../../bridge/ds_diagnostics.h"
 /*
     Copyright 2016-2025 melonDS team
 
@@ -117,7 +118,7 @@ int WifiAP::HandleManagementFrame(const u8* data, int len)
 
     if (RXNum)
     {
-        Log(LogLevel::Warn, "wifiAP: can't reply!!\n");
+        EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Warn, "wifiAP: can't reply!!\n"));
         return 0;
     }
 
@@ -135,12 +136,12 @@ int WifiAP::HandleManagementFrame(const u8* data, int len)
 
             if (ClientStatus != 1)
             {
-                Log(LogLevel::Error, "wifiAP: bad assoc request, needs auth prior\n");
+                EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error, "wifiAP: bad assoc request, needs auth prior\n"));
                 return 0;
             }
 
             ClientStatus = 2;
-            Log(LogLevel::Debug, "wifiAP: client associated\n");
+            EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Debug, "wifiAP: client associated\n"));
 
             PWRITE_16(p, 0x0010);
             PWRITE_16(p, 0x0000); // duration??
@@ -190,7 +191,7 @@ int WifiAP::HandleManagementFrame(const u8* data, int len)
                 return 0;
 
             ClientStatus = 1;
-            Log(LogLevel::Debug, "wifiAP: client deassociated\n");
+            EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Debug, "wifiAP: client deassociated\n"));
 
             PWRITE_16(p, 0x00A0);
             PWRITE_16(p, 0x0000); // duration??
@@ -212,7 +213,7 @@ int WifiAP::HandleManagementFrame(const u8* data, int len)
                 return 0;
 
             ClientStatus = 1;
-            Log(LogLevel::Debug, "wifiAP: client authenticated\n");
+            EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Debug, "wifiAP: client authenticated\n"));
 
             PWRITE_16(p, 0x00B0);
             PWRITE_16(p, 0x0000); // duration??
@@ -236,7 +237,7 @@ int WifiAP::HandleManagementFrame(const u8* data, int len)
                 return 0;
 
             ClientStatus = 0;
-            Log(LogLevel::Debug, "wifiAP: client deauthenticated\n");
+            EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Debug, "wifiAP: client deauthenticated\n"));
 
             PWRITE_16(p, 0x00C0);
             PWRITE_16(p, 0x0000); // duration??
@@ -253,7 +254,7 @@ int WifiAP::HandleManagementFrame(const u8* data, int len)
         return len;
 
     default:
-        Log(LogLevel::Warn, "wifiAP: unknown management frame type %X\n", (framectl>>4)&0xF);
+        EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Warn, "wifiAP: unknown management frame type %X\n", (framectl>>4)&0xF));
         return 0;
     }
 }
@@ -280,7 +281,7 @@ int WifiAP::SendPacket(const u8* data, int len)
         {
             if ((framectl & 0x0300) != 0x0100)
             {
-                Log(LogLevel::Error, "wifiAP: got data frame with bad fromDS/toDS bits %04X\n", framectl);
+                EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error, "wifiAP: got data frame with bad fromDS/toDS bits %04X\n", framectl));
                 return 0;
             }
 
@@ -290,7 +291,7 @@ int WifiAP::SendPacket(const u8* data, int len)
             {
                 if (ClientStatus != 2)
                 {
-                    Log(LogLevel::Warn, "wifiAP: trying to send shit without being associated\n");
+                    EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Warn, "wifiAP: trying to send shit without being associated\n"));
                     return 0;
                 }
 

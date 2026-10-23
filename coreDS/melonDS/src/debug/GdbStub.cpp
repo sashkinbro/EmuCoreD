@@ -1,3 +1,4 @@
+#include "../../../bridge/ds_diagnostics.h"
 
 #ifdef _WIN32
 #include <ws2tcpip.h>
@@ -66,8 +67,8 @@ GdbStub::GdbStub(StubCallbacks* cb)
 bool GdbStub::Init(int port)
 {
     Port = port;
-	Log(LogLevel::Info, "[GDB] initializing GDB stub for core %d on port %d\n",
-		Cb->GetCPU(), Port);
+	EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Info, "[GDB] initializing GDB stub for core %d on port %d\n",
+		Cb->GetCPU(), Port));
 
 #if MOCKTEST
 	SockFd = 0;
@@ -87,7 +88,7 @@ bool GdbStub::Init(int port)
 	WSADATA wsa;
 	if (WSAStartup(MAKEWORD(2, 2), &wsa) != 0)
 	{
-		Log(LogLevel::Error, "[GDB] winsock could not be initialized (%d).\n", WSAGetLastError());
+		EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error, "[GDB] winsock could not be initialized (%d).\n", WSAGetLastError()));
 		return false;
 	}
 #endif
@@ -103,7 +104,7 @@ bool GdbStub::Init(int port)
 	SockFd = socket(AF_INET, SOCK_STREAM, 0);
 	if (SockFd < 0)
 	{
-		Log(LogLevel::Error, "[GDB] err: can't create a socket fd\n");
+		EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error, "[GDB] err: can't create a socket fd\n"));
 		goto err;
 	}
 	{
@@ -126,14 +127,14 @@ bool GdbStub::Init(int port)
 	r = bind(SockFd, (const sockaddr*)server, sizeof(*server));
 	if (r < 0)
 	{
-		Log(LogLevel::Error, "[GDB] err: can't bind to address <any> and port %d\n", Port);
+		EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error, "[GDB] err: can't bind to address <any> and port %d\n", Port));
 		goto err;
 	}
 
 	r = listen(SockFd, 5);
 	if (r < 0)
 	{
-		Log(LogLevel::Error, "[GDB] err: can't listen to SockFd\n");
+		EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error, "[GDB] err: can't listen to SockFd\n"));
 		goto err;
 	}
 
@@ -316,7 +317,7 @@ StubState GdbStub::Poll(bool wait)
 		u8 a;
 		if (WaitAckBlocking(&a, 1000) < 0)
 		{
-			Log(LogLevel::Error, "[GDB] inital handshake: didn't receive inital ack!\n");
+			EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error, "[GDB] inital handshake: didn't receive inital ack!\n"));
 			closesocket(ConnFd);
 			ConnFd = 0;
 			return StubState::Disconnect;
@@ -324,7 +325,7 @@ StubState GdbStub::Poll(bool wait)
 
 		if (a != '+')
 		{
-			Log(LogLevel::Error, "[GDB] inital handshake: unexpected character '%c'!\n", a);
+			EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error, "[GDB] inital handshake: unexpected character '%c'!\n", a));
 		}
 		SendAck();
 
@@ -399,17 +400,17 @@ StubState GdbStub::Poll(bool wait)
 	case ReadResult::Break:
 		return StubState::Break;
 	case ReadResult::Wut:
-		Log(LogLevel::Info, "[GDB] WUT\n");
+		EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Info, "[GDB] WUT\n"));
 	case_gdbp_eof:
 	case ReadResult::Eof:
-		Log(LogLevel::Info, "[GDB] EOF!\n");
+		EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Info, "[GDB] EOF!\n"));
 		closesocket(ConnFd);
 		ConnFd = 0;
 		return StubState::Disconnect;
 	case ReadResult::CksumErr:
-		Log(LogLevel::Info, "[GDB] checksum err!\n");
+		EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Info, "[GDB] checksum err!\n"));
 		if (SendNak() < 0) {
-			Log(LogLevel::Error, "[GDB] send nak after cksum fail errored!\n");
+			EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error, "[GDB] send nak after cksum fail errored!\n"));
 			goto case_gdbp_eof;
 		}
 		return StubState::None;
@@ -442,7 +443,7 @@ ExecResult GdbStub::SubcmdExec(const u8* cmd, ssize_t len, const SubcmdHandler* 
 		}
 	}
 
-	Log(LogLevel::Info, "[GDB] unknown subcommand '%s'!\n", cmd);
+	EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Info, "[GDB] unknown subcommand '%s'!\n", cmd));
 	/*if (SendNak() < 0)
 	{
 		Log(LogLevel::Error, "[GDB] send nak after cksum fail errored!\n");
@@ -455,7 +456,7 @@ ExecResult GdbStub::SubcmdExec(const u8* cmd, ssize_t len, const SubcmdHandler* 
 
 ExecResult GdbStub::CmdExec(const CmdHandler* handlers)
 {
-	Log(LogLevel::Debug, "[GDB] command in: '%s'\n", &Cmdbuf[0]);
+	EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Debug, "[GDB] command in: '%s'\n", &Cmdbuf[0]));
 
 	for (size_t i = 0; handlers[i].Handler != NULL; ++i)
 	{
@@ -463,14 +464,14 @@ ExecResult GdbStub::CmdExec(const CmdHandler* handlers)
 		{
 			if (SendAck() < 0)
 			{
-				Log(LogLevel::Error, "[GDB] send packet ack failed!\n");
+				EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error, "[GDB] send packet ack failed!\n"));
 				return ExecResult::NetErr;
 			}
 			return handlers[i].Handler(this, &Cmdbuf[1], Cmdlen-1);
 		}
 	}
 
-	Log(LogLevel::Info, "[GDB] unknown command '%c'!\n", Cmdbuf[0]);
+	EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Info, "[GDB] unknown command '%c'!\n", Cmdbuf[0]));
 	/*if (SendNak() < 0)
 	{
 		Log(LogLevel::Error, "[GDB] send nak after cksum fail errored!\n");
@@ -511,19 +512,19 @@ StubState GdbStub::Enter(bool stay, TgtStatus stat, u32 arg, bool wait_for_conn)
 		switch (st)
 		{
 		case StubState::Break:
-			Log(LogLevel::Info, "[GDB] break execution\n");
+			EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Info, "[GDB] break execution\n"));
 			SignalStatus(TgtStatus::BreakReq, ~(u32)0);
 			break;
 		case StubState::Continue:
-			Log(LogLevel::Info, "[GDB] continue execution\n");
+			EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Info, "[GDB] continue execution\n"));
 			do_next = false;
 			break;
 		case StubState::Step:
-			Log(LogLevel::Info, "[GDB] single-step\n");
+			EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Info, "[GDB] single-step\n"));
 			do_next = false;
 			break;
 		case StubState::Disconnect:
-			Log(LogLevel::Info, "[GDB] disconnect\n");
+			EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Info, "[GDB] disconnect\n"));
 			SignalStatus(TgtStatus::None, ~(u32)0);
 			do_next = false;
 			break;
@@ -534,7 +535,7 @@ StubState GdbStub::Enter(bool stay, TgtStatus stat, u32 arg, bool wait_for_conn)
 
 	if (st != StubState::None && st != StubState::NoConn)
 	{
-		Log(LogLevel::Debug, "[GDB] enter exit: %d\n", st);
+		EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Debug, "[GDB] enter exit: %d\n", st));
 	}
 	return st;
 }
@@ -554,11 +555,11 @@ void GdbStub::AddBkpt(u32 addr, int kind)
 
 	BpList.insert({np.addr, np});
 
-	Log(LogLevel::Debug, "[GDB] added bkpt:\n");
+	EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Debug, "[GDB] added bkpt:\n"));
 	size_t i = 0;
 	for (auto search = BpList.begin(); search != BpList.end(); ++search, ++i)
 	{
-		Log(LogLevel::Debug, "\t[%zu]: addr=%08x, kind=%d\n", i, search->first, search->second.kind);
+		EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Debug, "\t[%zu]: addr=%08x, kind=%d\n", i, search->first, search->second.kind));
 	}
 }
 void GdbStub::AddWatchpt(u32 addr, u32 len, int kind)
@@ -626,7 +627,7 @@ StubState GdbStub::CheckBkpt(u32 addr, bool enter, bool stay)
 	if (enter)
 	{
 		StubState r = Enter(stay, TgtStatus::Bkpt, addr);
-		Log(LogLevel::Debug, "[GDB] ENTER st=%d\n", r);
+		EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Debug, "[GDB] ENTER st=%d\n", r));
 		return r;
 	}
 	else
@@ -677,8 +678,8 @@ int GdbStub::RespFmt(const char* fmt, ...)
 
 	if ((size_t)r >= sizeof(RespBuf)-5)
 	{
-		Log(LogLevel::Error, "[GDB] truncated response in send_fmt()! (lost %zd bytes)\n",
-				(ssize_t)r - (ssize_t)(sizeof(RespBuf)-5));
+		EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error, "[GDB] truncated response in send_fmt()! (lost %zd bytes)\n",
+				(ssize_t)r - (ssize_t)(sizeof(RespBuf)-5)));
 		r = sizeof(RespBuf)-5;
 	}
 

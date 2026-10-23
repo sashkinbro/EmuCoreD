@@ -1,3 +1,4 @@
+#include "../../../bridge/ds_diagnostics.h"
 /*
     Copyright 2016-2025 melonDS team
 
@@ -82,11 +83,11 @@ std::optional<LibPCap> LibPCap::New() noexcept
             continue;
         }
 
-        Log(LogLevel::Info, "PCap: lib %s, init successful\n", PCapLibNames[i]);
+        EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Info, "PCap: lib %s, init successful\n", PCapLibNames[i]));
         return pcap;
     }
 
-    Log(LogLevel::Error, "PCap: init failed\n");
+    EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error, "PCap: init failed\n"));
     return std::nullopt;
 }
 
@@ -178,7 +179,7 @@ std::vector<AdapterData> LibPCap::GetAdapters() const noexcept
     // TODO: how to deal with cases where an adapter is unplugged or changes config??
     if (!IsValid())
     {
-        Log(LogLevel::Error, "PCap: instance not initialized\n");
+        EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error, "PCap: instance not initialized\n"));
         return {};
     }
 
@@ -188,12 +189,12 @@ std::vector<AdapterData> LibPCap::GetAdapters() const noexcept
     if (int ret = findalldevs(&alldevs, errbuf); ret < 0)
     { // If there was an error...
         errbuf[PCAP_ERRBUF_SIZE - 1] = '\0';
-        Log(LogLevel::Error, "PCap: Error %d finding devices: %s\n", ret, errbuf);
+        EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error, "PCap: Error %d finding devices: %s\n", ret, errbuf));
     }
 
     if (alldevs == nullptr)
     { // If no devices were found...
-        Log(LogLevel::Warn, "PCap: no devices available\n");
+        EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Warn, "PCap: no devices available\n"));
         return {};
     }
 
@@ -225,7 +226,7 @@ std::vector<AdapterData> LibPCap::GetAdapters() const noexcept
     }
     if (uret != ERROR_SUCCESS)
     {
-        Log(LogLevel::Error, "GetAdaptersAddresses() shat itself: %08X\n", uret);
+        EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error, "GetAdaptersAddresses() shat itself: %08X\n", uret));
         freealldevs(alldevs);
         return {};
     }
@@ -249,7 +250,7 @@ std::vector<AdapterData> LibPCap::GetAdapters() const noexcept
 
             if (addr->PhysicalAddressLength != 6)
             {
-                Log(LogLevel::Warn, "weird MAC addr length %d for %s\n", addr->PhysicalAddressLength, addr->AdapterName);
+                EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Warn, "weird MAC addr length %d for %s\n", addr->PhysicalAddressLength, addr->AdapterName));
             }
             else
                 memcpy(adata.MAC, addr->PhysicalAddress, 6);
@@ -278,7 +279,7 @@ std::vector<AdapterData> LibPCap::GetAdapters() const noexcept
     struct ifaddrs* addrs;
     if (getifaddrs(&addrs) != 0)
     {
-        Log(LogLevel::Error, "getifaddrs() shat itself :(\n");
+        EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error, "getifaddrs() shat itself :(\n"));
         return {};
     }
 
@@ -295,7 +296,7 @@ std::vector<AdapterData> LibPCap::GetAdapters() const noexcept
 
             if (!curaddr->ifa_addr)
             {
-                Log(LogLevel::Error, "Device (%s) does not have an address :/\n", curaddr->ifa_name);
+                EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error, "Device (%s) does not have an address :/\n", curaddr->ifa_name));
                 curaddr = curaddr->ifa_next;
                 continue;
             }
@@ -311,7 +312,7 @@ std::vector<AdapterData> LibPCap::GetAdapters() const noexcept
             {
                 struct sockaddr_ll* sa = (sockaddr_ll*)curaddr->ifa_addr;
                 if (sa->sll_halen != 6)
-                    Log(LogLevel::Warn, "weird MAC length %d for %s\n", sa->sll_halen, curaddr->ifa_name);
+                    EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Warn, "weird MAC length %d for %s\n", sa->sll_halen, curaddr->ifa_name));
                 else
                     memcpy((void*)adata.MAC, sa->sll_addr, 6);
             }
@@ -320,7 +321,7 @@ std::vector<AdapterData> LibPCap::GetAdapters() const noexcept
             {
                 struct sockaddr_dl* sa = (sockaddr_dl*)curaddr->ifa_addr;
                 if (sa->sdl_alen != 6)
-                    Log(LogLevel::Warn, "weird MAC length %d for %s\n", sa->sdl_alen, curaddr->ifa_name);
+                    EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Warn, "weird MAC length %d for %s\n", sa->sdl_alen, curaddr->ifa_name));
                 else
                     memcpy((void*)adata.MAC, LLADDR(sa), 6);
             }
@@ -349,14 +350,14 @@ std::unique_ptr<Net_PCap> LibPCap::Open(std::string_view devicename, const Platf
     if (!adapter)
     {
         errbuf[PCAP_ERRBUF_SIZE - 1] = '\0';
-        Log(LogLevel::Error, "PCap: failed to open adapter: %s\n", errbuf);
+        EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error, "PCap: failed to open adapter: %s\n", errbuf));
         return nullptr;
     }
 
     if (int err = setnonblock(adapter, 1, errbuf); err < 0)
     {
         errbuf[PCAP_ERRBUF_SIZE - 1] = '\0';
-        Log(LogLevel::Error, "PCap: failed to set nonblocking mode with %d: %s\n", err, errbuf);
+        EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error, "PCap: failed to set nonblocking mode with %d: %s\n", err, errbuf));
         close(adapter);
         return nullptr;
     }
@@ -441,7 +442,7 @@ int Net_PCap::SendPacket(u8* data, int len) noexcept
 
     if (len > 2048)
     {
-        Log(LogLevel::Error, "Net_SendPacket: error: packet too long (%d)\n", len);
+        EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error, "Net_SendPacket: error: packet too long (%d)\n", len));
         return 0;
     }
 

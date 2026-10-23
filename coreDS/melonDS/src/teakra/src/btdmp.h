@@ -1,3 +1,4 @@
+#include "../../../../bridge/ds_diagnostics.h"
 #pragma once
 #include <array>
 #include <cstdio>
@@ -51,7 +52,7 @@ public:
 
     void Send(u16 value) {
         if (transmit_queue.size() == 16) {
-            std::printf("BTDMP: transmit buffer overrun\n");
+            EMUCORED_DIAGNOSTIC_LOG(std::printf("BTDMP: transmit buffer overrun\n"));
         } else {
             transmit_queue.push(value);
             transmit_empty = false;
@@ -108,7 +109,7 @@ public:
 
     u16 Receive() {
         if (receive_queue.empty()) {
-            std::printf("BTDMP: receive buffer underrun\n");
+            EMUCORED_DIAGNOSTIC_LOG(std::printf("BTDMP: receive buffer underrun\n"));
             return 0;
         } else {
             u16 ret = receive_queue.front();

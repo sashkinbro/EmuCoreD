@@ -1,3 +1,4 @@
+#include "../../bridge/ds_diagnostics.h"
 /*
     Copyright 2016-2025 melonDS team
 
@@ -566,7 +567,7 @@ void ARMJIT::CompileBlock(ARM* cpu) noexcept
     u32 localAddr = LocaliseCodeAddress(cpu->Num, blockAddr);
     if (!localAddr)
     {
-        Log(LogLevel::Warn, "trying to compile non executable code? %x\n", blockAddr);
+        EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Warn, "trying to compile non executable code? %x\n", blockAddr));
     }
 
     auto& map = cpu->Num == 0 ? JitBlocks9 : JitBlocks7;
@@ -737,7 +738,7 @@ void ARMJIT::CompileBlock(ARM* cpu) noexcept
             u32 translatedAddr = LocaliseCodeAddress(cpu->Num, literalAddr);
             if (!translatedAddr)
             {
-                Log(LogLevel::Warn,"literal in non executable memory?\n");
+                EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Warn,"literal in non executable memory?\n"));
             }
             if (InvalidLiterals.Find(translatedAddr) == -1)
             {
@@ -1140,7 +1141,7 @@ template void ARMJIT::CheckAndInvalidate<1, ARMJIT_Memory::memregion_NewSharedWR
 
 void ARMJIT::ResetBlockCache() noexcept
 {
-    Log(LogLevel::Debug, "Resetting JIT block cache...\n");
+    EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Debug, "Resetting JIT block cache...\n"));
 
     // could be replace through a function which only resets
     // the permissions but we're too lazy

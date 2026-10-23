@@ -1,3 +1,4 @@
+#include "../../../bridge/ds_diagnostics.h"
 
 #include <stdio.h>
 #include <assert.h>
@@ -107,7 +108,7 @@ static int DoQResponse(GdbStub* stub, const u8* query, const char* data, const s
 {
 	size_t qaddr, qlen;
 
-	Log(LogLevel::Debug, "[GDB qresp] query='%s'\n", query);
+	EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Debug, "[GDB qresp] query='%s'\n", query));
 	if (sscanf((const char*)query, "%zx,%zx", &qaddr, &qlen) != 2)
 	{
 		return stub->RespStr("E01");
@@ -124,8 +125,8 @@ static int DoQResponse(GdbStub* stub, const u8* query, const char* data, const s
 	size_t bleft = len - qaddr;
 	size_t outlen = qlen;
 	if (outlen > bleft) outlen = bleft;
-	Log(LogLevel::Debug, "[GDB qresp] qaddr=%zu qlen=%zu left=%zu outlen=%zu\n",
-			qaddr, qlen, bleft, outlen);
+	EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Debug, "[GDB qresp] qaddr=%zu qlen=%zu left=%zu outlen=%zu\n",
+			qaddr, qlen, bleft, outlen));
 
 	return stub->RespC("m", 1, (const u8*)&data[qaddr], outlen);
 }
@@ -152,7 +153,7 @@ ExecResult GdbStub::Handle_G(GdbStub* stub, const u8* cmd, ssize_t len)
 {
 	if (len != GDB_ARCH_N_REG*4*2)
 	{
-		Log(LogLevel::Error, "[GDB] REG WRITE ERR: BAD LEN: %zd != %d!\n", len, GDB_ARCH_N_REG*4*2);
+		EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error, "[GDB] REG WRITE ERR: BAD LEN: %zd != %d!\n", len, GDB_ARCH_N_REG*4*2));
 		stub->RespStr("E01");
 		return ExecResult::Ok;
 	}
@@ -800,7 +801,7 @@ ExecResult GdbStub::Handle_q_features(GdbStub* stub, const u8* cmd, ssize_t len)
 {
 	const char* resp;
 
-	Log(LogLevel::Debug, "[GDB] CPU type = %d\n", stub->Cb->GetCPU());
+	EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Debug, "[GDB] CPU type = %d\n", stub->Cb->GetCPU()));
 	switch (stub->Cb->GetCPU())
 	{
 	case 7: resp = TARGET_XML_ARM7; break;
@@ -879,7 +880,7 @@ ExecResult GdbStub::Handle_v_Stopped(GdbStub* stub, const u8* cmd, ssize_t len)
 
 ExecResult GdbStub::Handle_v_MustReplyEmpty(GdbStub* stub, const u8* cmd, ssize_t len)
 {
-	printf("must reply empty\n");
+	EMUCORED_DIAGNOSTIC_LOG(printf("must reply empty\n"));
 	stub->Resp(NULL, 0);
 	return ExecResult::Ok;
 }
@@ -888,7 +889,7 @@ ExecResult GdbStub::Handle_v_Cont(GdbStub* stub, const u8* cmd, ssize_t len)
 {
 	if (len < 2)
 	{
-		printf("insufficient length");
+		EMUCORED_DIAGNOSTIC_LOG(printf("insufficient length"));
 		stub->RespStr("E01");
 		return ExecResult::Ok;
 	}
@@ -905,7 +906,7 @@ ExecResult GdbStub::Handle_v_Cont(GdbStub* stub, const u8* cmd, ssize_t len)
 		stub->RespStr("OK");
 		return ExecResult::MustBreak;
 	default:
-		printf("invalid continue %c %s\n", cmd[1], cmd);
+		EMUCORED_DIAGNOSTIC_LOG(printf("invalid continue %c %s\n", cmd[1], cmd));
 		stub->RespStr("E01");
 		return ExecResult::Ok;
 	}

@@ -1,3 +1,4 @@
+#include "ds_diagnostics.h"
 #include "ds_presenter.h"
 
 #include <android/log.h>
@@ -26,7 +27,7 @@ GLuint CompileShader(GLenum type, const char* source) {
     if (compiled != GL_TRUE) {
         char log[1024]{};
         glGetShaderInfoLog(shader, sizeof(log), nullptr, log);
-        __android_log_print(ANDROID_LOG_ERROR, "EmuCoreDS", "Shader compile failed: %s", log);
+        EMUCORED_DIAGNOSTIC_LOG(__android_log_print(ANDROID_LOG_ERROR, "EmuCoreDS", "Shader compile failed: %s", log));
         glDeleteShader(shader);
         return 0;
     }
@@ -53,6 +54,11 @@ void DsPresenter::Release() {
     DestroyContextLocked();
     if (window_) ANativeWindow_release(window_);
     window_ = nullptr;
+}
+
+void DsPresenter::ReleaseGraphicsContext() {
+    std::lock_guard lock(mutex_);
+    DestroyContextLocked();
 }
 
 bool DsPresenter::CreateContextLocked() {
@@ -140,7 +146,7 @@ bool DsPresenter::EnsureProgramLocked() {
     if (linked != GL_TRUE) {
         char log[1024]{};
         glGetProgramInfoLog(program_, sizeof(log), nullptr, log);
-        __android_log_print(ANDROID_LOG_ERROR, "EmuCoreDS", "Program link failed: %s", log);
+        EMUCORED_DIAGNOSTIC_LOG(__android_log_print(ANDROID_LOG_ERROR, "EmuCoreDS", "Program link failed: %s", log));
         glDeleteProgram(program_);
         program_ = 0;
         return false;
@@ -166,8 +172,8 @@ void DsPresenter::DrawLocked(const uint32_t* pixels, int width, int height, DsPi
     if (!eglMakeCurrent(display_, surface_, surface_, context_)) return;
     if (!EnsureProgramLocked()) return;
     glUseProgram(program_);
-    // Software melonDS frames contain BGRA bytes; Vulkan readback already
-    // contains RGBA. Keep the distinction at the presentation boundary.
+    // Match the producer's byte order. Software and the faithful Vulkan
+    // compositor both expose BGRA pixels; other callers can supply RGBA.
     glUniform1i(format_uniform_, format == DsPixelFormat::Bgra8 ? 1 : 0);
 
     if (texture_size_[0] != width || texture_size_[1] != height) {

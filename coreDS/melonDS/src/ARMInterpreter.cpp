@@ -1,3 +1,4 @@
+#include "../../bridge/ds_diagnostics.h"
 /*
     Copyright 2016-2025 melonDS team
 
@@ -36,7 +37,7 @@ namespace melonDS::ARMInterpreter
 
 void A_UNK(ARM* cpu)
 {
-    Log(LogLevel::Warn, "undefined ARM%d instruction %08X @ %08X\n", cpu->Num?7:9, cpu->CurInstr, cpu->R[15]-8);
+    EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Warn, "undefined ARM%d instruction %08X @ %08X\n", cpu->Num?7:9, cpu->CurInstr, cpu->R[15]-8));
 #ifdef GDBSTUB_ENABLED
     cpu->GdbStub.Enter(cpu->GdbStub.IsConnected(), Gdb::TgtStatus::FaultInsn, cpu->R[15]-8);
 #endif
@@ -54,7 +55,7 @@ void A_UNK(ARM* cpu)
 
 void T_UNK(ARM* cpu)
 {
-    Log(LogLevel::Warn, "undefined THUMB%d instruction %04X @ %08X\n", cpu->Num?7:9, cpu->CurInstr, cpu->R[15]-4);
+    EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Warn, "undefined THUMB%d instruction %04X @ %08X\n", cpu->Num?7:9, cpu->CurInstr, cpu->R[15]-4));
 #ifdef GDBSTUB_ENABLED
     cpu->GdbStub.Enter(cpu->GdbStub.IsConnected(), Gdb::TgtStatus::FaultInsn, cpu->R[15]-4);
 #endif
@@ -223,11 +224,11 @@ void A_MCR(ARM* cpu)
     }
     else if (cpu->Num==1 && cp==14)
     {
-        Log(LogLevel::Debug, "MCR p14,%d,%d,%d on ARM7\n", cn, cm, cpinfo);
+        EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Debug, "MCR p14,%d,%d,%d on ARM7\n", cn, cm, cpinfo));
     }
     else
     {
-        Log(LogLevel::Warn, "bad MCR opcode p%d,%d,%d,%d on ARM%d\n", cp, cn, cm, cpinfo, cpu->Num?7:9);
+        EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Warn, "bad MCR opcode p%d,%d,%d,%d on ARM%d\n", cp, cn, cm, cpinfo, cpu->Num?7:9));
         return A_UNK(cpu); // TODO: check what kind of exception it really is
     }
 
@@ -251,11 +252,11 @@ void A_MRC(ARM* cpu)
     }
     else if (cpu->Num==1 && cp==14)
     {
-        Log(LogLevel::Debug, "MRC p14,%d,%d,%d on ARM7\n", cn, cm, cpinfo);
+        EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Debug, "MRC p14,%d,%d,%d on ARM7\n", cn, cm, cpinfo));
     }
     else
     {
-        Log(LogLevel::Warn, "bad MRC opcode p%d,%d,%d,%d on ARM%d\n", cp, cn, cm, cpinfo, cpu->Num?7:9);
+        EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Warn, "bad MRC opcode p%d,%d,%d,%d on ARM%d\n", cp, cn, cm, cpinfo, cpu->Num?7:9));
         return A_UNK(cpu); // TODO: check what kind of exception it really is
     }
 

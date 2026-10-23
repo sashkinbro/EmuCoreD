@@ -1,3 +1,4 @@
+#include "../ds_diagnostics.h"
 #include "FrameQueue.h"
 
 #include <algorithm>
@@ -805,12 +806,12 @@ bool FrameQueue::recycleCanceledPublicationLocked(Frame* frame)
     if (frame->backend == FrameBackend::VulkanImage
         && MelonDSAndroid::areRendererDebugToolsEnabled())
     {
-        melonDS::Platform::Log(melonDS::Platform::LogLevel::Warn,
+        EMUCORED_DIAGNOSTIC_LOG(melonDS::Platform::Log(melonDS::Platform::LogLevel::Warn,
             "VulkanQueue[Discard]: reason=generation_at_enqueue frameId=%llu generation=%llu currentGeneration=%llu suspended=%u",
             static_cast<unsigned long long>(frame->frameId),
             static_cast<unsigned long long>(frame->publicationGeneration),
             static_cast<unsigned long long>(publicationGeneration),
-            publicationsSuspended ? 1u : 0u);
+            publicationsSuspended ? 1u : 0u));
     }
     frame->queuedAtNs = 0;
 

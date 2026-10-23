@@ -1,3 +1,4 @@
+#include "../../bridge/ds_diagnostics.h"
 #include "VulkanDispatch.h"
 
 #include <array>
@@ -955,10 +956,10 @@ void ConfigureDriver(const DriverConfiguration& configuration)
     if (gInitialized && !sameConfiguration(gConfiguration, configuration))
     {
         unloadDriver();
-        Platform::Log(
+        EMUCORED_DIAGNOSTIC_LOG(Platform::Log(
             Platform::LogLevel::Warn,
             "VulkanDriver: configuration changed; Vulkan loader will reopen on next use"
-        );
+        ));
     }
     gConfiguration = configuration;
 }
@@ -990,37 +991,37 @@ bool Initialize()
         if (gVulkanHandle != nullptr)
         {
             gUsingCustomDriver = true;
-            Platform::Log(
+            EMUCORED_DIAGNOSTIC_LOG(Platform::Log(
                 Platform::LogLevel::Warn,
                 "VulkanDriver: source=custom driver=%s result=opened",
                 gConfiguration.DisplayName.empty() ? gConfiguration.CustomDriverName.c_str() : gConfiguration.DisplayName.c_str()
-            );
+            ));
         }
         else
         {
             const char* error = dlerror();
-            Platform::Log(
+            EMUCORED_DIAGNOSTIC_LOG(Platform::Log(
                 Platform::LogLevel::Error,
                 "VulkanDriver: custom driver load failed driver=%s error=%s; falling back to system",
                 gConfiguration.CustomDriverName.c_str(),
                 error != nullptr ? error : "unknown"
-            );
+            ));
         }
     }
 #else
     if (requestedCustomDriver)
     {
-        Platform::Log(
+        EMUCORED_DIAGNOSTIC_LOG(Platform::Log(
             Platform::LogLevel::Warn,
             "VulkanDriver: custom driver requested but adrenotools is not available in this build/ABI; falling back to system"
-        );
+        ));
     }
 #endif
 
     const char* systemDriverLibrary = nullptr;
     if (gVulkanHandle == nullptr)
     {
-        const char* configuredLibrary = std::getenv("MELON_VULKAN_LIBRARY");
+        const char* configuredLibrary = EMUCORED_DIAGNOSTIC_ENV("MELON_VULKAN_LIBRARY");
         if (configuredLibrary != nullptr && configuredLibrary[0] != '\0')
         {
             dlerror();
@@ -1028,12 +1029,12 @@ bool Initialize()
             if (gVulkanHandle == nullptr)
             {
                 const char* error = dlerror();
-                Platform::Log(
+                EMUCORED_DIAGNOSTIC_LOG(Platform::Log(
                     Platform::LogLevel::Error,
                     "VulkanDriver: requested loader failed library=%s error=%s",
                     configuredLibrary,
                     error != nullptr ? error : "unknown"
-                );
+                ));
                 return false;
             }
             systemDriverLibrary = configuredLibrary;
@@ -1061,29 +1062,29 @@ bool Initialize()
         gUsingCustomDriver = false;
         if (gVulkanHandle != nullptr)
         {
-            Platform::Log(
+            EMUCORED_DIAGNOSTIC_LOG(Platform::Log(
                 Platform::LogLevel::Warn,
                 "VulkanDriver: source=system library=%s",
                 systemDriverLibrary != nullptr ? systemDriverLibrary : "unknown"
-            );
+            ));
         }
     }
 
     if (gVulkanHandle == nullptr)
     {
         const char* error = dlerror();
-        Platform::Log(
+        EMUCORED_DIAGNOSTIC_LOG(Platform::Log(
             Platform::LogLevel::Error,
             "VulkanDriver: failed to open the Vulkan loader error=%s",
             error != nullptr ? error : "unknown"
-        );
+        ));
         return false;
     }
 
     vkGetInstanceProcAddr = reinterpret_cast<PFN_vkGetInstanceProcAddr>(loadSymbol("vkGetInstanceProcAddr"));
     if (vkGetInstanceProcAddr == nullptr)
     {
-        Platform::Log(Platform::LogLevel::Error, "VulkanDriver: vkGetInstanceProcAddr not found");
+        EMUCORED_DIAGNOSTIC_LOG(Platform::Log(Platform::LogLevel::Error, "VulkanDriver: vkGetInstanceProcAddr not found"));
         unloadDriver();
         return false;
     }
@@ -1093,20 +1094,20 @@ bool Initialize()
         vkEnumerateInstanceExtensionProperties == nullptr ||
         vkEnumerateInstanceLayerProperties == nullptr)
     {
-        Platform::Log(
+        EMUCORED_DIAGNOSTIC_LOG(Platform::Log(
             Platform::LogLevel::Error,
             "VulkanDriver: required global entry points are unavailable"
-        );
+        ));
         unloadDriver();
         return false;
     }
 
     gInitialized = true;
-    Platform::Log(
+    EMUCORED_DIAGNOSTIC_LOG(Platform::Log(
         Platform::LogLevel::Warn,
         "VulkanDriver: active=%s",
         gUsingCustomDriver ? "custom" : "system"
-    );
+    ));
     return true;
 }
 

@@ -1055,6 +1055,7 @@ void RasterizerCache<T>::UploadSurface(Surface& surface, SurfaceInterval interva
     DecodeTexture(load_info, load_info.addr, load_info.end, upload_data, staging.mapped,
                   runtime.NeedsConversion(surface));
 
+#if !defined(EMUCORED_DIAGNOSTICS) || EMUCORED_DIAGNOSTICS
     const bool should_dump = False(surface.flags & SurfaceFlagBits::Custom) &&
                              False(surface.flags & SurfaceFlagBits::RenderTarget);
     if (dump_textures && should_dump) {
@@ -1062,6 +1063,7 @@ void RasterizerCache<T>::UploadSurface(Surface& surface, SurfaceInterval interva
         const u32 level = surface.LevelOf(load_info.addr);
         custom_tex_manager.DumpTexture(load_info, level, upload_data, hash);
     }
+#endif
 
     const BufferTextureCopy upload = {
         .buffer_offset = staging.offset,

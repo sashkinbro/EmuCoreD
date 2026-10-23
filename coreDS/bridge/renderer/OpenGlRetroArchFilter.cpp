@@ -1,3 +1,4 @@
+#include "../ds_diagnostics.h"
 #include "renderer/OpenGlRetroArchFilter.h"
 
 #include <algorithm>
@@ -107,7 +108,7 @@ void OpenGlRetroArchFilter::logSizingIfNeeded(const Sizing& sizing, melonDS::u32
         return;
     lastSizingLogKey = std::move(key);
 
-    melonDS::Platform::Log(
+    EMUCORED_DIAGNOSTIC_LOG(melonDS::Platform::Log(
         melonDS::Platform::LogLevel::Info,
         "OpenGlPresenter[RetroArch]: sizing mode=%s atlas=%ux%u input=%ux%u source=%ux%u output=%ux%u outAtlas=%ux%u layout=%ux%u requested=%ux%u%s",
         sizing.nativeDisplayMode ? "native" : "internal",
@@ -125,7 +126,7 @@ void OpenGlRetroArchFilter::logSizingIfNeeded(const Sizing& sizing, melonDS::u32
         config.maxLayoutHeight,
         sizing.requestedOutputWidth,
         sizing.requestedOutputHeight,
-        sizing.clamped ? " (clamped)" : "");
+        sizing.clamped ? " (clamped)" : ""));
 }
 
 std::string OpenGlRetroArchFilter::makeConfigKey(melonDS::u32 atlasWidth, melonDS::u32 atlasHeight) const
@@ -195,10 +196,10 @@ GLuint OpenGlRetroArchFilter::runFilter(GLuint sourceTexture, melonDS::u32 atlas
         || !bottomChain.renderFrame(bottomInput.texture, bottomOutput.texture, frameCount, clearHistory, kFrametimeDeltaMs))
     {
         failedConfigKey = configKey;
-        melonDS::Platform::Log(
+        EMUCORED_DIAGNOSTIC_LOG(melonDS::Platform::Log(
             melonDS::Platform::LogLevel::Warn,
             "OpenGlPresenter[RetroArch]: frame failed for %s; presenting unfiltered",
-            config.presetPath.c_str());
+            config.presetPath.c_str()));
         return 0;
     }
 
@@ -233,12 +234,12 @@ bool OpenGlRetroArchFilter::prewarm(melonDS::u32 atlasWidth, melonDS::u32 atlasH
     if (!failedConfigKey.empty() && failedConfigKey == configKey)
         return false;
 
-    melonDS::Platform::Log(
+    EMUCORED_DIAGNOSTIC_LOG(melonDS::Platform::Log(
         melonDS::Platform::LogLevel::Info,
         "OpenGlPresenter[RetroArch]: prewarming %s for atlas %ux%u",
         config.presetPath.c_str(),
         atlasWidth,
-        atlasHeight);
+        atlasHeight));
 
     GlStateGuard stateGuard;
     const bool ready = ensureChains(sizing, configKey, atlasWidth, atlasHeight);
@@ -266,11 +267,11 @@ bool OpenGlRetroArchFilter::ensureChains(
         if (lastResourceFailureKey != configKey)
         {
             lastResourceFailureKey = configKey;
-            melonDS::Platform::Log(
+            EMUCORED_DIAGNOSTIC_LOG(melonDS::Platform::Log(
                 melonDS::Platform::LogLevel::Warn,
                 "OpenGlPresenter[RetroArch]: failed to allocate resources for %ux%u; presenting unfiltered",
                 atlasWidth,
-                atlasHeight);
+                atlasHeight));
         }
         return false;
     }
@@ -289,10 +290,10 @@ bool OpenGlRetroArchFilter::ensureChains(
             config.parameterOverrides))
     {
         failedConfigKey = configKey;
-        melonDS::Platform::Log(
+        EMUCORED_DIAGNOSTIC_LOG(melonDS::Platform::Log(
             melonDS::Platform::LogLevel::Warn,
             "OpenGlPresenter[RetroArch]: preset failed to compile (%s); presenting unfiltered",
-            config.presetPath.c_str());
+            config.presetPath.c_str()));
         return false;
     }
 
@@ -417,10 +418,10 @@ bool OpenGlRetroArchFilter::ensureChannelSwapProgram()
         {
             char log[512] = {};
             glGetShaderInfoLog(shader, sizeof(log) - 1, nullptr, log);
-            melonDS::Platform::Log(
+            EMUCORED_DIAGNOSTIC_LOG(melonDS::Platform::Log(
                 melonDS::Platform::LogLevel::Error,
                 "OpenGlPresenter[RetroArch]: channel swap shader failed: %s",
-                log);
+                log));
             glDeleteShader(shader);
             return 0;
         }
@@ -451,10 +452,10 @@ bool OpenGlRetroArchFilter::ensureChannelSwapProgram()
     {
         char log[512] = {};
         glGetProgramInfoLog(program, sizeof(log) - 1, nullptr, log);
-        melonDS::Platform::Log(
+        EMUCORED_DIAGNOSTIC_LOG(melonDS::Platform::Log(
             melonDS::Platform::LogLevel::Error,
             "OpenGlPresenter[RetroArch]: channel swap link failed: %s",
-            log);
+            log));
         glDeleteProgram(program);
         return false;
     }

@@ -1,3 +1,4 @@
+#include "../../bridge/ds_diagnostics.h"
 /*
     Copyright 2016-2025 melonDS team
 
@@ -152,7 +153,7 @@ void DMA::WriteCnt(u32 val)
             NDS.GPU.GPU3D.CheckFIFODMA();
 
         if (StartMode==0x06 || StartMode==0x13)
-            Log(LogLevel::Warn, "UNIMPLEMENTED ARM%d DMA%d START MODE %02X, %08X->%08X\n", CPU?7:9, Num, StartMode, SrcAddr, DstAddr);
+            EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Warn, "UNIMPLEMENTED ARM%d DMA%d START MODE %02X, %08X->%08X\n", CPU?7:9, Num, StartMode, SrcAddr, DstAddr));
     }
 }
 

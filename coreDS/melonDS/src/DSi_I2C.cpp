@@ -1,3 +1,4 @@
+#include "../../bridge/ds_diagnostics.h"
 /*
     Copyright 2016-2025 melonDS team
 
@@ -172,7 +173,7 @@ void DSi_BPTWL::DoHardwareReset(bool direct)
 {
     ResetButtonState();
 
-    Log(LogLevel::Debug, "BPTWL: soft-reset\n");
+    EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Debug, "BPTWL: soft-reset\n"));
 
     if (direct)
     {
@@ -209,7 +210,7 @@ void DSi_BPTWL::SetPowerButtonHeld(double time)
 
     if (elapsed >= PowerButtonForcedShutdownTime)
     {
-        Log(LogLevel::Debug, "Force power off via DSi power button\n");
+        EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Debug, "Force power off via DSi power button\n"));
         DoPowerButtonForceShutdown();
         return;
     }
@@ -506,7 +507,7 @@ void DSi_I2CHost::GetCurDevice()
     case 0xA0:
     case 0xE0: CurDevice = nullptr; break;
     default:
-        Log(LogLevel::Warn, "I2C: unknown device %02X\n", CurDeviceID);
+        EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Warn, "I2C: unknown device %02X\n", CurDeviceID));
         CurDevice = nullptr;
         break;
     }

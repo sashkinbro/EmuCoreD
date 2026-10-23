@@ -2,6 +2,9 @@ cmake_minimum_required(VERSION 3.22)
 
 project(EmuCoreDS LANGUAGES C CXX ASM)
 
+option(EMUCORED_DIAGNOSTICS "Compile diagnostic logging and dump tools" OFF)
+add_compile_definitions(EMUCORED_DIAGNOSTICS=$<BOOL:${EMUCORED_DIAGNOSTICS}>)
+
 set(BUILD_QT_SDL OFF CACHE BOOL "" FORCE)
 set(ENABLE_GDBSTUB OFF CACHE BOOL "" FORCE)
 set(ENABLE_JIT ON CACHE BOOL "" FORCE)
