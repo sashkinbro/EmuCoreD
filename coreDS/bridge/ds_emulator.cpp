@@ -145,7 +145,8 @@ bool DsEmulator::Start(const std::string& rom_path, const std::string& sram_path
                                       nds_->GPU);
     }
     if (use_vulkan) {
-        vulkan_output_ = std::make_unique<MelonDSAndroid::VulkanOutput>();
+        // Match just-completed scanout registers with the same frame VRAM slot.
+        vulkan_output_ = std::make_unique<MelonDSAndroid::VulkanOutput>(true);
         if (!vulkan_output_->init()) {
             __android_log_print(ANDROID_LOG_ERROR, "EmuCoreDS",
                                 "VulkanOutput initialization failed; falling back to software");
