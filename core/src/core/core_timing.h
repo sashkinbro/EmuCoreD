@@ -237,7 +237,7 @@ public:
         double cpu_clock_scale = 1.0;
 
         template <class Archive>
-        void serialize(Archive& ar, const unsigned int) {
+        void serialize(Archive& ar, const unsigned int file_version) {
             MoveEvents();
             ar & event_queue;
             ar & event_fifo_id;
@@ -245,6 +245,13 @@ public:
             ar & downcount;
             ar & executed_ticks;
             ar & idled_cycles;
+            if (file_version >= 1) {
+                ar & is_timer_sane;
+            } else if (Archive::is_loading::value) {
+                // Legacy frontend states are captured between RunLoop slices,
+                // outside Advance(). Preserve the elapsed portion of a slice.
+                is_timer_sane = false;
+            }
         }
         friend class boost::serialization::access;
     };
@@ -320,3 +327,4 @@ private:
 } // namespace Core
 
 BOOST_CLASS_VERSION(Core::Timing, 1)
+BOOST_CLASS_VERSION(Core::Timing::Timer, 1)
