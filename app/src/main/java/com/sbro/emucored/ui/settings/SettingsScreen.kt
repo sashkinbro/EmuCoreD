@@ -1998,7 +1998,7 @@ private fun SettingsContent(
                 }
 
                 SettingsTab.NintendoDs -> {
-                    SettingsSection(title = "Nintendo DS") {
+                    SettingsSection(title = stringResource(R.string.profile_platform_ds)) {
                         ChoiceSection(
                             title = stringResource(R.string.settings_renderer),
                             options = listOf(
@@ -4052,7 +4052,7 @@ private fun rememberSettingsSearchEntries(): List<SettingsSearchEntry> {
     }
     return listOfNotNull(
         entry(SettingsTab.General, R.string.settings_language),
-        SettingsSearchEntry(SettingsTab.NintendoDs, "Nintendo DS", SettingsTab.NintendoDs.label()),
+        SettingsSearchEntry(SettingsTab.NintendoDs, stringResource(R.string.profile_platform_ds), SettingsTab.NintendoDs.label()),
         entry(SettingsTab.NintendoDs, R.string.settings_renderer),
         entry(SettingsTab.NintendoDs, R.string.settings_upscale),
         entry(SettingsTab.General, R.string.settings_tv_interface),
@@ -6334,7 +6334,7 @@ private fun SettingsTab.label(): String {
     return when (this) {
         SettingsTab.General -> stringResource(R.string.settings_general_tab)
         SettingsTab.Graphics -> stringResource(R.string.settings_graphics_tab)
-        SettingsTab.NintendoDs -> "Nintendo DS"
+        SettingsTab.NintendoDs -> stringResource(R.string.profile_platform_ds)
         SettingsTab.Customization -> stringResource(R.string.settings_customization_tab)
         SettingsTab.GameMenu -> stringResource(R.string.settings_game_menu_tab)
         SettingsTab.Audio -> stringResource(R.string.settings_audio_tab)

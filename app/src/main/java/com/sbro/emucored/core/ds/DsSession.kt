@@ -56,7 +56,8 @@ object DsSession {
         identityPath: String = path,
         renderScale: Int = 1,
         renderer: Int = 14,
-        startPaused: Boolean = false
+        startPaused: Boolean = false,
+        swapped: Boolean = false
     ): Boolean {
         if (!EmuCoreDsNative.isLoaded) return false
         if (isActive) return false
@@ -92,6 +93,8 @@ object DsSession {
         this.renderScale = renderScale.coerceIn(1, 8)
         EmuCoreDsNative.nativeSetRenderScale(this.renderScale)
         EmuCoreDsNative.nativeSetRenderer(if (this.renderer == 13) 0 else 1)
+        swapScreens = swapped
+        EmuCoreDsNative.nativeSetSwapScreens(swapped)
         val started = EmuCoreDsNative.nativeStart(
             romFile.absolutePath,
             saveFile.absolutePath,
@@ -103,7 +106,6 @@ object DsSession {
         isActive = true
         isPaused = startPaused
         keyMask = 0xFFF
-        swapScreens = false
         lastSampleAtMs = 0L
         lastSampleFrames = 0L
         EmuCoreDsNative.nativeSetScreenLayout(layoutMode)
@@ -189,7 +191,7 @@ object DsSession {
             stop()
             this.surface = surface
             this.secondarySurface = secondary
-            if (!start(context, path, identity, scale, target, startPaused = true)) return@runCatching false
+            if (!start(context, path, identity, scale, target, startPaused = true, swapped = swap)) return@runCatching false
             setLayout(layout)
             setSwapScreens(swap)
             if (!EmuCoreDsNative.nativeLoadState(checkpoint.absolutePath)) return@runCatching false
@@ -343,11 +345,7 @@ object DsSession {
     }
 
     private fun trace(context: Context, message: String) {
-        runCatching {
-            val file = File(context.filesDir, "ds/session.log")
-            file.parentFile?.mkdirs()
-            file.appendText("${System.currentTimeMillis()} $message\n")
-        }
+        traceDsSession(context, message)
     }
 
     private fun materializeRom(context: Context, path: String): File? {

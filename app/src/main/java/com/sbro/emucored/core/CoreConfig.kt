@@ -6,6 +6,9 @@ import android.util.Log
 import com.sbro.emucored.data.DisplayCrop
 import java.io.File
 
+internal fun resolveScreenSwapConfig(launchChoice: Boolean?, sessionChoice: String?, storedChoice: String?): Boolean =
+    sessionChoice?.toBooleanStrictOrNull() ?: launchChoice ?: storedChoice?.toBooleanStrictOrNull() ?: false
+
 /**
  * Writes EmuCoreD's settings into the core's own `config.ini`.
  *
@@ -157,9 +160,8 @@ internal object CoreConfig {
         put(
             "Layout",
             "swap_screen",
-            (values.swapScreens?.toString()
-                ?: transientOverride("swap_screen")
-                ?: CoreOptionStore.value("swap_screen") ?: "false")
+            resolveScreenSwapConfig(values.swapScreens, transientOverride("swap_screen"),
+                CoreOptionStore.value("swap_screen")).toString()
         )
         put("Layout", "aspect_ratio", aspectRatioValue(values.aspectRatio))
         put("Layout", "upright_screen", "false")

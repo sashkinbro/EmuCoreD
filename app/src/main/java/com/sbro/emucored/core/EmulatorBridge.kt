@@ -214,7 +214,8 @@ object EmulatorBridge {
         path: String,
         saveStateIdentityPath: String? = null,
         dsRenderScale: Int = 1,
-        dsRenderer: Int = 14
+        dsRenderer: Int = 14,
+        dsSwapScreens: Boolean = false
     ): Boolean {
         if (!isNativeLoaded) {
             Log.e(TAG, "startEmulation skipped: native library is not loaded")
@@ -235,7 +236,8 @@ object EmulatorBridge {
                     path,
                     saveStateIdentityPath ?: path,
                     renderScale = dsConfig.renderScale,
-                    renderer = dsConfig.renderer
+                    renderer = dsConfig.renderer,
+                    swapped = dsSwapScreens
                 )
             }
         }
@@ -808,6 +810,7 @@ object EmulatorBridge {
         if (!isNativeLoaded) return
         NativeApp.logCrashBreadcrumb("swap screens requested swap=$swap")
         launchSerial {
+            CoreConfig.setTransientOverride("swap_screen", swap.toString())
             try {
                 EmuCoreNative.swapScreens(swap, currentDisplayRotation())
             } catch (e: Exception) {

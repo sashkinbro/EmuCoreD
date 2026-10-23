@@ -49,6 +49,8 @@ import com.sbro.emucored.data.GameRepository
 import com.sbro.emucored.data.GameItem
 import com.sbro.emucored.data.OverlayLayoutSnapshot
 import com.sbro.emucored.data.PerGameSettings
+import com.sbro.emucored.data.withScreenSwap
+import com.sbro.emucored.data.resolveScreenSwap
 import com.sbro.emucored.data.PerGameSettingsRepository
 import com.sbro.emucored.data.PlayTimeSyncCacheRepository
 import com.sbro.emucored.data.PlayerPlayTimeDelta
@@ -204,6 +206,7 @@ data class EmulationUiState(
     val renderer: Int = RendererDefaults.defaultForHardware(),
     val upscale: Float = 1f,
     val aspectRatio: Int = 1,
+    val swapScreens: Boolean = false,
     val displayCrop: DisplayCrop = DisplayCrop.None,
     val enableCheats: Boolean = false,
     val frameSkip: Int = 0,
@@ -1158,7 +1161,7 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
                         existingProfile
                             ?: safePath.takeIf { it.isNotBlank() }?.let(perGameSettingsRepository::get)
                         )?.coreOptions.orEmpty()
-                        .filterKeys { !AzaharCoreOptions.isManagedKey(it) }
+                        .filterKeys { !AzaharCoreOptions.isManagedKey(it) && it != "swap_screen" }
                     refreshCurrentGameCheats(metadata, config.enableCheats)
                     _uiState.value = _uiState.value.copy(
                         currentGameTitle = currentGameTitle,
@@ -1218,6 +1221,7 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
                     confirmSaveLoadActions = liveRuntime.confirmSaveLoadActions,
                     backButtonExitsGame = liveRuntime.backButtonExitsGame,
                     renderer = renderer,
+                    swapScreens = config.swapScreens ?: false,
                     upscale = liveRuntime.upscale,
                     aspectRatio = liveRuntime.aspectRatio,
                     displayCrop = liveRuntime.displayCrop,
@@ -1355,7 +1359,8 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
                     pathToLaunch,
                     saveStateIdentityPath = path,
                     dsRenderScale = dsRenderScale,
-                    dsRenderer = dsRenderer
+                    dsRenderer = dsRenderer,
+                    dsSwapScreens = _uiState.value.swapScreens
                 )
             } catch (error: Exception) {
                 Log.e(TAG, "EmulatorBridge.startEmulation failed", error)
@@ -1369,6 +1374,7 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
                 )
             }
             if (started) {
+                EmulatorBridge.setSwapScreens(_uiState.value.swapScreens)
                 RetroAchievementsRepository.get(getApplication()).onGameStarted(pathToLaunch)
                 syncCheatsForCurrentGame()
                 // Per-game core options win over the global store.
@@ -1524,6 +1530,10 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
      * made while the core is live (BIOS only) still persists globally.
      */
     fun setCoreOption(key: String, value: String) {
+        if (key == "swap_screen") {
+            value.toBooleanStrictOrNull()?.let { swapped -> updateScreenSwap { swapped } }
+            return
+        }
         if (activeGamePlatform() == GamePlatform.NDS) return
         viewModelScope.launch {
             val gameKey = activePerGameKey()
@@ -1940,6 +1950,7 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
             persistRuntimeState(_uiState.value.copy(renderer = normalized)) {
                 if (isDs) preferences.setDsRenderer(normalized) else preferences.setRenderer(normalized)
             }
+            EmulatorBridge.setSwapScreens(_uiState.value.swapScreens)
             updateCrashContext()
         }
     }
@@ -1955,6 +1966,32 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
             }
             EmulatorBridge.setUpscaleMultiplier(normalizedUpscale)
             updateCrashContext()
+        }
+    }
+
+    fun toggleScreenSwap() = updateScreenSwap { !it }
+
+    private fun updateScreenSwap(transform: (Boolean) -> Boolean) {
+        viewModelScope.launch {
+            lifecycleMutex.withLock {
+                val gameKey = activePerGameKey() ?: return@withLock
+                if (isShuttingDown) return@withLock
+                val swapped = transform(_uiState.value.swapScreens)
+                val profile = perGameSettingsRepository.get(gameKey) ?: PerGameSettings(
+                    gameKey = gameKey,
+                    gameTitle = resolvePerGameTitle(_uiState.value),
+                    gameSerial = currentGameSerial.takeIf { it.isNotBlank() },
+                    providedKeys = emptySet()
+                )
+                withContext(Dispatchers.IO) { perGameSettingsRepository.save(profile.withScreenSwap(swapped)) }
+                _uiState.value = _uiState.value.copy(
+                    swapScreens = swapped,
+                    gameSettingsProfileActive = true,
+                    perGameCoreOptions = _uiState.value.perGameCoreOptions - "swap_screen"
+                )
+                pendingPerGameCoreOptions = pendingPerGameCoreOptions - "swap_screen"
+                EmulatorBridge.setSwapScreens(swapped)
+            }
         }
     }
 
@@ -2329,6 +2366,7 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
                     addAll(runtimeProfile.providedKeys)
                     addAll(visualOverrideKeys)
                     addAll(audioOverrideKeys)
+                    if (existingProfile?.swapScreens != null) add("swapScreens")
                     if (existingProfile?.keyboardMouse != null) add("keyboardMouse")
                     if (touchControlsLayout != null) add(PER_GAME_TOUCH_CONTROLS_LAYOUT_KEY)
                     if (customTouchControls != null) add(PER_GAME_CUSTOM_TOUCH_CONTROLS_KEY)
@@ -2336,6 +2374,7 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
             }
             perGameSettingsRepository.save(
                 runtimeProfile.copy(
+                    swapScreens = existingProfile?.swapScreens,
                     keyboardMouse = existingProfile?.keyboardMouse,
                     touchControlsLayout = touchControlsLayout,
                     customTouchControls = customTouchControls,
@@ -2415,9 +2454,12 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
         )
         viewModelScope.launch {
             val settings = preferences.settingsSnapshot.first()
+            val resetSwap = loadLaunchConfig().swapScreens ?: false
+            if (activePerGameKey() != gameKey) return@launch
             _uiState.value = _uiState.value
                 .withOverlayLayoutSnapshot(preferences.overlayLayoutSnapshot.first())
                 .copy(
+                    swapScreens = resetSwap,
                     touchControlVisualStyle = settings.touchControlVisualStyle,
                     touchControlPressEffect = settings.touchControlPressEffect,
                     customTouchControls = settings.customTouchControls,
@@ -2427,6 +2469,7 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
                     gamepadLeftStickSensitivity = settings.gamepadLeftStickSensitivity,
                     gamepadRightStickSensitivity = settings.gamepadRightStickSensitivity
                 )
+            EmulatorBridge.setSwapScreens(resetSwap)
         }
     }
 
@@ -2437,6 +2480,11 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
         val secondScreenSwap = preferences.secondScreenSwap.first()
         val detachedSecondScreen = secondScreenMode == AppPreferences.SECOND_SCREEN_MODE_PANEL ||
             secondScreenMode == AppPreferences.SECOND_SCREEN_MODE_FLOATING
+        val fallbackSwap = when {
+            activeGamePlatform() == GamePlatform.NDS -> false
+            detachedSecondScreen -> secondScreenSwap
+            else -> CoreOptionStore.value("swap_screen")?.toBooleanStrictOrNull() ?: false
+        }
         return EmulationLaunchConfig(
             emulatorDataPath = settings.emulatorDataPath,
             renderer = settings.renderer,
@@ -2460,7 +2508,7 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
             textureReplacementsEnabled = settings.textureReplacementsEnabled,
             enableCheats = settings.enableCheats,
             layoutOption = if (detachedSecondScreen) AppPreferences.SECOND_SCREEN_PANEL_LAYOUT else -1,
-            swapScreens = if (detachedSecondScreen) secondScreenSwap else null
+            swapScreens = profile?.resolveScreenSwap(fallbackSwap) ?: fallbackSwap
         ).applyProfile(profile).let { config ->
             if (activeGamePlatform() == GamePlatform.NDS) config.copy(
                 renderer = DsSettingsPolicy.normalizeRenderer(config.renderer),

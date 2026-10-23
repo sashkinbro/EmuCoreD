@@ -468,7 +468,6 @@ fun EmulationScreen(
     val secondScreenWidth by preferences.secondScreenWidth.collectAsState(
         initial = AppPreferences.SECOND_SCREEN_WIDTH_DEFAULT
     )
-    val secondScreenSwap by preferences.secondScreenSwap.collectAsState(initial = false)
     val secondScreenOpen by preferences.secondScreenOpen.collectAsState(initial = false)
     val secondScreenPanelPosition by preferences.secondScreenPanelPosition.collectAsState(
         initial = AppPreferences.SECOND_SCREEN_PANEL_X_DEFAULT to
@@ -840,20 +839,20 @@ fun EmulationScreen(
     // Keep the running core in sync with the second-screen presentation mode:
     // panel mode shows only the top screen in the main view and lets the
     // secondary window render the bottom screen.
-    LaunchedEffect(isNds, effectiveSecondScreenMode, secondScreenSwap, uiState.isRunning) {
+    LaunchedEffect(isNds, effectiveSecondScreenMode, uiState.swapScreens, uiState.isRunning) {
         if (!uiState.isRunning) return@LaunchedEffect
         if (isNds) {
             EmulatorBridge.setDsScreenLayout(DsSession.LAYOUT_STACKED)
+            DsSession.setSwapScreens(uiState.swapScreens)
             return@LaunchedEffect
         }
         if (effectiveSecondScreenMode != AppPreferences.SECOND_SCREEN_MODE_INTEGRATED) {
             EmulatorBridge.setScreenLayout(AppPreferences.SECOND_SCREEN_PANEL_LAYOUT)
-            EmulatorBridge.setSwapScreens(secondScreenSwap)
+            EmulatorBridge.setSwapScreens(uiState.swapScreens)
         } else {
             val storedLayout = CoreOptionStore.value("layout_option")?.toIntOrNull() ?: 0
-            val storedSwap = CoreOptionStore.value("swap_screen")?.toBooleanStrictOrNull() ?: false
             EmulatorBridge.setScreenLayout(storedLayout)
-            EmulatorBridge.setSwapScreens(storedSwap)
+            EmulatorBridge.setSwapScreens(uiState.swapScreens)
         }
     }
 
@@ -937,7 +936,7 @@ fun EmulationScreen(
                     scope.launch { preferences.setSecondScreenOpen(!secondScreenOpen) }
                 }
                 GamepadManager.ACTION_SWAP_SCREENS -> {
-                    scope.launch { preferences.setSecondScreenSwap(!secondScreenSwap) }
+                    viewModel.toggleScreenSwap()
                 }
             }
         }
@@ -1092,6 +1091,8 @@ fun EmulationScreen(
                 if (isNds) {
                     DsTouchscreenLayer(
                         modifier = Modifier.fillMaxSize(),
+                        swapped = uiState.swapScreens,
+                        framebufferHeight = if (uiState.renderer == 13) 384 else 386,
                         enabled = !showControlsEditor && !uiState.showMenu,
                         onTouch = { x, y, pressed -> DsSession.touch(x, y, pressed) }
                     )
@@ -1534,6 +1535,7 @@ fun EmulationScreen(
                     stickyButtons = if (isNds) emptySet() else uiState.stickyButtons,
                     stickToggleTarget = uiState.stickToggleTarget,
                     onToggleLeftInputMode = viewModel::toggleLeftInputMode,
+                    onSwapScreens = viewModel::toggleScreenSwap,
                     onPadInput = { keyCode, range, pressed ->
                         viewModel.onPadInput(overlayPadIndex, keyCode, range, pressed)
                     },
@@ -1632,7 +1634,7 @@ fun EmulationScreen(
                     scope.launch { preferences.setSecondScreenWidth(width) }
                 },
                 onSwapScreens = {
-                    scope.launch { preferences.setSecondScreenSwap(!secondScreenSwap) }
+                    viewModel.toggleScreenSwap()
                 },
                 onPositionChange = { x, y ->
                     scope.launch { preferences.setSecondScreenPanelPosition(x, y) }
@@ -1657,7 +1659,7 @@ fun EmulationScreen(
                     scope.launch { preferences.setSecondScreenFloatSize(size) }
                 },
                 onSwapScreens = {
-                    scope.launch { preferences.setSecondScreenSwap(!secondScreenSwap) }
+                    viewModel.toggleScreenSwap()
                 },
                 onDock = {
                     scope.launch { preferences.setSecondScreenMode(AppPreferences.SECOND_SCREEN_MODE_PANEL) }
@@ -1701,6 +1703,7 @@ fun EmulationScreen(
                     globalDefaults = globalDefaults.forPlatform(PlatformUiCapabilities.forGame(gamePath).platform),
                     overlayDefaults = overlayDefaults,
                     onClose = toggleMenuClick,
+                    onSwapScreens = viewModel::toggleScreenSwap,
                     onPauseToggle = togglePauseClick,
                     onQuickSave = requestQuickSaveClick,
                     onQuickLoad = requestQuickLoadClick,
@@ -2192,6 +2195,7 @@ private fun OnScreenControls(
     stickToggleTarget: Int = AppPreferences.DEFAULT_STICK_TOGGLE_TARGET,
     onToggleLeftInputMode: () -> Unit,
     onPadInput: (Int, Int, Boolean) -> Unit,
+    onSwapScreens: () -> Unit = {},
     onScreenDoubleTap: () -> Unit = {},
     respectSystemInsets: Boolean = true,
     safeInsets: PaddingValues? = null,
@@ -2286,7 +2290,7 @@ private fun OnScreenControls(
         "fast_forward" -> { pressed -> onPadInput(126, 0, pressed) }
         "rewind" -> { pressed -> onPadInput(127, 0, pressed) }
         "home" -> { pressed -> onPadInput(PadKey.HOME, 0, pressed) }
-        "swap_screen" -> { pressed -> onPadInput(PadKey.HOME, 0, pressed) }
+        "swap_screen" -> { pressed -> if (pressed) onSwapScreens() }
         "touch" -> { pressed -> onPadInput(PadKey.TOUCH, 0, pressed) }
         else -> null
     }
@@ -3387,6 +3391,7 @@ private fun EmulationSidebarMenu(
     globalDefaults: SettingsSnapshot,
     overlayDefaults: OverlayLayoutSnapshot,
     onClose: () -> Unit,
+    onSwapScreens: () -> Unit,
     onPauseToggle: () -> Unit,
     onQuickSave: () -> Unit,
     onQuickLoad: () -> Unit,
@@ -3634,6 +3639,13 @@ private fun EmulationSidebarMenu(
                                 )
                             }
                         }
+
+                        MenuButton(
+                            icon = Icons.Rounded.SwapVert,
+                            text = stringResource(R.string.settings_gamepad_action_swap_screen),
+                            onClick = onSwapScreens,
+                            enabled = !uiState.isActionInProgress
+                        )
 
                         // Nintendo 3DS titles are single-card; there is no
                         // disc-swap action to offer while a game is running.
@@ -4506,7 +4518,7 @@ private fun EmulationSidebarMenu(
 
                         if (capabilities.supportsAzaharOptions) {
                             CoreOptionRows(
-                                options = AzaharCoreOptions.gameMenuGraphicsOptions(),
+                                options = AzaharCoreOptions.gameMenuGraphicsOptions().filterNot { it.key == "swap_screen" },
                                 version = coreOptionsVersion,
                                 perGameOverrides = uiState.perGameCoreOptions,
                                 onValueChange = onCoreOptionChange
@@ -5323,7 +5335,6 @@ private fun SecondScreenSettingsRows() {
     val width by preferences.secondScreenWidth.collectAsState(
         initial = AppPreferences.SECOND_SCREEN_WIDTH_DEFAULT
     )
-    val swap by preferences.secondScreenSwap.collectAsState(initial = false)
 
     LiveSelectionRow(
         title = stringResource(R.string.settings_second_screen),
@@ -5356,11 +5367,6 @@ private fun SecondScreenSettingsRows() {
                 .map { LiveSelectionOption(it, "$it%") },
             currentValue = width,
             onValueChange = { scope.launch { preferences.setSecondScreenWidth(it) } },
-        )
-        MenuButton(
-            icon = Icons.Rounded.SwapVert,
-            text = stringResource(R.string.settings_second_screen_swap_now),
-            onClick = { scope.launch { preferences.setSecondScreenSwap(!swap) } }
         )
     }
 }

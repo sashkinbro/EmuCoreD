@@ -304,6 +304,8 @@ private fun DsHoldButton(
 fun DsTouchscreenLayer(
     modifier: Modifier = Modifier,
     enabled: Boolean,
+    swapped: Boolean = false,
+    framebufferHeight: Int = 386,
     onTouch: (x: Int, y: Int, pressed: Boolean) -> Unit
 ) {
     var size by remember { mutableStateOf(IntSize.Zero) }
@@ -311,26 +313,30 @@ fun DsTouchscreenLayer(
         modifier = modifier
             .fillMaxSize()
             .onSizeChanged { size = it }
-            .pointerInput(enabled, size) {
+            .pointerInput(enabled, size, swapped, framebufferHeight) {
                 if (!enabled || size.width <= 0 || size.height <= 0) return@pointerInput
-                awaitEachGesture {
-                    val down = awaitFirstDown(requireUnconsumed = false)
-                    val point = mapDsTouch(down.position, size)
-                    if (point == null) return@awaitEachGesture
-                    down.consume()
-                    onTouch(point.x.toInt(), point.y.toInt(), true)
-                    waitForUpOrCancellation()
+                try {
+                    awaitEachGesture {
+                        val down = awaitFirstDown(requireUnconsumed = false)
+                        val point = mapDsTouch(down.position, size, swapped, framebufferHeight)
+                        if (point == null) return@awaitEachGesture
+                        down.consume()
+                        onTouch(point.x.toInt(), point.y.toInt(), true)
+                        waitForUpOrCancellation()
+                        onTouch(0, 0, false)
+                    }
+                } finally {
                     onTouch(0, 0, false)
                 }
             }
     )
 }
 
-private fun mapDsTouch(position: Offset, size: IntSize): Offset? {
+internal fun mapDsTouch(position: Offset, size: IntSize, swapped: Boolean, framebufferHeight: Int): Offset? {
     val width = size.width.toFloat()
     val height = size.height.toFloat()
     if (width <= 0f || height <= 0f) return null
-    val contentAspect = 256f / 386f
+    val contentAspect = 256f / framebufferHeight
     var contentWidth = width
     var contentHeight = width / contentAspect
     if (contentHeight > height) {
@@ -339,10 +345,10 @@ private fun mapDsTouch(position: Offset, size: IntSize): Offset? {
     }
     val left = (width - contentWidth) / 2f
     val top = (height - contentHeight) / 2f
-    val bottomTop = top
-    val bottomHeight = contentHeight * (192f / 386f)
-    if (position.x !in left..(left + contentWidth) ||
-        position.y !in bottomTop..(bottomTop + bottomHeight)
+    val bottomHeight = contentHeight / 2f
+    val bottomTop = if (swapped) top + bottomHeight else top
+    if (position.x < left || position.x >= left + contentWidth ||
+        position.y < bottomTop || position.y >= bottomTop + bottomHeight
     ) {
         return null
     }

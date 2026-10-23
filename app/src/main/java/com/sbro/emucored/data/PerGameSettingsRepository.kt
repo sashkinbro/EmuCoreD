@@ -20,6 +20,7 @@ data class PerGameSettings(
     val mediatekAngleOpenGl: Boolean = false,
     val upscaleMultiplier: Float = UPSCALE_DEFAULT,
     val aspectRatio: Int = 1,
+    val swapScreens: Boolean? = null,
     val displayCrop: DisplayCrop = DisplayCrop.None,
     val showFps: Boolean = false,
     val fpsOverlayMode: Int = AppPreferences.FPS_OVERLAY_MODE_DETAILED,
@@ -179,6 +180,7 @@ internal fun JSONObject.toPerGameSettings(): PerGameSettings {
         mediatekAngleOpenGl = optBoolean("mediatekAngleOpenGl", false),
         upscaleMultiplier = readUpscaleMultiplier(),
         aspectRatio = optInt("aspectRatio", 1).let(::sanitizeAspectRatioValue),
+        swapScreens = if (has("swapScreens")) optBoolean("swapScreens") else null,
         displayCrop = optJSONObject("displayCrop")?.let { crop ->
             DisplayCrop(
                 left = crop.optInt("left", 0),
@@ -285,6 +287,7 @@ internal fun PerGameSettings.toJson(): JSONObject {
         if (shouldWrite("mediatekAngleOpenGl")) put("mediatekAngleOpenGl", mediatekAngleOpenGl)
         if (shouldWrite("upscaleMultiplier")) put("upscaleMultiplier", upscaleMultiplier.toDouble())
         if (shouldWrite("aspectRatio")) put("aspectRatio", sanitizeAspectRatioValue(aspectRatio))
+        if (shouldWrite("swapScreens") && swapScreens != null) put("swapScreens", swapScreens)
         if (shouldWrite("displayCrop")) put("displayCrop", JSONObject().apply {
             val crop = displayCrop.sanitized()
             put("left", crop.left)
