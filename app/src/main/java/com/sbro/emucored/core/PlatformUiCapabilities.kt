@@ -2,13 +2,16 @@ package com.sbro.emucored.core
 
 import com.sbro.emucored.data.GamePlatform
 import com.sbro.emucored.data.GameMenuTabId
+import com.sbro.emucored.core.platform.ConsolePlatform
+import com.sbro.emucored.core.platform.CoreCapabilities
 import java.net.URLDecoder
 import java.nio.charset.StandardCharsets
 
 /** Settings supported by the selected game's core, including before a session starts. */
 class PlatformUiCapabilities private constructor(val platform: GamePlatform) {
-    val supportsAzaharOptions: Boolean get() = platform != GamePlatform.NDS
-    val rendererIds: List<Int> get() = if (supportsAzaharOptions) listOf(12, 14) else listOf(14, 13)
+    private val capabilities = CoreCapabilities.forPlatform(ConsolePlatform.fromGamePlatform(platform))
+    val supportsAzaharOptions: Boolean get() = capabilities.supportsAzaharOptions
+    val rendererIds: List<Int> get() = capabilities.rendererIds
 
     fun supportsGameMenuTab(tab: GameMenuTabId): Boolean =
         tab != GameMenuTabId.CHEATS || supportsAzaharOptions

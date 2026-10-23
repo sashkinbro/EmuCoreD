@@ -51,11 +51,11 @@
 
 ## Task 1: Acquire Reproducible Upstreams and Restore Artwork Repository
 
-- [ ] Add pinned submodules from official `dolphin-emu/dolphin`, `mgba-emu/mgba`, `LIJI32/SameBoy` in the paths above; keep upstream frontends out of our app.
-- [ ] Restore `covers/` from the exact URL used by `CoverIndexRepository`; inspect its index, tooling, licenses and 3D assets before changing it.
-- [ ] Record SHA, license, dependency/submodule inventory and update/build commands in each core README and `CORE_INTEGRATION.md`.
-- [ ] Verify `git submodule status`, `git ls-tree HEAD`, upstream remotes, no credentials/ROMs/artwork accidentally staged. Fresh-checkout instructions must reconstruct the sources.
-- [ ] Commit and push: `Add pinned Dolphin mGBA and SameBoy upstreams`.
+- [x] Add pinned submodules from official `dolphin-emu/dolphin`, `mgba-emu/mgba`, `LIJI32/SameBoy` in the paths above; keep upstream frontends out of our app.
+- [x] Restore `covers/` from the exact URL used by `CoverIndexRepository`; inspect its index, tooling, licenses and 3D assets before changing it.
+- [x] Record SHA, license, dependency/submodule inventory and update/build commands in each core README and `CORE_INTEGRATION.md`.
+- [x] Verify `git submodule status`, `git ls-tree HEAD`, upstream remotes, no credentials/ROMs/artwork accidentally staged. Fresh-checkout instructions must reconstruct the sources.
+- [x] Commit and push: `Add pinned Dolphin mGBA and SameBoy upstreams`.
 
 ## Task 2: Introduce Platform Registry Without Advertising Unfinished Engines
 
@@ -185,3 +185,5 @@ Record command, result, commit, device/GPU/driver, ROM identity, backend/scale a
 
 - 2026-10-23: User approved full plan execution on main and paid GPL/open-source distribution. Active product goal is extended by this plan; metadata objective predates this expansion and remains active.
 - 2026-10-23: Planning/source inspection in progress. Four pre-existing externally deleted native test files left untouched.
+- 2026-10-23: Task 1 complete, commit `88824d0d1` pushed to origin/main. All three official sources pinned; covers restored at `27478e28c54b34b6353b1b88751aa38b1c9fe10e`, 18,204 files. Artwork repo has no root LICENSE; do not assume code licenses cover artwork permissions. Android dependencies/adapters are still pending.
+- 2026-10-23: Task 2 initial registry/capabilities implemented. Red: new test compilation failed on absent registry types. Green: full `:app:testDebugUnitTest` passed 159 tests, zero failures/errors/skips (`logs/platform-registry-green.log`). Existing DS/3DS UI capability wrapper now uses the explicit registry. No new core is advertised as launchable.
