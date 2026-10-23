@@ -19,6 +19,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import com.sbro.emucored.R
 import com.sbro.emucored.core.DocumentPathResolver
+import com.sbro.emucored.core.PlatformUiCapabilities
 import com.sbro.emucored.data.AppPreferences
 import com.sbro.emucored.data.CustomTouchControlLibrary
 import com.sbro.emucored.data.GamePlatform
@@ -199,7 +200,7 @@ fun ControlsLayoutEditorHostScreen(
     }
 
     val dsMode = normalizedGamePath?.let {
-        GamePlatform.fromFileName(it) == GamePlatform.NDS
+        PlatformUiCapabilities.forGame(it).platform == GamePlatform.NDS
     } == true
     ControlsEditorScreen(
         state = state,

@@ -227,6 +227,8 @@ import com.sbro.emucored.ui.common.tvFocusGroup
 import com.sbro.emucored.ui.settings.ControlsEditorScreen
 import com.sbro.emucored.ui.settings.KeyboardMouseSettingsDialog
 import com.sbro.emucored.ui.settings.toControlsEditorState
+import com.sbro.emucored.data.forPlatform
+import com.sbro.emucored.core.PlatformUiCapabilities
 import com.sbro.emucored.core.AzaharCoreOptions
 import com.sbro.emucored.core.azaharCoreOptionHelpRes
 import com.sbro.emucored.core.AzaharCoreOptionLocalization
@@ -456,7 +458,7 @@ fun EmulationScreen(
         initial = AppPreferences.SECOND_SCREEN_MODE_PANEL
     )
     val isNds = remember(gamePath) {
-        gamePath?.let { GamePlatform.fromFileName(it) == GamePlatform.NDS } == true
+        PlatformUiCapabilities.forGame(gamePath).platform == GamePlatform.NDS
     }
     val effectiveSecondScreenMode = if (isNds) {
         AppPreferences.SECOND_SCREEN_MODE_INTEGRATED
@@ -613,11 +615,18 @@ fun EmulationScreen(
     var showGamepadIndicator by remember { mutableStateOf(gamepadConnected) }
 
     val tvUiEnabled = LocalTvUiEnvironment.current.enabled
-    val shouldShowOverlay = !tvUiEnabled && uiState.controlsVisible && (
-        touchPadIndex != null || !gamepadConnected || !uiState.hideOverlayOnGamepad
-    )
     val dsControlsScale = (uiState.overlayScale / 100f).coerceIn(0.8f, 1.4f)
     val dsControlsHeight = 260.dp * dsControlsScale
+    val viewportControls = emulationViewportControls(
+        dsMode = isNds,
+        controlsVisible = uiState.controlsVisible,
+        gamepadConnected = gamepadConnected,
+        hideOverlayOnGamepad = uiState.hideOverlayOnGamepad,
+        tvUiEnabled = tvUiEnabled,
+        touchPadMapped = touchPadIndex != null,
+        dsControlsHeightDp = dsControlsHeight.value
+    )
+    val shouldShowOverlay = viewportControls.showOverlay
 
     val toggleMenuClick = rememberDebouncedClick(onClick = { viewModel.toggleMenu() })
     val toggleControlsClick = rememberDebouncedClick(onClick = { viewModel.toggleControlsVisibility() })
@@ -1019,7 +1028,7 @@ fun EmulationScreen(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(gameCutoutPadding)
-                    .padding(bottom = if (isNds) dsControlsHeight else 0.dp)
+                    .padding(bottom = viewportControls.reservedBottomDp.dp)
             ) {
                 AndroidView(
                     factory = { ctx ->
@@ -1689,7 +1698,7 @@ fun EmulationScreen(
                     isNds = isNds,
                     gamepadConnected = gamepadConnected,
                     currentGamePath = gamePath,
-                    globalDefaults = globalDefaults,
+                    globalDefaults = globalDefaults.forPlatform(PlatformUiCapabilities.forGame(gamePath).platform),
                     overlayDefaults = overlayDefaults,
                     onClose = toggleMenuClick,
                     onPauseToggle = togglePauseClick,
@@ -3122,7 +3131,7 @@ private fun formatSaveTimestamp(timestamp: Long): String {
     return DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT).format(Date(timestamp))
 }
 
-private suspend fun captureSaveStatePreview(
+internal suspend fun captureSaveStatePreview(
     surfaceView: SurfaceView,
     savePath: String,
     dualScreenPortrait: Boolean = false
@@ -3456,6 +3465,7 @@ private fun EmulationSidebarMenu(
         uiState.compactControls -> 28.dp
         else -> 36.dp
     }
+    val capabilities = PlatformUiCapabilities.forGame(currentGamePath)
     var selectedMenuTabName by rememberSaveable { mutableStateOf(EmulationMenuTab.Session.name) }
     val selectedMenuTab = remember(selectedMenuTabName) { EmulationMenuTab.valueOf(selectedMenuTabName) }
     val firstMenuFocusRequester = remember { FocusRequester() }
@@ -3487,8 +3497,9 @@ private fun EmulationSidebarMenu(
     LaunchedEffect(selectedMenuTab) {
         if (selectedMenuTab == EmulationMenuTab.Cheats) onRefreshCheats()
     }
-    val menuTabs = remember(uiState.gameMenuTabOrder, uiState.hiddenGameMenuTabs) {
+    val menuTabs = remember(uiState.gameMenuTabOrder, uiState.hiddenGameMenuTabs, capabilities.platform) {
         uiState.gameMenuTabOrder
+            .filter(capabilities::supportsGameMenuTab)
             .filterNot(uiState.hiddenGameMenuTabs::contains)
             .map(GameMenuTabId::toEmulationMenuTab)
             .ifEmpty { listOf(EmulationMenuTab.Session) }
@@ -3529,13 +3540,13 @@ private fun EmulationSidebarMenu(
                         horizontalArrangement = Arrangement.spacedBy(14.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        val is3dMenuCover = isGenerated3dCover(uiState.currentGameCoverPath)
-                        Surface(
-                            shape = if (is3dMenuCover) RectangleShape else neonShape(12.dp),
-                            color = if (is3dMenuCover) Color.Transparent
-                            else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
-                            border = if (is3dMenuCover) null
-                            else BorderStroke(1.dp, MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f)),
+                        GameCoverArt(
+                            coverPath = uiState.currentGameCoverPath,
+                            fallbackTitle = menuTitle,
+                            contentScale = ContentScale.Fit,
+                            preserveContentScale = true,
+                            showPlaceholder = false,
+                            shape = RectangleShape,
                             modifier = Modifier
                                 .width(64.dp)
                                 .aspectRatio(
@@ -3544,15 +3555,7 @@ private fun EmulationSidebarMenu(
                                         com.sbro.emucored.ui.common.GameCoverAspectRatio
                                     )
                                 )
-                        ) {
-                            GameCoverArt(
-                                coverPath = uiState.currentGameCoverPath,
-                                fallbackTitle = menuTitle,
-                                contentScale = gameCoverContentScale(uiState.currentGameCoverPath, ContentScale.Fit),
-                                shape = if (is3dMenuCover) RectangleShape else neonShape(12.dp),
-                                modifier = Modifier.fillMaxSize()
-                            )
-                        }
+                        )
                         Column(
                             modifier = Modifier.weight(1f),
                             verticalArrangement = Arrangement.spacedBy(4.dp)
@@ -4018,12 +4021,14 @@ private fun EmulationSidebarMenu(
                             onResetToDefault = { onSetKeepScreenOn(globalDefaults.keepScreenOn) }
                         )
 
-                        CoreOptionRows(
-                            options = AzaharCoreOptions.gameMenuControlsOptions(),
-                            version = coreOptionsVersion,
-                            perGameOverrides = uiState.perGameCoreOptions,
-                            onValueChange = onCoreOptionChange
-                        )
+                        if (capabilities.supportsAzaharOptions) {
+                            CoreOptionRows(
+                                options = AzaharCoreOptions.gameMenuControlsOptions(),
+                                version = coreOptionsVersion,
+                                perGameOverrides = uiState.perGameCoreOptions,
+                                onValueChange = onCoreOptionChange
+                            )
+                        }
 
                                     }
 
@@ -4055,72 +4060,74 @@ private fun EmulationSidebarMenu(
                             onResetToDefault = { onSetOverlayOpacity(overlayDefaults.overlayOpacity) }
                         )
 
-                        LiveSliderRow(
-                            title = stringResource(R.string.emulation_stick_scale),
-                            valueLabelForValue = { "$it%" },
-                            value = uiState.stickScale.toFloat(),
-                            range = AppPreferences.OVERLAY_CONTROL_SCALE_MIN.toFloat()..
-                                AppPreferences.OVERLAY_CONTROL_SCALE_MAX.toFloat(),
-                            steps = AppPreferences.OVERLAY_CONTROL_SCALE_MAX -
-                                AppPreferences.OVERLAY_CONTROL_SCALE_MIN - 1,
-                            onValueChange = { onSetStickScale(it.toInt()) },
-                            helpText = stringResource(R.string.settings_help_stick_scale),
-                            onResetToDefault = { onSetStickScale(overlayDefaults.stickScale) }
-                        )
+                        if (capabilities.supportsAzaharOptions) {
+                            LiveSliderRow(
+                                title = stringResource(R.string.emulation_stick_scale),
+                                valueLabelForValue = { "$it%" },
+                                value = uiState.stickScale.toFloat(),
+                                range = AppPreferences.OVERLAY_CONTROL_SCALE_MIN.toFloat()..
+                                    AppPreferences.OVERLAY_CONTROL_SCALE_MAX.toFloat(),
+                                steps = AppPreferences.OVERLAY_CONTROL_SCALE_MAX -
+                                    AppPreferences.OVERLAY_CONTROL_SCALE_MIN - 1,
+                                onValueChange = { onSetStickScale(it.toInt()) },
+                                helpText = stringResource(R.string.settings_help_stick_scale),
+                                onResetToDefault = { onSetStickScale(overlayDefaults.stickScale) }
+                            )
 
-                        LiveSliderRow(
-                            title = stringResource(R.string.settings_left_stick_sensitivity),
-                            valueLabelForValue = { "$it%" },
-                            value = uiState.leftStickSensitivity.toFloat(),
-                            range = 50f..200f,
-                            steps = 149,
-                            onValueChange = { onSetLeftStickSensitivity(it.toInt()) },
-                            helpText = stringResource(R.string.settings_help_left_stick_sensitivity),
-                            onResetToDefault = { onSetLeftStickSensitivity(AppPreferences.DEFAULT_STICK_SENSITIVITY) }
-                        )
+                            LiveSliderRow(
+                                title = stringResource(R.string.settings_left_stick_sensitivity),
+                                valueLabelForValue = { "$it%" },
+                                value = uiState.leftStickSensitivity.toFloat(),
+                                range = 50f..200f,
+                                steps = 149,
+                                onValueChange = { onSetLeftStickSensitivity(it.toInt()) },
+                                helpText = stringResource(R.string.settings_help_left_stick_sensitivity),
+                                onResetToDefault = { onSetLeftStickSensitivity(AppPreferences.DEFAULT_STICK_SENSITIVITY) }
+                            )
 
-                        LiveSliderRow(
-                            title = stringResource(R.string.settings_right_stick_sensitivity),
-                            valueLabelForValue = { "$it%" },
-                            value = uiState.rightStickSensitivity.toFloat(),
-                            range = 50f..200f,
-                            steps = 149,
-                            onValueChange = { onSetRightStickSensitivity(it.toInt()) },
-                            helpText = stringResource(R.string.settings_help_right_stick_sensitivity),
-                            onResetToDefault = { onSetRightStickSensitivity(AppPreferences.DEFAULT_STICK_SENSITIVITY) }
-                        )
+                            LiveSliderRow(
+                                title = stringResource(R.string.settings_right_stick_sensitivity),
+                                valueLabelForValue = { "$it%" },
+                                value = uiState.rightStickSensitivity.toFloat(),
+                                range = 50f..200f,
+                                steps = 149,
+                                onValueChange = { onSetRightStickSensitivity(it.toInt()) },
+                                helpText = stringResource(R.string.settings_help_right_stick_sensitivity),
+                                onResetToDefault = { onSetRightStickSensitivity(AppPreferences.DEFAULT_STICK_SENSITIVITY) }
+                            )
 
-                        SettingsToggle(
-                            title = stringResource(R.string.settings_invert_left_stick),
-                            checked = uiState.invertLeftStick,
-                            onCheckedChange = onSetInvertLeftStick,
-                            helpText = stringResource(R.string.settings_help_invert_left_stick),
-                            onResetToDefault = { onSetInvertLeftStick(false) }
-                        )
+                            SettingsToggle(
+                                title = stringResource(R.string.settings_invert_left_stick),
+                                checked = uiState.invertLeftStick,
+                                onCheckedChange = onSetInvertLeftStick,
+                                helpText = stringResource(R.string.settings_help_invert_left_stick),
+                                onResetToDefault = { onSetInvertLeftStick(false) }
+                            )
 
-                        SettingsToggle(
-                            title = stringResource(R.string.settings_invert_left_stick_horizontal),
-                            checked = uiState.invertLeftStickHorizontal,
-                            onCheckedChange = onSetInvertLeftStickHorizontal,
-                            helpText = stringResource(R.string.settings_help_invert_left_stick_horizontal),
-                            onResetToDefault = { onSetInvertLeftStickHorizontal(false) }
-                        )
+                            SettingsToggle(
+                                title = stringResource(R.string.settings_invert_left_stick_horizontal),
+                                checked = uiState.invertLeftStickHorizontal,
+                                onCheckedChange = onSetInvertLeftStickHorizontal,
+                                helpText = stringResource(R.string.settings_help_invert_left_stick_horizontal),
+                                onResetToDefault = { onSetInvertLeftStickHorizontal(false) }
+                            )
 
-                        SettingsToggle(
-                            title = stringResource(R.string.settings_invert_right_stick),
-                            checked = uiState.invertRightStick,
-                            onCheckedChange = onSetInvertRightStick,
-                            helpText = stringResource(R.string.settings_help_invert_right_stick),
-                            onResetToDefault = { onSetInvertRightStick(false) }
-                        )
+                            SettingsToggle(
+                                title = stringResource(R.string.settings_invert_right_stick),
+                                checked = uiState.invertRightStick,
+                                onCheckedChange = onSetInvertRightStick,
+                                helpText = stringResource(R.string.settings_help_invert_right_stick),
+                                onResetToDefault = { onSetInvertRightStick(false) }
+                            )
 
-                        SettingsToggle(
-                            title = stringResource(R.string.settings_invert_right_stick_horizontal),
-                            checked = uiState.invertRightStickHorizontal,
-                            onCheckedChange = onSetInvertRightStickHorizontal,
-                            helpText = stringResource(R.string.settings_help_invert_right_stick_horizontal),
-                            onResetToDefault = { onSetInvertRightStickHorizontal(false) }
-                        )
+                            SettingsToggle(
+                                title = stringResource(R.string.settings_invert_right_stick_horizontal),
+                                checked = uiState.invertRightStickHorizontal,
+                                onCheckedChange = onSetInvertRightStickHorizontal,
+                                helpText = stringResource(R.string.settings_help_invert_right_stick_horizontal),
+                                onResetToDefault = { onSetInvertRightStickHorizontal(false) }
+                            )
+                        }
 
                                     }
 
@@ -4172,58 +4179,60 @@ private fun EmulationSidebarMenu(
                             onResetToDefault = { onSetGamepadRightStickSensitivity(AppPreferences.DEFAULT_GAMEPAD_STICK_SENSITIVITY) }
                         )
 
-                        SettingsToggle(
-                            title = stringResource(R.string.settings_touchscreen_left_stick),
-                            checked = uiState.touchscreenLeftStick,
-                            onCheckedChange = onSetTouchscreenLeftStick,
-                            helpText = stringResource(R.string.settings_help_touchscreen_left_stick),
-                            onResetToDefault = { onSetTouchscreenLeftStick(globalDefaults.touchscreenLeftStick) }
-                        )
-
-                        if (uiState.touchscreenLeftStick) {
-                            LiveSliderRow(
-                                title = stringResource(R.string.settings_touchscreen_left_stick_sensitivity),
-                                valueLabelForValue = { "$it%" },
-                                value = uiState.touchscreenLeftStickSensitivity.toFloat(),
-                                range = AppPreferences.TOUCHSCREEN_RIGHT_STICK_SENSITIVITY_MIN.toFloat()..
-                                    AppPreferences.TOUCHSCREEN_RIGHT_STICK_SENSITIVITY_MAX.toFloat(),
-                                steps = AppPreferences.TOUCHSCREEN_RIGHT_STICK_SENSITIVITY_MAX -
-                                    AppPreferences.TOUCHSCREEN_RIGHT_STICK_SENSITIVITY_MIN - 1,
-                                onValueChange = { onSetTouchscreenLeftStickSensitivity(it.toInt()) },
-                                helpText = stringResource(R.string.settings_help_touchscreen_left_stick_sensitivity),
-                                onResetToDefault = {
-                                    onSetTouchscreenLeftStickSensitivity(
-                                        globalDefaults.touchscreenLeftStickSensitivity
-                                    )
-                                }
+                        if (capabilities.supportsAzaharOptions) {
+                            SettingsToggle(
+                                title = stringResource(R.string.settings_touchscreen_left_stick),
+                                checked = uiState.touchscreenLeftStick,
+                                onCheckedChange = onSetTouchscreenLeftStick,
+                                helpText = stringResource(R.string.settings_help_touchscreen_left_stick),
+                                onResetToDefault = { onSetTouchscreenLeftStick(globalDefaults.touchscreenLeftStick) }
                             )
-                        }
 
-                        SettingsToggle(
-                            title = stringResource(R.string.settings_touchscreen_right_stick),
-                            checked = uiState.touchscreenRightStick,
-                            onCheckedChange = onSetTouchscreenRightStick,
-                            helpText = stringResource(R.string.settings_help_touchscreen_right_stick),
-                            onResetToDefault = { onSetTouchscreenRightStick(globalDefaults.touchscreenRightStick) }
-                        )
+                            if (uiState.touchscreenLeftStick) {
+                                LiveSliderRow(
+                                    title = stringResource(R.string.settings_touchscreen_left_stick_sensitivity),
+                                    valueLabelForValue = { "$it%" },
+                                    value = uiState.touchscreenLeftStickSensitivity.toFloat(),
+                                    range = AppPreferences.TOUCHSCREEN_RIGHT_STICK_SENSITIVITY_MIN.toFloat()..
+                                        AppPreferences.TOUCHSCREEN_RIGHT_STICK_SENSITIVITY_MAX.toFloat(),
+                                    steps = AppPreferences.TOUCHSCREEN_RIGHT_STICK_SENSITIVITY_MAX -
+                                        AppPreferences.TOUCHSCREEN_RIGHT_STICK_SENSITIVITY_MIN - 1,
+                                    onValueChange = { onSetTouchscreenLeftStickSensitivity(it.toInt()) },
+                                    helpText = stringResource(R.string.settings_help_touchscreen_left_stick_sensitivity),
+                                    onResetToDefault = {
+                                        onSetTouchscreenLeftStickSensitivity(
+                                            globalDefaults.touchscreenLeftStickSensitivity
+                                        )
+                                    }
+                                )
+                            }
 
-                        if (uiState.touchscreenRightStick) {
-                            LiveSliderRow(
-                                title = stringResource(R.string.settings_touchscreen_right_stick_sensitivity),
-                                valueLabelForValue = { "$it%" },
-                                value = uiState.touchscreenRightStickSensitivity.toFloat(),
-                                range = AppPreferences.TOUCHSCREEN_RIGHT_STICK_SENSITIVITY_MIN.toFloat()..
-                                    AppPreferences.TOUCHSCREEN_RIGHT_STICK_SENSITIVITY_MAX.toFloat(),
-                                steps = AppPreferences.TOUCHSCREEN_RIGHT_STICK_SENSITIVITY_MAX -
-                                    AppPreferences.TOUCHSCREEN_RIGHT_STICK_SENSITIVITY_MIN - 1,
-                                onValueChange = { onSetTouchscreenRightStickSensitivity(it.toInt()) },
-                                helpText = stringResource(R.string.settings_help_touchscreen_right_stick_sensitivity),
-                                onResetToDefault = {
-                                    onSetTouchscreenRightStickSensitivity(
-                                        globalDefaults.touchscreenRightStickSensitivity
-                                    )
-                                }
+                            SettingsToggle(
+                                title = stringResource(R.string.settings_touchscreen_right_stick),
+                                checked = uiState.touchscreenRightStick,
+                                onCheckedChange = onSetTouchscreenRightStick,
+                                helpText = stringResource(R.string.settings_help_touchscreen_right_stick),
+                                onResetToDefault = { onSetTouchscreenRightStick(globalDefaults.touchscreenRightStick) }
                             )
+
+                            if (uiState.touchscreenRightStick) {
+                                LiveSliderRow(
+                                    title = stringResource(R.string.settings_touchscreen_right_stick_sensitivity),
+                                    valueLabelForValue = { "$it%" },
+                                    value = uiState.touchscreenRightStickSensitivity.toFloat(),
+                                    range = AppPreferences.TOUCHSCREEN_RIGHT_STICK_SENSITIVITY_MIN.toFloat()..
+                                        AppPreferences.TOUCHSCREEN_RIGHT_STICK_SENSITIVITY_MAX.toFloat(),
+                                    steps = AppPreferences.TOUCHSCREEN_RIGHT_STICK_SENSITIVITY_MAX -
+                                        AppPreferences.TOUCHSCREEN_RIGHT_STICK_SENSITIVITY_MIN - 1,
+                                    onValueChange = { onSetTouchscreenRightStickSensitivity(it.toInt()) },
+                                    helpText = stringResource(R.string.settings_help_touchscreen_right_stick_sensitivity),
+                                    onResetToDefault = {
+                                        onSetTouchscreenRightStickSensitivity(
+                                            globalDefaults.touchscreenRightStickSensitivity
+                                        )
+                                    }
+                                )
+                            }
                         }
 
                         MenuButton(
@@ -4250,6 +4259,11 @@ private fun EmulationSidebarMenu(
                     EmulationMenuTab.Emulation -> {
                         gameMenuSectionsForTab(GameMenuTabId.EMULATION, uiState.gameMenuSectionOrder)
                             .filterNot(uiState.hiddenGameMenuSections::contains)
+                            .filter {
+                                capabilities.supportsAzaharOptions || it !in setOf(
+                                    GameMenuSectionId.EMULATION_CPU, GameMenuSectionId.EMULATION_AUDIO
+                                )
+                            }
                             .forEach { section ->
                                 when (section) {
                                     GameMenuSectionId.EMULATION_PERFORMANCE -> {
@@ -4272,17 +4286,19 @@ private fun EmulationSidebarMenu(
                             }
                         )
 
-                        SettingsToggle(
-                            title = stringResource(R.string.settings_frame_limit),
-                            checked = uiState.frameLimitEnabled,
-                            onCheckedChange = { onSetFrameLimit() },
-                            helpText = stringResource(R.string.settings_frame_limit_desc),
-                            onResetToDefault = {
-                                if (uiState.frameLimitEnabled != globalDefaults.frameLimitEnabled) {
-                                    onSetFrameLimit()
+                        if (capabilities.supportsAzaharOptions) {
+                            SettingsToggle(
+                                title = stringResource(R.string.settings_frame_limit),
+                                checked = uiState.frameLimitEnabled,
+                                onCheckedChange = { onSetFrameLimit() },
+                                helpText = stringResource(R.string.settings_frame_limit_desc),
+                                onResetToDefault = {
+                                    if (uiState.frameLimitEnabled != globalDefaults.frameLimitEnabled) {
+                                        onSetFrameLimit()
+                                    }
                                 }
-                            }
-                        )
+                            )
+                        }
 
                         LiveSelectionRow(
                             title = stringResource(R.string.settings_fps_overlay_mode),
@@ -4340,12 +4356,14 @@ private fun EmulationSidebarMenu(
                                 topPadding = sectionLabelTopPadding,
                                 horizontalInset = sectionLabelInset
                             )
-                            CoreOptionRows(
-                                options = AzaharCoreOptions.gameMenuEmulationOptions(),
-                                version = coreOptionsVersion,
-                                perGameOverrides = uiState.perGameCoreOptions,
-                                onValueChange = onCoreOptionChange
-                            )
+                            if (capabilities.supportsAzaharOptions) {
+                                CoreOptionRows(
+                                    options = AzaharCoreOptions.gameMenuEmulationOptions(),
+                                    version = coreOptionsVersion,
+                                    perGameOverrides = uiState.perGameCoreOptions,
+                                    onValueChange = onCoreOptionChange
+                                )
+                            }
                         }
 
                         if (section == GameMenuSectionId.EMULATION_AUDIO) {
@@ -4429,26 +4447,20 @@ private fun EmulationSidebarMenu(
                             horizontalInset = sectionLabelInset
                         )
 
-                        val dsCoreActive = DsSession.isActive
                         LiveSelectionRow(
                             title = stringResource(R.string.settings_renderer),
-                            options = if (dsCoreActive) {
-                                listOf(
-                                    LiveSelectionOption(14, stringResource(R.string.settings_renderer_vulkan)),
-                                    LiveSelectionOption(13, stringResource(R.string.settings_renderer_software))
-                                )
-                            } else {
-                                listOf(
-                                    LiveSelectionOption(12, stringResource(R.string.settings_renderer_opengl)),
-                                    LiveSelectionOption(14, stringResource(R.string.settings_renderer_vulkan)),
-                                    LiveSelectionOption(13, stringResource(R.string.settings_renderer_software))
-                                )
+                            options = capabilities.rendererIds.map { renderer ->
+                                LiveSelectionOption(renderer, stringResource(when (renderer) {
+                                    12 -> R.string.settings_renderer_opengl
+                                    13 -> R.string.settings_renderer_software
+                                    else -> R.string.settings_renderer_vulkan
+                                }))
                             },
-                            currentValue = uiState.renderer,
+                            currentValue = capabilities.normalizeRenderer(uiState.renderer),
                             onValueChange = onSetRenderer,
                             helpText = stringResource(R.string.settings_help_renderer),
                             onResetToDefault = {
-                                onSetRenderer(if (dsCoreActive) 14 else globalDefaults.renderer)
+                                onSetRenderer(capabilities.normalizeRenderer(globalDefaults.renderer))
                             }
                         )
 
@@ -4462,42 +4474,44 @@ private fun EmulationSidebarMenu(
                             title = stringResource(R.string.settings_upscale),
                             options = buildUpscaleOptions(
                                 stringResource(R.string.settings_upscale_native),
-                                EmulatorBridge.getMaxUpscaleMultiplier(uiState.renderer)
+                                capabilities.maxUpscaleMultiplier(EmulatorBridge.getMaxUpscaleMultiplier(uiState.renderer))
                             ).map { (value, label) -> LiveSelectionOption(value, label) },
-                            currentValue = upscaleMultiplierValue(uiState.upscale),
+                            currentValue = upscaleMultiplierValue(uiState.upscale.coerceIn(1f, capabilities.maxUpscaleMultiplier(10).toFloat())),
                             onValueChange = { onSetUpscale(upscaleKeyToMultiplier(it)) },
                             helpText = stringResource(R.string.settings_help_upscale),
-                            onResetToDefault = { onSetUpscale(globalDefaults.upscaleMultiplier) }
+                            onResetToDefault = { onSetUpscale(globalDefaults.upscaleMultiplier.coerceIn(1f, capabilities.maxUpscaleMultiplier(10).toFloat())) }
                         )
 
-                        LiveSelectionRow(
-                            title = stringResource(R.string.settings_aspect_ratio).replace(":", ""),
-                            options = listOf(
-                                LiveSelectionOption(1, stringResource(R.string.emulation_aspect_auto)),
-                                LiveSelectionOption(2, "4:3"),
-                                LiveSelectionOption(3, "16:9"),
-                                LiveSelectionOption(
-                                    value = 0,
-                                    icon = Icons.Rounded.Fullscreen,
-                                    contentDescription = stringResource(R.string.emulation_aspect_stretch)
-                                )
-                            ),
-                            currentValue = uiState.aspectRatio,
-                            onValueChange = onSetAspectRatio,
-                            helpText = stringResource(R.string.settings_help_aspect_ratio),
-                            onResetToDefault = { onSetAspectRatio(globalDefaults.aspectRatio) }
-                        )
+                        if (capabilities.supportsAzaharOptions) {
+                            LiveSelectionRow(
+                                title = stringResource(R.string.settings_aspect_ratio).replace(":", ""),
+                                options = listOf(
+                                    LiveSelectionOption(1, stringResource(R.string.emulation_aspect_auto)),
+                                    LiveSelectionOption(2, "4:3"),
+                                    LiveSelectionOption(3, "16:9"),
+                                    LiveSelectionOption(
+                                        value = 0,
+                                        icon = Icons.Rounded.Fullscreen,
+                                        contentDescription = stringResource(R.string.emulation_aspect_stretch)
+                                    )
+                                ),
+                                currentValue = uiState.aspectRatio,
+                                onValueChange = onSetAspectRatio,
+                                helpText = stringResource(R.string.settings_help_aspect_ratio),
+                                onResetToDefault = { onSetAspectRatio(globalDefaults.aspectRatio) }
+                            )
 
-                        if (currentGamePath?.let { GamePlatform.fromFileName(it) } != GamePlatform.NDS) {
                             SecondScreenSettingsRows()
                         }
 
-                        CoreOptionRows(
-                            options = AzaharCoreOptions.gameMenuGraphicsOptions(),
-                            version = coreOptionsVersion,
-                            perGameOverrides = uiState.perGameCoreOptions,
-                            onValueChange = onCoreOptionChange
-                        )
+                        if (capabilities.supportsAzaharOptions) {
+                            CoreOptionRows(
+                                options = AzaharCoreOptions.gameMenuGraphicsOptions(),
+                                version = coreOptionsVersion,
+                                perGameOverrides = uiState.perGameCoreOptions,
+                                onValueChange = onCoreOptionChange
+                            )
+                        }
 
                                     }
 

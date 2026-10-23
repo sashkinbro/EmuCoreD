@@ -60,6 +60,7 @@ import com.sbro.emucored.data.CustomFontRepository
 import com.sbro.emucored.data.CustomThemeConfig
 import com.sbro.emucored.data.CustomThemeLibrary
 import com.sbro.emucored.data.CustomTouchControlLibrary
+import com.sbro.emucored.data.DsSettingsPolicy
 import com.sbro.emucored.data.SettingsSnapshot
 import com.sbro.emucored.data.PerformanceOverlayMetrics
 import com.sbro.emucored.ui.common.clearCoverImageMemoryCache
@@ -120,6 +121,8 @@ data class SettingsUiState(
     val tvInterfaceMode: TvInterfaceMode = TvInterfaceMode.AUTO,
     val renderer: Int = RendererDefaults.defaultForHardware(),
     val upscaleMultiplier: Float = UPSCALE_DEFAULT,
+    val dsRenderer: Int = DsSettingsPolicy.DEFAULT_RENDERER,
+    val dsUpscaleMultiplier: Float = DsSettingsPolicy.DEFAULT_UPSCALE_MULTIPLIER,
     val aspectRatio: Int = 1,
     val displayCrop: DisplayCrop = DisplayCrop.None,
     val audioVolume: Int = AudioDefaults.VOLUME_DEFAULT,
@@ -315,6 +318,8 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
             tvInterfaceMode = snapshot.tvInterfaceMode,
             renderer = snapshot.renderer,
             upscaleMultiplier = snapshot.upscaleMultiplier,
+            dsRenderer = snapshot.dsRenderer,
+            dsUpscaleMultiplier = snapshot.dsUpscaleMultiplier,
             aspectRatio = snapshot.aspectRatio,
             displayCrop = snapshot.displayCrop,
             audioVolume = snapshot.audioVolume,
@@ -734,8 +739,23 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
 
     fun setRenderer(value: Int) {
         viewModelScope.launch {
-            if (!EmulatorBridge.setRenderer(value)) return@launch
+            if (!DsSession.isActive && !EmulatorBridge.setRenderer(value)) return@launch
             preferences.setRenderer(value)
+        }
+    }
+
+    fun setDsRenderer(value: Int) {
+        viewModelScope.launch {
+            val normalized = DsSettingsPolicy.normalizeRenderer(value)
+            // A running game owns its per-game settings; these defaults apply at the next launch.
+            preferences.setDsRenderer(normalized)
+        }
+    }
+
+    fun setDsUpscaleMultiplier(value: Float) {
+        viewModelScope.launch {
+            val normalized = DsSettingsPolicy.normalizeUpscaleMultiplier(value)
+            preferences.setDsUpscaleMultiplier(normalized)
         }
     }
 
@@ -781,7 +801,7 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
         viewModelScope.launch {
             val normalizedValue = normalizeUpscale(value)
             preferences.setUpscaleMultiplier(normalizedValue)
-            EmulatorBridge.setUpscaleMultiplier(normalizedValue)
+            if (!DsSession.isActive) EmulatorBridge.setUpscaleMultiplier(normalizedValue)
         }
     }
 

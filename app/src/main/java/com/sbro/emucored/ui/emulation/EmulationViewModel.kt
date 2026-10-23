@@ -33,6 +33,10 @@ import com.sbro.emucored.core.resolveAndroidGamePhase
 import com.sbro.emucored.core.normalizeUpscale
 import com.sbro.emucored.core.normalizeUpscale
 import com.sbro.emucored.data.AppPreferences
+import com.sbro.emucored.core.PlatformUiCapabilities
+import com.sbro.emucored.data.GamePlatform
+import com.sbro.emucored.data.DsSettingsPolicy
+import com.sbro.emucored.data.forPlatform
 import com.sbro.emucored.data.SettingsSnapshot
 import com.sbro.emucored.data.AppPreferences.Companion.FPS_OVERLAY_MODE_SIMPLE
 import com.sbro.emucored.data.AppPreferences.Companion.FPS_OVERLAY_MODE_DETAILED
@@ -42,6 +46,7 @@ import com.sbro.emucored.data.KeyboardMouseSettings
 import com.sbro.emucored.data.OverlayControlLayout
 import com.sbro.emucored.data.CheatRepository
 import com.sbro.emucored.data.GameRepository
+import com.sbro.emucored.data.GameItem
 import com.sbro.emucored.data.OverlayLayoutSnapshot
 import com.sbro.emucored.data.PerGameSettings
 import com.sbro.emucored.data.PerGameSettingsRepository
@@ -71,6 +76,7 @@ import com.sbro.emucored.data.DefaultGameMenuSectionOrder
 import com.sbro.emucored.data.PerformanceOverlayMetrics
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -92,6 +98,7 @@ import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import java.io.File
 import java.util.Locale
+import java.util.concurrent.atomic.AtomicLong
 import kotlin.math.roundToInt
 import kotlin.time.Duration.Companion.milliseconds
 
@@ -355,6 +362,39 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
     private var pendingPlayTimeSyncMs: Long = 0L
     private var playTimeSyncJob: Job? = null
     private var savePreviewJob: Job? = null
+    @Volatile private var coverDownloadJob: Job? = null
+    private val coverDownloadGeneration = AtomicLong()
+
+    private fun cancelCoverDownload() {
+        coverDownloadGeneration.incrementAndGet()
+        coverDownloadJob?.cancel()
+        coverDownloadJob = null
+    }
+
+    private fun downloadMissingCover(game: GameItem) {
+        if (currentGameCoverArtPath != null || cancelPendingStart || isShuttingDown) return
+        val generation = coverDownloadGeneration.get()
+        coverDownloadJob = viewModelScope.launch {
+            try {
+                val downloaded = withContext(Dispatchers.IO) {
+                    gameRepository.downloadCoverForGame(game, getApplication())
+                } ?: return@launch
+                ensureActive()
+                lifecycleMutex.withLock {
+                    ensureActive()
+                    if (generation != coverDownloadGeneration.get() ||
+                        currentGamePath != game.path || isShuttingDown ||
+                        currentGameCoverArtPath != null) return@withLock
+                    currentGameCoverArtPath = downloaded
+                    _uiState.value = _uiState.value.copy(currentGameCoverPath = downloaded)
+                }
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (error: Exception) {
+                Log.w(TAG, "Unable to download game cover", error)
+            }
+        }
+    }
     private val _saveStatePreviewRequests = MutableSharedFlow<Int>(extraBufferCapacity = 1)
     val saveStatePreviewRequests = _saveStatePreviewRequests.asSharedFlow()
     private var lastCloudPlayTimeSyncAtMs: Long = 0L
@@ -952,6 +992,7 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
             Log.w(TAG, "startEmulation skipped because another start is in progress")
             return
         }
+        cancelCoverDownload()
         val normalizedSlotToLoad = slotToLoad?.let { normalizeSaveSlot(it) }
         val hasPendingStateLoad = !bootSmokeProbe && normalizedSlotToLoad != null
         var analyticsPerformanceProfile = PerformanceProfiles.SAFE
@@ -1014,31 +1055,33 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
                 )
                 delay(200.milliseconds)
 
-                EmulatorBridge.applyRuntimeConfig(
-                    emulatorDataPath = config.emulatorDataPath,
-                    renderer = renderer,
-                    upscaleMultiplier = config.upscaleMultiplier,
-                    gpuHardwareProfile = config.gpuHardwareProfile,
-                    mediatekAngleOpenGl = config.mediatekAngleOpenGl,
-                    aspectRatio = config.aspectRatio,
-                    displayCrop = config.displayCrop,
-                    audioVolume = config.audioVolume,
-                    audioFastForwardVolume = config.audioFastForwardVolume,
-                    audioMuted = config.audioMuted,
-                    audioOutputLatencyMs = config.audioOutputLatencyMs,
-                    audioMinimalOutputLatency = config.audioMinimalOutputLatency,
-                    frameSkip = config.frameSkip,
-                    frameLimitEnabled = config.frameLimitEnabled,
-                    vSyncEnabled = config.vSyncEnabled,
-                    fastForwardSpeed = config.fastForwardSpeed,
-                    shaderChainEnabled = config.shaderChainEnabled,
-                    shaderChainPreset = config.shaderChainPreset,
-                    textureReplacementsEnabled = config.textureReplacementsEnabled,
-                    enableCheats = config.enableCheats,
-                    autotestMode = autotestMode,
-                    layoutOption = config.layoutOption,
-                    swapScreens = config.swapScreens
-                )
+                if (activeGamePlatform() != GamePlatform.NDS) {
+                    EmulatorBridge.applyRuntimeConfig(
+                        emulatorDataPath = config.emulatorDataPath,
+                        renderer = renderer,
+                        upscaleMultiplier = config.upscaleMultiplier,
+                        gpuHardwareProfile = config.gpuHardwareProfile,
+                        mediatekAngleOpenGl = config.mediatekAngleOpenGl,
+                        aspectRatio = config.aspectRatio,
+                        displayCrop = config.displayCrop,
+                        audioVolume = config.audioVolume,
+                        audioFastForwardVolume = config.audioFastForwardVolume,
+                        audioMuted = config.audioMuted,
+                        audioOutputLatencyMs = config.audioOutputLatencyMs,
+                        audioMinimalOutputLatency = config.audioMinimalOutputLatency,
+                        frameSkip = config.frameSkip,
+                        frameLimitEnabled = config.frameLimitEnabled,
+                        vSyncEnabled = config.vSyncEnabled,
+                        fastForwardSpeed = config.fastForwardSpeed,
+                        shaderChainEnabled = config.shaderChainEnabled,
+                        shaderChainPreset = config.shaderChainPreset,
+                        textureReplacementsEnabled = config.textureReplacementsEnabled,
+                        enableCheats = config.enableCheats,
+                        autotestMode = autotestMode,
+                        layoutOption = config.layoutOption,
+                        swapScreens = config.swapScreens
+                    )
+                }
 
                 _uiState.value = _uiState.value.copy(
                     statusMessage = "status_loading_game"
@@ -1111,7 +1154,7 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
                         launchPath?.removePrefix("!")?.startsWith("/") == true -> "file"
                         else -> "unknown"
                     }
-                    pendingPerGameCoreOptions = (
+                    pendingPerGameCoreOptions = if (activeGamePlatform() == GamePlatform.NDS) emptyMap() else (
                         existingProfile
                             ?: safePath.takeIf { it.isNotBlank() }?.let(perGameSettingsRepository::get)
                         )?.coreOptions.orEmpty()
@@ -1124,6 +1167,15 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
                         gameSettingsProfileActive = existingProfile != null,
                         perGameCoreOptions = pendingPerGameCoreOptions
                     )
+                    downloadMissingCover(GameItem(
+                        title = currentGameTitle,
+                        path = safePath,
+                        fileName = currentGameTitle,
+                        fileSize = 0L,
+                        lastModified = 0L,
+                        serial = currentGameSerial.takeIf { it.isNotBlank() },
+                        platform = PlatformUiCapabilities.forGame(safePath).platform
+                    ))
                     syncCurrentGameProfileMetadata()
                     if (!bootSmokeProbe) {
                         DiscordIntegration.setPlaying(
@@ -1472,6 +1524,7 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
      * made while the core is live (BIOS only) still persists globally.
      */
     fun setCoreOption(key: String, value: String) {
+        if (activeGamePlatform() == GamePlatform.NDS) return
         viewModelScope.launch {
             val gameKey = activePerGameKey()
             if (gameKey == null) {
@@ -1872,12 +1925,20 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
 
     fun setRenderer(renderer: Int) {
         viewModelScope.launch {
-            if (!EmulatorBridge.setRenderer(renderer)) return@launch
-            // A renderer switch recreates the core session, which drops the
-            // per-game core-option overrides applied after the last launch.
-            pendingPerGameCoreOptions.forEach { (key, value) -> NativeApp.applyCoreOption(key, value) }
-            persistRuntimeState(_uiState.value.copy(renderer = renderer)) {
-                preferences.setRenderer(renderer)
+            val isDs = activeGamePlatform() == GamePlatform.NDS
+            val normalized = if (isDs) DsSettingsPolicy.normalizeRenderer(renderer) else renderer
+            if (!EmulatorBridge.setRenderer(normalized)) {
+                if (isDs && !DsSession.isActive) {
+                    _uiState.value = _uiState.value.withRuntimeFailure(RuntimeFailure(
+                        "DS renderer restart and rollback failed. The recovery checkpoint was retained in the app cache."
+                    ))
+                }
+                return@launch
+            }
+            // Only Azahar's session recreation drops its core-option overrides.
+            if (!isDs) pendingPerGameCoreOptions.forEach { (key, value) -> NativeApp.applyCoreOption(key, value) }
+            persistRuntimeState(_uiState.value.copy(renderer = normalized)) {
+                if (isDs) preferences.setDsRenderer(normalized) else preferences.setRenderer(normalized)
             }
             updateCrashContext()
         }
@@ -1885,9 +1946,12 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
 
     fun setUpscale(upscale: Float) {
         viewModelScope.launch {
-            val normalizedUpscale = normalizeUpscale(upscale)
+            val isDs = activeGamePlatform() == GamePlatform.NDS
+            val normalizedUpscale = if (isDs) DsSettingsPolicy.normalizeUpscaleMultiplier(upscale)
+                else normalizeUpscale(upscale)
             persistRuntimeState(_uiState.value.copy(upscale = normalizedUpscale)) {
-                preferences.setUpscaleMultiplier(normalizedUpscale)
+                if (isDs) preferences.setDsUpscaleMultiplier(normalizedUpscale)
+                else preferences.setUpscaleMultiplier(normalizedUpscale)
             }
             EmulatorBridge.setUpscaleMultiplier(normalizedUpscale)
             updateCrashContext()
@@ -2157,6 +2221,8 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
 
     private fun activePerGameKey(): String? = currentGamePath?.takeIf { it.isNotBlank() }
 
+    private fun activeGamePlatform(): GamePlatform = PlatformUiCapabilities.forGame(currentGamePath).platform
+
     private fun resolvePerGameTitle(state: EmulationUiState): String {
         return state.currentGameTitle
             .takeIf { it.isNotBlank() && it != "HOME Menu" }
@@ -2366,7 +2432,7 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
 
     private suspend fun loadLaunchConfig(): EmulationLaunchConfig {
         val profile = activePerGameKey()?.let(perGameSettingsRepository::get)
-        val settings = preferences.settingsSnapshot.first()
+        val settings = preferences.settingsSnapshot.first().forPlatform(activeGamePlatform())
         val secondScreenMode = preferences.secondScreenMode.first()
         val secondScreenSwap = preferences.secondScreenSwap.first()
         val detachedSecondScreen = secondScreenMode == AppPreferences.SECOND_SCREEN_MODE_PANEL ||
@@ -2395,12 +2461,17 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
             enableCheats = settings.enableCheats,
             layoutOption = if (detachedSecondScreen) AppPreferences.SECOND_SCREEN_PANEL_LAYOUT else -1,
             swapScreens = if (detachedSecondScreen) secondScreenSwap else null
-        ).applyProfile(profile)
+        ).applyProfile(profile).let { config ->
+            if (activeGamePlatform() == GamePlatform.NDS) config.copy(
+                renderer = DsSettingsPolicy.normalizeRenderer(config.renderer),
+                upscaleMultiplier = DsSettingsPolicy.normalizeUpscaleMultiplier(config.upscaleMultiplier)
+            ) else config
+        }
     }
 
     private suspend fun loadLiveRuntimeSnapshot(): LiveRuntimeSnapshot {
         val profile = activePerGameKey()?.let(perGameSettingsRepository::get)
-        val settings = preferences.settingsSnapshot.first()
+        val settings = preferences.settingsSnapshot.first().forPlatform(activeGamePlatform())
         return LiveRuntimeSnapshot(
             showFps = settings.showFps,
             fpsOverlayMode = settings.fpsOverlayMode,
@@ -2442,7 +2513,12 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
             gamepadBindingsByPad = settings.gamepadBindingsByPad,
             autoSaveOnExit = false,
             autoLoadOnStart = false
-        ).applyProfile(profile)
+        ).applyProfile(profile).let { runtime ->
+            if (activeGamePlatform() == GamePlatform.NDS) runtime.copy(
+                renderer = DsSettingsPolicy.normalizeRenderer(runtime.renderer),
+                upscale = DsSettingsPolicy.normalizeUpscaleMultiplier(runtime.upscale)
+            ) else runtime
+        }
     }
 
     private fun EmulationLaunchConfig.applyProfile(profile: PerGameSettings?): EmulationLaunchConfig {
@@ -2544,7 +2620,7 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
         gameTitle: String,
         gameSerial: String?
     ): PerGameSettings {
-        val settings = preferences.settingsSnapshot.first()
+        val settings = preferences.settingsSnapshot.first().forPlatform(activeGamePlatform())
         val profile = buildPerGameSettingsProfile(
             gameKey = gameKey,
             gameTitle = gameTitle,
@@ -2654,6 +2730,10 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
         metadata: com.sbro.emucored.core.GameMetadata,
         cheatsEnabled: Boolean = _uiState.value.enableCheats
     ) {
+        if (activeGamePlatform() == GamePlatform.NDS) {
+            _uiState.value = _uiState.value.copy(cheatsGameKey = null, availableCheats = emptyList())
+            return
+        }
         val serial = metadata.serial.orEmpty()
         val crc = metadata.serialWithCrc.extractCrc()
         val config = cheatRepository.getGameConfig(
@@ -2671,6 +2751,7 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
     }
 
     private fun syncCheatsForCurrentGame(gameKeyOverride: String? = null) {
+        if (activeGamePlatform() == GamePlatform.NDS) return
         val state = _uiState.value
         val serial = currentGameSerial.takeIf { it.isNotBlank() }
         val crc = currentGameCrc.takeIf { it.isNotBlank() }
@@ -2978,6 +3059,7 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
     }
 
     fun stopEmulation(onExit: (() -> Unit)? = null) {
+        cancelCoverDownload()
         cancelPendingStart = true
         pausedForBackground = false
         val app = getApplication<EmuCoreDApp>()
@@ -3093,6 +3175,7 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
     }
 
     private suspend fun performShutdown() {
+        cancelCoverDownload()
         lifecycleMutex.withLock {
             if (!_uiState.value.isRunning && !_uiState.value.isStarting &&
                 !EmulatorBridge.isVmActive() && EmulatorBridge.runtimeFailure.value == null) return
@@ -3173,6 +3256,7 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
     }
 
     private fun clearCrashContext() {
+        cancelCoverDownload()
         DiscordIntegration.clearGame()
         _keyboardMouseOverride.value = null
         KeyboardMouseManager.setPerGameOverride(null)

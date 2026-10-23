@@ -102,6 +102,8 @@ fun GameCoverArt(
     loadEnabled: Boolean = true,
     matchImageAspectRatio: Boolean = false,
     shape: Shape = neonShape(20.dp),
+    preserveContentScale: Boolean = false,
+    showPlaceholder: Boolean = true,
     onAspectRatioResolved: ((Float) -> Unit)? = null
 ) {
     val context = LocalContext.current
@@ -169,10 +171,12 @@ fun GameCoverArt(
         Image(
             bitmap = imageBitmap,
             contentDescription = fallbackTitle,
-            contentScale = gameCoverContentScale(coverPath, contentScale),
+            contentScale = if (preserveContentScale) contentScale else gameCoverContentScale(coverPath, contentScale),
             filterQuality = androidx.compose.ui.graphics.FilterQuality.Low,
             modifier = imageModifier.clip(gameCoverShape(coverPath, shape))
         )
+    } else if (!showPlaceholder) {
+        Box(modifier = imageModifier)
     } else {
         Box(
             modifier = imageModifier

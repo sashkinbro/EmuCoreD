@@ -4,6 +4,7 @@ import android.content.Context
 import com.sbro.emucored.core.AudioDefaults
 import com.sbro.emucored.core.EmulatorBridge
 import com.sbro.emucored.core.EmulatorStorage
+import com.sbro.emucored.core.PlatformUiCapabilities
 import com.sbro.emucored.core.RendererDefaults
 import com.sbro.emucored.core.UPSCALE_DEFAULT
 import com.sbro.emucored.core.normalizeUpscale
@@ -168,13 +169,13 @@ class PerGameSettingsRepository(context: Context) {
     }
 }
 
-private fun JSONObject.toPerGameSettings(): PerGameSettings {
+internal fun JSONObject.toPerGameSettings(): PerGameSettings {
     val providedKeys = keys().asSequence().toSet()
     return PerGameSettings(
         gameKey = optString("gameKey"),
         gameTitle = optString("gameTitle"),
         gameSerial = optString("gameSerial").takeIf { it.isNotBlank() },
-        renderer = optInt("renderer", RendererDefaults.AUTO).let(::sanitizeRendererValue),
+        renderer = sanitizeRendererValue(optInt("renderer", RendererDefaults.AUTO), optString("gameKey")),
         mediatekAngleOpenGl = optBoolean("mediatekAngleOpenGl", false),
         upscaleMultiplier = readUpscaleMultiplier(),
         aspectRatio = optInt("aspectRatio", 1).let(::sanitizeAspectRatioValue),
@@ -273,14 +274,14 @@ private fun JSONObject.toPerGameSettings(): PerGameSettings {
     )
 }
 
-private fun PerGameSettings.toJson(): JSONObject {
+internal fun PerGameSettings.toJson(): JSONObject {
     return JSONObject().apply {
         put("gameKey", gameKey)
         put("gameTitle", gameTitle)
         put("gameSerial", gameSerial)
         val keys = providedKeys
         fun shouldWrite(key: String): Boolean = keys == null || key in keys
-        if (shouldWrite("renderer")) put("renderer", sanitizeRendererValue(renderer))
+        if (shouldWrite("renderer")) put("renderer", sanitizeRendererValue(renderer, gameKey))
         if (shouldWrite("mediatekAngleOpenGl")) put("mediatekAngleOpenGl", mediatekAngleOpenGl)
         if (shouldWrite("upscaleMultiplier")) put("upscaleMultiplier", upscaleMultiplier.toDouble())
         if (shouldWrite("aspectRatio")) put("aspectRatio", sanitizeAspectRatioValue(aspectRatio))
@@ -453,8 +454,8 @@ private fun JSONObject.toOverlayControlLayout(): OverlayControlLayout {
     )
 }
 
-private fun sanitizeRendererValue(value: Int): Int {
-    return RendererDefaults.normalizeAndroidRenderer(value)
+private fun sanitizeRendererValue(value: Int, gameKey: String): Int {
+    return PlatformUiCapabilities.forGame(gameKey).normalizeRenderer(value)
 }
 
 private fun sanitizeAspectRatioValue(value: Int): Int {

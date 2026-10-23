@@ -8,6 +8,7 @@ import androidx.core.net.toUri
 import androidx.documentfile.provider.DocumentFile
 import com.sbro.emucored.core.DocumentPathResolver
 import com.sbro.emucored.core.EmulatorBridge
+import com.sbro.emucored.core.PlatformUiCapabilities
 import com.sbro.emucored.core.SetupValidator
 import com.sbro.emucored.core.N3dsGameMetadataReader
 import java.io.File
@@ -123,7 +124,7 @@ class GameRepository {
         serial: String? = null,
         title: String? = null
     ): String? {
-        val platform = GamePlatform.fromFileName(path) ?: GamePlatform.N3DS
+        val platform = PlatformUiCapabilities.forGame(path).platform
         val candidate = if (path.startsWith("content://")) {
             runCatching { findDocumentCover(path, context, serial, title, platform) }
                 .onFailure { error -> Log.w(TAG, "Unable to find cover for document URI: $path", error) }
@@ -138,7 +139,7 @@ class GameRepository {
         CustomGameCoverRepository(context).findCustomCoverPath(game.path)?.let { return it }
         // A loose homebrew ELF has no retail identity; do not guess its artwork from a short filename.
         val serial = game.serial?.takeIf(String::isNotBlank)
-        val platform = game.platform ?: GamePlatform.fromFileName(game.path) ?: GamePlatform.N3DS
+        val platform = PlatformUiCapabilities.forGame(game.path, game.platform).platform
         val covers = CoverArtRepository(context)
         val downloaded = covers.downloadCover(serial, title = game.title, platform = platform)
         if (covers.hasIndexedCover(serial, game.title, platform)) return downloaded

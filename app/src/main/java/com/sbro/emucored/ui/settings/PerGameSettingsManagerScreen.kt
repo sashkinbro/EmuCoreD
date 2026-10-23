@@ -52,7 +52,8 @@ import com.sbro.emucored.core.EmulatorBridge
 import com.sbro.emucored.core.GpuHardwareProfiles
 import com.sbro.emucored.core.KeyboardMouseBindings
 import com.sbro.emucored.core.KeyboardMouseManager
-import com.sbro.emucored.core.RendererDefaults
+import com.sbro.emucored.data.forPlatform
+import com.sbro.emucored.core.PlatformUiCapabilities
 import com.sbro.emucored.core.buildUpscaleOptions
 import com.sbro.emucored.core.upscaleKeyToMultiplier
 import com.sbro.emucored.core.upscaleMultiplierKey
@@ -316,7 +317,8 @@ fun PerGameSettingsManagerScreen(
                     fileName = profile.gameTitle,
                     fileSize = 0L,
                     lastModified = profile.updatedAt,
-                    serial = profile.gameSerial
+                    serial = profile.gameSerial,
+                    platform = PlatformUiCapabilities.forGame(profile.gameKey).platform
                 )
             }
         (libraryGames + profileOnlyGames).sortedBy { it.title.lowercase() }
@@ -326,6 +328,11 @@ fun PerGameSettingsManagerScreen(
     }
     val selectedGame = remember(availableGames, selectedGamePath) {
         selectedGamePath?.let { path -> availableGames.firstOrNull { it.path == path } }
+    }
+    LaunchedEffect(selectedGame) {
+        if (!PlatformUiCapabilities.forGame(selectedGame?.path, selectedGame?.platform).supportsAzaharOptions && selectedTab == GameSettingsManagerTab.Audio) {
+            selectedTab = GameSettingsManagerTab.Core
+        }
     }
     val selectedProfile = remember(profiles, selectedGamePath) {
         selectedGamePath?.let { path -> profiles.firstOrNull { it.gameKey == path } }
@@ -526,6 +533,7 @@ fun PerGameSettingsManagerScreen(
                     modifier = Modifier.gameManagerFullBleed()
                 ) {
                     GameSettingsManagerTabRow(
+                        supportsAudio = PlatformUiCapabilities.forGame(selectedGame?.path, selectedGame?.platform).supportsAzaharOptions,
                         selectedTab = selectedTab,
                         onSelected = { selectedTab = it }
                     )
@@ -536,15 +544,20 @@ fun PerGameSettingsManagerScreen(
                 item {
                     val storedProfile = profiles.firstOrNull { it.gameKey == game.path }
                     val defaultProfile = remember(settingsSnapshot, game) {
-                        settingsSnapshot.toPerGameSettings(game)
+                        settingsSnapshot.forPlatform(
+                            PlatformUiCapabilities.forGame(game.path, game.platform).platform
+                        ).toPerGameSettings(game)
                     }
                     val editableProfile = remember(storedProfile, defaultProfile) {
                         (storedProfile ?: defaultProfile).resolveAgainst(defaultProfile)
                     }
                     var draft by remember(game.path, editableProfile) { mutableStateOf(editableProfile) }
                     var hasUserChange by remember(game.path, editableProfile) { mutableStateOf(false) }
-                    val maxUpscaleMultiplier = remember(draft.renderer) {
-                        EmulatorBridge.getMaxUpscaleMultiplier(normalizeManagerRenderer(draft.renderer))
+                    val capabilities = PlatformUiCapabilities.forGame(game.path, game.platform)
+                    val maxUpscaleMultiplier = remember(game.path, game.platform, draft.renderer) {
+                        capabilities.maxUpscaleMultiplier(
+                            EmulatorBridge.getMaxUpscaleMultiplier(capabilities.normalizeRenderer(draft.renderer))
+                        )
                     }
 
                     LaunchedEffect(draft) {
@@ -771,6 +784,7 @@ private fun GamePickerCard(
 
 @Composable
 private fun GameSettingsManagerTabRow(
+    supportsAudio: Boolean,
     selectedTab: GameSettingsManagerTab,
     onSelected: (GameSettingsManagerTab) -> Unit
 ) {
@@ -784,7 +798,7 @@ private fun GameSettingsManagerTabRow(
             end = ScreenHorizontalPadding
         )
     ) {
-        items(SupportedGameSettingsManagerTabs, key = { it.name }) { tab ->
+        items(SupportedGameSettingsManagerTabs.filter { supportsAudio || it != GameSettingsManagerTab.Audio }, key = { it.name }) { tab ->
             val interactionSource = remember { MutableInteractionSource() }
             FilterChip(
                 modifier = Modifier.tvGamepadFocusableCard(
@@ -863,6 +877,7 @@ private fun GameSettingsManagerEditorPanel(
             )
         }
         GameSettingsTabContent(
+            capabilities = PlatformUiCapabilities.forGame(game.path, game.platform),
             draft = draft,
             defaultProfile = defaultProfile,
             selectedTab = selectedTab,
@@ -875,6 +890,7 @@ private fun GameSettingsManagerEditorPanel(
 
 @Composable
 private fun GameSettingsTabContent(
+    capabilities: PlatformUiCapabilities,
     draft: PerGameSettings,
     defaultProfile: PerGameSettings,
     selectedTab: GameSettingsManagerTab,
@@ -897,16 +913,18 @@ private fun GameSettingsTabContent(
                 EditorSection(title = stringResource(R.string.game_settings_manager_section_profile)) {
                     SelectionRow(
                         title = stringResource(R.string.settings_renderer),
-                        options = listOf(
-                            12 to stringResource(R.string.settings_renderer_opengl),
-                            14 to stringResource(R.string.settings_renderer_vulkan),
-                            13 to stringResource(R.string.settings_renderer_software)
-                        ),
-                        selectedValue = normalizeManagerRenderer(draft.renderer),
+                        options = capabilities.rendererIds.map { renderer ->
+                            renderer to stringResource(when (renderer) {
+                                12 -> R.string.settings_renderer_opengl
+                                13 -> R.string.settings_renderer_software
+                                else -> R.string.settings_renderer_vulkan
+                            })
+                        },
+                        selectedValue = capabilities.normalizeRenderer(draft.renderer),
                         onSelected = { onDraftChange(draft.copy(renderer = it)) },
                         helpText = stringResource(R.string.settings_help_renderer),
                         onResetToDefault = {
-                            onDraftChange(draft.copy(renderer = normalizeManagerRenderer(defaultProfile.renderer)))
+                            onDraftChange(draft.copy(renderer = capabilities.normalizeRenderer(defaultProfile.renderer)))
                         }
                     )
                     // Internal resolution is the app-level per-game setting
@@ -920,7 +938,7 @@ private fun GameSettingsTabContent(
                     SelectionRow(
                         title = stringResource(R.string.settings_upscale),
                         options = buildUpscaleOptions(nativeUpscaleLabel, maxUpscaleMultiplier),
-                        selectedValue = upscaleMultiplierKey(draft.upscaleMultiplier),
+                        selectedValue = upscaleMultiplierKey(draft.upscaleMultiplier.coerceIn(1f, maxUpscaleMultiplier.toFloat())),
                         onSelected = { key ->
                             onDraftChange(draft.copy(upscaleMultiplier = upscaleKeyToMultiplier(key)))
                         },
@@ -929,97 +947,101 @@ private fun GameSettingsTabContent(
                             onDraftChange(
                                 draft.copy(
                                     upscaleMultiplier = upscaleKeyToMultiplier(
-                                        upscaleMultiplierKey(defaultProfile.upscaleMultiplier)
+                                        upscaleMultiplierKey(defaultProfile.upscaleMultiplier.coerceIn(1f, maxUpscaleMultiplier.toFloat()))
                                     )
                                 )
                             )
                         }
                     )
-                    SelectionRow(
-                        title = stringResource(R.string.settings_aspect_ratio),
-                        options = listOf(
-                            1 to stringResource(R.string.settings_aspect_ratio_auto),
-                            2 to stringResource(R.string.settings_aspect_ratio_43),
-                            3 to stringResource(R.string.settings_aspect_ratio_169),
-                            0 to stringResource(R.string.emulation_aspect_stretch)
-                        ),
-                        selectedValue = draft.aspectRatio,
-                        onSelected = { onDraftChange(draft.copy(aspectRatio = it)) },
-                        helpText = stringResource(R.string.settings_help_aspect_ratio),
-                        onResetToDefault = {
-                            onDraftChange(draft.copy(aspectRatio = defaultProfile.aspectRatio))
-                        }
-                    )
-                    SelectionRow(
-                        title = stringResource(R.string.settings_display_crop),
-                        options = DisplayCrop.PRESET_PIXELS.map { it to stringResource(R.string.settings_display_crop_pixels, it) },
-                        selectedValue = draft.displayCrop.presetPixels,
-                        onSelected = { onDraftChange(draft.copy(displayCrop = DisplayCrop.uniform(it))) },
-                        helpText = stringResource(R.string.settings_display_crop_desc),
-                        onResetToDefault = { onDraftChange(draft.copy(displayCrop = defaultProfile.displayCrop)) }
-                    )
-                    CoreOptionManagerRows(
-                        options = AzaharCoreOptions.graphicsOptions(),
-                        draft = draft,
-                        onDraftChange = onDraftChange
-                    )
-                    ShaderPresetSelector(
-                        title = stringResource(R.string.settings_shader_preset),
-                        presets = shaderPresets,
-                        selectedPath = when (draft.shaderChainOverrideEnabled) {
-                            null -> SHADER_PRESET_USE_GLOBAL
-                            false -> ""
-                            true -> draft.shaderChainPreset
-                        },
-                        onSelect = { selectedPath ->
-                            onDraftChange(
-                                when (selectedPath) {
-                                    SHADER_PRESET_USE_GLOBAL -> draft.copy(
-                                        shaderChainOverrideEnabled = null,
-                                        shaderChainPreset = ""
-                                    )
-                                    "" -> draft.copy(
-                                        shaderChainOverrideEnabled = false,
-                                        shaderChainPreset = ""
-                                    )
-                                    else -> draft.copy(
-                                        shaderChainOverrideEnabled = true,
-                                        shaderChainPreset = selectedPath
-                                    )
-                                }
-                            )
-                        },
-                        helpText = stringResource(R.string.settings_help_shader_preset),
-                        leadingOptions = listOf(
-                            SHADER_PRESET_USE_GLOBAL to stringResource(R.string.controls_editor_global_scope)
-                        ),
-                        cardHorizontalPadding = 0.dp
-                    )
-                }
+                    if (capabilities.supportsAzaharOptions) {
+                        SelectionRow(
+                            title = stringResource(R.string.settings_aspect_ratio),
+                            options = listOf(
+                                1 to stringResource(R.string.settings_aspect_ratio_auto),
+                                2 to stringResource(R.string.settings_aspect_ratio_43),
+                                3 to stringResource(R.string.settings_aspect_ratio_169),
+                                0 to stringResource(R.string.emulation_aspect_stretch)
+                            ),
+                            selectedValue = draft.aspectRatio,
+                            onSelected = { onDraftChange(draft.copy(aspectRatio = it)) },
+                            helpText = stringResource(R.string.settings_help_aspect_ratio),
+                            onResetToDefault = {
+                                onDraftChange(draft.copy(aspectRatio = defaultProfile.aspectRatio))
+                            }
+                        )
+                        SelectionRow(
+                            title = stringResource(R.string.settings_display_crop),
+                            options = DisplayCrop.PRESET_PIXELS.map { it to stringResource(R.string.settings_display_crop_pixels, it) },
+                            selectedValue = draft.displayCrop.presetPixels,
+                            onSelected = { onDraftChange(draft.copy(displayCrop = DisplayCrop.uniform(it))) },
+                            helpText = stringResource(R.string.settings_display_crop_desc),
+                            onResetToDefault = { onDraftChange(draft.copy(displayCrop = defaultProfile.displayCrop)) }
+                        )
+                        CoreOptionManagerRows(
+                            options = AzaharCoreOptions.graphicsOptions(),
+                            draft = draft,
+                            onDraftChange = onDraftChange
+                        )
+                        ShaderPresetSelector(
+                            title = stringResource(R.string.settings_shader_preset),
+                            presets = shaderPresets,
+                            selectedPath = when (draft.shaderChainOverrideEnabled) {
+                                null -> SHADER_PRESET_USE_GLOBAL
+                                false -> ""
+                                true -> draft.shaderChainPreset
+                            },
+                            onSelect = { selectedPath ->
+                                onDraftChange(
+                                    when (selectedPath) {
+                                        SHADER_PRESET_USE_GLOBAL -> draft.copy(
+                                            shaderChainOverrideEnabled = null,
+                                            shaderChainPreset = ""
+                                        )
+                                        "" -> draft.copy(
+                                            shaderChainOverrideEnabled = false,
+                                            shaderChainPreset = ""
+                                        )
+                                        else -> draft.copy(
+                                            shaderChainOverrideEnabled = true,
+                                            shaderChainPreset = selectedPath
+                                        )
+                                    }
+                                )
+                            },
+                            helpText = stringResource(R.string.settings_help_shader_preset),
+                            leadingOptions = listOf(
+                                SHADER_PRESET_USE_GLOBAL to stringResource(R.string.controls_editor_global_scope)
+                            ),
+                            cardHorizontalPadding = 0.dp
+                        )
+                    }
 
+                }
 
             }
             GameSettingsManagerTab.Runtime -> {
                 EditorSection(title = stringResource(R.string.game_settings_manager_section_runtime)) {
-                    ToggleRow(
-                        title = stringResource(R.string.settings_frame_limit),
-                        checked = draft.frameLimitEnabled,
-                        onCheckedChange = { onDraftChange(draft.copy(frameLimitEnabled = it)) },
-                        helpText = stringResource(R.string.settings_frame_limit_desc),
-                        onResetToDefault = { onDraftChange(draft.copy(frameLimitEnabled = defaultProfile.frameLimitEnabled)) }
-                    )
-                    SelectionRow(
-                        title = stringResource(R.string.settings_target_fps),
-                        options = listOf(
-                            0 to stringResource(R.string.settings_aspect_ratio_auto),
-                            50 to "50 Hz",
-                            60 to "60 Hz"
-                        ),
-                        selectedValue = draft.targetFps,
-                        onSelected = { onDraftChange(draft.copy(targetFps = it)) },
-                        helpText = stringResource(R.string.settings_target_fps_desc),
-                        onResetToDefault = { onDraftChange(draft.copy(targetFps = defaultProfile.targetFps)) }
-                    )
+                    if (capabilities.supportsAzaharOptions) {
+                        ToggleRow(
+                            title = stringResource(R.string.settings_frame_limit),
+                            checked = draft.frameLimitEnabled,
+                            onCheckedChange = { onDraftChange(draft.copy(frameLimitEnabled = it)) },
+                            helpText = stringResource(R.string.settings_frame_limit_desc),
+                            onResetToDefault = { onDraftChange(draft.copy(frameLimitEnabled = defaultProfile.frameLimitEnabled)) }
+                        )
+                        SelectionRow(
+                            title = stringResource(R.string.settings_target_fps),
+                            options = listOf(
+                                0 to stringResource(R.string.settings_aspect_ratio_auto),
+                                50 to "50 Hz",
+                                60 to "60 Hz"
+                            ),
+                            selectedValue = draft.targetFps,
+                            onSelected = { onDraftChange(draft.copy(targetFps = it)) },
+                            helpText = stringResource(R.string.settings_target_fps_desc),
+                            onResetToDefault = { onDraftChange(draft.copy(targetFps = defaultProfile.targetFps)) }
+                        )
+                    }
                     ToggleRow(
                         title = stringResource(R.string.settings_show_fps),
                         checked = draft.showFps,
@@ -1047,69 +1069,74 @@ private fun GameSettingsTabContent(
                     )
                 }
 
-                EditorSection(title = stringResource(R.string.settings_core_cpu)) {
-                    CoreOptionManagerRows(
-                        options = AzaharCoreOptions.emulationOptions(),
-                        draft = draft,
-                        onDraftChange = onDraftChange
-                    )
+                if (capabilities.supportsAzaharOptions) {
+                    EditorSection(title = stringResource(R.string.settings_core_cpu)) {
+                        CoreOptionManagerRows(
+                            options = AzaharCoreOptions.emulationOptions(),
+                            draft = draft,
+                            onDraftChange = onDraftChange
+                        )
+                    }
                 }
 
             }
             GameSettingsManagerTab.Audio -> {
-                EditorSection(title = stringResource(R.string.settings_audio_control)) {
-                    ToggleRow(
-                        title = stringResource(R.string.settings_audio_mute),
-                        checked = draft.audioMuted,
-                        onCheckedChange = { onDraftChange(draft.copy(audioMuted = it)) },
-                        helpText = stringResource(R.string.settings_help_audio_mute),
-                        onResetToDefault = {
-                            onDraftChange(draft.copy(audioMuted = defaultProfile.audioMuted))
-                        }
-                    )
-                    SliderRow(
-                        title = stringResource(R.string.settings_audio_volume),
-                        value = draft.audioVolume.toFloat(),
-                        valueLabel = "${draft.audioVolume}%",
-                        range = AudioDefaults.VOLUME_MIN.toFloat()..AudioDefaults.VOLUME_MAX.toFloat(),
-                        steps = 0,
-                        onValueChange = { onDraftChange(draft.copy(audioVolume = it.roundToInt())) },
-                        helpText = stringResource(R.string.settings_help_audio_volume),
-                        onResetToDefault = {
-                            onDraftChange(draft.copy(audioVolume = defaultProfile.audioVolume))
-                        }
-                    )
-                }
-                EditorSection(title = stringResource(R.string.settings_audio_output)) {
-                    SliderRow(
-                        title = stringResource(R.string.settings_audio_output_latency),
-                        value = draft.audioOutputLatencyMs.toFloat(),
-                        valueLabel = "${draft.audioOutputLatencyMs} ms",
-                        range = AudioDefaults.OUTPUT_LATENCY_MS_MIN.toFloat()..
-                            AudioDefaults.OUTPUT_LATENCY_MS_MAX.toFloat(),
-                        steps = 0,
-                        onValueChange = { onDraftChange(draft.copy(audioOutputLatencyMs = it.roundToInt())) },
-                        helpText = stringResource(R.string.settings_help_audio_output_latency),
-                        onResetToDefault = {
-                            onDraftChange(
-                                draft.copy(audioOutputLatencyMs = defaultProfile.audioOutputLatencyMs)
-                            )
-                        }
-                    )
-                    ToggleRow(
-                        title = stringResource(R.string.settings_audio_minimal_latency),
-                        checked = draft.audioMinimalOutputLatency,
-                        onCheckedChange = { onDraftChange(draft.copy(audioMinimalOutputLatency = it)) },
-                        helpText = stringResource(R.string.settings_help_audio_minimal_latency),
-                        onResetToDefault = {
-                            onDraftChange(
-                                draft.copy(
-                                    audioMinimalOutputLatency = defaultProfile.audioMinimalOutputLatency
+                if (capabilities.supportsAzaharOptions) {
+                    EditorSection(title = stringResource(R.string.settings_audio_control)) {
+                        ToggleRow(
+                            title = stringResource(R.string.settings_audio_mute),
+                            checked = draft.audioMuted,
+                            onCheckedChange = { onDraftChange(draft.copy(audioMuted = it)) },
+                            helpText = stringResource(R.string.settings_help_audio_mute),
+                            onResetToDefault = {
+                                onDraftChange(draft.copy(audioMuted = defaultProfile.audioMuted))
+                            }
+                        )
+                        SliderRow(
+                            title = stringResource(R.string.settings_audio_volume),
+                            value = draft.audioVolume.toFloat(),
+                            valueLabel = "${draft.audioVolume}%",
+                            range = AudioDefaults.VOLUME_MIN.toFloat()..AudioDefaults.VOLUME_MAX.toFloat(),
+                            steps = 0,
+                            onValueChange = { onDraftChange(draft.copy(audioVolume = it.roundToInt())) },
+                            helpText = stringResource(R.string.settings_help_audio_volume),
+                            onResetToDefault = {
+                                onDraftChange(draft.copy(audioVolume = defaultProfile.audioVolume))
+                            }
+                        )
+                    }
+                    EditorSection(title = stringResource(R.string.settings_audio_output)) {
+                        SliderRow(
+                            title = stringResource(R.string.settings_audio_output_latency),
+                            value = draft.audioOutputLatencyMs.toFloat(),
+                            valueLabel = "${draft.audioOutputLatencyMs} ms",
+                            range = AudioDefaults.OUTPUT_LATENCY_MS_MIN.toFloat()..
+                                AudioDefaults.OUTPUT_LATENCY_MS_MAX.toFloat(),
+                            steps = 0,
+                            onValueChange = { onDraftChange(draft.copy(audioOutputLatencyMs = it.roundToInt())) },
+                            helpText = stringResource(R.string.settings_help_audio_output_latency),
+                            onResetToDefault = {
+                                onDraftChange(
+                                    draft.copy(audioOutputLatencyMs = defaultProfile.audioOutputLatencyMs)
                                 )
-                            )
-                        }
-                    )
+                            }
+                        )
+                        ToggleRow(
+                            title = stringResource(R.string.settings_audio_minimal_latency),
+                            checked = draft.audioMinimalOutputLatency,
+                            onCheckedChange = { onDraftChange(draft.copy(audioMinimalOutputLatency = it)) },
+                            helpText = stringResource(R.string.settings_help_audio_minimal_latency),
+                            onResetToDefault = {
+                                onDraftChange(
+                                    draft.copy(
+                                        audioMinimalOutputLatency = defaultProfile.audioMinimalOutputLatency
+                                    )
+                                )
+                            }
+                        )
+                    }
                 }
+
             }
             GameSettingsManagerTab.Controls -> {
                 EditorSection(title = stringResource(R.string.settings_customization_touch_controls_section)) {
@@ -1158,80 +1185,86 @@ private fun GameSettingsTabContent(
                     )
                 }
                 EditorSection(title = stringResource(R.string.settings_controls_tab)) {
-                    ToggleRow(
-                        title = stringResource(R.string.settings_racing_mode),
-                        checked = draft.racingMode,
-                        onCheckedChange = { onDraftChange(draft.copy(racingMode = it)) },
-                        helpText = stringResource(R.string.settings_help_racing_mode),
-                        onResetToDefault = { onDraftChange(draft.copy(racingMode = defaultProfile.racingMode)) }
-                    )
-                    StickyButtonsSelector(
-                        selected = draft.stickyButtons,
-                        onSelectionChange = { onDraftChange(draft.copy(stickyButtons = it)) },
-                        helpText = stringResource(R.string.settings_help_sticky_buttons),
-                        onResetToDefault = {
-                            onDraftChange(draft.copy(stickyButtons = defaultProfile.stickyButtons))
-                        }
-                    )
-                    ToggleRow(
-                        title = stringResource(R.string.settings_touchscreen_left_stick),
-                        checked = draft.touchscreenLeftStick,
-                        onCheckedChange = { onDraftChange(draft.copy(touchscreenLeftStick = it)) },
-                        helpText = stringResource(R.string.settings_help_touchscreen_left_stick),
-                        onResetToDefault = {
-                            onDraftChange(draft.copy(touchscreenLeftStick = defaultProfile.touchscreenLeftStick))
-                        }
-                    )
-                    if (draft.touchscreenLeftStick) {
-                        SliderRow(
-                            title = stringResource(R.string.settings_touchscreen_left_stick_sensitivity),
-                            value = draft.touchscreenLeftStickSensitivity.toFloat(),
-                            valueLabel = "${draft.touchscreenLeftStickSensitivity}%",
-                            range = AppPreferences.TOUCHSCREEN_RIGHT_STICK_SENSITIVITY_MIN.toFloat()..
-                                AppPreferences.TOUCHSCREEN_RIGHT_STICK_SENSITIVITY_MAX.toFloat(),
-                            steps = AppPreferences.TOUCHSCREEN_RIGHT_STICK_SENSITIVITY_MAX -
-                                AppPreferences.TOUCHSCREEN_RIGHT_STICK_SENSITIVITY_MIN - 1,
-                            onValueChange = {
-                                onDraftChange(draft.copy(touchscreenLeftStickSensitivity = it.roundToInt()))
-                            },
-                            helpText = stringResource(R.string.settings_help_touchscreen_left_stick_sensitivity),
+                    if (capabilities.supportsAzaharOptions) {
+                        ToggleRow(
+                            title = stringResource(R.string.settings_racing_mode),
+                            checked = draft.racingMode,
+                            onCheckedChange = { onDraftChange(draft.copy(racingMode = it)) },
+                            helpText = stringResource(R.string.settings_help_racing_mode),
+                            onResetToDefault = { onDraftChange(draft.copy(racingMode = defaultProfile.racingMode)) }
+                        )
+                    }
+                    if (capabilities.supportsAzaharOptions) {
+                        StickyButtonsSelector(
+                            selected = draft.stickyButtons,
+                            onSelectionChange = { onDraftChange(draft.copy(stickyButtons = it)) },
+                            helpText = stringResource(R.string.settings_help_sticky_buttons),
                             onResetToDefault = {
-                                onDraftChange(
-                                    draft.copy(
-                                        touchscreenLeftStickSensitivity = defaultProfile.touchscreenLeftStickSensitivity
-                                    )
-                                )
+                                onDraftChange(draft.copy(stickyButtons = defaultProfile.stickyButtons))
                             }
                         )
                     }
-                    ToggleRow(
-                        title = stringResource(R.string.settings_touchscreen_right_stick),
-                        checked = draft.touchscreenRightStick,
-                        onCheckedChange = { onDraftChange(draft.copy(touchscreenRightStick = it)) },
-                        helpText = stringResource(R.string.settings_help_touchscreen_right_stick),
-                        onResetToDefault = { onDraftChange(draft.copy(touchscreenRightStick = defaultProfile.touchscreenRightStick)) }
-                    )
-                    if (draft.touchscreenRightStick) {
-                        SliderRow(
-                            title = stringResource(R.string.settings_touchscreen_right_stick_sensitivity),
-                            value = draft.touchscreenRightStickSensitivity.toFloat(),
-                            valueLabel = "${draft.touchscreenRightStickSensitivity}%",
-                            range = AppPreferences.TOUCHSCREEN_RIGHT_STICK_SENSITIVITY_MIN.toFloat()..
-                                AppPreferences.TOUCHSCREEN_RIGHT_STICK_SENSITIVITY_MAX.toFloat(),
-                            steps = AppPreferences.TOUCHSCREEN_RIGHT_STICK_SENSITIVITY_MAX -
-                                AppPreferences.TOUCHSCREEN_RIGHT_STICK_SENSITIVITY_MIN - 1,
-                            onValueChange = {
-                                onDraftChange(draft.copy(touchscreenRightStickSensitivity = it.roundToInt()))
-                            },
-                            helpText = stringResource(R.string.settings_help_touchscreen_right_stick_sensitivity),
+                    if (capabilities.supportsAzaharOptions) {
+                        ToggleRow(
+                            title = stringResource(R.string.settings_touchscreen_left_stick),
+                            checked = draft.touchscreenLeftStick,
+                            onCheckedChange = { onDraftChange(draft.copy(touchscreenLeftStick = it)) },
+                            helpText = stringResource(R.string.settings_help_touchscreen_left_stick),
                             onResetToDefault = {
-                                onDraftChange(
-                                    draft.copy(
-                                        touchscreenRightStickSensitivity = defaultProfile.touchscreenRightStickSensitivity
-                                    )
-                                )
+                                onDraftChange(draft.copy(touchscreenLeftStick = defaultProfile.touchscreenLeftStick))
                             }
                         )
+                        if (draft.touchscreenLeftStick) {
+                            SliderRow(
+                                title = stringResource(R.string.settings_touchscreen_left_stick_sensitivity),
+                                value = draft.touchscreenLeftStickSensitivity.toFloat(),
+                                valueLabel = "${draft.touchscreenLeftStickSensitivity}%",
+                                range = AppPreferences.TOUCHSCREEN_RIGHT_STICK_SENSITIVITY_MIN.toFloat()..
+                                    AppPreferences.TOUCHSCREEN_RIGHT_STICK_SENSITIVITY_MAX.toFloat(),
+                                steps = AppPreferences.TOUCHSCREEN_RIGHT_STICK_SENSITIVITY_MAX -
+                                    AppPreferences.TOUCHSCREEN_RIGHT_STICK_SENSITIVITY_MIN - 1,
+                                onValueChange = {
+                                    onDraftChange(draft.copy(touchscreenLeftStickSensitivity = it.roundToInt()))
+                                },
+                                helpText = stringResource(R.string.settings_help_touchscreen_left_stick_sensitivity),
+                                onResetToDefault = {
+                                    onDraftChange(
+                                        draft.copy(
+                                            touchscreenLeftStickSensitivity = defaultProfile.touchscreenLeftStickSensitivity
+                                        )
+                                    )
+                                }
+                            )
+                        }
+                        ToggleRow(
+                            title = stringResource(R.string.settings_touchscreen_right_stick),
+                            checked = draft.touchscreenRightStick,
+                            onCheckedChange = { onDraftChange(draft.copy(touchscreenRightStick = it)) },
+                            helpText = stringResource(R.string.settings_help_touchscreen_right_stick),
+                            onResetToDefault = { onDraftChange(draft.copy(touchscreenRightStick = defaultProfile.touchscreenRightStick)) }
+                        )
+                        if (draft.touchscreenRightStick) {
+                            SliderRow(
+                                title = stringResource(R.string.settings_touchscreen_right_stick_sensitivity),
+                                value = draft.touchscreenRightStickSensitivity.toFloat(),
+                                valueLabel = "${draft.touchscreenRightStickSensitivity}%",
+                                range = AppPreferences.TOUCHSCREEN_RIGHT_STICK_SENSITIVITY_MIN.toFloat()..
+                                    AppPreferences.TOUCHSCREEN_RIGHT_STICK_SENSITIVITY_MAX.toFloat(),
+                                steps = AppPreferences.TOUCHSCREEN_RIGHT_STICK_SENSITIVITY_MAX -
+                                    AppPreferences.TOUCHSCREEN_RIGHT_STICK_SENSITIVITY_MIN - 1,
+                                onValueChange = {
+                                    onDraftChange(draft.copy(touchscreenRightStickSensitivity = it.roundToInt()))
+                                },
+                                helpText = stringResource(R.string.settings_help_touchscreen_right_stick_sensitivity),
+                                onResetToDefault = {
+                                    onDraftChange(
+                                        draft.copy(
+                                            touchscreenRightStickSensitivity = defaultProfile.touchscreenRightStickSensitivity
+                                        )
+                                    )
+                                }
+                            )
+                        }
                     }
                     ToggleRow(
                         title = stringResource(R.string.settings_touch_haptics),
@@ -1248,20 +1281,22 @@ private fun GameSettingsTabContent(
                         helpText = stringResource(R.string.settings_help_touch_haptics_preset),
                         onResetToDefault = { onDraftChange(draft.copy(touchHapticsPreset = defaultProfile.touchHapticsPreset)) }
                     )
-                    SelectionRow(
-                        title = stringResource(R.string.settings_gyro_mode),
-                        options = gyroModeOptions(),
-                        selectedValue = draft.gyroMode,
-                        onSelected = { onDraftChange(draft.copy(gyroMode = it)) },
-                        helpText = stringResource(R.string.settings_help_gyro_mode),
-                        onResetToDefault = { onDraftChange(draft.copy(gyroMode = defaultProfile.gyroMode)) }
-                    )
-                    if (draft.gyroMode != AppPreferences.GYRO_MODE_OFF) {
-                        SliderRow(stringResource(R.string.settings_gyro_sensitivity), draft.gyroSensitivity.toFloat(), "${draft.gyroSensitivity}%", 25f..300f, 10, { onDraftChange(draft.copy(gyroSensitivity = it.roundToInt())) }, helpText = stringResource(R.string.settings_help_gyro_sensitivity), onResetToDefault = { onDraftChange(draft.copy(gyroSensitivity = defaultProfile.gyroSensitivity)) })
-                        SliderRow(stringResource(R.string.settings_gyro_smoothing), draft.gyroSmoothing.toFloat(), "${draft.gyroSmoothing}%", 0f..90f, 8, { onDraftChange(draft.copy(gyroSmoothing = it.roundToInt())) }, helpText = stringResource(R.string.settings_help_gyro_smoothing), onResetToDefault = { onDraftChange(draft.copy(gyroSmoothing = defaultProfile.gyroSmoothing)) })
-                        ToggleRow(stringResource(R.string.settings_gyro_invert_x), draft.gyroInvertX, { onDraftChange(draft.copy(gyroInvertX = it)) }, helpText = stringResource(R.string.settings_help_gyro_invert_x), onResetToDefault = { onDraftChange(draft.copy(gyroInvertX = defaultProfile.gyroInvertX)) })
-                        if (draft.gyroMode == AppPreferences.GYRO_MODE_AIM) {
-                            ToggleRow(stringResource(R.string.settings_gyro_invert_y), draft.gyroInvertY, { onDraftChange(draft.copy(gyroInvertY = it)) }, helpText = stringResource(R.string.settings_help_gyro_invert_y), onResetToDefault = { onDraftChange(draft.copy(gyroInvertY = defaultProfile.gyroInvertY)) })
+                    if (capabilities.supportsAzaharOptions) {
+                        SelectionRow(
+                            title = stringResource(R.string.settings_gyro_mode),
+                            options = gyroModeOptions(),
+                            selectedValue = draft.gyroMode,
+                            onSelected = { onDraftChange(draft.copy(gyroMode = it)) },
+                            helpText = stringResource(R.string.settings_help_gyro_mode),
+                            onResetToDefault = { onDraftChange(draft.copy(gyroMode = defaultProfile.gyroMode)) }
+                        )
+                        if (draft.gyroMode != AppPreferences.GYRO_MODE_OFF) {
+                            SliderRow(stringResource(R.string.settings_gyro_sensitivity), draft.gyroSensitivity.toFloat(), "${draft.gyroSensitivity}%", 25f..300f, 10, { onDraftChange(draft.copy(gyroSensitivity = it.roundToInt())) }, helpText = stringResource(R.string.settings_help_gyro_sensitivity), onResetToDefault = { onDraftChange(draft.copy(gyroSensitivity = defaultProfile.gyroSensitivity)) })
+                            SliderRow(stringResource(R.string.settings_gyro_smoothing), draft.gyroSmoothing.toFloat(), "${draft.gyroSmoothing}%", 0f..90f, 8, { onDraftChange(draft.copy(gyroSmoothing = it.roundToInt())) }, helpText = stringResource(R.string.settings_help_gyro_smoothing), onResetToDefault = { onDraftChange(draft.copy(gyroSmoothing = defaultProfile.gyroSmoothing)) })
+                            ToggleRow(stringResource(R.string.settings_gyro_invert_x), draft.gyroInvertX, { onDraftChange(draft.copy(gyroInvertX = it)) }, helpText = stringResource(R.string.settings_help_gyro_invert_x), onResetToDefault = { onDraftChange(draft.copy(gyroInvertX = defaultProfile.gyroInvertX)) })
+                            if (draft.gyroMode == AppPreferences.GYRO_MODE_AIM) {
+                                ToggleRow(stringResource(R.string.settings_gyro_invert_y), draft.gyroInvertY, { onDraftChange(draft.copy(gyroInvertY = it)) }, helpText = stringResource(R.string.settings_help_gyro_invert_y), onResetToDefault = { onDraftChange(draft.copy(gyroInvertY = defaultProfile.gyroInvertY)) })
+                            }
                         }
                     }
                     ToggleRow(
@@ -1303,14 +1338,15 @@ private fun GameSettingsTabContent(
                     )
                 }
 
-                EditorSection(title = stringResource(R.string.settings_core_input)) {
-                    CoreOptionManagerRows(
-                        options = AzaharCoreOptions.controlsOptions(),
-                        draft = draft,
-                        onDraftChange = onDraftChange
-                    )
+                if (capabilities.supportsAzaharOptions) {
+                    EditorSection(title = stringResource(R.string.settings_core_input)) {
+                        CoreOptionManagerRows(
+                            options = AzaharCoreOptions.controlsOptions(),
+                            draft = draft,
+                            onDraftChange = onDraftChange
+                        )
+                    }
                 }
-
                 PerGameKeyboardMouseSettingsSection(
                     override = draft.keyboardMouse,
                     globalSettings = globalKeyboardMouseSettings,
@@ -1916,10 +1952,6 @@ private fun gyroModeOptions(): List<Pair<Int, String>> = listOf(
     AppPreferences.GYRO_MODE_AIM to stringResource(R.string.settings_gyro_aim),
     AppPreferences.GYRO_MODE_STEERING to stringResource(R.string.settings_gyro_steering)
 )
-
-private fun normalizeManagerRenderer(renderer: Int): Int {
-    return RendererDefaults.normalizeAndroidRenderer(renderer)
-}
 
 private fun SettingsSnapshot.toPerGameSettings(game: GameItem): PerGameSettings {
     return PerGameSettings(

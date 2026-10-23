@@ -71,6 +71,8 @@ data class SettingsSnapshot(
     val gpuHardwareProfile: Int = GpuHardwareProfiles.ADRENO,
     val renderer: Int = RendererDefaults.defaultForHardware(),
     val upscaleMultiplier: Float = UPSCALE_DEFAULT,
+    val dsRenderer: Int = DsSettingsPolicy.DEFAULT_RENDERER,
+    val dsUpscaleMultiplier: Float = DsSettingsPolicy.DEFAULT_UPSCALE_MULTIPLIER,
     val aspectRatio: Int = 1,
     val displayCrop: DisplayCrop = DisplayCrop.None,
     val shaderChainEnabled: Boolean = false,
@@ -195,7 +197,7 @@ class AppPreferences(private val context: Context) {
          * locale and manager UI.
          */
         internal val EMULATOR_CLOUD_KEYS = setOf(
-            "renderer", "upscaleMultiplier", "shaderChainEnabled",
+            "renderer", "upscaleMultiplier", "dsRenderer", "dsUpscaleMultiplier", "shaderChainEnabled",
             "shaderChainPreset", "textureReplacementsEnabled", "aspectRatio",
             "displayCropLeft", "displayCropTop", "displayCropRight", "displayCropBottom",
             "audioVolume", "audioFastForwardVolume", "audioMuted", "audioOutputLatencyMs",
@@ -995,6 +997,17 @@ class AppPreferences(private val context: Context) {
         normalizeRendererPreference(prefs[RENDERER])
     }
 
+    val dsRenderer: Flow<Int> = context.dataStore.data.map(DsSettingsPolicy::readRenderer)
+    val dsUpscaleMultiplier: Flow<Float> = context.dataStore.data.map(DsSettingsPolicy::readUpscaleMultiplier)
+
+    suspend fun setDsRenderer(value: Int) {
+        context.dataStore.edit { DsSettingsPolicy.storeRenderer(it, value) }
+    }
+
+    suspend fun setDsUpscaleMultiplier(value: Float) {
+        context.dataStore.edit { DsSettingsPolicy.storeUpscaleMultiplier(it, value) }
+    }
+
     val performanceProfile: Flow<Int> = context.dataStore.data.map { prefs ->
         PerformanceProfiles.normalize(prefs[PERFORMANCE_PROFILE] ?: PerformanceProfiles.SAFE)
     }
@@ -1430,6 +1443,8 @@ class AppPreferences(private val context: Context) {
                 gpuHardwareProfile = gpuHardwareProfile,
                 renderer = normalizeRendererPreference(prefs[RENDERER]),
                 upscaleMultiplier = readUpscale(prefs),
+                dsRenderer = DsSettingsPolicy.readRenderer(prefs),
+                dsUpscaleMultiplier = DsSettingsPolicy.readUpscaleMultiplier(prefs),
                 aspectRatio = normalizeAspectRatioPreference(prefs[ASPECT_RATIO]),
                 displayCrop = readDisplayCrop(prefs),
                 shaderChainEnabled = prefs[SHADER_CHAIN_ENABLED] ?: false,
@@ -3141,6 +3156,8 @@ class AppPreferences(private val context: Context) {
             put("renderer", normalizeRendererPreference(prefs[RENDERER]))
             put("mediatekAngleOpenGl", prefs[MEDIATEK_ANGLE_OPENGL] ?: false)
             put("upscaleMultiplier", readUpscale(prefs).toDouble())
+            put("dsRenderer", DsSettingsPolicy.readRenderer(prefs))
+            put("dsUpscaleMultiplier", DsSettingsPolicy.readUpscaleMultiplier(prefs).toDouble())
             put("shaderChainEnabled", prefs[SHADER_CHAIN_ENABLED] ?: false)
             put("shaderChainPreset", prefs[SHADER_CHAIN_PRESET].orEmpty())
                 put("gamePath", prefs[GAME_PATH])
@@ -3411,6 +3428,9 @@ class AppPreferences(private val context: Context) {
             prefs[MEDIATEK_ANGLE_OPENGL] = json.optBoolean("mediatekAngleOpenGl", false) &&
                 GpuHardwareProfiles.isMediatekProfile(gpuHardwareProfile)
             prefs[UPSCALE] = json.readUpscaleMultiplier()
+            DsSettingsPolicy.storeRenderer(prefs, json.optInt("dsRenderer", DsSettingsPolicy.DEFAULT_RENDERER))
+            DsSettingsPolicy.storeUpscaleMultiplier(prefs,
+                json.optDouble("dsUpscaleMultiplier", DsSettingsPolicy.DEFAULT_UPSCALE_MULTIPLIER.toDouble()).toFloat())
             prefs[SHADER_CHAIN_ENABLED] = json.optBoolean("shaderChainEnabled", false)
             json.optString("shaderChainPreset").trim().takeIf(String::isNotEmpty)?.let {
                 prefs[SHADER_CHAIN_PRESET] = it

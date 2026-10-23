@@ -127,6 +127,23 @@ class CoverArtRepository(context: Context) {
             }
         }
         val found = preferredFiles.firstOrNull(::isUsableCoverFile)
+            ?: if (platform == GamePlatform.NDS && !serial.isNullOrBlank()) {
+                // Old versions stored DS art without a platform prefix. Reuse it
+                // only when the selected DS serial's indexed image proves its identity.
+                val indexed = CoverIndexRepository(context).find(
+                    serial, null, GamePlatform.NDS,
+                    style == AppPreferences.COVER_ART_STYLE_3D, darkTheme
+                )
+                preferredFiles.firstNotNullOfOrNull { target ->
+                    val legacy = File(cacheDirectory, target.name.removePrefix("nds_"))
+                    if (indexed == null || !isUsableCoverFile(legacy) ||
+                        !isVerifiedLegacyDsCover(legacy, serial, indexed.sha256)) null
+                    else runCatching {
+                        legacy.copyTo(target, overwrite = false)
+                        target.takeIf(::isUsableCoverFile)
+                    }.getOrElse { target.takeIf(::isUsableCoverFile) }
+                }
+            } else null
         Log.d(TAG, "Cached cover for $normalizedSerial (style=$style): ${if (found != null) "FOUND" else "NOT FOUND"}")
         return found?.absolutePath
     }
@@ -153,6 +170,7 @@ class CoverArtRepository(context: Context) {
             Log.d(TAG, "Cover download skipped: cover art style is disabled")
             return null
         }
+        findCachedCoverPath(serial, style, ignoreDisabled, title, platform)?.let { return it }
         val coverKey = coverKey(serial, title, platform)
         if (coverKey == null) {
             Log.w(TAG, "Cannot download cover: no serial or title")

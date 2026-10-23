@@ -205,6 +205,7 @@ import com.sbro.emucored.core.RendererDefaults
 import com.sbro.emucored.core.TvInterfaceMode
 import com.sbro.emucored.core.TvUiPolicy
 import com.sbro.emucored.data.AppFontChoice
+import com.sbro.emucored.data.DsSettingsPolicy
 import com.sbro.emucored.data.AppPreferences
 import com.sbro.emucored.data.AppPreferences.Companion.FPS_OVERLAY_MODE_DETAILED
 import com.sbro.emucored.data.AppPreferences.Companion.FPS_OVERLAY_MODE_SIMPLE
@@ -284,7 +285,7 @@ import com.sbro.emucored.ui.theme.neon.neonShapeCorners
 import java.util.Locale
 
 private enum class SettingsTab {
-    General, Graphics, Controls, Emulation, Audio, Multiplayer, Library, Customization, GameMenu, Updates, Pro, About
+    General, Graphics, NintendoDs, Controls, Emulation, Audio, Multiplayer, Library, Customization, GameMenu, Updates, Pro, About
 }
 
 @OptIn(ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class)
@@ -1996,14 +1997,41 @@ private fun SettingsContent(
                     }
                 }
 
+                SettingsTab.NintendoDs -> {
+                    SettingsSection(title = "Nintendo DS") {
+                        ChoiceSection(
+                            title = stringResource(R.string.settings_renderer),
+                            options = listOf(
+                                14 to stringResource(R.string.settings_renderer_vulkan),
+                                13 to stringResource(R.string.settings_renderer_software)
+                            ),
+                            selectedValue = uiState.dsRenderer,
+                            onSelect = viewModel::setDsRenderer,
+                            onResetToDefault = { viewModel.setDsRenderer(DsSettingsPolicy.DEFAULT_RENDERER) }
+                        )
+                        ChoiceSection(
+                            title = stringResource(R.string.settings_upscale),
+                            options = buildUpscaleOptions(
+                                stringResource(R.string.settings_upscale_native),
+                                DsSettingsPolicy.MAX_UPSCALE_MULTIPLIER
+                            ),
+                            selectedValue = upscaleMultiplierKey(uiState.dsUpscaleMultiplier),
+                            onSelect = { viewModel.setDsUpscaleMultiplier(upscaleKeyToMultiplier(it)) },
+                            helpText = stringResource(R.string.settings_help_upscale),
+                            onResetToDefault = {
+                                viewModel.setDsUpscaleMultiplier(DsSettingsPolicy.DEFAULT_UPSCALE_MULTIPLIER)
+                            }
+                        )
+                    }
+                }
+
                 SettingsTab.Graphics -> {
                     SettingsSection(title = stringResource(R.string.settings_graphics_tab)) {
                         ChoiceSection(
                             title = stringResource(R.string.settings_renderer),
                             options = listOf(
                                 12 to stringResource(R.string.settings_renderer_opengl),
-                                14 to stringResource(R.string.settings_renderer_vulkan),
-                                13 to stringResource(R.string.settings_renderer_software)
+                                14 to stringResource(R.string.settings_renderer_vulkan)
                             ),
                             selectedValue = RendererDefaults.normalizeAndroidRenderer(uiState.renderer),
                             onSelect = viewModel::setRenderer,
@@ -4024,6 +4052,9 @@ private fun rememberSettingsSearchEntries(): List<SettingsSearchEntry> {
     }
     return listOfNotNull(
         entry(SettingsTab.General, R.string.settings_language),
+        SettingsSearchEntry(SettingsTab.NintendoDs, "Nintendo DS", SettingsTab.NintendoDs.label()),
+        entry(SettingsTab.NintendoDs, R.string.settings_renderer),
+        entry(SettingsTab.NintendoDs, R.string.settings_upscale),
         entry(SettingsTab.General, R.string.settings_tv_interface),
         entry(SettingsTab.General, R.string.settings_theme),
         entry(SettingsTab.General, R.string.settings_theme_manager),
@@ -6303,6 +6334,7 @@ private fun SettingsTab.label(): String {
     return when (this) {
         SettingsTab.General -> stringResource(R.string.settings_general_tab)
         SettingsTab.Graphics -> stringResource(R.string.settings_graphics_tab)
+        SettingsTab.NintendoDs -> "Nintendo DS"
         SettingsTab.Customization -> stringResource(R.string.settings_customization_tab)
         SettingsTab.GameMenu -> stringResource(R.string.settings_game_menu_tab)
         SettingsTab.Audio -> stringResource(R.string.settings_audio_tab)
@@ -6320,6 +6352,7 @@ private fun SettingsTab.icon(): ImageVector {
     return when (this) {
         SettingsTab.General -> Icons.Rounded.Tune
         SettingsTab.Graphics -> Icons.Rounded.Wallpaper
+        SettingsTab.NintendoDs -> Icons.Rounded.Gamepad
         SettingsTab.Customization -> Icons.Rounded.Palette
         SettingsTab.GameMenu -> Icons.Rounded.MoreVert
         SettingsTab.Audio -> Icons.AutoMirrored.Rounded.VolumeUp
@@ -6341,6 +6374,7 @@ private fun String.toSettingsTab(): SettingsTab {
         "multiplayer", "network", "netplay", "room", "rooms" -> SettingsTab.Multiplayer
         "controls" -> SettingsTab.Controls
         "graphics", "video", "renderer", "display" -> SettingsTab.Graphics
+        "ds", "nds", "nintendo_ds", "nintendo-ds" -> SettingsTab.NintendoDs
         "paths", "files", "memorycards", "memory_cards", "memory-cards", "memcards", "covers",
         "cover-art", "cover_art", "data_transfer", "transfer", "backup", "data-transfer", "library" -> SettingsTab.Library
         "performance", "emulation" -> SettingsTab.Emulation
