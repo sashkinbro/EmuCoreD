@@ -3,6 +3,7 @@
 // Refer to the misc/licenses/gplv2.txt file included.
 
 #include <cmath>
+#include "common/input_latch.h"
 #include <list>
 #include <mutex>
 #include <string>
@@ -31,14 +32,14 @@ public:
     ~KeyButton();
 
     bool GetStatus() const override {
-        return status.load();
+        return status.GetStatus();
     }
 
     friend class ButtonList;
 
 private:
     std::shared_ptr<ButtonList> button_list;
-    std::atomic<bool> status{false};
+    Common::ButtonPressLatch status;
 };
 
 struct KeyButtonPair {
@@ -64,7 +65,7 @@ public:
         bool button_found = false;
         for (const KeyButtonPair& pair : list) {
             if (pair.button_id == button_id) {
-                pair.key_button->status.store(pressed);
+                pair.key_button->status.SetPressed(pressed);
                 button_found = true;
             }
         }
@@ -75,7 +76,7 @@ public:
     void ChangeAllButtonStatus(bool pressed) {
         std::lock_guard<std::mutex> guard(mutex);
         for (const KeyButtonPair& pair : list) {
-            pair.key_button->status.store(pressed);
+            pair.key_button->status.SetPressed(pressed);
         }
     }
 

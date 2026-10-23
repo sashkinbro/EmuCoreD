@@ -5,6 +5,7 @@
 #include "common/settings.h"
 #include "core/core.h"
 #include "core/frontend/emu_window.h"
+#include "core/hle/service/hid/hid.h"
 #include "core/tracer/recorder.h"
 #include "video_core/debug_utils/debug_utils.h"
 #include "video_core/renderer_base.h"
@@ -48,6 +49,10 @@ void RendererBase::EndFrame() {
     render_window.PollEvents();
 
     system.frame_limiter.DoFrameLimiting(system.CoreTiming().GetGlobalTimeUs());
+    // Sample inputs arriving during frame-limiter sleep before the next guest frame.
+    if (const auto hid = Service::HID::GetModule(system)) {
+        hid->RestartPadUpdates();
+    }
     system.perf_stats->BeginSystemFrame();
 }
 

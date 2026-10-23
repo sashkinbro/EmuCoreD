@@ -336,6 +336,9 @@ public:
 
     void ReloadInputDevices();
 
+    /// Runs the pad update now and restarts its period from now.
+    void RestartPadUpdates();
+
     const PadState& GetState() const;
 
     // Updating period for each HID device. These empirical values are measured from a 11.2 3DS.

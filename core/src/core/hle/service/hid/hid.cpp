@@ -320,6 +320,17 @@ void Module::UpdatePadCallback(std::uintptr_t user_data, s64 cycles_late) {
     system.CoreTiming().ScheduleEvent(pad_update_ticks - cycles_late, pad_update_event);
 }
 
+void Module::RestartPadUpdates() {
+    // Preserve deterministic HID event timing during movie recording/playback.
+    const auto play_mode = system.Movie().GetPlayMode();
+    if (play_mode == Core::Movie::PlayMode::Recording ||
+        play_mode == Core::Movie::PlayMode::Playing) {
+        return;
+    }
+    system.CoreTiming().UnscheduleEvent(pad_update_event, 0);
+    UpdatePadCallback(0, 0);
+}
+
 void Module::UpdateAccelerometerCallback(std::uintptr_t user_data, s64 cycles_late) {
     SharedMem* mem = reinterpret_cast<SharedMem*>(shared_mem->GetPointer());
 

@@ -3,6 +3,7 @@
 // Refer to the misc/licenses/gplv2.txt file included.
 
 #include <cmath>
+#include "common/input_latch.h"
 #include <mutex>
 #include "common/settings.h"
 #include "core/3ds.h"
@@ -27,21 +28,29 @@ public:
     bool touch_pressed = false; ///< True if touchpad area is currently pressed, otherwise false
     float touch_x = 0.0f;       ///< Touchpad X-position
     float touch_y = 0.0f;       ///< Touchpad Y-position
+    Common::TouchPressLatch press_latch;
 
 private:
     class Device : public Input::TouchDevice {
     public:
-        explicit Device(std::weak_ptr<TouchState>&& touch_state) : touch_state(touch_state) {}
+        explicit Device(std::weak_ptr<TouchState>&& touch_state) : touch_state(touch_state) {
+            if (auto state = this->touch_state.lock()) {
+                std::scoped_lock guard{state->mutex};
+                seen_press_count = state->press_latch.CurrentPressCount();
+            }
+        }
         std::tuple<float, float, bool> GetStatus() const override {
             if (auto state = touch_state.lock()) {
                 std::scoped_lock guard{state->mutex};
-                return std::make_tuple(state->touch_x, state->touch_y, state->touch_pressed);
+                return state->press_latch.Sample(seen_press_count, state->touch_x, state->touch_y,
+                                                state->touch_pressed);
             }
             return std::make_tuple(0.0f, 0.0f, false);
         }
 
     private:
         std::weak_ptr<TouchState> touch_state;
+        mutable std::uint64_t seen_press_count = 0;
     };
 };
 
@@ -148,12 +157,15 @@ bool EmuWindow::TouchPressed(unsigned framebuffer_x, unsigned framebuffer_y) {
         touch_state->touch_x = 1.f - touch_state->touch_x;
     }
 
+    touch_state->press_latch.OnPress(touch_state->touch_pressed);
     touch_state->touch_pressed = true;
     return true;
 }
 
 void EmuWindow::TouchReleased() {
     std::scoped_lock guard{touch_state->mutex};
+    touch_state->press_latch.OnRelease(touch_state->touch_pressed, touch_state->touch_x,
+                                     touch_state->touch_y);
     touch_state->touch_pressed = false;
     touch_state->touch_x = 0;
     touch_state->touch_y = 0;

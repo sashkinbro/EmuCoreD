@@ -18,6 +18,7 @@
 #include <cryptopp/modes.h>
 #include <fmt/format.h>
 #include "common/archives.h"
+#include "common/append_read_position.h"
 #include "common/assert.h"
 #include "common/common_funcs.h"
 #include "common/common_paths.h"
@@ -1444,7 +1445,8 @@ bool IOFile::Open() {
         }
 
         m_good = true;
-        return true;
+        Common::NormalizeAppendReadPosition(m_good, openmode, [this] { Seek(0, SEEK_SET); });
+        return m_good;
 #else
         // TODO: Add support for libretro vfs when needed.
         m_good = false;
@@ -1551,6 +1553,7 @@ bool IOFile::Open() {
     m_good = m_file != nullptr;
 #endif
 
+    Common::NormalizeAppendReadPosition(m_good, openmode, [this] { Seek(0, SEEK_SET); });
     return m_good;
 }
 
