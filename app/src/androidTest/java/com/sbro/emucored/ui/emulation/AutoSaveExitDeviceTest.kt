@@ -2,8 +2,12 @@ package com.sbro.emucored.ui.emulation
 
 import android.app.Application
 import android.graphics.BitmapFactory
+import android.graphics.Bitmap
 import android.graphics.Color
 import android.os.SystemClock
+import android.os.Handler
+import android.os.Looper
+import android.view.PixelCopy
 import android.view.SurfaceHolder
 import android.view.SurfaceView
 import androidx.compose.foundation.layout.fillMaxSize
@@ -92,6 +96,7 @@ class AutoSaveExitDeviceTest {
             }
             assertTrue(model.uiState.value.autoSaveOnExit)
             await("Autosave was not enabled") { model.uiState.value.autoSaveEnabled }
+            awaitPresentedCyan(surface)
             val state = File(requireNotNull(DsSession.statePath(0)))
             val preview = File("${state.absolutePath}.png")
             val captured = CompletableDeferred<Boolean>()
@@ -151,5 +156,28 @@ class AutoSaveExitDeviceTest {
             Thread.sleep(50)
         }
         fail(message)
+    }
+
+    private fun awaitPresentedCyan(surface: SurfaceView) {
+        val deadline = SystemClock.uptimeMillis() + 10_000
+        var last = "no delivered frame"
+        while (SystemClock.uptimeMillis() < deadline) {
+            val bitmap = Bitmap.createBitmap(surface.width, surface.height, Bitmap.Config.ARGB_8888)
+            try {
+                val copied = CountDownLatch(1)
+                var result = PixelCopy.ERROR_UNKNOWN
+                PixelCopy.request(surface, bitmap, { result = it; copied.countDown() }, Handler(Looper.getMainLooper()))
+                assertTrue("PixelCopy did not complete", copied.await(5, TimeUnit.SECONDS))
+                if (result == PixelCopy.SUCCESS) {
+                    val height = minOf(surface.height.toFloat(), surface.width * 386f / 256f)
+                    val top = (surface.height - height) / 2f
+                    val color = bitmap.getPixel(surface.width / 2, (top + height / 4f).toInt())
+                    last = Integer.toHexString(color)
+                    if (Color.red(color) < 40 && Color.green(color) > 200 && Color.blue(color) > 200) return
+                } else last = "PixelCopy=$result"
+            } finally { bitmap.recycle() }
+            Thread.sleep(30)
+        }
+        fail("DS did not present the cyan top screen before autosave: $last")
     }
 }

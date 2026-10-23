@@ -10,6 +10,7 @@
 #include <fmt/ranges.h>
 #include "common/archives.h"
 #include "common/file_util.h"
+#include "common/scope_exit.h"
 #include "common/logging/log.h"
 #include "common/scm_rev.h"
 #include "common/swap.h"
@@ -191,7 +192,15 @@ void System::SaveState(u32 slot) const {
         throw std::runtime_error("Could not create path " + path);
     }
 
-    FileUtil::IOFile file(path, "wb");
+    // Readers must see either the previous complete slot or the new complete
+    // slot. Never expose a partially written compressed stream as a saved game.
+    const auto pending_path = path + ".pending";
+    SCOPE_EXIT({
+        if (FileUtil::Exists(pending_path)) {
+            FileUtil::Delete(pending_path);
+        }
+    });
+    FileUtil::IOFile file(pending_path, "wb");
     if (!file) {
         throw std::runtime_error("Could not open file " + path);
     }
@@ -216,6 +225,12 @@ void System::SaveState(u32 slot) const {
     if (file.WriteBytes(&header, sizeof(header)) != sizeof(header) ||
         file.WriteBytes(buffer.data(), buffer.size()) != buffer.size()) {
         throw std::runtime_error("Could not write to file " + path);
+    }
+    if (!file.Flush() || !file.Close()) {
+        throw std::runtime_error("Could not finish writing file " + path);
+    }
+    if (!FileUtil::Rename(pending_path, path)) {
+        throw std::runtime_error("Could not publish save state " + path);
     }
 }
 

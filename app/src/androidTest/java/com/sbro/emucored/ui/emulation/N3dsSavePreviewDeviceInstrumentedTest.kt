@@ -15,6 +15,7 @@ import com.sbro.emucored.core.CoreConfig
 import com.sbro.emucored.core.EmuCoreNative
 import com.sbro.emucored.core.NativeApp
 import com.sbro.emucored.core.RendererDefaults
+import com.sbro.emucored.core.DocumentPathResolver
 import com.sbro.emucored.core.testStorageContext
 import com.sbro.emucored.data.DisplayCrop
 import com.sbro.emucored.data.SaveStateRepository
@@ -84,7 +85,8 @@ class N3dsSavePreviewDeviceInstrumentedTest {
                     fastForwardSpeed = 2f, customTextures = false, cheatsEnabled = false,
                     performanceOverlay = false, mediatekAngleOpenGl = false
                 ))
-                assertTrue("3DS boot failed: ${CoreRuntime.failure.value}", CoreRuntime.start(romPath))
+                val launchPath = requireNotNull(DocumentPathResolver.prepareGameLaunchPath(context, romPath))
+                assertTrue("3DS boot failed: ${CoreRuntime.failure.value}", CoreRuntime.start(launchPath))
                 await("3DS core did not produce guest video frames", 30_000) {
                     EmuCoreNative.getPerfStats().getOrNull(1)?.let { it > 0.0 } == true
                 }
@@ -105,6 +107,7 @@ class N3dsSavePreviewDeviceInstrumentedTest {
                 val savedSize = state.length()
                 Thread.sleep(150)
                 assertEquals("State was still being written", savedSize, state.length())
+                assertFalse("Published state retained a partial write", File("${state.absolutePath}.pending").exists())
                 val userSlotContents = state.readBytes()
                 assertEquals("Save advanced the paused guest", 0.0, EmuCoreNative.getPerfStats()[1], 0.0)
                 assertTrue("Paused session lost ownership", CoreRuntime.hasSession())
@@ -169,8 +172,26 @@ class N3dsSavePreviewDeviceInstrumentedTest {
                 CoreRuntime.shutdown()
                 assertFalse(CoreRuntime.hasSession())
                 CoreConfig.apply(requireNotNull(CoreConfig.currentValues()).copy(renderer = alternateRenderer))
-                assertTrue("Fresh launch after exit failed", CoreRuntime.start(romPath))
+                assertTrue("Fresh launch after exit failed", CoreRuntime.start(launchPath))
                 assertEquals(alternateRenderer, EmuCoreNative.getActiveRenderer())
+                CoreRuntime.pause()
+                await("Fresh launch did not pause", 10_000) {
+                    Thread.sleep(100)
+                    EmuCoreNative.getPerfStats().getOrNull(1) == 0.0
+                }
+                // A directory at the reserved staging path forces a real open
+                // failure. The previously completed user slot must survive.
+                val blockedWrite = File("${state.absolutePath}.pending")
+                assertTrue(blockedWrite.mkdir())
+                try {
+                    assertTrue(NativeApp.saveStateToSlot(1))
+                    await("Failed save was not reported", 20_000) {
+                        CoreRuntime.failure.value?.detail?.contains("Could not open file") == true
+                    }
+                    assertArrayEquals("Failed write replaced the last complete slot", userSlotContents, state.readBytes())
+                } finally {
+                    assertTrue(blockedWrite.delete())
+                }
             } finally {
                 CoreRuntime.shutdown()
                 CoreRuntime.detachSurface()
