@@ -21,7 +21,8 @@ internal fun calculateOverlayResponsiveScale(
     leftStickFootprintScale: Float,
     rightStickVisible: Boolean,
     rightStickFootprintScale: Float,
-    isLandscape: Boolean
+    isLandscape: Boolean,
+    dsMode: Boolean = false
 ): Float {
     val requested = requestedScale.coerceAtLeast(0.01f)
     val horizontalSafeInset = maxOf(
@@ -35,6 +36,19 @@ internal fun calculateOverlayResponsiveScale(
         canvasHeight.value - safeTopInset.value.coerceAtLeast(0f) -
             safeBottomInset.value.coerceAtLeast(0f)
         ).coerceAtLeast(1f)
+
+    if (dsMode) {
+        // DS has one shoulder row and no analog sticks. Fit its actual controls
+        // inside the existing panel instead of reserving hidden 3DS controls.
+        val dpadExtent = DsOverlayGeometry.dpadButton * 3f
+        val actionExtent = DsOverlayGeometry.actionButton * 3f
+        val widthNeeded = dpadExtent + actionExtent + 12f + 20f
+        val heightNeeded = DsOverlayGeometry.verticalPadding * 2f +
+            DsOverlayGeometry.shoulderHeight + DsOverlayGeometry.sectionGap * 2f +
+            maxOf(dpadExtent, actionExtent) + DsOverlayGeometry.centerHeight
+        return minOf(requested, availableWidth / widthNeeded, availableHeight / heightNeeded)
+            .coerceAtLeast(0.01f)
+    }
 
     val dpadBase = if (isLandscape) 130f else 150f
     val actionBase = if (isLandscape) 130f else 150f
@@ -77,4 +91,15 @@ internal fun calculateOverlayResponsiveScale(
     val widthFit = availableWidth / (widthNeeded * requested)
     val heightFit = availableHeight / (heightNeeded * requested)
     return requested * minOf(1f, widthFit, heightFit).coerceAtLeast(0.01f)
+}
+
+internal object DsOverlayGeometry {
+    const val dpadButton = 50f
+    const val actionButton = 48f
+    const val shoulderWidth = 84f
+    const val shoulderHeight = 40f
+    // Select/Start's existing profile scale is 80%, yielding a 36dp target.
+    const val centerHeight = 45f
+    const val verticalPadding = 4f
+    const val sectionGap = 8f
 }

@@ -138,21 +138,22 @@ fun buildOverlayCanvasLayout(
         } else {
             1f
         },
-        isLandscape = isLandscape
+        isLandscape = isLandscape,
+        dsMode = dsMode
     )
-    val dpadSize = ((if (isLandscape) 130 else 150) * responsiveScale).dp
-    val actionSize = ((if (isLandscape) 130 else 150) * responsiveScale).dp
+    val dpadSize = ((if (dsMode) DsOverlayGeometry.dpadButton * 3f else if (isLandscape) 130f else 150f) * responsiveScale).dp
+    val actionSize = ((if (dsMode) DsOverlayGeometry.actionButton * 3.1f else if (isLandscape) 130f else 150f) * responsiveScale).dp
     val analogSize = ((if (isLandscape) 120 else 140) * responsiveScale * stickScaleFactor).dp
-    val shoulderW = ((if (isLandscape) 65 else 72) * responsiveScale).dp
-    val shoulderH = ((if (isLandscape) 32 else 36) * responsiveScale).dp
+    val shoulderW = ((if (dsMode) DsOverlayGeometry.shoulderWidth else if (isLandscape) 65f else 72f) * responsiveScale).dp
+    val shoulderH = ((if (dsMode) DsOverlayGeometry.shoulderHeight else if (isLandscape) 32f else 36f) * responsiveScale).dp
     val centerW = ((if (isLandscape) 60 else 68) * responsiveScale).dp
-    val centerH = ((if (isLandscape) 26 else 30) * responsiveScale).dp
+    val centerH = ((if (dsMode) DsOverlayGeometry.centerHeight else if (isLandscape) 26f else 30f) * responsiveScale).dp
     val wideCenterW = centerW * 1.2f
     val centerInlineGap = (if (isLandscape) OverlayCenterInlineGapLandscape else OverlayCenterInlineGapPortrait) * responsiveScale
-    val clusterGap = (if (isLandscape) OverlayClusterGapLandscape else OverlayClusterGapPortrait) * responsiveScale
-    val actionGap = (if (isLandscape) OverlayActionGapLandscape else OverlayActionGapPortrait) * responsiveScale
-    val dpadButtonSize = dpadSize / 3f
-    val actionButtonSize = actionSize / 3.1f
+    val clusterGap = (if (dsMode) DsOverlayGeometry.dpadButton.dp else if (isLandscape) OverlayClusterGapLandscape else OverlayClusterGapPortrait) * responsiveScale
+    val actionGap = (if (dsMode) DsOverlayGeometry.actionButton.dp else if (isLandscape) OverlayActionGapLandscape else OverlayActionGapPortrait) * responsiveScale
+    val dpadButtonSize = if (dsMode) (DsOverlayGeometry.dpadButton * responsiveScale).dp else dpadSize / 3f
+    val actionButtonSize = if (dsMode) (DsOverlayGeometry.actionButton * responsiveScale).dp else actionSize / 3.1f
     val dpadStep = overlayClusterStep(dpadButtonSize, clusterGap)
     val actionStep = overlayClusterStep(actionButtonSize, actionGap)
     val dpadClusterExtent = dpadStep + dpadButtonSize
@@ -164,7 +165,7 @@ fun buildOverlayCanvasLayout(
     // Shoulder buttons used to hug the cutout/system-bar edge, which made the whole
     // controller look top-heavy and uncomfortable to reach on tall phones. Keep a
     // deliberate, scale-aware breathing zone while still honoring asymmetric insets.
-    val verticalPadding = (if (isLandscape) 22.dp else 16.dp) * responsiveScale
+    val verticalPadding = (if (dsMode) DsOverlayGeometry.verticalPadding.dp else if (isLandscape) 22.dp else 16.dp) * responsiveScale
     // Keep the controller visually centered even when a landscape camera cutout or
     // navigation inset exists on only one side. The larger inset is mirrored so the
     // physical left and right margins remain equal while both sides stay safe.
@@ -173,7 +174,7 @@ fun buildOverlayCanvasLayout(
     val edgePadEnd = horizontalSafeInset + edgePadding
     val edgePadTop = safeTopInset + verticalPadding
     val contentBottom = canvasHeight - safeBottomInset - verticalPadding
-    val sectionGap = 12.dp * responsiveScale
+    val sectionGap = (if (dsMode) DsOverlayGeometry.sectionGap.dp else 12.dp) * responsiveScale
 
     fun customOffset(
         offset: Pair<Float, Float>,
@@ -224,7 +225,8 @@ fun buildOverlayCanvasLayout(
     } else {
         leftStickSize
     }
-    val primaryExtent = maxOf(dpadClusterExtent, actionClusterExtent, leftStickSize)
+    val primaryExtent = if (dsMode) maxOf(dpadClusterExtent, actionClusterExtent)
+        else maxOf(dpadClusterExtent, actionClusterExtent, leftStickSize)
     val centerBaseY = contentBottom - centerH + centerAdjustment.second
     val primaryTop = centerBaseY - sectionGap - primaryExtent
 
