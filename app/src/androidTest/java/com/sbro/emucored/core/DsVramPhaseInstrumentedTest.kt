@@ -5,6 +5,12 @@ import android.media.ImageReader
 import android.os.Handler
 import android.os.HandlerThread
 import android.os.SystemClock
+import android.view.Gravity
+import android.widget.TextView
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.test.junit4.v2.createComposeRule
+import androidx.compose.ui.viewinterop.AndroidView
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.sbro.emucored.core.ds.DsSession
@@ -19,11 +25,13 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Assume.assumeTrue
 import org.junit.Test
+import org.junit.Rule
 import org.junit.runner.RunWith
 
 /** Opt in with -e dsPhaseSentinel true. No external ROM or frame-time performance assumptions. */
 @RunWith(AndroidJUnit4::class)
 class DsVramPhaseInstrumentedTest {
+    @get:Rule val compose = createComposeRule()
     @Test(timeout = 120_000)
     fun softwareKeepsCorrelatedVramAndScrollInTheSameFrame() = exercise(13)
 
@@ -34,6 +42,18 @@ class DsVramPhaseInstrumentedTest {
         assumeTrue(InstrumentationRegistry.getArguments().getString("dsPhaseSentinel") == "true")
         assertTrue(EmuCoreDsNative.isLoaded)
         assertFalse(DsSession.isActive)
+        // Keep a resumed window for this headless ImageReader check. Otherwise
+        // OEM background policies can kill the process between renderer cases.
+        compose.setContent {
+            AndroidView(modifier = Modifier.fillMaxSize(), factory = { context ->
+                TextView(context).apply {
+                    keepScreenOn = true
+                    gravity = Gravity.CENTER
+                    textSize = 18f
+                    text = "DS frame synchronization test\n${if (renderer == 14) "Vulkan" else "Software"} · 1× / 2×"
+                }
+            })
+        }
         val oldRenderer = DsSession.currentRenderer()
         val oldScale = DsSession.currentRenderScale()
         testStorageContext().use { context ->
