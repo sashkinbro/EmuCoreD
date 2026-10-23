@@ -1,0 +1,12 @@
+[submodule "coreGameCube/dolphin"]
+	path = coreGameCube/dolphin
+	url = https://github.com/dolphin-emu/dolphin.git
+	shallow = true
+[submodule "coreGBA/mgba"]
+	path = coreGBA/mgba
+	url = https://github.com/mgba-emu/mgba.git
+	shallow = true
+[submodule "coreGB/SameBoy"]
+	path = coreGB/SameBoy
+	url = https://github.com/LIJI32/SameBoy.git
+	shallow = true
