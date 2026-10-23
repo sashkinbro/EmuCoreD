@@ -1835,4 +1835,5 @@
     <string name="console_gb">Game Boy</string>
     <string name="console_gbc">Game Boy Color</string>
     <string name="console_coming_soon">%1$s (Yakında)</string>
+    <string name="settings_about_core_license">Lisans: %1$s</string>
 </resources>

@@ -208,6 +208,8 @@ import com.sbro.emucored.data.GamePlatform
 import com.sbro.emucored.core.platform.ConsolePlatform
 import com.sbro.emucored.core.platform.ConsoleSettingsPolicy
 import com.sbro.emucored.core.platform.CoreCapabilities
+import com.sbro.emucored.core.platform.CoreId
+import com.sbro.emucored.core.platform.CoreSourceInfo
 import com.sbro.emucored.core.platform.SettingsCategory
 import com.sbro.emucored.core.TvInterfaceMode
 import com.sbro.emucored.core.TvUiPolicy
@@ -2391,12 +2393,16 @@ private fun SettingsContent(
                             linkLabel = stringResource(R.string.settings_about_app_source_link),
                             linkUrl = stringResource(R.string.settings_about_app_source_url)
                         )
-                        AboutNote(
-                            title = stringResource(R.string.settings_about_core_source),
-                            body = stringResource(R.string.settings_about_core_source_desc),
-                            linkLabel = stringResource(R.string.settings_about_core_source_link),
-                            linkUrl = stringResource(R.string.settings_about_core_source_url)
-                        )
+                        CoreId.entries.forEach { core ->
+                            val source = CoreSourceInfo.forCore(core)
+                            val consoleNames = source.platforms.map { consolePlatformLabel(it) }.joinToString(" · ")
+                            AboutNote(
+                                title = if (source.isIntegrated) source.name else stringResource(R.string.console_coming_soon, source.name),
+                                body = consoleNames + "\n" + stringResource(R.string.settings_about_core_license, source.licenseFamily),
+                                linkLabel = stringResource(R.string.settings_about_core_source_link),
+                                linkUrl = source.repositoryUrl
+                            )
+                        }
                         AboutNote(
                             title = stringResource(R.string.settings_about_support_project),
                             body = stringResource(R.string.settings_about_support_project_desc),

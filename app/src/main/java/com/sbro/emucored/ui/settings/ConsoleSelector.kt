@@ -19,15 +19,7 @@ internal fun ConsoleSelector(selected: ConsolePlatform, onSelected: (ConsolePlat
         onSelected = onSelected,
         key = { it.id },
         label = { platform ->
-            val name = stringResource(when (platform) {
-                ConsolePlatform.NDS -> R.string.profile_platform_ds
-                ConsolePlatform.N3DS -> R.string.profile_platform_3ds
-                ConsolePlatform.GAMECUBE -> R.string.console_gamecube
-                ConsolePlatform.WII -> R.string.console_wii
-                ConsolePlatform.GBA -> R.string.console_gba
-                ConsolePlatform.GB -> R.string.console_gb
-                ConsolePlatform.GBC -> R.string.console_gbc
-            })
+            val name = consolePlatformLabel(platform)
             if (platform.isLaunchable) name else stringResource(R.string.console_coming_soon, name)
         },
         icon = { Icons.Rounded.Gamepad },
@@ -36,3 +28,14 @@ internal fun ConsoleSelector(selected: ConsolePlatform, onSelected: (ConsolePlat
         enabled = { it.isLaunchable }
     )
 }
+
+@Composable
+internal fun consolePlatformLabel(platform: ConsolePlatform): String = stringResource(when (platform) {
+    ConsolePlatform.NDS -> R.string.profile_platform_ds
+    ConsolePlatform.N3DS -> R.string.profile_platform_3ds
+    ConsolePlatform.GAMECUBE -> R.string.console_gamecube
+    ConsolePlatform.WII -> R.string.console_wii
+    ConsolePlatform.GBA -> R.string.console_gba
+    ConsolePlatform.GB -> R.string.console_gb
+    ConsolePlatform.GBC -> R.string.console_gbc
+})

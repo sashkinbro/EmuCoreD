@@ -8,6 +8,8 @@ import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.assertHasClickAction
+import androidx.compose.ui.test.hasAnySibling
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.hasText
@@ -27,6 +29,8 @@ import androidx.lifecycle.ViewModelStore
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.sbro.emucored.R
+import com.sbro.emucored.core.platform.CoreId
+import com.sbro.emucored.core.platform.CoreSourceInfo
 import java.io.File
 import org.junit.After
 import org.junit.Rule
@@ -100,6 +104,20 @@ class ConsoleSettingsInstrumentedTest {
         compose.onNodeWithTag("settings-console-tabs").performScrollToNode(hasText(label(R.string.profile_platform_ds)))
         compose.onNode(hasText(label(R.string.profile_platform_ds)) and hasClickAction()).assertIsSelected()
         compose.onNodeWithText(label(R.string.settings_renderer_opengl)).assertDoesNotExist()
+    }
+
+    @Test fun aboutShowsEveryCoreWithItsOwnRepositoryCard() {
+        openDsGraphics()
+        compose.onNodeWithTag("settings-category-tabs").performScrollToNode(hasText(label(R.string.settings_about)))
+        compose.onNode(hasText(label(R.string.settings_about)) and hasClickAction()).performClick()
+        for (core in CoreId.entries) {
+            val source = CoreSourceInfo.forCore(core)
+            val title = if (source.isIntegrated) source.name else application.getString(R.string.console_coming_soon, source.name)
+            compose.onNodeWithText(title).performScrollTo().assertIsDisplayed()
+            compose.onNode(hasText(label(R.string.settings_about_core_source_link)) and hasAnySibling(hasText(title)))
+                .performScrollTo().assertIsDisplayed().assertHasClickAction()
+        }
+        capture("settings-core-sources")
     }
 
     @Test fun searchCannotExposeAnotherConsolesGyroSettings() {

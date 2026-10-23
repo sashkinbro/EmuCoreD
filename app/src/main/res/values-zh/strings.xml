@@ -1836,4 +1836,5 @@
     <string name="console_gb">Game Boy</string>
     <string name="console_gbc">Game Boy Color</string>
     <string name="console_coming_soon">%1$s (即将推出)</string>
+    <string name="settings_about_core_license">许可证：%1$s</string>
 </resources>
