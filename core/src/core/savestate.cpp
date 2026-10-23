@@ -2,9 +2,11 @@
 // Licensed under GPLv2 or any later version
 // Refer to the misc/licenses/gplv2.txt file included.
 
+#include <algorithm>
 #include <chrono>
 #include <sstream>
 #include <cryptopp/hex.h>
+#include <cryptopp/sha.h>
 #include <fmt/ranges.h>
 #include "common/archives.h"
 #include "common/file_util.h"
@@ -38,6 +40,29 @@ static_assert(sizeof(CSTHeader) == 256, "CSTHeader should be 256 bytes");
 
 constexpr std::array<u8, 4> header_magic_bytes{{'C', 'S', 'T', 0x1B}};
 
+static std::array<u8, 20> CurrentStateRevision() {
+    std::array<u8, 20> result{};
+    const std::string revision{Common::g_scm_rev};
+    const bool is_git_revision = revision.size() == 40 &&
+        std::all_of(revision.begin(), revision.end(), [](char c) {
+            return (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F');
+        });
+    if (is_git_revision) {
+        std::string bytes;
+        CryptoPP::StringSource source(revision, true,
+            new CryptoPP::HexDecoder(new CryptoPP::StringSink(bytes)));
+        std::copy(bytes.begin(), bytes.end(), result.begin());
+    } else {
+        // Vendored/source-archive builds can have GIT_REV=UNKNOWN. Never copy
+        // 20 bytes out of an empty HexDecoder result, or reject our own buffers.
+        const auto identity = fmt::format("{}|{}|{}|{}", revision, Common::g_build_fullname,
+                                          Common::g_build_version, Common::g_build_date);
+        CryptoPP::SHA1 hash;
+        hash.CalculateDigest(result.data(), reinterpret_cast<const u8*>(identity.data()), identity.size());
+    }
+    return result;
+}
+
 static std::string GetSaveStatePath(u64 program_id, u64 movie_id, u32 slot) {
     if (movie_id) {
         return fmt::format("{}{:016X}.movie{:016X}.{:02d}.cst",
@@ -62,13 +87,12 @@ static bool ValidateSaveState(const CSTHeader& header, SaveStateInfo& info, u64 
         LOG_WARNING(Core, "Save state file isn't for the current game {}", path);
         return false;
     }
-    const std::string revision = fmt::format("{:02x}", fmt::join(header.revision, ""));
     const std::string build_name =
         header.zero == 0 ? reinterpret_cast<const char*>(header.build_name.data()) : "";
     const std::string build_version =
         header.zero_2 == 0 ? reinterpret_cast<const char*>(header.build_version.data()) : "";
 
-    if (revision == Common::g_scm_rev) {
+    if (header.revision == CurrentStateRevision()) {
         info.status = SaveStateInfo::ValidationStatus::OK;
     } else {
         info.build_name = build_name;
@@ -175,10 +199,7 @@ void System::SaveState(u32 slot) const {
     CSTHeader header{};
     header.filetype = header_magic_bytes;
     header.program_id = title_id;
-    std::string rev_bytes;
-    CryptoPP::StringSource ss(Common::g_scm_rev, true,
-                              new CryptoPP::HexDecoder(new CryptoPP::StringSink(rev_bytes)));
-    std::memcpy(header.revision.data(), rev_bytes.data(), sizeof(header.revision));
+    header.revision = CurrentStateRevision();
     header.time = std::chrono::duration_cast<std::chrono::seconds>(
                       std::chrono::system_clock::now().time_since_epoch())
                       .count();
@@ -260,10 +281,7 @@ std::vector<u8> System::SaveStateBuffer() const {
     CSTHeader header{};
     header.filetype = header_magic_bytes;
     header.program_id = title_id;
-    std::string rev_bytes;
-    CryptoPP::StringSource ss(Common::g_scm_rev, true,
-                              new CryptoPP::HexDecoder(new CryptoPP::StringSink(rev_bytes)));
-    std::memcpy(header.revision.data(), rev_bytes.data(), sizeof(header.revision));
+    header.revision = CurrentStateRevision();
     header.time = std::chrono::duration_cast<std::chrono::seconds>(
                       std::chrono::system_clock::now().time_since_epoch())
                       .count();
@@ -303,7 +321,7 @@ bool System::LoadStateBuffer(std::vector<u8> buffer) {
         return false;
     }
     std::string revision = fmt::format("{:02x}", fmt::join(header.revision, ""));
-    if (revision != Common::g_scm_rev) {
+    if (header.revision != CurrentStateRevision()) {
         LOG_ERROR(Core,
                   "Save state file created from a different revision (core: {}, savestate: {})",
                   Common::g_scm_rev, revision);
