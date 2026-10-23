@@ -92,7 +92,7 @@ void DsEmulator::SetUserDirectory(const std::string& path) {
     g_internal_dir = path;
 }
 
-bool DsEmulator::Start(const std::string& rom_path, const std::string& sram_path) {
+bool DsEmulator::Start(const std::string& rom_path, const std::string& sram_path, bool start_paused) {
     Stop();
     rom_path_ = rom_path;
     sram_path_ = sram_path;
@@ -170,8 +170,9 @@ bool DsEmulator::Start(const std::string& rom_path, const std::string& sram_path
     nds_->Reset();
     nds_->SetupDirectBoot(rom_path_);
     nds_->Start();
-    paused_ = false;
+    paused_ = start_paused;
     StartAudio();
+    if (start_paused) SetPaused(true);
 
     {
         std::lock_guard lock(surface_mutex_);

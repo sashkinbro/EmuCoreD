@@ -33,7 +33,7 @@ public:
     DsEmulator();
     ~DsEmulator();
 
-    bool Start(const std::string& rom_path, const std::string& sram_path);
+    bool Start(const std::string& rom_path, const std::string& sram_path, bool start_paused = false);
     void Stop();
     void Reset();
 

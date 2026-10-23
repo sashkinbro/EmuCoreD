@@ -14,11 +14,12 @@ JNIEXPORT jboolean JNICALL
 Java_com_sbro_emucored_core_ds_EmuCoreDsNative_nativeStart(JNIEnv* env, jobject,
                                                          jstring rom_path,
                                                          jstring sram_path,
-                                                         jstring user_dir) {
+                                                         jstring user_dir,
+                                                         jboolean start_paused) {
     const char* rom = env->GetStringUTFChars(rom_path, nullptr);
     const char* sram = env->GetStringUTFChars(sram_path, nullptr);
     const char* user = env->GetStringUTFChars(user_dir, nullptr);
-    const bool result = EmuCoreDS::Emulator().Start(rom, sram);
+    const bool result = EmuCoreDS::Emulator().Start(rom, sram, start_paused == JNI_TRUE);
     if (result) EmuCoreDS::Emulator().SetUserDirectory(user);
     env->ReleaseStringUTFChars(rom_path, rom);
     env->ReleaseStringUTFChars(sram_path, sram);

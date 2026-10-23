@@ -590,10 +590,11 @@ object EmulatorBridge {
 
     suspend fun setUpscaleMultiplier(multiplier: Float) {
         val normalized = normalizeUpscale(multiplier)
-        CoreOptionStore.set("resolution_factor", Math.round(normalized).toString())
         if (DsSession.isActive) {
             DsSession.setRenderScale(Math.round(normalized).coerceIn(1, 8))
+            return
         }
+        CoreOptionStore.set("resolution_factor", Math.round(normalized).toString())
     }
 
     suspend fun setAspectRatio(type: Int) {

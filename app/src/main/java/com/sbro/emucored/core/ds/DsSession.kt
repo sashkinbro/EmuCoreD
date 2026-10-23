@@ -20,6 +20,10 @@ object DsSession {
         private set
 
     @Volatile
+    var isPaused: Boolean = false
+        private set
+
+    @Volatile
     private var surface: Surface? = null
 
     @Volatile
@@ -45,12 +49,14 @@ object DsSession {
     private var launchPath: String? = null
     private var launchIdentityPath: String? = null
 
+    @Synchronized
     fun start(
         context: Context,
         path: String,
         identityPath: String = path,
         renderScale: Int = 1,
-        renderer: Int = 14
+        renderer: Int = 14,
+        startPaused: Boolean = false
     ): Boolean {
         if (!EmuCoreDsNative.isLoaded) return false
         if (isActive) return false
@@ -89,11 +95,13 @@ object DsSession {
         val started = EmuCoreDsNative.nativeStart(
             romFile.absolutePath,
             saveFile.absolutePath,
-            userDir.absolutePath
+            userDir.absolutePath,
+            startPaused
         )
         trace(appContext, "nativeStart returned $started")
         if (!started) return false
         isActive = true
+        isPaused = startPaused
         keyMask = 0xFFF
         swapScreens = false
         lastSampleAtMs = 0L
@@ -105,9 +113,11 @@ object DsSession {
         return true
     }
 
+    @Synchronized
     fun stop() {
         if (!isActive) return
         isActive = false
+        isPaused = false
         runCatching { EmuCoreDsNative.nativeStop() }
         surface = null
         secondarySurface = null
@@ -130,6 +140,8 @@ object DsSession {
         if (isActive) EmuCoreDsNative.nativeSetSwapScreens(swap)
     }
 
+    fun currentSwapScreens(): Boolean = swapScreens
+
     fun setLayout(mode: Int) {
         layoutMode = mode.coerceIn(LAYOUT_STACKED, LAYOUT_SIDE_BY_SIDE)
         if (isActive) EmuCoreDsNative.nativeSetScreenLayout(layoutMode)
@@ -142,6 +154,7 @@ object DsSession {
 
     fun currentRenderScale(): Int = renderScale
 
+    @Synchronized
     fun setRenderer(renderer: Int): Boolean {
         val normalized = if (renderer == 13) 13 else 14
         if (!isActive) {
@@ -152,13 +165,53 @@ object DsSession {
         val context = appContext ?: return false
         val path = launchPath ?: return false
         val identity = launchIdentityPath ?: path
+        val previousRenderer = this.renderer
+        val wasPaused = isPaused
+        val swap = swapScreens
+        val layout = layoutMode
         val scale = renderScale
         val surface = this.surface
         val secondary = this.secondarySurface
-        stop()
-        this.surface = surface
-        this.secondarySurface = secondary
-        return start(context, path, identity, scale, normalized)
+        val checkpoint = runCatching {
+            File.createTempFile("ds-renderer-", ".dss", context.cacheDir)
+        }.getOrElse {
+            Log.e("DsSession", "Cannot create renderer recovery checkpoint", it)
+            return false
+        }
+        pause()
+        if (!runCatching { EmuCoreDsNative.nativeSaveState(checkpoint.absolutePath) }.getOrDefault(false)) {
+            checkpoint.delete()
+            if (!wasPaused) resume()
+            return false
+        }
+
+        fun restartAndRestore(target: Int): Boolean = runCatching {
+            stop()
+            this.surface = surface
+            this.secondarySurface = secondary
+            if (!start(context, path, identity, scale, target, startPaused = true)) return@runCatching false
+            setLayout(layout)
+            setSwapScreens(swap)
+            if (!EmuCoreDsNative.nativeLoadState(checkpoint.absolutePath)) return@runCatching false
+            if (!wasPaused) resume()
+            true
+        }.getOrElse {
+            Log.e("DsSession", "Renderer recovery failed for renderer $target", it)
+            false
+        }
+
+        if (restartAndRestore(normalized)) {
+            checkpoint.delete()
+            return true
+        }
+        if (restartAndRestore(previousRenderer)) {
+            checkpoint.delete()
+        } else {
+            stop()
+            this.renderer = previousRenderer
+            Log.e("DsSession", "Renderer rollback failed; recovery checkpoint retained at ${checkpoint.absolutePath}")
+        }
+        return false
     }
 
     fun currentRenderer(): Int = renderer
@@ -188,12 +241,20 @@ object DsSession {
         return String.format(Locale.US, "%.3f\n%.3f\n%s", fps, speed, overlay)
     }
 
+    @Synchronized
     fun pause() {
-        if (isActive) EmuCoreDsNative.nativeSetPaused(true)
+        if (isActive) {
+            EmuCoreDsNative.nativeSetPaused(true)
+            isPaused = true
+        }
     }
 
+    @Synchronized
     fun resume() {
-        if (isActive) EmuCoreDsNative.nativeSetPaused(false)
+        if (isActive) {
+            EmuCoreDsNative.nativeSetPaused(false)
+            isPaused = false
+        }
     }
 
     fun setSurface(surface: Surface?) {
