@@ -1822,4 +1822,13 @@
     <string name="software_keyboard_blank_input">Пустой ввод не разрешён.</string>
     <string name="software_keyboard_empty_input">Ввод не может быть пустым.</string>
     <string name="software_keyboard_invalid_input">Недопустимый ввод.</string>
+
+    <!-- Profile platform statistics and filters. -->
+    <string name="profile_platform_breakdown_title">По платформам</string>
+    <string name="profile_platform_unknown">Платформа неизвестна</string>
+    <string name="profile_platform_unknown_note">Для некоторых игр платформа не указана.</string>
+    <string name="profile_platform_totals">Игр: %1$d · %2$s</string>
+    <string name="profile_platform_empty">Игр для этой платформы пока нет.</string>
+    <string name="profile_platform_ds">Nintendo DS</string>
+    <string name="profile_platform_3ds">Nintendo 3DS</string>
 </resources>

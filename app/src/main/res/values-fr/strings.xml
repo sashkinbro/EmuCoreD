@@ -1821,4 +1821,13 @@
     <string name="software_keyboard_blank_input">La saisie vide n\'est pas autorisée.</string>
     <string name="software_keyboard_empty_input">La saisie ne peut pas être vide.</string>
     <string name="software_keyboard_invalid_input">Saisie invalide.</string>
+
+    <!-- Profile platform statistics and filters. -->
+    <string name="profile_platform_breakdown_title">Par plateforme</string>
+    <string name="profile_platform_unknown">Plateforme inconnue</string>
+    <string name="profile_platform_unknown_note">Certains jeux ne disposent pas d’informations sur leur plateforme.</string>
+    <string name="profile_platform_totals">Jeux : %1$d · %2$s</string>
+    <string name="profile_platform_empty">Aucun jeu pour cette plateforme pour le moment.</string>
+    <string name="profile_platform_ds">Nintendo DS</string>
+    <string name="profile_platform_3ds">Nintendo 3DS</string>
 </resources>

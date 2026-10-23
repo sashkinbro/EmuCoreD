@@ -1819,4 +1819,13 @@
     <string name="software_keyboard_blank_input">Boş girişe izin verilmez.</string>
     <string name="software_keyboard_empty_input">Giriş boş olamaz.</string>
     <string name="software_keyboard_invalid_input">Geçersiz giriş.</string>
+
+    <!-- Profile platform statistics and filters. -->
+    <string name="profile_platform_breakdown_title">Platforma göre</string>
+    <string name="profile_platform_unknown">Bilinmeyen platform</string>
+    <string name="profile_platform_unknown_note">Bazı oyunların platform bilgisi yok.</string>
+    <string name="profile_platform_totals">Oyunlar: %1$d · %2$s</string>
+    <string name="profile_platform_empty">Bu platform için henüz oyun yok.</string>
+    <string name="profile_platform_ds">Nintendo DS</string>
+    <string name="profile_platform_3ds">Nintendo 3DS</string>
 </resources>

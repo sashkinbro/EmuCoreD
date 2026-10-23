@@ -1820,4 +1820,13 @@
     <string name="software_keyboard_blank_input">不允许空白输入。</string>
     <string name="software_keyboard_empty_input">输入不能为空。</string>
     <string name="software_keyboard_invalid_input">输入无效。</string>
+
+    <!-- Profile platform statistics and filters. -->
+    <string name="profile_platform_breakdown_title">按平台</string>
+    <string name="profile_platform_unknown">未知平台</string>
+    <string name="profile_platform_unknown_note">部分游戏没有平台信息。</string>
+    <string name="profile_platform_totals">游戏数：%1$d · %2$s</string>
+    <string name="profile_platform_empty">此平台暂无游戏。</string>
+    <string name="profile_platform_ds">Nintendo DS</string>
+    <string name="profile_platform_3ds">Nintendo 3DS</string>
 </resources>

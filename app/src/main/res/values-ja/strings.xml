@@ -1818,4 +1818,13 @@
     <string name="software_keyboard_blank_input">空白の入力は許可されていません。</string>
     <string name="software_keyboard_empty_input">入力は空にできません。</string>
     <string name="software_keyboard_invalid_input">無効な入力です。</string>
+
+    <!-- Profile platform statistics and filters. -->
+    <string name="profile_platform_breakdown_title">プラットフォーム別</string>
+    <string name="profile_platform_unknown">不明なプラットフォーム</string>
+    <string name="profile_platform_unknown_note">一部のゲームにはプラットフォーム情報がありません。</string>
+    <string name="profile_platform_totals">ゲーム数：%1$d · %2$s</string>
+    <string name="profile_platform_empty">このプラットフォームのゲームはまだありません。</string>
+    <string name="profile_platform_ds">Nintendo DS</string>
+    <string name="profile_platform_3ds">Nintendo 3DS</string>
 </resources>

@@ -1819,4 +1819,13 @@
     <string name="software_keyboard_blank_input">L\'input vuoto non è consentito.</string>
     <string name="software_keyboard_empty_input">L\'input non può essere vuoto.</string>
     <string name="software_keyboard_invalid_input">Input non valido.</string>
+
+    <!-- Profile platform statistics and filters. -->
+    <string name="profile_platform_breakdown_title">Per piattaforma</string>
+    <string name="profile_platform_unknown">Piattaforma sconosciuta</string>
+    <string name="profile_platform_unknown_note">Alcuni giochi non hanno informazioni sulla piattaforma.</string>
+    <string name="profile_platform_totals">Giochi: %1$d · %2$s</string>
+    <string name="profile_platform_empty">Nessun gioco per questa piattaforma al momento.</string>
+    <string name="profile_platform_ds">Nintendo DS</string>
+    <string name="profile_platform_3ds">Nintendo 3DS</string>
 </resources>

@@ -1821,4 +1821,13 @@
     <string name="software_keyboard_blank_input">No se permite una entrada en blanco.</string>
     <string name="software_keyboard_empty_input">La entrada no puede estar vacía.</string>
     <string name="software_keyboard_invalid_input">Entrada no válida.</string>
+
+    <!-- Profile platform statistics and filters. -->
+    <string name="profile_platform_breakdown_title">Por plataforma</string>
+    <string name="profile_platform_unknown">Plataforma desconocida</string>
+    <string name="profile_platform_unknown_note">Algunos juegos no tienen información sobre la plataforma.</string>
+    <string name="profile_platform_totals">Juegos: %1$d · %2$s</string>
+    <string name="profile_platform_empty">Aún no hay juegos para esta plataforma.</string>
+    <string name="profile_platform_ds">Nintendo DS</string>
+    <string name="profile_platform_3ds">Nintendo 3DS</string>
 </resources>

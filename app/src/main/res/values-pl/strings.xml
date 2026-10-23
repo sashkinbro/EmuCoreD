@@ -1840,4 +1840,13 @@
     <string name="software_keyboard_blank_input">Puste dane wejściowe są niedozwolone.</string>
     <string name="software_keyboard_empty_input">Dane wejściowe nie mogą być puste.</string>
     <string name="software_keyboard_invalid_input">Nieprawidłowe dane wejściowe.</string>
+
+    <!-- Profile platform statistics and filters. -->
+    <string name="profile_platform_breakdown_title">Według platformy</string>
+    <string name="profile_platform_unknown">Nieznana platforma</string>
+    <string name="profile_platform_unknown_note">Niektóre gry nie mają informacji o platformie.</string>
+    <string name="profile_platform_totals">Gry: %1$d · %2$s</string>
+    <string name="profile_platform_empty">Nie ma jeszcze gier na tę platformę.</string>
+    <string name="profile_platform_ds">Nintendo DS</string>
+    <string name="profile_platform_3ds">Nintendo 3DS</string>
 </resources>

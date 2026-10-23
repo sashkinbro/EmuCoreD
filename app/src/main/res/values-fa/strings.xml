@@ -1834,4 +1834,13 @@
     <string name="software_keyboard_blank_input">ورودی خالی مجاز نیست.</string>
     <string name="software_keyboard_empty_input">ورودی نمی‌تواند خالی باشد.</string>
     <string name="software_keyboard_invalid_input">ورودی نامعتبر.</string>
+
+    <!-- Profile platform statistics and filters. -->
+    <string name="profile_platform_breakdown_title">بر اساس پلتفرم</string>
+    <string name="profile_platform_unknown">پلتفرم نامشخص</string>
+    <string name="profile_platform_unknown_note">اطلاعات پلتفرم برخی بازی‌ها موجود نیست.</string>
+    <string name="profile_platform_totals">بازی‌ها: %1$d · %2$s</string>
+    <string name="profile_platform_empty">هنوز بازی‌ای برای این پلتفرم وجود ندارد.</string>
+    <string name="profile_platform_ds">Nintendo DS</string>
+    <string name="profile_platform_3ds">Nintendo 3DS</string>
 </resources>

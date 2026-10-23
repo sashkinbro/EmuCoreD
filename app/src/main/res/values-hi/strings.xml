@@ -1819,4 +1819,13 @@
     <string name="software_keyboard_blank_input">रिक्त इनपुट की अनुमति नहीं है।</string>
     <string name="software_keyboard_empty_input">इनपुट खाली नहीं हो सकता।</string>
     <string name="software_keyboard_invalid_input">अमान्य इनपुट।</string>
+
+    <!-- Profile platform statistics and filters. -->
+    <string name="profile_platform_breakdown_title">प्लेटफ़ॉर्म के अनुसार</string>
+    <string name="profile_platform_unknown">अज्ञात प्लेटफ़ॉर्म</string>
+    <string name="profile_platform_unknown_note">कुछ गेम के प्लेटफ़ॉर्म की जानकारी उपलब्ध नहीं है।</string>
+    <string name="profile_platform_totals">गेम: %1$d · %2$s</string>
+    <string name="profile_platform_empty">इस प्लेटफ़ॉर्म के लिए अभी कोई गेम नहीं है।</string>
+    <string name="profile_platform_ds">Nintendo DS</string>
+    <string name="profile_platform_3ds">Nintendo 3DS</string>
 </resources>

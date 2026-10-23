@@ -63,7 +63,8 @@ data class PlayerGamePlayStat(
     val coverArtPath: String?,
     val totalPlayTimeMs: Long,
     val sessions: Int,
-    val lastPlayedAtMs: Long?
+    val lastPlayedAtMs: Long?,
+    val platform: GamePlatform? = null
 )
 
 data class PlayerLeaderboardEntry(
@@ -443,13 +444,15 @@ class PlayerProfileRepository(context: Context) {
             validEntries.forEach { (gameKey, entry) ->
                 val cleanTitle = entry.title.ifBlank { entry.gamePath.orEmpty().substringAfterLast('/').substringBeforeLast('.') }
                 val existingGame = existingGames[gameKey].toGameMap()
+                val platform = resolveProfilePlatform(entry.serial, entry.gamePath) ?: readProfilePlatform(existingGame)
                 val nextGame = buildMap<String, Any> {
                     put(GAME_TITLE, cleanTitle.take(MAX_GAME_TITLE_LENGTH))
+                    writeProfilePlatform(this, platform)
                     put(GAME_TOTAL_MS, existingGame.longValue(GAME_TOTAL_MS) + entry.durationMs)
                     put(GAME_SESSIONS, existingGame.longValue(GAME_SESSIONS) + entry.sessionCount)
                     put(GAME_LAST_PLAYED_AT_MS, entry.lastPlayedAtMs)
                     entry.serial?.takeIf { it.isNotBlank() }?.let { put(GAME_SERIAL, it.take(MAX_SERIAL_LENGTH)) }
-                    buildShareableCoverPath(entry.coverArtPath, entry.serial)?.let { put(GAME_COVER_ART_PATH, it.take(MAX_COVER_PATH_LENGTH)) }
+                    buildShareableCoverPath(entry.coverArtPath, entry.serial, platform)?.let { put(GAME_COVER_ART_PATH, it.take(MAX_COVER_PATH_LENGTH)) }
                 }
                 existingGames[gameKey] = nextGame
                 changedGames[gameKey] = nextGame
@@ -815,14 +818,16 @@ class PlayerProfileRepository(context: Context) {
         val map = toGameMap()
         val title = map.stringValue(GAME_TITLE).takeIf { it.isNotBlank() } ?: return null
         val serial = map.stringValue(GAME_SERIAL).takeIf { it.isNotBlank() }
+        val platform = readProfilePlatform(map)
         return PlayerGamePlayStat(
             gameKey = gameKey,
             title = title,
             serial = serial,
-            coverArtPath = resolveReadableCoverPath(map.stringValue(GAME_COVER_ART_PATH), serial),
+            coverArtPath = resolveReadableCoverPath(map.stringValue(GAME_COVER_ART_PATH), serial, platform),
             totalPlayTimeMs = map.longValue(GAME_TOTAL_MS),
             sessions = map.longValue(GAME_SESSIONS).toInt(),
-            lastPlayedAtMs = map.longValue(GAME_LAST_PLAYED_AT_MS).takeIf { it > 0L }
+            lastPlayedAtMs = map.longValue(GAME_LAST_PLAYED_AT_MS).takeIf { it > 0L },
+            platform = platform
         )
     }
 
@@ -859,6 +864,7 @@ class PlayerProfileRepository(context: Context) {
     private fun Map<String, Any?>.toPublicGameData(): Map<String, Any> {
         val source = this
         return buildMap {
+            writeProfilePlatform(this, readProfilePlatform(source))
             put(GAME_TITLE, source.stringValue(GAME_TITLE).ifBlank { DEFAULT_GAME_TITLE }.take(MAX_GAME_TITLE_LENGTH))
             put(GAME_TOTAL_MS, source.longValue(GAME_TOTAL_MS).coerceAtLeast(0L))
             put(GAME_SESSIONS, source.longValue(GAME_SESSIONS).coerceAtLeast(0L))
@@ -915,22 +921,22 @@ class PlayerProfileRepository(context: Context) {
         return SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date(timestampMs))
     }
 
-    private fun buildShareableCoverPath(coverArtPath: String?, serial: String?): String? {
+    private fun buildShareableCoverPath(coverArtPath: String?, serial: String?, platform: GamePlatform?): String? {
         val cover = coverArtPath?.trim().orEmpty()
         return when {
             cover.startsWith("http://") || cover.startsWith("https://") -> cover
-            else -> coverArtRepository.buildPublicCoverUrl(serial)
+            else -> platform?.let { coverArtRepository.buildPublicCoverUrl(serial, platform = it) }
         }
     }
 
-    private fun resolveReadableCoverPath(coverArtPath: String, serial: String?): String? {
+    private fun resolveReadableCoverPath(coverArtPath: String, serial: String?, platform: GamePlatform?): String? {
         val cover = coverArtPath.trim()
         return when {
-            cover.isBlank() -> coverArtRepository.buildPublicCoverUrl(serial)
+            cover.isBlank() -> platform?.let { coverArtRepository.buildPublicCoverUrl(serial, platform = it) }
             cover.startsWith("http://") || cover.startsWith("https://") -> cover
             cover.startsWith("content://") -> cover
             File(cover).exists() -> cover
-            else -> coverArtRepository.buildPublicCoverUrl(serial)
+            else -> platform?.let { coverArtRepository.buildPublicCoverUrl(serial, platform = it) }
         }
     }
 

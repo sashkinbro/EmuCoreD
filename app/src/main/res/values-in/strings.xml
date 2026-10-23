@@ -1833,4 +1833,13 @@
     <string name="software_keyboard_blank_input">Masukan kosong tidak diizinkan.</string>
     <string name="software_keyboard_empty_input">Masukan tidak boleh kosong.</string>
     <string name="software_keyboard_invalid_input">Masukan tidak valid.</string>
+
+    <!-- Profile platform statistics and filters. -->
+    <string name="profile_platform_breakdown_title">Menurut platform</string>
+    <string name="profile_platform_unknown">Platform tidak diketahui</string>
+    <string name="profile_platform_unknown_note">Sebagian game tidak memiliki informasi platform.</string>
+    <string name="profile_platform_totals">Game: %1$d · %2$s</string>
+    <string name="profile_platform_empty">Belum ada game untuk platform ini.</string>
+    <string name="profile_platform_ds">Nintendo DS</string>
+    <string name="profile_platform_3ds">Nintendo 3DS</string>
 </resources>

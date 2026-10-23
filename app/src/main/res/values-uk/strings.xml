@@ -1824,4 +1824,13 @@
     <string name="software_keyboard_blank_input">Порожнє введення не дозволено.</string>
     <string name="software_keyboard_empty_input">Введення не може бути порожнім.</string>
     <string name="software_keyboard_invalid_input">Неприпустиме введення.</string>
+
+    <!-- Profile platform statistics and filters. -->
+    <string name="profile_platform_breakdown_title">За платформою</string>
+    <string name="profile_platform_unknown">Платформа невідома</string>
+    <string name="profile_platform_unknown_note">Для деяких ігор платформу не вказано.</string>
+    <string name="profile_platform_totals">Ігор: %1$d · %2$s</string>
+    <string name="profile_platform_empty">Ігор для цієї платформи поки немає.</string>
+    <string name="profile_platform_ds">Nintendo DS</string>
+    <string name="profile_platform_3ds">Nintendo 3DS</string>
 </resources>

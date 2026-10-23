@@ -13,6 +13,7 @@ import com.sbro.emucored.data.PlayerGamePlayStat
 import com.sbro.emucored.data.PlayerLeaderboardEntry
 import com.sbro.emucored.data.PlayerProfile
 import com.sbro.emucored.data.PlayerProfileRepository
+import com.sbro.emucored.data.ProfilePlatformFilter
 import com.sbro.emucored.data.PlayerRankInsights
 import com.sbro.emucored.data.PlayerDevice
 import com.sbro.emucored.data.ProfileDeviceRepository
@@ -40,6 +41,7 @@ data class ProfileUiState(
     val profile: PlayerProfile? = null,
     val viewedProfile: PlayerProfile? = null,
     val games: List<PlayerGamePlayStat> = emptyList(),
+    val gamePlatformFilter: ProfilePlatformFilter = ProfilePlatformFilter.ALL,
     val leaderboard: List<PlayerLeaderboardEntry> = emptyList(),
     val searchResults: List<PlayerLeaderboardEntry> = emptyList(),
     val leaderboardSearchQuery: String = "",
@@ -116,6 +118,7 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
                         profile = null,
                         viewedProfile = null,
                         games = emptyList(),
+                        gamePlatformFilter = ProfilePlatformFilter.ALL,
                         leaderboard = emptyList(),
                         searchResults = emptyList(),
                         leaderboardSearchQuery = "",
@@ -210,6 +213,10 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
 
     fun clearTransientMessages() {
         _uiState.update { it.copy(messageKey = null, errorMessage = null) }
+    }
+
+    fun setGamePlatformFilter(filter: ProfilePlatformFilter) {
+        _uiState.update { it.copy(gamePlatformFilter = filter) }
     }
 
     fun onProfileTabSelected(tabName: String) {

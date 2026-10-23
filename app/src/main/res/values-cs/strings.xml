@@ -1840,4 +1840,13 @@
     <string name="software_keyboard_blank_input">Prázdný vstup není povolen.</string>
     <string name="software_keyboard_empty_input">Vstup nesmí být prázdný.</string>
     <string name="software_keyboard_invalid_input">Neplatný vstup.</string>
+
+    <!-- Profile platform statistics and filters. -->
+    <string name="profile_platform_breakdown_title">Podle platformy</string>
+    <string name="profile_platform_unknown">Neznámá platforma</string>
+    <string name="profile_platform_unknown_note">U některých her nejsou informace o platformě.</string>
+    <string name="profile_platform_totals">Hry: %1$d · %2$s</string>
+    <string name="profile_platform_empty">Pro tuto platformu zatím nejsou žádné hry.</string>
+    <string name="profile_platform_ds">Nintendo DS</string>
+    <string name="profile_platform_3ds">Nintendo 3DS</string>
 </resources>

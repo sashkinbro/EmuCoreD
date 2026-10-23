@@ -131,6 +131,11 @@ import com.sbro.emucored.data.PlayerActivityDay
 import com.sbro.emucored.data.PlayerGamePlayStat
 import com.sbro.emucored.data.PlayerLeaderboardEntry
 import com.sbro.emucored.data.PlayerProfile
+import com.sbro.emucored.data.GamePlatform
+import com.sbro.emucored.data.ProfilePlatformFilter
+import com.sbro.emucored.data.filterProfilePlatform
+import com.sbro.emucored.data.profilePlatform
+import com.sbro.emucored.data.profilePlatformBreakdown
 import com.sbro.emucored.data.PlayerRankInsights
 import com.sbro.emucored.data.CloudEmulatorProfile
 import com.sbro.emucored.data.EmuAchievementState
@@ -388,6 +393,9 @@ fun ProfileScreen(
                                         )
                                     }
                                 }
+                                uiState.profile?.let { profile ->
+                                    item { ProfilePlatformSummaryCard(profile) }
+                                }
                                 item {
                                     ProfileFeatureHubCard(
                                         deviceCount = uiState.devices.size,
@@ -423,13 +431,25 @@ fun ProfileScreen(
                             }
 
                             ProfileTab.Games -> {
+                                item {
+                                    ProfilePlatformFilterRow(
+                                        selected = uiState.gamePlatformFilter,
+                                        onSelect = viewModel::setGamePlatformFilter
+                                    )
+                                }
+                                val filteredGames = uiState.games.filterProfilePlatform(uiState.gamePlatformFilter)
                                 val showGamesSkeleton = uiState.isProfileLoading && uiState.games.isEmpty()
                                 if (showGamesSkeleton) {
                                     items(4, key = { "game-skeleton-$it" }) { GamePlayStatSkeletonRow() }
-                                } else if (uiState.games.isEmpty()) {
-                                    item { EmptyProfileState(text = stringResource(R.string.profile_games_empty)) }
+                                } else if (filteredGames.isEmpty()) {
+                                    item {
+                                        EmptyProfileState(text = stringResource(
+                                            if (uiState.gamePlatformFilter == ProfilePlatformFilter.ALL)
+                                                R.string.profile_games_empty else R.string.profile_platform_empty
+                                        ))
+                                    }
                                 } else {
-                                    items(uiState.games, key = { it.gameKey }) { game ->
+                                    items(filteredGames, key = { it.gameKey }) { game ->
                                         GamePlayStatRow(
                                             game = game,
                                             onClick = { viewModel.openGameDetails(game, onOpenGameDetails) }
@@ -1978,6 +1998,7 @@ private fun FavoriteGamesShowcase(
                             maxLines = 2,
                             overflow = TextOverflow.Ellipsis
                         )
+                        ProfileGamePlatformLabel(game)
                         Text(
                             text = formatDuration(game.totalPlayTimeMs),
                             style = MaterialTheme.typography.labelSmall,
@@ -2343,6 +2364,80 @@ private fun ProShowcaseGameChoice(
 }
 
 @Composable
+private fun profilePlatformLabel(platform: GamePlatform?): String = stringResource(when (platform) {
+    GamePlatform.NDS -> R.string.profile_platform_ds
+    GamePlatform.N3DS -> R.string.profile_platform_3ds
+    null -> R.string.profile_platform_unknown
+})
+
+@Composable
+private fun ProfileGamePlatformLabel(game: PlayerGamePlayStat) {
+    Text(
+        text = profilePlatformLabel(game.profilePlatform()),
+        style = MaterialTheme.typography.labelSmall,
+        color = MaterialTheme.colorScheme.secondary,
+        maxLines = 1,
+        overflow = TextOverflow.Ellipsis
+    )
+}
+
+@Composable
+private fun ProfilePlatformFilterRow(selected: ProfilePlatformFilter, onSelect: (ProfilePlatformFilter) -> Unit) {
+    LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        items(ProfilePlatformFilter.entries, key = { it.name }) { filter ->
+            FilterChip(
+                selected = selected == filter,
+                onClick = { onSelect(filter) },
+                label = {
+                    Text(when (filter) {
+                        ProfilePlatformFilter.ALL -> stringResource(R.string.catalog_filter_all_platforms)
+                        ProfilePlatformFilter.NDS -> profilePlatformLabel(GamePlatform.NDS)
+                        ProfilePlatformFilter.N3DS -> profilePlatformLabel(GamePlatform.N3DS)
+                        ProfilePlatformFilter.UNKNOWN -> profilePlatformLabel(null)
+                    })
+                }
+            )
+        }
+    }
+}
+
+@Composable
+private fun ProfilePlatformSummaryCard(profile: PlayerProfile) {
+    val totals = remember(profile.games, profile.gamesPlayed, profile.totalPlayTimeMs) {
+        profilePlatformBreakdown(profile.games, profile.gamesPlayed, profile.totalPlayTimeMs, complete = true)
+    }
+    val showUnknown = totals.unknown.games > 0 || totals.unknown.playTimeMs > 0L
+    val rows = listOf<GamePlatform?>(GamePlatform.NDS, GamePlatform.N3DS) + if (showUnknown) listOf(null) else emptyList()
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = neonShape(24.dp),
+        color = MaterialTheme.colorScheme.surface,
+        border = profileCardBorder()
+    ) {
+        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Text(stringResource(R.string.profile_platform_breakdown_title),
+                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold))
+            rows.forEach { platform ->
+                val total = when (platform) {
+                    GamePlatform.NDS -> totals.ds
+                    GamePlatform.N3DS -> totals.threeDs
+                    null -> totals.unknown
+                }
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalAlignment = Alignment.CenterVertically) {
+                    Text(profilePlatformLabel(platform), modifier = Modifier.weight(1f),
+                        style = MaterialTheme.typography.labelLarge)
+                    Text(stringResource(R.string.profile_platform_totals, total.games, formatDuration(total.playTimeMs)),
+                        style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
+            if (showUnknown) Text(stringResource(R.string.profile_platform_unknown_note),
+                style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+    }
+}
+
+@Composable
 private fun AdvancedStatsContent(
     isProUnlocked: Boolean,
     isLoading: Boolean,
@@ -2481,6 +2576,8 @@ private fun AdvancedStatsContent(
                 Modifier.weight(1f)
             )
         }
+
+        profile?.let { ProfilePlatformSummaryCard(it) }
 
         Text(
             text = stringResource(R.string.profile_stats_activity),
@@ -2814,6 +2911,7 @@ private fun GamePlayStatRow(
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis
                 )
+                ProfileGamePlatformLabel(game)
                 Text(
                     text = stringResource(R.string.profile_game_sessions_format, game.sessions),
                     style = MaterialTheme.typography.labelMedium,
@@ -3095,6 +3193,7 @@ private fun RecentGamesCard(
                                 contentScale = gameCoverContentScale(game.coverArtPath, ContentScale.Crop)
                             )
                         }
+                        ProfileGamePlatformLabel(game)
                         Text(
                             text = game.title,
                             style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold),
