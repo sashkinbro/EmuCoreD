@@ -4,6 +4,23 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class ConsolePlatformTest {
+    @Test fun regionalAndEnhancedCatalogsResolveToTheirActualConsoleFamily() {
+        val expected = mapOf(37 to ConsolePlatform.N3DS, 137 to ConsolePlatform.N3DS,
+            20 to ConsolePlatform.NDS, 159 to ConsolePlatform.NDS,
+            21 to ConsolePlatform.GAMECUBE, 5 to ConsolePlatform.WII,
+            24 to ConsolePlatform.GBA, 33 to ConsolePlatform.GB, 22 to ConsolePlatform.GBC,
+            18 to ConsolePlatform.NES, 99 to ConsolePlatform.NES,
+            19 to ConsolePlatform.SNES, 58 to ConsolePlatform.SNES)
+        expected.forEach { (id, platform) ->
+            assertEquals("Catalog $id belongs to the wrong family", platform, ConsolePlatform.fromCatalogPlatformId(id))
+            assertTrue(id in platform.catalogPlatformIds)
+        }
+        assertNull(ConsolePlatform.fromCatalogPlatformId(0))
+        assertNull(ConsolePlatform.fromCatalogPlatformId(6))
+        assertEquals(expected.keys, ConsolePlatform.entries.flatMap { it.catalogPlatformIds }.toSet())
+        ConsolePlatform.entries.forEach { assertTrue(it.catalogPlatformId in it.catalogPlatformIds) }
+    }
+
     @Test fun stableIdsCoverTheApprovedConsolesWithoutEnablingUnfinishedAdapters() {
         assertEquals(setOf("3ds", "nds", "gamecube", "wii", "gba", "gb", "gbc", "nes", "snes"),
             ConsolePlatform.entries.map { it.id }.toSet())
