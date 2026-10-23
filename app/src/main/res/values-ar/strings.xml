@@ -1174,7 +1174,7 @@
     <string name="discord_share_serial">إظهار الرقم التسلسلي للعبة</string>
     <string name="discord_preview_game_title">عنوان اللعبة</string>
     <string name="discord_preview_serial">الرقم التسلسلي</string>
-    <string name="discord_share_serial_desc">تضمين title ID للـ 3DS، مثل 000400000F700100</string>
+    <string name="discord_share_serial_desc">تضمين رمز لعبة DS أو معرّف عنوان 3DS</string>
     <string name="discord_preview_title">معاينة الحالة</string>
     <string name="discord_privacy_note">يستخدم تسجيل الدخول Discord OAuth مع PKCE. يتم تشفير رمز الوصول بواسطة Android Keystore ولا يُرسل مطلقًا إلى خوادم EmuCoreD.</string>
     <string name="discord_status_disabled">معطل</string>
@@ -1256,8 +1256,8 @@
     <string name="achievements_locked_header">مقفلة</string>
     <string name="achievements_unavailable">RetroAchievements غير مدعوم في هذا الإصدار.</string>
     <string name="shell_achievements">الإنجازات</string>
-    <string name="formats_psp_supported_title">صيغ 3DS المدعومة</string>
-    <string name="formats_psp_supported_body">نواة Azahar المدمجة تفتح ملفات .3ds و.cci و.cxi و.app المفكوكة وملفات homebrew .3dsx.</string>
+    <string name="formats_psp_supported_title">تنسيقات DS/3DS المدعومة</string>
+    <string name="formats_psp_supported_body">تفتح نواة melonDS ملفات ألعاب DS بصيغتي .nds و.srl. وتفتح Azahar ملفات .3ds و.cci و.cxi و.app و.cia المفكوكة التشفير، وملفات البرامج المنزلية .3dsx.</string>
     <string name="formats_psp_recommended_title">صور بطاقات الألعاب</string>
     <string name="formats_psp_recommended_body">استخدم نسخ .3ds أو .cci مفكوكة من بطاقاتك. الصيغ المضغوطة .zcci و.zcxi غير مدعومة.</string>
     <string name="formats_psp_homebrew_title">Homebrew والملفات التنفيذية</string>

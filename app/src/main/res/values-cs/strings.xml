@@ -1191,7 +1191,7 @@
     <string name="discord_share_serial">Zobrazit sériové číslo hry</string>
     <string name="discord_preview_game_title">Název hry</string>
     <string name="discord_preview_serial">Sériové číslo</string>
-    <string name="discord_share_serial_desc">Zahrnout title ID 3DS, například 000400000F700100</string>
+    <string name="discord_share_serial_desc">Zahrnout kód hry DS nebo ID titulu 3DS</string>
     <string name="discord_preview_title">Náhled stavu</string>
     <string name="discord_privacy_note">Přihlášení používá Discord OAuth s PKCE. Přístupový token je šifrován pomocí Android Keystore a nikdy se neodesílá na servery EmuCoreD.</string>
     <string name="discord_status_disabled">Vypnuto</string>
@@ -1269,8 +1269,8 @@
     <string name="achievements_locked_header">Zamčeno</string>
     <string name="achievements_unavailable">Tato verze RetroAchievements nepodporuje.</string>
     <string name="shell_achievements">Úspěchy</string>
-    <string name="formats_psp_supported_title">Podporované formáty 3DS</string>
-    <string name="formats_psp_supported_body">Přiložené jádro Azahar otevírá dešifrované soubory .3ds, .cci, .cxi, .app a homebrew .3dsx.</string>
+    <string name="formats_psp_supported_title">Podporované formáty DS/3DS</string>
+    <string name="formats_psp_supported_body">Jádro melonDS otevírá soubory DS .nds a .srl. Azahar otevírá dešifrované soubory .3ds, .cci, .cxi, .app, .cia a homebrew soubory .3dsx.</string>
     <string name="formats_psp_recommended_title">Obrazy herních kazet</string>
     <string name="formats_psp_recommended_body">Používejte dešifrované dumpy .3ds nebo .cci vlastních kazet. Komprimované .zcci a .zcxi jádro nepřijímá.</string>
     <string name="formats_psp_homebrew_title">Homebrew a spustitelné soubory</string>

@@ -1170,7 +1170,7 @@
     <string name="discord_share_serial">Oyun seri numarasını göster</string>
     <string name="discord_preview_game_title">Oyun adı</string>
     <string name="discord_preview_serial">Seri numarası</string>
-    <string name="discord_share_serial_desc">3DS title ID\'sini ekle, örn. 000400000F700100</string>
+    <string name="discord_share_serial_desc">DS oyun kodunu veya 3DS oyun kimliğini ekle</string>
     <string name="discord_preview_title">Durum önizlemesi</string>
     <string name="discord_privacy_note">Giriş, PKCE ile Discord OAuth kullanır. Erişim belirteci Android Keystore tarafından şifrelenir ve EmuCoreD sunucularına asla gönderilmez.</string>
     <string name="discord_status_disabled">Devre dışı</string>
@@ -1248,8 +1248,8 @@
     <string name="achievements_locked_header">Kilitli</string>
     <string name="achievements_unavailable">Bu sürüm RetroAchievements\'ı desteklemiyor.</string>
     <string name="shell_achievements">Başarımlar</string>
-    <string name="formats_psp_supported_title">Desteklenen 3DS biçimleri</string>
-    <string name="formats_psp_supported_body">Azahar çekirdeği şifresi çözülmüş .3ds, .cci, .cxi, .app ve homebrew .3dsx dosyalarını açar.</string>
+    <string name="formats_psp_supported_title">Desteklenen DS/3DS biçimleri</string>
+    <string name="formats_psp_supported_body">melonDS çekirdeği DS .nds ve .srl dosyalarını açar. Azahar, şifresi çözülmüş .3ds, .cci, .cxi, .app, .cia dosyalarını ve homebrew .3dsx dosyalarını açar.</string>
     <string name="formats_psp_recommended_title">Kartuş görüntüleri</string>
     <string name="formats_psp_recommended_body">Kendi kartuşlarınızın şifresi çözülmüş .3ds veya .cci dökümlerini kullanın. Sıkıştırılmış .zcci ve .zcxi kabul edilmez.</string>
     <string name="formats_psp_homebrew_title">Homebrew ve çalıştırılabilirler</string>

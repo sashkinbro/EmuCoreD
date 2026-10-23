@@ -1170,7 +1170,7 @@
     <string name="discord_share_serial">गेम सीरियल दिखाएँ</string>
     <string name="discord_preview_game_title">गेम का नाम</string>
     <string name="discord_preview_serial">सीरियल नंबर</string>
-    <string name="discord_share_serial_desc">3DS title ID शामिल करें, जैसे 000400000F700100</string>
+    <string name="discord_share_serial_desc">DS गेम कोड या 3DS टाइटल आईडी शामिल करें</string>
     <string name="discord_preview_title">स्थिति पूर्वावलोकन</string>
     <string name="discord_privacy_note">साइन-इन PKCE के साथ Discord OAuth का उपयोग करता है। एक्सेस टोकन Android Keystore से एन्क्रिप्ट होता है और EmuCoreD सर्वर पर कभी नहीं भेजा जाता।</string>
     <string name="discord_status_disabled">बंद</string>
@@ -1248,8 +1248,8 @@
     <string name="achievements_locked_header">लॉक</string>
     <string name="achievements_unavailable">यह बिल्ड RetroAchievements का समर्थन नहीं करता।</string>
     <string name="shell_achievements">उपलब्धियाँ</string>
-    <string name="formats_psp_supported_title">समर्थित 3DS प्रारूप</string>
-    <string name="formats_psp_supported_body">बंडल किया गया Azahar कोर डिक्रिप्टेड .3ds, .cci, .cxi, .app और homebrew .3dsx खोलता है।</string>
+    <string name="formats_psp_supported_title">समर्थित DS/3DS फ़ॉर्मैट</string>
+    <string name="formats_psp_supported_body">melonDS कोर DS की .nds और .srl फ़ाइलें खोलता है। Azahar डिक्रिप्ट की गई .3ds, .cci, .cxi, .app, .cia और होमब्रू .3dsx फ़ाइलें खोलता है।</string>
     <string name="formats_psp_recommended_title">गेम कार्ट्रिज छवियाँ</string>
     <string name="formats_psp_recommended_body">अपने कार्ट्रिज के डिक्रिप्टेड .3ds या .cci डंप उपयोग करें। संपीड़ित .zcci और .zcxi समर्थित नहीं हैं।</string>
     <string name="formats_psp_homebrew_title">Homebrew और निष्पादन योग्य</string>

@@ -1184,7 +1184,7 @@
     <string name="discord_share_serial">Tampilkan nomor seri game</string>
     <string name="discord_preview_game_title">Judul game</string>
     <string name="discord_preview_serial">Nomor seri</string>
-    <string name="discord_share_serial_desc">Sertakan title ID 3DS, misalnya 000400000F700100</string>
+    <string name="discord_share_serial_desc">Sertakan kode game DS atau ID judul 3DS</string>
     <string name="discord_preview_title">Pratinjau status</string>
     <string name="discord_privacy_note">Masuk menggunakan Discord OAuth dengan PKCE. Token akses dienkripsi oleh Android Keystore dan tidak pernah dikirim ke server EmuCoreD.</string>
     <string name="discord_status_disabled">Dinonaktifkan</string>
@@ -1262,8 +1262,8 @@
     <string name="achievements_locked_header">Terkunci</string>
     <string name="achievements_unavailable">Build ini tidak mendukung RetroAchievements.</string>
     <string name="shell_achievements">Pencapaian</string>
-    <string name="formats_psp_supported_title">Format 3DS yang didukung</string>
-    <string name="formats_psp_supported_body">Inti Azahar bawaan membuka file .3ds, .cci, .cxi, .app yang didekripsi serta homebrew .3dsx.</string>
+    <string name="formats_psp_supported_title">Format DS/3DS yang didukung</string>
+    <string name="formats_psp_supported_body">Inti melonDS membuka file DS .nds dan .srl. Azahar membuka file .3ds, .cci, .cxi, .app, .cia yang telah didekripsi serta file homebrew .3dsx.</string>
     <string name="formats_psp_recommended_title">Citra kartrid game</string>
     <string name="formats_psp_recommended_body">Gunakan dump .3ds atau .cci yang didekripsi dari kartrid Anda sendiri. Arsip terkompresi .zcci dan .zcxi tidak diterima.</string>
     <string name="formats_psp_homebrew_title">Homebrew dan executable</string>

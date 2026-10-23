@@ -1185,7 +1185,7 @@
     <string name="discord_share_serial">نمایش شماره سریال بازی</string>
     <string name="discord_preview_game_title">عنوان بازی</string>
     <string name="discord_preview_serial">شماره سریال</string>
-    <string name="discord_share_serial_desc">شامل title ID 3DS، مثلاً 000400000F700100</string>
+    <string name="discord_share_serial_desc">نمایش کد بازی DS یا شناسهٔ عنوان 3DS</string>
     <string name="discord_preview_title">پیش‌نمایش وضعیت</string>
     <string name="discord_privacy_note">ورود از Discord OAuth همراه با PKCE استفاده می‌کند. توکن دسترسی با Android Keystore رمزگذاری می‌شود و هرگز به سرورهای EmuCoreD ارسال نمی‌شود.</string>
     <string name="discord_status_disabled">غیرفعال</string>
@@ -1263,8 +1263,8 @@
     <string name="achievements_locked_header">قفل‌شده</string>
     <string name="achievements_unavailable">این نسخه از RetroAchievements پشتیبانی نمی‌کند.</string>
     <string name="shell_achievements">دستاوردها</string>
-    <string name="formats_psp_supported_title">قالب‌های پشتیبانی‌شده 3DS</string>
-    <string name="formats_psp_supported_body">هسته Azahar همراه فایل‌های رمزگشایی‌شده .3ds، .cci، .cxi، .app و homebrew .3dsx را باز می‌کند.</string>
+    <string name="formats_psp_supported_title">قالب‌های پشتیبانی‌شدهٔ DS/3DS</string>
+    <string name="formats_psp_supported_body">هستهٔ melonDS فایل‌های DS با پسوندهای .nds و .srl را باز می‌کند. Azahar فایل‌های رمزگشایی‌شدهٔ .3ds، .cci، .cxi، .app و .cia و برنامه‌های هوم‌برو با پسوند .3dsx را باز می‌کند.</string>
     <string name="formats_psp_recommended_title">تصاویر کارتریج بازی</string>
     <string name="formats_psp_recommended_body">از دامپ‌های رمزگشایی‌شده .3ds یا .cci کارتریج‌های خودتان استفاده کنید. فرمت‌های فشرده .zcci و .zcxi پشتیبانی نمی‌شوند.</string>
     <string name="formats_psp_homebrew_title">Homebrew و فایل‌های اجرایی</string>

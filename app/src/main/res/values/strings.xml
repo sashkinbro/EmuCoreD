@@ -551,8 +551,8 @@
     <string name="catalog_empty_title">No matches found</string>
     <string name="catalog_empty_body">Try a different game name or a shorter search phrase.</string>
     <string name="formats_title">Supported Formats</string>
-    <string name="formats_psp_supported_title">Supported 3DS formats</string>
-    <string name="formats_psp_supported_body">The bundled Azahar core opens decrypted .3ds, .cci, .cxi, .app, .cia and homebrew .3dsx files.</string>
+    <string name="formats_psp_supported_title">Supported DS/3DS formats</string>
+    <string name="formats_psp_supported_body">The melonDS core opens DS .nds and .srl files. Azahar opens decrypted .3ds, .cci, .cxi, .app, .cia and homebrew .3dsx files.</string>
     <string name="formats_psp_recommended_title">Game card images</string>
     <string name="formats_psp_recommended_body">Use decrypted .3ds or .cci dumps of your own game cards. Compressed .zcci and .zcxi archives are not accepted by the core.</string>
     <string name="formats_psp_homebrew_title">Homebrew and executables</string>
@@ -1311,7 +1311,7 @@
     <string name="discord_share_serial">Show game serial</string>
     <string name="discord_preview_game_title">Game title</string>
     <string name="discord_preview_serial">Serial number</string>
-    <string name="discord_share_serial_desc">Include the 3DS title ID, such as 000400000F700100</string>
+    <string name="discord_share_serial_desc">Include the DS game code or 3DS title ID</string>
     <string name="discord_preview_title">Status preview</string>
     <string name="discord_privacy_note">Sign-in uses Discord OAuth with PKCE. The access token is encrypted by Android Keystore and never sent to EmuCoreD servers.</string>
     <string name="discord_status_disabled">Disabled</string>

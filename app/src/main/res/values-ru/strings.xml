@@ -1195,7 +1195,7 @@
     <string name="discord_share_serial">Показывать серийный номер игры</string>
     <string name="discord_preview_game_title">Название игры</string>
     <string name="discord_preview_serial">Серийный номер</string>
-    <string name="discord_share_serial_desc">Добавлять title ID 3DS, например 000400000F700100</string>
+    <string name="discord_share_serial_desc">Показывать код игры DS или идентификатор приложения 3DS</string>
     <string name="discord_preview_title">Предпросмотр статуса</string>
     <string name="discord_privacy_note">Вход выполняется через Discord OAuth с PKCE. Токен доступа шифруется Android Keystore и никогда не отправляется на серверы EmuCoreD.</string>
     <string name="discord_status_disabled">Выключено</string>
@@ -1273,8 +1273,8 @@
     <string name="achievements_locked_header">Закрыты</string>
     <string name="achievements_unavailable">Эта сборка не поддерживает RetroAchievements.</string>
     <string name="shell_achievements">Достижения</string>
-    <string name="formats_psp_supported_title">Поддерживаемые форматы 3DS</string>
-    <string name="formats_psp_supported_body">Встроенное ядро Azahar открывает расшифрованные файлы .3ds, .cci, .cxi, .app и homebrew .3dsx.</string>
+    <string name="formats_psp_supported_title">Поддерживаемые форматы DS/3DS</string>
+    <string name="formats_psp_supported_body">Ядро melonDS открывает файлы DS в форматах .nds и .srl. Azahar открывает расшифрованные файлы .3ds, .cci, .cxi, .app, .cia и самодельные приложения .3dsx.</string>
     <string name="formats_psp_recommended_title">Образы игровых картриджей</string>
     <string name="formats_psp_recommended_body">Используйте расшифрованные дампы .3ds или .cci своих картриджей. Сжатые .zcci и .zcxi ядро не принимает.</string>
     <string name="formats_psp_homebrew_title">Homebrew и исполняемые файлы</string>

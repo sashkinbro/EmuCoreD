@@ -1171,7 +1171,7 @@
     <string name="discord_share_serial">显示游戏序列号</string>
     <string name="discord_preview_game_title">游戏标题</string>
     <string name="discord_preview_serial">序列号</string>
-    <string name="discord_share_serial_desc">包含 3DS title ID，例如 000400000F700100</string>
+    <string name="discord_share_serial_desc">包含 DS 游戏代码或 3DS 游戏 ID</string>
     <string name="discord_preview_title">状态预览</string>
     <string name="discord_privacy_note">登录使用带 PKCE 的 Discord OAuth。访问令牌由 Android Keystore 加密，绝不会发送到 EmuCoreD 服务器。</string>
     <string name="discord_status_disabled">已停用</string>
@@ -1249,8 +1249,8 @@
     <string name="achievements_locked_header">未解鎖</string>
     <string name="achievements_unavailable">此版本不支援 RetroAchievements。</string>
     <string name="shell_achievements">成就</string>
-    <string name="formats_psp_supported_title">支持的 3DS 格式</string>
-    <string name="formats_psp_supported_body">内置 Azahar 核心可打开解密后的 .3ds、.cci、.cxi、.app 以及自制 .3dsx 文件。</string>
+    <string name="formats_psp_supported_title">支持的 DS/3DS 格式</string>
+    <string name="formats_psp_supported_body">melonDS 核心可打开 DS 的 .nds 和 .srl 文件。Azahar 可打开已解密的 .3ds、.cci、.cxi、.app、.cia 文件及自制软件 .3dsx 文件。</string>
     <string name="formats_psp_recommended_title">游戏卡带映像</string>
     <string name="formats_psp_recommended_body">请使用自己卡带的解密 .3ds 或 .cci 转储。压缩的 .zcci 和 .zcxi 不受支持。</string>
     <string name="formats_psp_homebrew_title">自制程序与可执行文件</string>

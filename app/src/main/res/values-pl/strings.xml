@@ -1191,7 +1191,7 @@
     <string name="discord_share_serial">Pokazuj numer seryjny gry</string>
     <string name="discord_preview_game_title">Tytuł gry</string>
     <string name="discord_preview_serial">Numer seryjny</string>
-    <string name="discord_share_serial_desc">Dołącz title ID 3DS, np. 000400000F700100</string>
+    <string name="discord_share_serial_desc">Dołącz kod gry DS lub identyfikator tytułu 3DS</string>
     <string name="discord_preview_title">Podgląd statusu</string>
     <string name="discord_privacy_note">Logowanie używa Discord OAuth z PKCE. Token dostępu jest szyfrowany przez Android Keystore i nigdy nie jest wysyłany na serwery EmuCoreD.</string>
     <string name="discord_status_disabled">Wyłączone</string>
@@ -1269,8 +1269,8 @@
     <string name="achievements_locked_header">Zablokowane</string>
     <string name="achievements_unavailable">Ta wersja nie obsługuje RetroAchievements.</string>
     <string name="shell_achievements">Osiągnięcia</string>
-    <string name="formats_psp_supported_title">Obsługiwane formaty 3DS</string>
-    <string name="formats_psp_supported_body">Dołączone jądro Azahar otwiera odszyfrowane pliki .3ds, .cci, .cxi, .app oraz homebrew .3dsx.</string>
+    <string name="formats_psp_supported_title">Obsługiwane formaty DS/3DS</string>
+    <string name="formats_psp_supported_body">Rdzeń melonDS otwiera pliki DS .nds i .srl. Azahar otwiera odszyfrowane pliki .3ds, .cci, .cxi, .app, .cia oraz pliki homebrew .3dsx.</string>
     <string name="formats_psp_recommended_title">Obrazy kartridży</string>
     <string name="formats_psp_recommended_body">Używaj odszyfrowanych zrzutów .3ds lub .cci własnych kartridży. Skompresowane .zcci i .zcxi nie są obsługiwane.</string>
     <string name="formats_psp_homebrew_title">Homebrew i pliki wykonywalne</string>

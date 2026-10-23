@@ -1169,7 +1169,7 @@
     <string name="discord_share_serial">ゲームのシリアルを表示</string>
     <string name="discord_preview_game_title">ゲームタイトル</string>
     <string name="discord_preview_serial">シリアル番号</string>
-    <string name="discord_share_serial_desc">3DSのタイトルIDを含める（例: 000400000F700100）</string>
+    <string name="discord_share_serial_desc">DSのゲームコードまたは3DSのタイトルIDを含める</string>
     <string name="discord_preview_title">ステータスのプレビュー</string>
     <string name="discord_privacy_note">サインインにはPKCE対応のDiscord OAuthを使用します。アクセストークンはAndroid Keystoreで暗号化され、EmuCoreDサーバーには送信されません。</string>
     <string name="discord_status_disabled">無効</string>
@@ -1247,8 +1247,8 @@
     <string name="achievements_locked_header">未解除</string>
     <string name="achievements_unavailable">このビルドは RetroAchievements に対応していません。</string>
     <string name="shell_achievements">実績</string>
-    <string name="formats_psp_supported_title">対応3DS形式</string>
-    <string name="formats_psp_supported_body">同梱のAzaharコアは復号済みの.3ds、.cci、.cxi、.app、およびhomebrewの.3dsxを開けます。</string>
+    <string name="formats_psp_supported_title">対応するDS/3DS形式</string>
+    <string name="formats_psp_supported_body">melonDSコアはDSの.ndsおよび.srlファイルを開けます。Azaharは復号済みの.3ds、.cci、.cxi、.app、.ciaファイルと、自作ソフトの.3dsxファイルを開けます。</string>
     <string name="formats_psp_recommended_title">ゲームカードイメージ</string>
     <string name="formats_psp_recommended_body">自身のカードから吸い出した復号済み.3dsまたは.cciを使ってください。圧縮形式.zcciと.zcxiは非対応です。</string>
     <string name="formats_psp_homebrew_title">Homebrewと実行ファイル</string>
