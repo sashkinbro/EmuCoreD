@@ -412,6 +412,9 @@ public:
         return pending_async_operations != 0;
     }
 
+    /// Commit ready host I/O responses without advancing guest time or waking waiting threads.
+    void CompleteReadyAsyncOperations();
+
     void UpdateCPUAndMemoryState(u64 title_id, MemoryMode memory_mode,
                                  New3dsHwCapabilities n3ds_hw_cap);
 

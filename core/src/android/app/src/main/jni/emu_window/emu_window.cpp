@@ -75,9 +75,15 @@ EmuWindow_Android::~EmuWindow_Android() {
 }
 
 void EmuWindow_Android::MakeCurrent() {
-    core_context->MakeCurrent();
+    if (core_context) {
+        core_context->MakeCurrent();
+    }
 }
 
 void EmuWindow_Android::DoneCurrent() {
-    core_context->DoneCurrent();
+    // A secondary window may have no surface/context yet, or initialization
+    // may have failed. Cleanup must still be safe for those partial windows.
+    if (core_context) {
+        core_context->DoneCurrent();
+    }
 }

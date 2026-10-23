@@ -123,9 +123,10 @@ public:
      * requested is not guaranteed to run, as this will be interrupted preemptively if a hardware
      * update is requested (e.g. on a thread switch).
      * @param tight_loop If false, the CPU single-steps.
+     * @param run_guest If false, process pending work and save/load requests without executing CPUs.
      * @return Result status, indicating whethor or not the operation succeeded.
      */
-    [[nodiscard]] ResultStatus RunLoop(bool tight_loop = true);
+    [[nodiscard]] ResultStatus RunLoop(bool tight_loop = true, bool run_guest = true);
 
     /**
      * Runs one pass of all the work that must happen on the emulation thread outside of guest
@@ -162,6 +163,9 @@ public:
     enum class Signal : u32 { None, Shutdown, Reset, Save, Load };
 
     bool SendSignal(Signal signal, u32 param = 0);
+
+    /// Called on the core loop thread to service queued save/load operations while paused.
+    bool HasPendingSaveStateRequest();
 
     /// Request reset of the system
     void RequestReset(const std::string& chainload = "", std::optional<u8> mem_mode = {}) {

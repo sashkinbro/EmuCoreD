@@ -236,6 +236,9 @@ public:
         virtual bool SupportsSerialization() {
             return true;
         }
+        virtual bool IsAsyncResultReady() {
+            return false;
+        }
 
     private:
         template <class Archive>
@@ -276,6 +279,11 @@ private:
 
         bool SupportsSerialization() override {
             return false;
+        }
+
+        bool IsAsyncResultReady() override {
+            return !future.valid() ||
+                   future.wait_for(std::chrono::seconds(0)) == std::future_status::ready;
         }
 
     private:

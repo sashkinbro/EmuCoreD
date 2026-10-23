@@ -314,8 +314,18 @@ object NativeApp {
         ).absolutePath
     }
 
-    @JvmStatic fun getCurrentSaveStatePath(slot: Int): String? =
-        getSaveStatePathForFile(saveStatePathSource(), slot)
+    @JvmStatic fun getCurrentSaveStatePath(slot: Int): String? {
+        // The running loader owns the title ID used by the native CST writer.
+        // Its source URI/prepared launch path may no longer be readable here.
+        val titleId = runCatching { EmuCoreNative.getRunningTitleId() }.getOrDefault(0L)
+        if (titleId != 0L) {
+            val directory = EmulatorStorage.coreStatesDir(getContext() ?: return null)
+            return File(directory, "%016X.%02d.cst".format(
+                java.util.Locale.US, titleId, slot.coerceIn(0, 10)
+            )).absolutePath
+        }
+        return getSaveStatePathForFile(saveStatePathSource(), slot)
+    }
 
     @JvmStatic fun onPadVibration(index: Int, largeMotor: Float, smallMotor: Float) {
         GamepadManager.onPadVibration(index, largeMotor, smallMotor)

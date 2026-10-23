@@ -24,6 +24,23 @@ SERIALIZE_EXPORT_IMPL(Kernel::New3dsHwCapabilities)
 
 namespace Kernel {
 
+void KernelSystem::CompleteReadyAsyncOperations() {
+    for (const auto& manager : thread_managers) {
+        for (const auto& thread : manager->GetThreadList()) {
+            if (thread->status != ThreadStatus::WaitHleEvent || !thread->wakeup_callback ||
+                !thread->wakeup_callback->IsAsyncResultReady()) {
+                continue;
+            }
+            // Resolve only the completed host operation and its IPC response. Keep
+            // the guest asleep: its existing timed wakeup remains in the timing queue
+            // and will resume it at the original emulated deadline after unpausing.
+            auto callback = thread->wakeup_callback;
+            callback->WakeUp(ThreadWakeupReason::Timeout, thread, nullptr);
+            thread->wakeup_callback.reset();
+        }
+    }
+}
+
 /// Initialize the kernel
 KernelSystem::KernelSystem(Memory::MemorySystem& memory, Core::Timing& timing,
                            std::function<void()> prepare_reschedule_callback,

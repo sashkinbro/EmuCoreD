@@ -60,6 +60,10 @@ public:
         return !callback.get() || callback->SupportsSerialization();
     }
 
+    bool IsAsyncResultReady() override {
+        return callback && callback->IsAsyncResultReady();
+    }
+
 private:
     ThreadCallback() = default;
     std::shared_ptr<HLERequestContext::WakeupCallback> callback{};

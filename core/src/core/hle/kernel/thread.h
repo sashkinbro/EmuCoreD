@@ -77,6 +77,11 @@ public:
         return true;
     }
 
+    /// Whether host-side I/O has completed and its response can be committed without waking a CPU.
+    virtual bool IsAsyncResultReady() {
+        return false;
+    }
+
 private:
     template <class Archive>
     void serialize(Archive& ar, const unsigned int);

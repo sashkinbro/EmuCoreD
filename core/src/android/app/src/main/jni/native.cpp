@@ -362,9 +362,17 @@ static Core::System::ResultStatus RunCitra(const std::string& filepath) {
 
     // Start running emulation
     while (!stop_run) {
-        if (!pause_emulation) {
-            const auto result = system.RunLoop();
+        if (!pause_emulation || system.HasPendingSaveStateRequest()) {
+            const bool run_guest = !pause_emulation;
+            const auto result = system.RunLoop(true, run_guest);
             if (result == Core::System::ResultStatus::Success) {
+                if (!run_guest) {
+                    // Pending asynchronous I/O can require several core-thread passes.
+                    // Yield between them without unpausing or advancing guest CPUs.
+                    std::unique_lock pause_lock{paused_mutex};
+                    running_cv.wait_for(pause_lock, std::chrono::milliseconds(10),
+                                        [] { return !pause_emulation || stop_run; });
+                }
                 continue;
             }
             if (result == Core::System::ResultStatus::ShutdownRequested) {
@@ -390,7 +398,9 @@ static Core::System::ResultStatus RunCitra(const std::string& filepath) {
             Settings::values.volume = 0;
 
             std::unique_lock pause_lock{paused_mutex};
-            running_cv.wait(pause_lock, [] { return !pause_emulation || stop_run; });
+            running_cv.wait(pause_lock, [&system] {
+                return !pause_emulation || stop_run || system.HasPendingSaveStateRequest();
+            });
             window->PollEvents();
         }
     }
@@ -1314,12 +1324,18 @@ jobjectArray Java_com_sbro_emucored_core_EmuCoreNative_getSavestateInfo(
 
 void Java_com_sbro_emucored_core_EmuCoreNative_saveState([[maybe_unused]] JNIEnv* env,
                                                        [[maybe_unused]] jobject obj, jint slot) {
-    Core::System::GetInstance().SendSignal(Core::System::Signal::Save, slot);
+    std::scoped_lock pause_lock{paused_mutex};
+    if (Core::System::GetInstance().SendSignal(Core::System::Signal::Save, slot)) {
+        running_cv.notify_all();
+    }
 }
 
 void Java_com_sbro_emucored_core_EmuCoreNative_loadState([[maybe_unused]] JNIEnv* env,
                                                        [[maybe_unused]] jobject obj, jint slot) {
-    Core::System::GetInstance().SendSignal(Core::System::Signal::Load, slot);
+    std::scoped_lock pause_lock{paused_mutex};
+    if (Core::System::GetInstance().SendSignal(Core::System::Signal::Load, slot)) {
+        running_cv.notify_all();
+    }
 }
 
 void Java_com_sbro_emucored_core_EmuCoreNative_logDeviceInfo([[maybe_unused]] JNIEnv* env,

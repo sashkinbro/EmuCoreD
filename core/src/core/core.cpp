@@ -110,7 +110,7 @@ static void ExecuteCore(ARM_Interface& core, Kernel::Thread* thread, bool tight_
     }
 }
 
-System::ResultStatus System::RunLoop(bool tight_loop) {
+System::ResultStatus System::RunLoop(bool tight_loop, bool run_guest) {
     status = ResultStatus::Success;
 
     if (!IsPoweredOn()) {
@@ -191,6 +191,10 @@ System::ResultStatus System::RunLoop(bool tight_loop) {
         break;
     }
 
+    if (!run_guest && save_state_request_status != SaveStateStatus::NONE && kernel.get()) {
+        kernel->CompleteReadyAsyncOperations();
+    }
+
     if (save_state_request_status == SaveStateStatus::LOADING && kernel.get() &&
         !kernel->AreAsyncOperationsPending()) {
         const u32 slot = save_state_slot;
@@ -228,6 +232,12 @@ System::ResultStatus System::RunLoop(bool tight_loop) {
         LOG_ERROR(Core, "Cannot perform save state operation due to pending async operations");
         status_details = "Cannot perform save state operation due to pending async operations";
         return ResultStatus::ErrorSavestate;
+    }
+
+    // A paused frontend still needs to finish asynchronous save/load requests.
+    // Never advance guest time merely to service one of those requests.
+    if (!run_guest) {
+        return ResultStatus::Success;
     }
 
     // All cores should have executed the same amount of ticks. If this is not the case an event was
@@ -351,6 +361,12 @@ bool System::SendSignal(System::Signal signal, u32 param) {
     current_signal = signal;
     signal_param = param;
     return true;
+}
+
+bool System::HasPendingSaveStateRequest() {
+    std::scoped_lock lock{signal_mutex};
+    return current_signal == Signal::Save || current_signal == Signal::Load ||
+           save_state_request_status != SaveStateStatus::NONE;
 }
 
 System::ResultStatus System::SingleStep() {
