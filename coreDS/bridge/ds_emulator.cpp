@@ -9,6 +9,7 @@
 #include <cstring>
 #include <fstream>
 #include <mutex>
+#include <sys/system_properties.h>
 #include <vector>
 
 #include "Args.h"
@@ -303,18 +304,18 @@ void DsEmulator::PresentFrame() {
         std::memcpy(composite_.data(), second, kScreenPixels * sizeof(uint32_t));
         std::memcpy(composite_.data() + kScreenPixels, first,
                     kScreenPixels * sizeof(uint32_t));
-        presenter_->Present(composite_.data(), kWidth, kHeight * 2);
+        presenter_->Present(composite_.data(), kWidth, kHeight * 2, DsPixelFormat::Bgra8);
         break;
     }
     case 1:
-        presenter_->Present(first, kWidth, kHeight);
-        if (secondary_presenter_) secondary_presenter_->Present(second, kWidth, kHeight);
+        presenter_->Present(first, kWidth, kHeight, DsPixelFormat::Bgra8);
+        if (secondary_presenter_) secondary_presenter_->Present(second, kWidth, kHeight, DsPixelFormat::Bgra8);
         break;
     case 2:
-        presenter_->Present(first, kWidth, kHeight);
+        presenter_->Present(first, kWidth, kHeight, DsPixelFormat::Bgra8);
         break;
     case 3:
-        presenter_->Present(second, kWidth, kHeight);
+        presenter_->Present(second, kWidth, kHeight, DsPixelFormat::Bgra8);
         break;
     case 4: {
         composite_.resize(kScreenPixels * 2);
@@ -324,11 +325,11 @@ void DsEmulator::PresentFrame() {
             std::memcpy(composite_.data() + static_cast<size_t>(y) * kWidth * 2 + kWidth,
                         second + static_cast<size_t>(y) * kWidth, kWidth * sizeof(uint32_t));
         }
-        presenter_->Present(composite_.data(), kWidth * 2, kHeight);
+        presenter_->Present(composite_.data(), kWidth * 2, kHeight, DsPixelFormat::Bgra8);
         break;
     }
     default:
-        presenter_->Present(first, kWidth, kHeight);
+        presenter_->Present(first, kWidth, kHeight, DsPixelFormat::Bgra8);
         break;
     }
 }
@@ -359,7 +360,8 @@ void DsEmulator::PresentVulkanFrame() {
         return;
     }
 
-    vulkan_output_->captureRenderer3dSnapshot(frame, *renderer3d, false);
+    const bool snapshot_captured =
+        vulkan_output_->captureRenderer3dSnapshot(frame, *renderer3d, false);
     MelonDSAndroid::VulkanCompositionInputs inputs{};
     if (!vulkan_output_->buildCompositionInputs(
             frame, *renderer3d, scale, MelonDSAndroid::VulkanFilterMode::Nearest,
@@ -368,6 +370,75 @@ void DsEmulator::PresentVulkanFrame() {
             __android_log_print(ANDROID_LOG_WARN, "EmuCoreDS", "Vulkan composition inputs failed");
         }
         return;
+    }
+
+    // Opt-in diagnostics must use logcat: native stderr probes are not visible
+    // in Android runs. Keep this bounded even when the property remains enabled.
+    char trace_property[PROP_VALUE_MAX]{};
+    if (log_now && __system_property_get("debug.emucored.ds_trace", trace_property) > 0
+        && trace_property[0] == '1') {
+        melonDS::CaptureSourceIdentity published{}, served{};
+        melonDS::LiveRenderProductIdentity live{};
+        (void)renderer3d->GetPublishedRenderIdentity(published);
+        (void)renderer3d->GetLastServedCaptureSourceIdentity(served);
+        (void)renderer3d->GetLiveRenderProductIdentity(live);
+        u32 causal_lines = 0, causal_matches = 0;
+        bool causal_ambiguous = false;
+        const bool causal_available = vulkan_output_->liveCausalSourceAvailable(
+            frame, static_cast<u32>(scale), &causal_lines, &causal_matches, &causal_ambiguous);
+        __android_log_print(ANDROID_LOG_WARN, "EmuCoreDS",
+            "DSFrame3D frame=%llu rawPolys=%u submittedPolys=%u disp=%08X capture=%08X "
+            "published=%u:%llu:%llu/%u/%u live=%u:%llu:%llu served=%u:%llu:%llu/%u "
+            "snapshot=%u source=%ux%u captureBuffer=%u captureValid=%u causal=%u/%u/%u/%u",
+            static_cast<unsigned long long>(frame->frameId), nds_->GPU.GPU3D.RenderNumPolygons,
+            renderer3d->GetLastSubmittedRenderPolygonCount(), nds_->GPU.GPU2D_A.DispCnt,
+            nds_->GPU.GPU2D_A.CaptureCnt, published.Valid ? 1u : 0u,
+            static_cast<unsigned long long>(published.RenderProductEpoch),
+            static_cast<unsigned long long>(published.Sequence), published.PolygonCount,
+            published.ScreenSwap ? 1u : 0u, live.Valid ? 1u : 0u,
+            static_cast<unsigned long long>(live.Epoch), static_cast<unsigned long long>(live.Sequence),
+            served.Valid ? 1u : 0u, static_cast<unsigned long long>(served.RenderProductEpoch),
+            static_cast<unsigned long long>(served.Sequence), served.ScreenSwap ? 1u : 0u,
+            snapshot_captured ? 1u : 0u, inputs.rendererWidth, inputs.rendererHeight,
+            inputs.capture3dBuffer != VK_NULL_HANDLE ? 1u : 0u, inputs.capture3dSourceValid ? 1u : 0u,
+            causal_available ? 1u : 0u, causal_lines, causal_matches, causal_ambiguous ? 1u : 0u);
+        if (const auto* soft =
+                dynamic_cast<melonDS::GPU2D::SoftRenderer*>(&nds_->GPU.GetRenderer2D())) {
+            const auto* meta = soft->GetFaithfulPrevFrameMeta();
+            const auto& capture = soft->GetFaithfulPrevCaptureProduct();
+            unsigned operand_pixels = 0;
+            const auto* operands = soft->GetFaithfulPrevLine3DOperands();
+            for (size_t pixel = 0; pixel < 256u * 192u; ++pixel)
+                operand_pixels += operands[pixel] != 0u ? 1u : 0u;
+            __android_log_print(ANDROID_LOG_WARN, "EmuCoreDS",
+                "DSFrame3D metadata frame=%u swap=%u flags=%08X operands=%u "
+                "capture=%u/%u/%u key=%llu:%llu source=%u:%llu:%llu",
+                meta[8], meta[0], meta[6], operand_pixels,
+                capture.Valid ? 1u : 0u, capture.Complete ? 1u : 0u, capture.Uses3d ? 1u : 0u,
+                static_cast<unsigned long long>(capture.ProductEpoch),
+                static_cast<unsigned long long>(capture.ProductId), capture.SourceIdentity.Valid ? 1u : 0u,
+                static_cast<unsigned long long>(capture.SourceIdentity.RenderProductEpoch),
+                static_cast<unsigned long long>(capture.SourceIdentity.Sequence));
+            for (const auto screen : {melonDS::GPU2D::PhysicalScreen::Top,
+                                      melonDS::GPU2D::PhysicalScreen::Bottom}) {
+                const auto* lines = soft->GetFaithfulPrevLiveRenderProductLines(screen);
+                melonDS::LiveRenderProductIdentity first{};
+                unsigned direct_lines = 0, keyed_lines = 0, mismatched_lines = 0;
+                for (size_t line = 0; line < 192u; ++line) {
+                    if (!lines[line].Valid || !lines[line].Direct3DEnabled) continue;
+                    ++direct_lines;
+                    if (!lines[line].Product.Valid) continue;
+                    ++keyed_lines;
+                    if (!first.Valid) first = lines[line].Product;
+                    if (lines[line].Product.Epoch != published.RenderProductEpoch
+                        || lines[line].Product.Sequence != published.Sequence) ++mismatched_lines;
+                }
+                __android_log_print(ANDROID_LOG_WARN, "EmuCoreDS",
+                    "DSFrame3D screen=%u directLines=%u keyedLines=%u publishedMismatch=%u first=%llu:%llu",
+                    static_cast<unsigned>(screen), direct_lines, keyed_lines, mismatched_lines,
+                    static_cast<unsigned long long>(first.Epoch), static_cast<unsigned long long>(first.Sequence));
+            }
+        }
     }
 
     bool presented = false;
@@ -422,7 +493,7 @@ void DsEmulator::PresentVulkanFrame() {
                             vulkan_readback_.empty() ? 0u : vulkan_readback_[0]);
     }
     presenter_->Present(vulkan_readback_.data(), static_cast<int>(frame_width),
-                        static_cast<int>(frame_height));
+                        static_cast<int>(frame_height), DsPixelFormat::Rgba8);
 }
 
 void DsEmulator::ApplyRenderScaleLocked() {

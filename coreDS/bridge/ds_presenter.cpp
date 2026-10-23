@@ -17,16 +17,6 @@ void main() {
 }
 )";
 
-constexpr const char* kFragmentShader = R"(#version 300 es
-precision mediump float;
-uniform sampler2D u_texture;
-in vec2 v_uv;
-out vec4 fragColor;
-void main() {
-    fragColor = texture(u_texture, v_uv);
-}
-)";
-
 GLuint CompileShader(GLenum type, const char* source) {
     GLuint shader = glCreateShader(type);
     glShaderSource(shader, 1, &source, nullptr);
@@ -124,6 +114,7 @@ void DsPresenter::DestroyContextLocked() {
     surface_ = EGL_NO_SURFACE;
     config_ = nullptr;
     program_ = 0;
+    format_uniform_ = -1;
     texture_ = 0;
     texture_size_[0] = 0;
     texture_size_[1] = 0;
@@ -132,7 +123,7 @@ void DsPresenter::DestroyContextLocked() {
 bool DsPresenter::EnsureProgramLocked() {
     if (program_ != 0) return true;
     const GLuint vertex = CompileShader(GL_VERTEX_SHADER, kVertexShader);
-    const GLuint fragment = CompileShader(GL_FRAGMENT_SHADER, kFragmentShader);
+    const GLuint fragment = CompileShader(GL_FRAGMENT_SHADER, kDsPresenterFragmentShader);
     if (vertex == 0 || fragment == 0) {
         if (vertex) glDeleteShader(vertex);
         if (fragment) glDeleteShader(fragment);
@@ -155,6 +146,8 @@ bool DsPresenter::EnsureProgramLocked() {
         return false;
     }
     glUseProgram(program_);
+    glUniform1i(glGetUniformLocation(program_, "u_texture"), 0);
+    format_uniform_ = glGetUniformLocation(program_, "u_bgra");
     glGenTextures(1, &texture_);
     glBindTexture(GL_TEXTURE_2D, texture_);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
@@ -164,7 +157,7 @@ bool DsPresenter::EnsureProgramLocked() {
     return true;
 }
 
-void DsPresenter::DrawLocked(const uint32_t* pixels, int width, int height) {
+void DsPresenter::DrawLocked(const uint32_t* pixels, int width, int height, DsPixelFormat format) {
     if (!window_ || display_ == EGL_NO_DISPLAY || context_ == EGL_NO_CONTEXT ||
         surface_ == EGL_NO_SURFACE) {
         return;
@@ -172,6 +165,10 @@ void DsPresenter::DrawLocked(const uint32_t* pixels, int width, int height) {
     if (!pixels || width <= 0 || height <= 0) return;
     if (!eglMakeCurrent(display_, surface_, surface_, context_)) return;
     if (!EnsureProgramLocked()) return;
+    glUseProgram(program_);
+    // Software melonDS frames contain BGRA bytes; Vulkan readback already
+    // contains RGBA. Keep the distinction at the presentation boundary.
+    glUniform1i(format_uniform_, format == DsPixelFormat::Bgra8 ? 1 : 0);
 
     if (texture_size_[0] != width || texture_size_[1] != height) {
         glBindTexture(GL_TEXTURE_2D, texture_);
@@ -232,14 +229,14 @@ void DsPresenter::DrawLocked(const uint32_t* pixels, int width, int height) {
     eglMakeCurrent(display_, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT);
 }
 
-void DsPresenter::Present(const uint32_t* pixels, int width, int height) {
+void DsPresenter::Present(const uint32_t* pixels, int width, int height, DsPixelFormat format) {
     std::lock_guard lock(mutex_);
     if (!window_) return;
     if (display_ == EGL_NO_DISPLAY || context_ == EGL_NO_CONTEXT ||
         surface_ == EGL_NO_SURFACE) {
         if (!CreateContextLocked()) return;
     }
-    DrawLocked(pixels, width, height);
+    DrawLocked(pixels, width, height, format);
 }
 
 } // namespace EmuCoreDS

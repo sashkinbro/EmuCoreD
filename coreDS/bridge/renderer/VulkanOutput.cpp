@@ -5660,6 +5660,45 @@ bool VulkanOutput::dispatchFaithfulCompositor(Frame* frame, FrameResource& resou
         }
     }
 
+    char dsTraceProperty[PROP_VALUE_MAX]{};
+    if (frame != nullptr && frame->frameId % 120u == 1u
+        && __system_property_get("debug.emucored.ds_trace", dsTraceProperty) > 0
+        && dsTraceProperty[0] == '1')
+    {
+        const auto* header = causalRouteHeaderCpu;
+        u32 precomposedLines = 0u, direct3dLines = 0u;
+        if (faithfulRegsMapped[faithfulRing] != nullptr)
+        {
+            const auto* regs = static_cast<const u32*>(faithfulRegsMapped[faithfulRing]);
+            for (u32 line = 0u; line < 192u; ++line)
+            {
+                const u32* row = regs + line * 32u;
+                precomposedLines += (row[18] & (1u << 12u)) != 0u ? 1u : 0u;
+                direct3dLines += (row[0] & 0x0108u) == 0x0108u ? 1u : 0u;
+            }
+        }
+        melonDS::Platform::Log(melonDS::Platform::LogLevel::Warn,
+            "DSCompose3D frame=%llu ring=%u routeValid=%u headerValid=%u bits=%08X "
+            "products=%u captureEpoch=%llu generation=%llu live=%llu:%llu "
+            "matches=%u ambiguous=%u bound=%u projection=%ux%u sourcePolys=%u "
+            "sourceSwap=%u nativeFallback=%u stash=%zu precomposedLines=%u direct3dLines=%u",
+            static_cast<unsigned long long>(frame->frameId), faithfulRing,
+            causalRouteHeaderCpuValid ? 1u : 0u, causalHeaderCpuValid ? 1u : 0u,
+            header != nullptr ? header->Valid : 0u, header != nullptr ? header->ProductCount : 0u,
+            header != nullptr ? static_cast<unsigned long long>(header->CaptureEpochLo)
+                | (static_cast<unsigned long long>(header->CaptureEpochHi) << 32u) : 0ull,
+            header != nullptr ? static_cast<unsigned long long>(header->GenerationLo)
+                | (static_cast<unsigned long long>(header->GenerationHi) << 32u) : 0ull,
+            static_cast<unsigned long long>(liveCausalEpoch),
+            static_cast<unsigned long long>(liveCausalSequence), liveCausalMatches,
+            liveCausalAmbiguous ? 1u : 0u, liveCausalSource != nullptr ? 1u : 0u,
+            liveCausalWidth, liveCausalHeight,
+            liveCausalSource != nullptr ? liveCausalSource->renderer3dSnapshotSourcePolygonCount : 0u,
+            liveCausalSource != nullptr && liveCausalSource->renderer3dSnapshotSourceScreenSwap ? 1u : 0u,
+            faithfulNativeFallbackSource != nullptr ? 1u : 0u, faithful3dStash.size(),
+            precomposedLines, direct3dLines);
+    }
+
     if (boundLive != nullptr && liveCausalSource != nullptr)
     {
         boundLive->Flags = 1u;

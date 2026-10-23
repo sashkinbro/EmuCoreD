@@ -6,6 +6,7 @@
 #include <GLES3/gl3.h>
 #include <android/native_window.h>
 #include <mutex>
+#include "ds_presenter_color.h"
 
 namespace EmuCoreDS {
 
@@ -16,13 +17,13 @@ public:
 
     bool SetSurface(ANativeWindow* window);
     void Release();
-    void Present(const uint32_t* pixels, int width, int height);
+    void Present(const uint32_t* pixels, int width, int height, DsPixelFormat format);
 
 private:
     bool CreateContextLocked();
     void DestroyContextLocked();
     bool EnsureProgramLocked();
-    void DrawLocked(const uint32_t* pixels, int width, int height);
+    void DrawLocked(const uint32_t* pixels, int width, int height, DsPixelFormat format);
 
     std::mutex mutex_;
     ANativeWindow* window_ = nullptr;
@@ -31,6 +32,7 @@ private:
     EGLSurface surface_ = EGL_NO_SURFACE;
     EGLConfig config_ = nullptr;
     GLuint program_ = 0;
+    GLint format_uniform_ = -1;
     GLuint texture_ = 0;
     GLint texture_size_[2] = {0, 0};
 };
