@@ -1,17 +1,17 @@
 <resources>
     <string name="emulation_runtime_failure_title">Emulasi dihentikan</string>
     <string name="emulation_runtime_failure_description">Runtime mengalami error dan tidak dapat melanjutkan dengan aman. Keluar dari sesi ini dan mulai ulang game. Renderer tidak diubah secara otomatis.\n\nDetail:\n</string>
-    <string name="onboarding_core_title">Dibuat untuk Nintendo 3DS</string>
-    <string name="onboarding_core_subtitle">Inti Nintendo 3DS yang bersih dengan rekompilasi ARM64 dan rendering Vulkan.</string>
-    <string name="onboarding_core_card_title">Arsitektur 3DS asli</string>
-    <string name="onboarding_core_card_cpu">Eksekusi ARM11 berjalan lewat rekompilator dinamis Azahar untuk performa lancar.</string>
-    <string name="onboarding_core_card_gpu">Grafis 3DS dirender lewat Vulkan dengan cadangan OpenGL dan perangkat lunak.</string>
+    <string name="onboarding_core_title">Dibuat untuk Nintendo DS/3DS</string>
+    <string name="onboarding_core_subtitle">Inti Azahar dan melonDS bawaan untuk Nintendo 3DS dan Nintendo DS, dengan rekompilasi dinamis ARM64 dan perenderan Vulkan.</string>
+    <string name="onboarding_core_card_title">Dua inti emulasi bawaan</string>
+    <string name="onboarding_core_card_cpu">Azahar (3DS) dan melonDS (DS) memakai rekompilasi dinamis ARM64 agar kinerja lancar.</string>
+    <string name="onboarding_core_card_gpu">DS mendukung Vulkan dan perenderan perangkat lunak; 3DS juga menyediakan OpenGL.</string>
     <string name="onboarding_core_card_reference">Tidak diperlukan tingkat pembelian; semua fitur core tersedia.</string>
     <string name="app_name">EmuCoreD</string>
 
     <!-- Navigation -->
     <string name="shell_library">Pustaka</string>
-    <string name="shell_catalog_search">Cari 3DS</string>
+    <string name="shell_catalog_search">Cari DS/DSi/3DS</string>
     <string name="shell_supported_formats">Format yang Didukung</string>
 
     <!-- Home Screen -->
@@ -48,8 +48,8 @@
     <string name="detail_show_more">Tampilkan lebih banyak</string>
     <string name="detail_show_less">Tampilkan lebih sedikit</string>
     <string name="detail_no_data_title">Tidak ada detail tersedia</string>
-    <string name="detail_no_data_body">Game ini belum dapat dicocokkan dengan katalog Nintendo 3DS lokal.</string>
-    <string name="detail_catalog_missing_body">Detail katalog Nintendo 3DS sementara tidak tersedia.</string>
+    <string name="detail_no_data_body">Game ini belum dapat dicocokkan dengan katalog Nintendo DS/DSi/3DS lokal.</string>
+    <string name="detail_catalog_missing_body">Detail katalog Nintendo DS/DSi/3DS sementara tidak tersedia.</string>
     <string name="detail_save_screenshot">Simpan tangkapan layar</string>
     <string name="detail_screenshot_saved">Tangkapan layar disimpan</string>
     <string name="detail_screenshot_save_failed">Tidak dapat menyimpan tangkapan layar</string>
@@ -222,7 +222,7 @@
     <string name="settings_version">Versi</string>
     <string name="settings_emulator_core">Inti Emulasi</string>
     <string name="settings_about_app">Tentang EmuCoreD</string>
-    <string name="settings_about_app_desc">EmuCoreD adalah emulator Nintendo 3DS dan pustaka game berbasis inti Azahar, dengan penyiapan cepat, navigasi jelas, dan antarmuka ramah perangkat genggam.</string>
+    <string name="settings_about_app_desc">EmuCoreD adalah emulator Nintendo DS dan Nintendo 3DS serta pustaka game berbasis melonDS dan Azahar, dengan penyiapan cepat, navigasi jelas, dan antarmuka untuk perangkat genggam.</string>
     <string name="settings_about_studio">Pengembang</string>
     <string name="settings_about_studio_desc">Dibuat oleh Sashkin Apps.</string>
     <string name="settings_about_app_source">Repositori EmuCoreD</string>
@@ -230,7 +230,7 @@
     <string name="settings_about_app_source_link">Buka EmuCoreD di GitHub</string>
     <string name="settings_about_app_source_url">https://github.com/sashkinbro/EmuCoreD</string>
     <string name="settings_about_core_source">Inti Emulasi</string>
-    <string name="settings_about_core_source_desc">Berbasis Azahar, inti emulasi Nintendo 3DS.</string>
+    <string name="settings_about_core_source_desc">Inti: Azahar (Nintendo 3DS) dan melonDS (Nintendo DS).</string>
     <string name="settings_about_core_source_link">Lihat sumber inti di GitHub</string>
     <string name="settings_about_core_source_url">https://github.com/hrydgard/azahar</string>
     <string name="settings_about_support_project">Dukung Proyek</string>
@@ -297,9 +297,9 @@
     <string name="settings_help_recent_games">Menampilkan baris akses cepat untuk game yang terakhir Anda mainkan. Bagus jika Anda sering berpindah-pindah di antara beberapa judul; matikan jika Anda menginginkan layar beranda yang lebih bersih.</string>
     <string name="settings_help_home_search">Menampilkan bilah pencarian pustaka secara langsung di layar beranda. Biarkan aktif untuk pustaka berukuran besar; matikan jika Anda lebih suka tata letak yang lebih bersih dan jarang mencari berdasarkan nama.</string>
     <string name="settings_help_prefer_english_game_titles">Menggunakan judul berbahasa Inggris dari basis data GameIndex EmuCoreD untuk game yang dikirimkan dengan bahasa Jepang atau nama regional lainnya. Ini utamanya membantu rilis impor dibaca lebih jelas di perpustakaan, sementara game tanpa judul bahasa Inggris pada basis data mempertahankan nama normalnya.</string>
-    <string name="settings_help_game_path">Menambahkan folder ke pustaka game. EmuCoreD memindai setiap folder yang dipilih secara rekursif dan menggabungkan hasilnya tanpa duplikat. Ketuk folder di daftar untuk menghapusnya. Format didukung: .3ds, .cci, .cxi, .app, .cia dan .3dsx.</string>
+    <string name="settings_help_game_path">Menambahkan folder ke pustaka game. EmuCoreD memindai setiap folder yang dipilih secara rekursif dan menggabungkan hasilnya tanpa duplikat. Ketuk folder di daftar untuk menghapusnya. Format didukung: .3ds, .cci, .cxi, .app, .cia, .3dsx, .nds, .srl, .dsi.</string>
     <string name="settings_help_renderer">Memilih backend grafis yang digunakan untuk perenderan perangkat keras. Vulkan biasanya yang tercepat di perangkat modern, OpenGL bisa lebih aman untuk kompatibilitas pada beberapa GPU, dan Perangkat Lunak (Software) sebagian besar merupakan fallback untuk pengujian atau game yang rusak parah dalam mode perangkat keras.</string>
-    <string name="settings_help_aspect_ratio">Mengatur pembingkaian gambar di layar. Otomatis menyesuaikan layar 3DS; Regangkan hanya bila disengaja.</string>
+    <string name="settings_help_aspect_ratio">Mengatur pembingkaian gambar di layar. Otomatis menyesuaikan layar DS/3DS; Regangkan hanya bila disengaja.</string>
     <string name="settings_help_overlay_scale">Mengubah ukuran tombol di layar dan stik analog. Tingkatkan ukurannya jika akurasi sentuhan lebih penting daripada ruang layar; turunkan jika hamparan (overlay) menutupi terlalu banyak gambar.</string>
     <string name="settings_help_overlay_opacity">Mengatur seberapa solid atau transparan tampilan kontrol sentuh. Opasitas yang lebih rendah membuat tampilan permainan lebih bersih, sementara opasitas yang lebih tinggi membuat tombol lebih mudah dilihat pada suasana gelap atau ramai.</string>
     <string name="settings_help_racing_mode">Membuat tombol aksi sentuh dan tombol bahu beralih status ditekan atau ditahan hanya dengan satu ketukan. Ini berguna untuk game balap di mana akselerasi harus tetap ditahan, sementara Start, Select, stik, dan D-pad mempertahankan perilaku normal.</string>
@@ -440,9 +440,9 @@
 
     <!-- Onboarding -->
     <string name="onboarding_page_1_title">Selamat datang di EmuCoreD</string>
-    <string name="onboarding_page_1_subtitle">Pustaka dan peluncur Nintendo 3DS Anda, dirancang untuk penyiapan cepat, navigasi jelas, dan kenyamanan di semua layar.</string>
+    <string name="onboarding_page_1_subtitle">Pustaka dan peluncur Nintendo DS/3DS Anda, dirancang untuk penyiapan cepat, navigasi jelas, dan kenyamanan di semua layar.</string>
     <string name="onboarding_page_2_title">Emulasi Kuat</string>
-    <string name="onboarding_page_2_subtitle">Mainkan game Nintendo 3DS favorit dengan opsi grafis lanjutan, kontrol yang dapat disesuaikan, dan optimasi performa.</string>
+    <string name="onboarding_page_2_subtitle">Mainkan game Nintendo DS/3DS favorit dengan opsi grafis lanjutan, kontrol yang dapat disesuaikan, dan optimasi performa.</string>
     <string name="onboarding_page_3_title">Pustaka Game Anda</string>
     <string name="onboarding_page_3_subtitle">Bangun pustaka pribadi dengan sampul indah, informasi rinci, dan akses cepat ke favorit.</string>
     <string name="onboarding_page_4_title">Siap Bermain</string>
@@ -470,7 +470,7 @@
     <string name="settings_mediatek_notice_title">Kompatibilitas MediaTek</string>
     <string name="settings_mediatek_notice_message">Dukungan MediaTek masih bersifat eksperimental. Crash, artefak grafis, dan perilaku tidak stabil dapat terjadi sementara kami terus meningkatkan kompatibilitas dan performa.\n\nJika mengalami masalah grafis, coba OpenGL dengan ANGLE diaktifkan. Jika masalah berlanjut, gunakan perender Perangkat Lunak.</string>
     <string name="onboarding_title">Bersiaplah untuk bermain</string>
-    <string name="onboarding_subtitle">Pilih folder game Nintendo 3DS Anda dan berikan akses file.</string>
+    <string name="onboarding_subtitle">Pilih folder game Nintendo DS/3DS Anda dan berikan akses file.</string>
     <string name="onboarding_games_title">Pilih folder game</string>
     <string name="onboarding_games_desc">Pilih folder yang berisi game Anda.</string>
     <string name="onboarding_status_required">Wajib</string>
@@ -492,7 +492,7 @@
     <string name="back">Kembali</string>
 
     <!-- Catalog Search -->
-    <string name="catalog_search_title">Katalog 3DS</string>
+    <string name="catalog_search_title">Katalog DS/DSi/3DS</string>
     <string name="catalog_filters_title">Filter</string>
     <string name="catalog_filter_genre">Genre</string>
     <string name="catalog_filter_year">Tahun</string>
@@ -504,7 +504,7 @@
     <string name="catalog_filter_any_rating">Peringkat apa pun</string>
     <string name="catalog_filters_clear">Bersihkan filter</string>
     <string name="catalog_missing_title">Basis data katalog tidak ditemukan</string>
-    <string name="catalog_missing_body">Katalog Nintendo 3DS sementara tidak tersedia.</string>
+    <string name="catalog_missing_body">Katalog Nintendo DS/DSi/3DS sementara tidak tersedia.</string>
     <string name="catalog_empty_title">Tidak ada kecocokan ditemukan</string>
     <string name="catalog_empty_body">Coba nama game lain atau frasa penelusuran yang lebih pendek.</string>
     <string name="formats_title">Format yang Didukung</string>
@@ -1076,7 +1076,7 @@
     <string name="hub_title">EmuCore-Hub</string>
     <string name="hub_tab_news">Berita</string>
     <string name="hub_tab_videos">Video</string>
-    <string name="hub_tab_history">Riwayat 3DS</string>
+    <string name="hub_tab_history">Riwayat</string>
     <string name="hub_tab_manuals">Manual</string>
     <string name="hub_related_materials">Materi terkait</string>
     <string name="hub_tab_favorites">Tersimpan</string>
@@ -1093,7 +1093,7 @@
     <string name="hub_empty_news">Belum ada berita yang tersedia.</string>
     <string name="hub_empty_videos">Belum ada video yang tersedia.</string>
     <string name="hub_empty_history">Belum ada artikel sejarah yang tersedia.</string>
-    <string name="hub_empty_manuals">Belum ada panduan Nintendo 3DS.</string>
+    <string name="hub_empty_manuals">Belum ada panduan game.</string>
     <string name="hub_empty_favorites">Artikel, manual, dan video yang tersimpan akan muncul di sini.</string>
     <string name="hub_no_search_results">Tidak ada konten yang cocok ditemukan.</string>
     <string name="hub_load_failed">Konten Hub tidak dapat dimuat.</string>
@@ -1198,7 +1198,7 @@
     <string name="settings_discord_service_error">Tidak dapat memulai layanan bantuan Discord.</string>
     <string name="settings_discord_token_error">Tidak dapat melindungi token masuk Discord.</string>
     <string name="discord_presence_library">Menjelajahi pustaka game</string>
-    <string name="discord_presence_private_game">Memainkan game Nintendo 3DS</string>
+    <string name="discord_presence_private_game">Memainkan game Nintendo DS/3DS</string>
     <string name="discord_presence_paused">Dijeda</string>
     <string name="discord_presence_playing">Memainkan %1$s</string>
     <string name="discord_friends_title">Teman di EmuCoreD</string>
@@ -1225,7 +1225,7 @@
     <string name="settings_rewind">Mundur</string>
     <string name="settings_rewind_desc">Tahan kontrol mundur untuk kembali. Snapshot status penuh disimpan tiap beberapa detik, yang memakai CPU ekstra.</string>
     <string name="settings_target_fps">Laju bingkai target</string>
-    <string name="settings_target_fps_desc">Otomatis memakai laju bingkai yang dilaporkan Azahar. Nilai manual mengatur kecepatan emulasi; game dapat menampilkan lebih sedikit bingkai.</string>
+    <string name="settings_target_fps_desc">Otomatis memakai laju bingkai yang dilaporkan inti aktif. Nilai manual mengatur kecepatan emulasi; game dapat menampilkan lebih sedikit bingkai.</string>
     <string name="settings_display_crop">Pangkas tampilan</string>
     <string name="settings_display_crop_desc">Memangkas jumlah piksel yang sama dari keempat tepi sebelum penskalaan. Pilih 0 untuk menonaktifkan pemangkasan.</string>
     <string name="settings_display_crop_pixels">%1$d px</string>
@@ -1495,7 +1495,7 @@
     <string name="profile_player">Pemain</string>
     <string name="profile_player_blocked">Player blocked.</string>
     <string name="profile_player_card_brand">KARTU PEMAIN EMUCORED</string>
-    <string name="profile_player_card_footer">Kenangan Nintendo 3DS, dicatat oleh EmuCoreD</string>
+    <string name="profile_player_card_footer">Kenangan Nintendo DS/3DS, dicatat oleh EmuCoreD</string>
     <string name="profile_player_card_share">Bagikan Kartu Pemain</string>
     <string name="profile_player_card_share_text">Temukan saya di EmuCoreD: %1$s</string>
     <string name="profile_player_id_format">ID Pemain: %1$s</string>
@@ -1693,7 +1693,7 @@
     <string name="emulation_second_screen_swap">Tukar layar atas dan bawah</string>
     <string name="emulation_second_screen_move">Seret untuk memindahkan tab</string>
     <string name="settings_second_screen">Layar kedua</string>
-    <string name="settings_second_screen_desc">Tempat layar bawah 3DS ditampilkan saat bermain.</string>
+    <string name="settings_second_screen_desc">Tempat layar bawah ditampilkan saat bermain.</string>
     <string name="settings_second_screen_integrated">Kedua layar dalam satu tampilan</string>
     <string name="settings_second_screen_panel">Panel bawah tarik-keluar</string>
     <string name="settings_second_screen_width">Lebar panel</string>

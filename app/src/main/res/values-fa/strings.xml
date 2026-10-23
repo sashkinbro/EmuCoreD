@@ -1,17 +1,17 @@
 <resources>
     <string name="emulation_runtime_failure_title">شبیه‌سازی متوقف شد</string>
     <string name="emulation_runtime_failure_description">محیط اجرا با خطایی مواجه شد و نمی‌تواند با خیال راحت ادامه دهد. از این نشست خارج شوید و بازی را دوباره شروع کنید. رندرر به‌صورت خودکار تغییر نکرد.\n\nجزئیات:\n</string>
-    <string name="onboarding_core_title">ساخته‌شده برای Nintendo 3DS</string>
-    <string name="onboarding_core_subtitle">یک هسته پاک Nintendo 3DS با بازکامپایل ARM64 و رندر Vulkan.</string>
-    <string name="onboarding_core_card_title">معماری بومی 3DS</string>
-    <string name="onboarding_core_card_cpu">اجرای ARM11 از بازکامپایلر پویای Azahar برای کارایی روان عبور می‌کند.</string>
-    <string name="onboarding_core_card_gpu">گرافیک 3DS با Vulkan و مسیرهای پشتیبان OpenGL و نرم‌افزاری رندر می‌شود.</string>
+    <string name="onboarding_core_title">ساخته‌شده برای Nintendo DS/3DS</string>
+    <string name="onboarding_core_subtitle">هسته‌های داخلی Azahar و melonDS برای Nintendo 3DS و Nintendo DS، با بازکامپایل پویای ARM64 و رندر Vulkan.</string>
+    <string name="onboarding_core_card_title">دو هستهٔ شبیه‌سازی داخلی</string>
+    <string name="onboarding_core_card_cpu">Azahar ‏(3DS) و melonDS ‏(DS) برای کارایی روان از بازکامپایل پویای ARM64 استفاده می‌کنند.</string>
+    <string name="onboarding_core_card_gpu">DS از Vulkan و رندر نرم‌افزاری پشتیبانی می‌کند؛ 3DS گزینهٔ OpenGL را نیز دارد.</string>
     <string name="onboarding_core_card_reference">هیچ سطح پرداختی لازم نیست؛ همه ویژگی‌های هسته در دسترس هستند.</string>
     <string name="app_name">EmuCoreD</string>
 
     <!-- Navigation -->
     <string name="shell_library">کتابخانه</string>
-    <string name="shell_catalog_search">جستجوی 3DS</string>
+    <string name="shell_catalog_search">جستجوی DS/DSi/3DS</string>
     <string name="shell_supported_formats">فرمت‌های پشتیبانی شده</string>
 
     <!-- Home Screen -->
@@ -48,8 +48,8 @@
     <string name="detail_show_more">نمایش بیشتر</string>
     <string name="detail_show_less">نمایش کمتر</string>
     <string name="detail_no_data_title">جزئیاتی در دسترس نیست</string>
-    <string name="detail_no_data_body">هنوز نتوانستیم این بازی را با کاتالوگ محلی Nintendo 3DS تطبیق دهیم.</string>
-    <string name="detail_catalog_missing_body">جزئیات کاتالوگ Nintendo 3DS موقتاً در دسترس نیست.</string>
+    <string name="detail_no_data_body">هنوز نتوانستیم این بازی را با کاتالوگ محلی Nintendo DS/DSi/3DS تطبیق دهیم.</string>
+    <string name="detail_catalog_missing_body">جزئیات کاتالوگ Nintendo DS/DSi/3DS موقتاً در دسترس نیست.</string>
     <string name="detail_save_screenshot">ذخیره اسکرین‌شات</string>
     <string name="detail_screenshot_saved">اسکرین‌شات ذخیره شد</string>
     <string name="detail_screenshot_save_failed">ذخیره اسکرین‌شات انجام نشد</string>
@@ -222,7 +222,7 @@
     <string name="settings_version">نسخه</string>
     <string name="settings_emulator_core">هسته شبیه‌سازی</string>
     <string name="settings_about_app">درباره EmuCoreD</string>
-    <string name="settings_about_app_desc">EmuCoreD یک شبیه‌ساز Nintendo 3DS و کتابخانه بازی مبتنی بر هسته Azahar است، با راه‌اندازی سریع، پیمایش روشن و رابط مناسب دستگاه‌های همراه.</string>
+    <string name="settings_about_app_desc">EmuCoreD شبیه‌ساز Nintendo DS و Nintendo 3DS و کتابخانهٔ بازی مبتنی بر melonDS و Azahar است، با راه‌اندازی سریع، پیمایش روشن و رابط مناسب دستگاه‌های همراه.</string>
     <string name="settings_about_studio">توسعه‌دهنده</string>
     <string name="settings_about_studio_desc">ایجاد شده توسط Sashkin Apps.</string>
     <string name="settings_about_app_source">مخزن EmuCoreD</string>
@@ -230,7 +230,7 @@
     <string name="settings_about_app_source_link">باز کردن EmuCoreD در GitHub</string>
     <string name="settings_about_app_source_url">https://github.com/sashkinbro/EmuCoreD</string>
     <string name="settings_about_core_source">هسته شبیه‌سازی</string>
-    <string name="settings_about_core_source_desc">بر پایه Azahar، هسته شبیه‌سازی Nintendo 3DS.</string>
+    <string name="settings_about_core_source_desc">هسته‌ها: Azahar ‏(Nintendo 3DS) و melonDS ‏(Nintendo DS).</string>
     <string name="settings_about_core_source_link">مشاهده کد منبع هسته در GitHub</string>
     <string name="settings_about_core_source_url">https://github.com/hrydgard/azahar</string>
     <string name="settings_about_support_project">حمایت از پروژه</string>
@@ -297,9 +297,9 @@
     <string name="settings_help_recent_games">ردیفی با دسترسی سریع برای بازی‌هایی که آخرین بار انجام داده‌اید نشان می‌دهد.</string>
     <string name="settings_help_home_search">نوار جستجوی کتابخانه را مستقیماً در صفحه اصلی نشان می‌دهد.</string>
     <string name="settings_help_prefer_english_game_titles">از عناوین انگلیسی از پایگاه داده GameIndex مربوط به EmuCoreD استفاده می‌کند.</string>
-    <string name="settings_help_game_path">پوشه‌ها را به کتابخانه بازی اضافه می‌کند. EmuCoreD هر پوشه انتخاب‌شده را بازگشتی بررسی و نتایج را بدون مسیر تکراری ادغام می‌کند. برای حذف، روی پوشه در فهرست بزنید. قالب‌های پشتیبانی‌شده: .3ds، .cci، .cxi، .app، .cia و .3dsx.</string>
+    <string name="settings_help_game_path">پوشه‌ها را به کتابخانه بازی اضافه می‌کند. EmuCoreD هر پوشه انتخاب‌شده را بازگشتی بررسی و نتایج را بدون مسیر تکراری ادغام می‌کند. برای حذف، روی پوشه در فهرست بزنید. قالب‌های پشتیبانی‌شده: .3ds, .cci, .cxi, .app, .cia, .3dsx, .nds, .srl, .dsi.</string>
     <string name="settings_help_renderer">موتور گرافیکی مورد استفاده برای رندر سخت‌افزاری را انتخاب می‌کند.</string>
-    <string name="settings_help_aspect_ratio">نحوه قاب‌بندی تصویر روی صفحه را کنترل می‌کند. خودکار صفحه‌های 3DS را تنظیم می‌کند؛ کشیدن را فقط با آگاهی استفاده کنید.</string>
+    <string name="settings_help_aspect_ratio">نحوه قاب‌بندی تصویر روی صفحه را کنترل می‌کند. خودکار صفحه‌های DS/3DS را تنظیم می‌کند؛ کشیدن را فقط با آگاهی استفاده کنید.</string>
     <string name="settings_help_overlay_scale">اندازه دکمه‌های روی صفحه و استیک‌ها را تغییر می‌دهد.</string>
     <string name="settings_help_overlay_opacity">کنترل می‌کند که کنترل‌های لمسی چقدر مات یا شفاف باشند.</string>
     <string name="settings_help_racing_mode">باعث می‌شود دکمه‌های اکشن لمسی و دکمه‌های شانه با یک ضربه، حالت فشرده خود را تغییر دهند.</string>
@@ -440,9 +440,9 @@
 
     <!-- Onboarding -->
     <string name="onboarding_page_1_title">به EmuCoreD خوش آمدید</string>
-    <string name="onboarding_page_1_subtitle">کتابخانه و اجراکننده Nintendo 3DS شما، برای راه‌اندازی سریع، پیمایش روشن و تجربه راحت روی هر صفحه.</string>
+    <string name="onboarding_page_1_subtitle">کتابخانه و اجراکننده Nintendo DS/3DS شما، برای راه‌اندازی سریع، پیمایش روشن و تجربه راحت روی هر صفحه.</string>
     <string name="onboarding_page_2_title">شبیه‌سازی قدرتمند</string>
-    <string name="onboarding_page_2_subtitle">بازی‌های محبوب Nintendo 3DS را با گزینه‌های گرافیکی پیشرفته، کنترل‌های قابل تنظیم و بهینه‌سازی کارایی تجربه کنید.</string>
+    <string name="onboarding_page_2_subtitle">بازی‌های محبوب Nintendo DS/3DS را با گزینه‌های گرافیکی پیشرفته، کنترل‌های قابل تنظیم و بهینه‌سازی کارایی تجربه کنید.</string>
     <string name="onboarding_page_3_title">کتابخانه بازی‌های شما</string>
     <string name="onboarding_page_3_subtitle">کتابخانه شخصی خود را با جلدهای زیبا، اطلاعات کامل و دسترسی سریع به علاقه‌مندی‌ها بسازید.</string>
     <string name="onboarding_page_4_title">آماده بازی</string>
@@ -470,7 +470,7 @@
     <string name="settings_mediatek_notice_title">سازگاری MediaTek</string>
     <string name="settings_mediatek_notice_message">پشتیبانی از MediaTek هنوز آزمایشی است. تا زمانی که به بهبود سازگاری و عملکرد ادامه می‌دهیم، ممکن است خرابی، اشکالات گرافیکی و عملکرد ناپایدار رخ دهد.\n\nاگر با مشکل گرافیکی روبه‌رو شدید، OpenGL را با ANGLE فعال امتحان کنید. اگر مشکل ادامه داشت، از رندرکننده نرم‌افزاری استفاده کنید.</string>
     <string name="onboarding_title">برای بازی آماده شوید</string>
-    <string name="onboarding_subtitle">پوشه‌های بازی Nintendo 3DS را انتخاب کنید و دسترسی فایل بدهید.</string>
+    <string name="onboarding_subtitle">پوشه‌های بازی Nintendo DS/3DS را انتخاب کنید و دسترسی فایل بدهید.</string>
     <string name="onboarding_games_title">انتخاب پوشه بازی‌ها</string>
     <string name="onboarding_games_desc">پوشه‌ای را که حاوی بازی‌های شماست انتخاب کنید.</string>
     <string name="onboarding_status_required">الزامی است</string>
@@ -492,7 +492,7 @@
     <string name="back">بازگشت</string>
 
     <!-- Catalog Search -->
-    <string name="catalog_search_title">کاتالوگ 3DS</string>
+    <string name="catalog_search_title">کاتالوگ DS/DSi/3DS</string>
     <string name="catalog_filters_title">فیلترها</string>
     <string name="catalog_filter_genre">ژانر</string>
     <string name="catalog_filter_year">سال</string>
@@ -504,7 +504,7 @@
     <string name="catalog_filter_any_rating">هر رده‌بندی</string>
     <string name="catalog_filters_clear">پاک کردن فیلترها</string>
     <string name="catalog_missing_title">پایگاه داده کاتالوگ پیدا نشد</string>
-    <string name="catalog_missing_body">کاتالوگ Nintendo 3DS فعلاً در دسترس نیست.</string>
+    <string name="catalog_missing_body">کاتالوگ Nintendo DS/DSi/3DS فعلاً در دسترس نیست.</string>
     <string name="catalog_empty_title">هیچ مطابقتی یافت نشد</string>
     <string name="catalog_empty_body">یک نام بازی متفاوت یا یک عبارت جستجوی کوتاه‌تر را امتحان کنید.</string>
     <string name="formats_title">فرمت‌های پشتیبانی شده</string>
@@ -1077,7 +1077,7 @@
     <string name="hub_title">EmuCore-Hub</string>
     <string name="hub_tab_news">اخبار</string>
     <string name="hub_tab_videos">ویدیوها</string>
-    <string name="hub_tab_history">تاریخچه 3DS</string>
+    <string name="hub_tab_history">تاریخچه</string>
     <string name="hub_tab_manuals">راهنماها</string>
     <string name="hub_related_materials">مطالب مرتبط</string>
     <string name="hub_tab_favorites">ذخیره شده</string>
@@ -1094,7 +1094,7 @@
     <string name="hub_empty_news">هنوز خبری در دسترس نیست.</string>
     <string name="hub_empty_videos">هنوز ویدیویی در دسترس نیست.</string>
     <string name="hub_empty_history">هنوز مقاله تاریخی در دسترس نیست.</string>
-    <string name="hub_empty_manuals">هنوز راهنمای Nintendo 3DS موجود نیست.</string>
+    <string name="hub_empty_manuals">هنوز راهنمای بازی موجود نیست.</string>
     <string name="hub_empty_favorites">مقالات، راهنماها و ویدیوهای ذخیره‌شده اینجا ظاهر می‌شوند.</string>
     <string name="hub_no_search_results">محتوای مطابق یافت نشد.</string>
     <string name="hub_load_failed">محتوای هاب بارگیری نشد.</string>
@@ -1199,7 +1199,7 @@
     <string name="settings_discord_service_error">سرویس کمکی Discord راه‌اندازی نشد.</string>
     <string name="settings_discord_token_error">محافظت از توکن ورود Discord ممکن نشد.</string>
     <string name="discord_presence_library">در حال مرور کتابخانه بازی‌ها</string>
-    <string name="discord_presence_private_game">در حال بازی Nintendo 3DS</string>
+    <string name="discord_presence_private_game">در حال بازی Nintendo DS/3DS</string>
     <string name="discord_presence_paused">مکث</string>
     <string name="discord_presence_playing">در حال اجرای %1$s</string>
     <string name="discord_friends_title">دوستان در EmuCoreD</string>
@@ -1226,7 +1226,7 @@
     <string name="settings_rewind">عقب‌گرد</string>
     <string name="settings_rewind_desc">برای بازگشت، دکمه عقب‌گرد را نگه دارید. هر چند ثانیه یک تصویر کامل از وضعیت ذخیره می‌شود که پردازنده بیشتری مصرف می‌کند.</string>
     <string name="settings_target_fps">نرخ فریم هدف</string>
-    <string name="settings_target_fps_desc">حالت خودکار از نرخ فریم گزارش‌شده توسط Azahar استفاده می‌کند. مقدار دستی سرعت شبیه‌سازی را تعیین می‌کند؛ بازی ممکن است فریم‌های کمتری نمایش دهد.</string>
+    <string name="settings_target_fps_desc">حالت خودکار از نرخ فریم گزارش‌شده توسط هستهٔ فعال استفاده می‌کند. مقادیر دستی سرعت شبیه‌سازی را تعیین می‌کنند؛ بازی ممکن است فریم‌های کمتری نمایش دهد.</string>
     <string name="settings_display_crop">برش تصویر</string>
     <string name="settings_display_crop_desc">پیش از تغییر اندازه، تعداد یکسانی پیکسل از هر چهار لبه برش می‌دهد. برای غیرفعال کردن برش، 0 را انتخاب کنید.</string>
     <string name="settings_display_crop_pixels">%1$d پیکسل</string>
@@ -1496,7 +1496,7 @@
     <string name="profile_player">بازیکن</string>
     <string name="profile_player_blocked">Player blocked.</string>
     <string name="profile_player_card_brand">کارت بازیکن EMUCORED</string>
-    <string name="profile_player_card_footer">خاطرات Nintendo 3DS، ثبت‌شده توسط EmuCoreD</string>
+    <string name="profile_player_card_footer">خاطرات Nintendo DS/3DS، ثبت‌شده توسط EmuCoreD</string>
     <string name="profile_player_card_share">اشتراک‌گذاری کارت بازیکن</string>
     <string name="profile_player_card_share_text">مرا در EmuCoreD پیدا کنید: %1$s</string>
     <string name="profile_player_id_format">شناسه بازیکن: %1$s</string>
@@ -1694,7 +1694,7 @@
     <string name="emulation_second_screen_swap">جابه‌جایی صفحه بالا و پایین</string>
     <string name="emulation_second_screen_move">برای جابه‌جایی زبانه بکشید</string>
     <string name="settings_second_screen">صفحه دوم</string>
-    <string name="settings_second_screen_desc">محل نمایش صفحه پایین 3DS هنگام بازی.</string>
+    <string name="settings_second_screen_desc">محل نمایش صفحه پایین هنگام بازی.</string>
     <string name="settings_second_screen_integrated">هر دو صفحه در یک نما</string>
     <string name="settings_second_screen_panel">پنل پایین کشویی</string>
     <string name="settings_second_screen_width">عرض پنل</string>

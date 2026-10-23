@@ -1,16 +1,16 @@
 <resources>
     <string name="emulation_runtime_failure_title">에뮬레이션이 중지되었습니다</string>
     <string name="emulation_runtime_failure_description">런타임에서 오류가 발생하여 안전하게 계속할 수 없습니다. 이 세션을 종료하고 게임을 다시 시작하세요. 렌더러는 자동으로 변경되지 않았습니다.\n\n세부정보:\n</string>
-    <string name="onboarding_core_title">Nintendo 3DS를 위해</string>
-    <string name="onboarding_core_subtitle">ARM64 재컴파일과 Vulkan 렌더링을 갖춘 깔끔한 Nintendo 3DS 코어.</string>
-    <string name="onboarding_core_card_title">네이티브 3DS 아키텍처</string>
-    <string name="onboarding_core_card_cpu">ARM11 실행이 Azahar의 동적 재컴파일러를 거쳐 부드럽게 동작합니다.</string>
-    <string name="onboarding_core_card_gpu">3DS 그래픽은 Vulkan으로 렌더링되며 OpenGL과 소프트웨어 대체 경로가 있습니다.</string>
+    <string name="onboarding_core_title">Nintendo DS/3DS를 위해</string>
+    <string name="onboarding_core_subtitle">Nintendo 3DS용 Azahar와 Nintendo DS용 melonDS 코어가 내장되어 있으며 ARM64 동적 재컴파일과 Vulkan 렌더링을 지원합니다.</string>
+    <string name="onboarding_core_card_title">두 개의 에뮬레이션 코어 내장</string>
+    <string name="onboarding_core_card_cpu">Azahar(3DS)와 melonDS(DS)는 ARM64 동적 재컴파일로 부드러운 성능을 제공합니다.</string>
+    <string name="onboarding_core_card_gpu">DS는 Vulkan과 소프트웨어 렌더링을 지원하며, 3DS는 OpenGL도 제공합니다.</string>
     <string name="onboarding_core_card_reference">유료 등급이 필요하지 않으며 모든 코어 기능을 사용할 수 있습니다.</string>
     <string name="app_name">EmuCoreD</string>
 
     <string name="shell_library">라이브러리</string>
-    <string name="shell_catalog_search">3DS 검색</string>
+    <string name="shell_catalog_search">DS/DSi/3DS 검색</string>
     <string name="shell_supported_formats">지원되는 형식</string>
 
     <string name="home_empty_title">게임을 찾을 수 없습니다</string>
@@ -45,8 +45,8 @@
     <string name="detail_show_more">더 보기</string>
     <string name="detail_show_less">간략히 보기</string>
     <string name="detail_no_data_title">상세 정보 없음</string>
-    <string name="detail_no_data_body">이 게임을 아직 로컬 Nintendo 3DS 카탈로그와 연결하지 못했습니다.</string>
-    <string name="detail_catalog_missing_body">Nintendo 3DS 카탈로그 세부 정보를 일시적으로 사용할 수 없습니다.</string>
+    <string name="detail_no_data_body">이 게임을 아직 로컬 Nintendo DS/DSi/3DS 카탈로그와 연결하지 못했습니다.</string>
+    <string name="detail_catalog_missing_body">Nintendo DS/DSi/3DS 카탈로그 세부 정보를 일시적으로 사용할 수 없습니다.</string>
     <string name="detail_save_screenshot">스크린샷 저장</string>
     <string name="detail_screenshot_saved">스크린샷이 저장되었습니다</string>
     <string name="detail_screenshot_save_failed">스크린샷을 저장할 수 없습니다</string>
@@ -203,7 +203,7 @@
     <string name="settings_version">버전</string>
     <string name="settings_emulator_core">에뮬레이션 코어</string>
     <string name="settings_about_app">EmuCoreD 정보</string>
-    <string name="settings_about_app_desc">EmuCoreD는 Azahar 코어를 사용하는 Nintendo 3DS 에뮬레이터 겸 게임 라이브러리로, 빠른 설정과 명확한 탐색, 휴대 기기에 맞는 인터페이스를 제공합니다.</string>
+    <string name="settings_about_app_desc">EmuCoreD는 melonDS와 Azahar 기반의 Nintendo DS 및 Nintendo 3DS 에뮬레이터 겸 게임 라이브러리로, 빠른 설정과 명확한 탐색, 휴대 기기에 맞는 인터페이스를 제공합니다.</string>
     <string name="settings_about_studio">개발자</string>
     <string name="settings_about_studio_desc">Sashkin Apps 제작.</string>
     <string name="settings_about_support_project">프로젝트 후원</string>
@@ -244,9 +244,9 @@
     <string name="settings_help_recent_games">마지막으로 플레이한 게임의 빠른 액세스 행을 표시합니다. 몇 가지 타이틀을 자주 오가는 경우 유용합니다. 더 깔끔한 홈 화면을 원한다면 끄세요.</string>
     <string name="settings_help_home_search">홈 화면에 라이브러리 검색창을 직접 표시합니다. 라이브러리가 크면 켜두고, 이름으로 검색하는 일이 드물고 깔끔한 레이아웃을 선호한다면 끄세요.</string>
     <string name="settings_help_prefer_english_game_titles">일본어 또는 기타 지역 이름으로 출시된 게임에 대해 EmuCoreD의 GameIndex 데이터베이스에 있는 영어 제목을 사용합니다. 주로 수입 게임을 라이브러리에서 더 명확하게 읽을 수 있도록 도와주며, 영어 데이터베이스 제목이 없는 게임은 원래 이름을 유지합니다.</string>
-    <string name="settings_help_game_path">게임 라이브러리에 폴더를 추가합니다. EmuCoreD는 선택한 각 폴더를 재귀적으로 검사하고 중복 없이 병합합니다. 목록에서 폴더를 탭하면 제거됩니다. 지원 형식: .3ds, .cci, .cxi, .app, .cia, .3dsx.</string>
+    <string name="settings_help_game_path">게임 라이브러리에 폴더를 추가합니다. EmuCoreD는 선택한 각 폴더를 재귀적으로 검사하고 중복 없이 병합합니다. 목록에서 폴더를 탭하면 제거됩니다. 지원 형식: .3ds, .cci, .cxi, .app, .cia, .3dsx, .nds, .srl, .dsi.</string>
     <string name="settings_help_renderer">하드웨어 렌더링에 사용되는 그래픽 백엔드를 선택합니다. Vulkan은 일반적으로 최신 기기에서 가장 빠르며, OpenGL은 일부 GPU에서 호환성에 더 안전할 수 있고, 소프트웨어는 주로 테스트용이나 하드웨어 모드에서 심하게 깨지는 게임을 위한 대체 수단입니다.</string>
-    <string name="settings_help_aspect_ratio">화면에 영상을 맞추는 방식을 정합니다. 자동은 3DS 화면에 맞추며, 늘이기는 왜곡을 감수할 때만 사용하세요.</string>
+    <string name="settings_help_aspect_ratio">화면에 영상을 맞추는 방식을 정합니다. 자동은 DS/3DS 화면에 맞추며, 늘이기는 왜곡을 감수할 때만 사용하세요.</string>
     <string name="settings_help_overlay_scale">화면 버튼 및 스틱의 크기를 변경합니다. 화면 공간보다 터치 정확도가 더 중요하면 높이고, 오버레이가 이미지를 너무 많이 가리면 낮추세요.</string>
     <string name="settings_help_overlay_opacity">터치 컨트롤이 얼마나 불투명하거나 투명하게 보일지 제어합니다. 불투명도가 낮으면 게임 뷰가 더 깔끔해지고, 불투명도가 높으면 어둡거나 바쁜 씬에서 버튼을 더 쉽게 볼 수 있습니다.</string>
     <string name="settings_help_left_stick_sensitivity">왼쪽 터치 스틱이 더 강한 이동 입력에 도달하는 속도를 조정합니다. 값이 높을수록 더 빨리 반응하고, 값이 낮을수록 미세한 이동 보정이 더 쉬워집니다.</string>
@@ -364,9 +364,9 @@
     <string name="settings_fps_overlay_mode_detailed">통계</string>
 
     <string name="onboarding_page_1_title">EmuCoreD에 오신 것을 환영합니다</string>
-    <string name="onboarding_page_1_subtitle">빠른 설정, 명확한 탐색, 모든 화면에서 편안한 사용을 위해 설계된 Nintendo 3DS 라이브러리와 런처입니다.</string>
+    <string name="onboarding_page_1_subtitle">빠른 설정, 명확한 탐색, 모든 화면에서 편안한 사용을 위해 설계된 Nintendo DS/3DS 라이브러리와 런처입니다.</string>
     <string name="onboarding_page_2_title">강력한 에뮬레이션</string>
-    <string name="onboarding_page_2_subtitle">고급 그래픽 옵션과 사용자 지정 컨트롤, 성능 최적화로 좋아하는 Nintendo 3DS 게임을 즐기세요.</string>
+    <string name="onboarding_page_2_subtitle">고급 그래픽 옵션과 사용자 지정 컨트롤, 성능 최적화로 좋아하는 Nintendo DS/3DS 게임을 즐기세요.</string>
     <string name="onboarding_page_3_title">나만의 게임 라이브러리</string>
     <string name="onboarding_page_3_subtitle">멋진 커버와 자세한 정보, 즐겨찾기 빠른 접근으로 나만의 게임 라이브러리를 만드세요.</string>
     <string name="onboarding_page_4_title">플레이 준비 완료</string>
@@ -378,7 +378,7 @@
     <string name="onboarding_profile_fast_title">빠름 / 비안전 (Fast)</string>
     <string name="onboarding_profile_fast_desc">추가 속도가 필요한 약한 기기용입니다. 일부 게임에서는 더 많은 결함이 나타나거나 안정성이 떨어질 수 있습니다.</string>
     <string name="onboarding_title">플레이할 준비를 하세요</string>
-    <string name="onboarding_subtitle">Nintendo 3DS 게임 폴더를 선택하고 파일 접근을 허용하세요.</string>
+    <string name="onboarding_subtitle">Nintendo DS/3DS 게임 폴더를 선택하고 파일 접근을 허용하세요.</string>
     <string name="onboarding_games_title">게임 폴더 선택</string>
     <string name="onboarding_games_desc">게임이 포함된 폴더를 선택하세요.</string>
     <string name="onboarding_status_required">필요함</string>
@@ -396,7 +396,7 @@
     <string name="no">아니요</string>
     <string name="back">뒤로</string>
 
-    <string name="catalog_search_title">3DS 카탈로그</string>
+    <string name="catalog_search_title">DS/DSi/3DS 카탈로그</string>
     <string name="catalog_filters_title">필터</string>
     <string name="catalog_filter_genre">장르</string>
     <string name="catalog_filter_year">연도</string>
@@ -408,7 +408,7 @@
     <string name="catalog_filter_any_rating">모든 등급</string>
     <string name="catalog_filters_clear">필터 지우기</string>
     <string name="catalog_missing_title">카탈로그 데이터베이스를 찾을 수 없음</string>
-    <string name="catalog_missing_body">Nintendo 3DS 카탈로그를 현재 사용할 수 없습니다.</string>
+    <string name="catalog_missing_body">Nintendo DS/DSi/3DS 카탈로그를 현재 사용할 수 없습니다.</string>
     <string name="catalog_empty_title">일치하는 항목을 찾을 수 없음</string>
     <string name="catalog_empty_body">다른 게임 이름이나 더 짧은 검색어를 시도해 보세요.</string>
     <string name="formats_title">지원되는 형식</string>
@@ -581,7 +581,7 @@
     <string name="settings_about_app_source_link">GitHub에서 EmuCoreD 열기</string>
     <string name="settings_about_app_source_url">https://github.com/sashkinbro/EmuCoreD</string>
     <string name="settings_about_core_source">에뮬레이션 코어</string>
-    <string name="settings_about_core_source_desc">Nintendo 3DS 에뮬레이션 코어 Azahar 기반입니다.</string>
+    <string name="settings_about_core_source_desc">코어: Azahar(Nintendo 3DS), melonDS(Nintendo DS).</string>
     <string name="settings_about_core_source_link">GitHub에서 코어 소스 보기</string>
     <string name="settings_about_core_source_url">https://github.com/hrydgard/azahar</string>
     <string name="settings_touch_haptics_strength">터치 햅틱 강도</string>
@@ -1061,7 +1061,7 @@
     <string name="hub_title">EmuCore-Hub</string>
     <string name="hub_tab_news">뉴스</string>
     <string name="hub_tab_videos">동영상</string>
-    <string name="hub_tab_history">3DS 기록</string>
+    <string name="hub_tab_history">기록</string>
     <string name="hub_tab_manuals">매뉴얼</string>
     <string name="hub_related_materials">관련 자료</string>
     <string name="hub_tab_favorites">저장됨</string>
@@ -1078,7 +1078,7 @@
     <string name="hub_empty_news">아직 사용할 수 있는 뉴스가 없습니다.</string>
     <string name="hub_empty_videos">아직 사용할 수 있는 동영상이 없습니다.</string>
     <string name="hub_empty_history">아직 사용할 수 있는 역사 관련 문서가 없습니다.</string>
-    <string name="hub_empty_manuals">Nintendo 3DS 설명서가 아직 없습니다.</string>
+    <string name="hub_empty_manuals">게임 설명서가 아직 없습니다.</string>
     <string name="hub_empty_favorites">저장된 문서, 매뉴얼 및 동영상이 여기에 표시됩니다.</string>
     <string name="hub_no_search_results">일치하는 콘텐츠가 없습니다.</string>
     <string name="hub_load_failed">허브 콘텐츠를 불러올 수 없습니다.</string>
@@ -1183,7 +1183,7 @@
     <string name="settings_discord_service_error">Discord 도우미 서비스를 시작할 수 없습니다.</string>
     <string name="settings_discord_token_error">Discord 로그인 토큰을 보호할 수 없습니다.</string>
     <string name="discord_presence_library">게임 라이브러리 탐색 중</string>
-    <string name="discord_presence_private_game">Nintendo 3DS 게임 플레이 중</string>
+    <string name="discord_presence_private_game">Nintendo DS/3DS 게임 플레이 중</string>
     <string name="discord_presence_paused">일시 정지</string>
     <string name="discord_presence_playing">%1$s 플레이 중</string>
     <string name="discord_friends_title">EmuCoreD의 친구</string>
@@ -1210,7 +1210,7 @@
     <string name="settings_rewind">되감기</string>
     <string name="settings_rewind_desc">되감기 버튼을 길게 누르면 뒤로 이동합니다. 몇 초마다 전체 상태 스냅샷을 저장하므로 CPU를 추가로 사용합니다.</string>
     <string name="settings_target_fps">목표 프레임 속도</string>
-    <string name="settings_target_fps_desc">자동은 PPSSPP가 보고한 프레임 속도를 사용합니다. 수동 값은 에뮬레이션 속도를 정하며, 게임은 더 적은 프레임을 표시할 수 있습니다.</string>
+    <string name="settings_target_fps_desc">자동은 현재 코어가 보고한 프레임 속도를 사용합니다. 수동 값은 에뮬레이션 속도를 정하며, 게임은 더 적은 프레임을 표시할 수 있습니다.</string>
     <string name="settings_display_crop">화면 자르기</string>
     <string name="settings_display_crop_desc">크기 조정 전에 네 가장자리에서 같은 수의 픽셀을 잘라냅니다. 자르기를 끄려면 0을 선택하세요.</string>
     <string name="settings_display_crop_pixels">%1$d px</string>
@@ -1480,7 +1480,7 @@
     <string name="profile_player">플레이어</string>
     <string name="profile_player_blocked">Player blocked.</string>
     <string name="profile_player_card_brand">EMUCORED 플레이어 카드</string>
-    <string name="profile_player_card_footer">EmuCoreD가 기록하는 Nintendo 3DS 추억</string>
+    <string name="profile_player_card_footer">EmuCoreD가 기록하는 Nintendo DS/3DS 추억</string>
     <string name="profile_player_card_share">플레이어 카드 공유</string>
     <string name="profile_player_card_share_text">EmuCoreD에서 저를 찾아보세요: %1$s</string>
     <string name="profile_player_id_format">플레이어 ID: %1$s</string>
@@ -1678,7 +1678,7 @@
     <string name="emulation_second_screen_swap">위/아래 화면 교체</string>
     <string name="emulation_second_screen_move">드래그하여 탭 이동</string>
     <string name="settings_second_screen">두 번째 화면</string>
-    <string name="settings_second_screen_desc">플레이 중 3DS 아래 화면을 표시할 위치.</string>
+    <string name="settings_second_screen_desc">플레이 중 아래 화면을 표시할 위치.</string>
     <string name="settings_second_screen_integrated">두 화면을 한 화면에</string>
     <string name="settings_second_screen_panel">밀어서 여는 아래 패널</string>
     <string name="settings_second_screen_width">패널 너비</string>

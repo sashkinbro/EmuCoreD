@@ -1,17 +1,17 @@
 <resources>
     <string name="emulation_runtime_failure_title">Emulace zastavena</string>
     <string name="emulation_runtime_failure_description">Běhové prostředí narazilo na chybu a nemůže bezpečně pokračovat. Ukončete tuto relaci a spusťte hru znovu. Renderer nebyl automaticky změněn.\n\nPodrobnosti:\n</string>
-    <string name="onboarding_core_title">Vytvořeno pro Nintendo 3DS</string>
-    <string name="onboarding_core_subtitle">Čisté jádro Nintendo 3DS s ARM64 rekompilací a vykreslováním Vulkan.</string>
-    <string name="onboarding_core_card_title">Nativní architektura 3DS</string>
-    <string name="onboarding_core_card_cpu">Vykonávání ARM11 běží přes dynamický rekompilátor Azahar pro plynulý výkon.</string>
-    <string name="onboarding_core_card_gpu">Grafika 3DS se vykresluje přes Vulkan s náhradními cestami OpenGL a softwarovou.</string>
+    <string name="onboarding_core_title">Vytvořeno pro Nintendo DS/3DS</string>
+    <string name="onboarding_core_subtitle">Integrovaná jádra Azahar a melonDS pro Nintendo 3DS a Nintendo DS s dynamickou rekompilací ARM64 a vykreslováním Vulkan.</string>
+    <string name="onboarding_core_card_title">Dvě integrovaná emulační jádra</string>
+    <string name="onboarding_core_card_cpu">Azahar (3DS) a melonDS (DS) používají dynamickou rekompilaci ARM64 pro plynulý výkon.</string>
+    <string name="onboarding_core_card_gpu">DS podporuje Vulkan a softwarové vykreslování; 3DS nabízí také OpenGL.</string>
     <string name="onboarding_core_card_reference">Není vyžadována žádná placená úroveň; všechny funkce jádra jsou dostupné.</string>
     <string name="app_name">EmuCoreD</string>
 
     <!-- Navigation -->
     <string name="shell_library">Knihovna</string>
-    <string name="shell_catalog_search">Hledat 3DS</string>
+    <string name="shell_catalog_search">Hledat DS/DSi/3DS</string>
     <string name="shell_supported_formats">Podporované formáty</string>
 
     <!-- Home Screen -->
@@ -48,8 +48,8 @@
     <string name="detail_show_more">Zobrazit více</string>
     <string name="detail_show_less">Zobrazit méně</string>
     <string name="detail_no_data_title">Nejsou k dispozici žádné podrobnosti</string>
-    <string name="detail_no_data_body">Tuto hru se nepodařilo přiřadit k místnímu katalogu Nintendo 3DS.</string>
-    <string name="detail_catalog_missing_body">Podrobnosti katalogu Nintendo 3DS jsou dočasně nedostupné.</string>
+    <string name="detail_no_data_body">Tuto hru se nepodařilo přiřadit k místnímu katalogu Nintendo DS/DSi/3DS.</string>
+    <string name="detail_catalog_missing_body">Podrobnosti katalogu Nintendo DS/DSi/3DS jsou dočasně nedostupné.</string>
     <string name="detail_save_screenshot">Uložit snímek obrazovky</string>
     <string name="detail_screenshot_saved">Snímek obrazovky uložen</string>
     <string name="detail_screenshot_save_failed">Nelze uložit snímek obrazovky</string>
@@ -231,7 +231,7 @@
     <string name="settings_version">Verze</string>
     <string name="settings_emulator_core">Jádro emulace</string>
     <string name="settings_about_app">O aplikaci EmuCoreD</string>
-    <string name="settings_about_app_desc">EmuCoreD je emulátor Nintendo 3DS a herní knihovna postavená na jádře Azahar s rychlým nastavením, přehlednou navigací a rozhraním pro přenosná zařízení.</string>
+    <string name="settings_about_app_desc">EmuCoreD je emulátor Nintendo DS a Nintendo 3DS a herní knihovna využívající melonDS a Azahar, s rychlým nastavením, přehlednou navigací a rozhraním pro přenosná zařízení.</string>
     <string name="settings_about_studio">Vývojář</string>
     <string name="settings_about_studio_desc">Vytvořilo studio Sashkin Apps.</string>
     <string name="settings_about_app_source">Repozitář EmuCoreD</string>
@@ -239,7 +239,7 @@
     <string name="settings_about_app_source_link">Otevřít EmuCoreD na GitHubu</string>
     <string name="settings_about_app_source_url">https://github.com/sashkinbro/EmuCoreD</string>
     <string name="settings_about_core_source">Emulační jádro</string>
-    <string name="settings_about_core_source_desc">Založeno na Azahar, jádře emulace Nintendo 3DS.</string>
+    <string name="settings_about_core_source_desc">Jádra: Azahar (Nintendo 3DS) a melonDS (Nintendo DS).</string>
     <string name="settings_about_core_source_link">Zobrazit zdroj jádra na GitHub</string>
     <string name="settings_about_core_source_url">https://github.com/hrydgard/azahar</string>
     <string name="settings_about_support_project">Podpořit projekt</string>
@@ -306,9 +306,9 @@
     <string name="settings_help_recent_games">Zobrazí řádek pro rychlý přístup k naposledy hraným hrám. Užitečné, pokud často střídáte několik titulů; vypněte, pokud chcete mít čistší domovskou obrazovku.</string>
     <string name="settings_help_home_search">Zobrazí vyhledávací pole knihovny přímo na domovské obrazovce. Ponechte zapnuté pro velké knihovny; vypněte, pokud preferujete čistší vzhled a zřídka vyhledáváte podle jména.</string>
     <string name="settings_help_prefer_english_game_titles">Používá anglické názvy z databáze GameIndex emulátoru EmuCoreD pro hry, které mají výchozí japonské nebo jiné regionální názvy. To pomáhá hlavně k tomu, aby se dovezené vydání v knihovně četla jasněji. Hry bez anglického názvu v databázi si zachovají své normální jméno.</string>
-    <string name="settings_help_game_path">Přidává složky do knihovny her. EmuCoreD rekurzivně prohledá každou vybranou složku a sloučí výsledky bez duplicit. Klepnutím na složku v seznamu ji odeberete. Podporované soubory: .3ds, .cci, .cxi, .app, .cia a .3dsx.</string>
+    <string name="settings_help_game_path">Přidává složky do knihovny her. EmuCoreD rekurzivně prohledá každou vybranou složku a sloučí výsledky bez duplicit. Klepnutím na složku v seznamu ji odeberete. Podporované soubory: .3ds, .cci, .cxi, .app, .cia, .3dsx, .nds, .srl, .dsi.</string>
     <string name="settings_help_renderer">Vybírá grafický backend používaný pro hardwarové vykreslování. Vulkan je obvykle nejrychlejší na moderních zařízeních, OpenGL může být na některých GPU bezpečnější pro kompatibilitu a Software (softwarové vykreslování) je hlavně záložní možností pro testování nebo pro hry, které se v hardwarovém režimu hodně rozbíjejí.</string>
-    <string name="settings_help_aspect_ratio">Řídí orámování obrazu na displeji. Auto přizpůsobí obrazovky 3DS; Roztáhnout používejte jen vědomě.</string>
+    <string name="settings_help_aspect_ratio">Řídí orámování obrazu na displeji. Auto přizpůsobí obrazovky DS/3DS; Roztáhnout používejte jen vědomě.</string>
     <string name="settings_help_overlay_scale">Mění velikost tlačítek a páček na obrazovce. Zvyšte, pokud je dotyková přesnost důležitější než prostor na obrazovce; snižte, pokud překrytí zakrývá příliš velkou část obrazu.</string>
     <string name="settings_help_overlay_opacity">Určuje, jak plně nebo průhledně vypadá dotykové ovládání. Nižší neprůhlednost udržuje čistší pohled na hru, zatímco vyšší neprůhlednost usnadňuje zobrazení tlačítek ve tmavých nebo rušných scénách.</string>
     <string name="settings_help_racing_mode">Způsobí, že dotyková akční tlačítka a postranní tlačítka přepínají svůj stisknutý stav klepnutím. Užitečné pro závodní hry, kde je třeba držet zrychlení, zatímco tlačítka Start, Select, páčky a D-pad si zachovávají své normální chování.</string>
@@ -461,9 +461,9 @@
 
     <!-- Onboarding -->
     <string name="onboarding_page_1_title">Vítejte v EmuCoreD</string>
-    <string name="onboarding_page_1_subtitle">Vaše knihovna a launcher Nintendo 3DS pro rychlé nastavení, přehlednou navigaci a pohodlí na každé obrazovce.</string>
+    <string name="onboarding_page_1_subtitle">Vaše knihovna a launcher Nintendo DS/3DS pro rychlé nastavení, přehlednou navigaci a pohodlí na každé obrazovce.</string>
     <string name="onboarding_page_2_title">Výkonná Emulace</string>
-    <string name="onboarding_page_2_subtitle">Hrajte oblíbené hry Nintendo 3DS s pokročilými grafickými možnostmi, nastavitelným ovládáním a optimalizací výkonu.</string>
+    <string name="onboarding_page_2_subtitle">Hrajte oblíbené hry Nintendo DS/3DS s pokročilými grafickými možnostmi, nastavitelným ovládáním a optimalizací výkonu.</string>
     <string name="onboarding_page_3_title">Vaše Herní Knihovna</string>
     <string name="onboarding_page_3_subtitle">Vytvořte si knihovnu her s krásnými obaly, podrobnými informacemi a rychlým přístupem k oblíbeným.</string>
     <string name="onboarding_page_4_title">Připraveno ke Hraní (Ready to Play)</string>
@@ -492,7 +492,7 @@
     <string name="settings_mediatek_notice_title">Kompatibilita MediaTek</string>
     <string name="settings_mediatek_notice_message">Podpora pro MediaTek je stále experimentální. Během naší práce na vylepšení kompatibility a výkonu může docházet k pádům, vizuálním chybám a nestabilnímu chování.\n\nPokud zaznamenáte grafické problémy, zkuste OpenGL se zapnutým ANGLE. Pokud problémy přetrvávají, použijte softwarový vykreslovač.</string>
     <string name="onboarding_title">Připravte se hrát</string>
-    <string name="onboarding_subtitle">Vyberte složky s hrami Nintendo 3DS a udělte přístup k souborům.</string>
+    <string name="onboarding_subtitle">Vyberte složky s hrami Nintendo DS/3DS a udělte přístup k souborům.</string>
     <string name="onboarding_games_title">Přidat složky s hrami</string>
     <string name="onboarding_games_desc">Přidejte jednu nebo více složek obsahujících vaše hry.</string>
     <string name="onboarding_games_selected_count">Vybrané složky: %1$d. Klepnutím přidáte další.</string>
@@ -515,7 +515,7 @@
     <string name="back">Zpět</string>
 
     <!-- Catalog Search -->
-    <string name="catalog_search_title">Katalog 3DS</string>
+    <string name="catalog_search_title">Katalog DS/DSi/3DS</string>
     <string name="catalog_filters_title">Filtry</string>
     <string name="catalog_filter_genre">Žánr</string>
     <string name="catalog_filter_year">Rok</string>
@@ -527,7 +527,7 @@
     <string name="catalog_filter_any_rating">Jakékoliv hodnocení</string>
     <string name="catalog_filters_clear">Vymazat filtry</string>
     <string name="catalog_missing_title">Databáze katalogu nenalezena</string>
-    <string name="catalog_missing_body">Katalog Nintendo 3DS je dočasně nedostupný.</string>
+    <string name="catalog_missing_body">Katalog Nintendo DS/DSi/3DS je dočasně nedostupný.</string>
     <string name="catalog_empty_title">Nebyly nalezeny žádné shody</string>
     <string name="catalog_empty_body">Zkuste jiný název hry nebo kratší hledanou frázi.</string>
     <string name="formats_title">Podporované formáty</string>
@@ -1083,7 +1083,7 @@
     <string name="hub_title">EmuCore-Hub</string>
     <string name="hub_tab_news">Novinky</string>
     <string name="hub_tab_videos">Videa</string>
-    <string name="hub_tab_history">Historie 3DS</string>
+    <string name="hub_tab_history">Historie</string>
     <string name="hub_tab_manuals">Manuály</string>
     <string name="hub_related_materials">Související materiály</string>
     <string name="hub_tab_favorites">Uložené</string>
@@ -1100,7 +1100,7 @@
     <string name="hub_empty_news">Zatím nejsou k dispozici žádné novinky.</string>
     <string name="hub_empty_videos">Zatím nejsou k dispozici žádná videa.</string>
     <string name="hub_empty_history">Zatím nejsou k dispozici žádné články o historii.</string>
-    <string name="hub_empty_manuals">Manuály Nintendo 3DS zatím nejsou k dispozici.</string>
+    <string name="hub_empty_manuals">Herní manuály zatím nejsou k dispozici.</string>
     <string name="hub_empty_favorites">Zde se zobrazí uložené články, manuály a videa.</string>
     <string name="hub_no_search_results">Nebyl nalezen žádný odpovídající obsah.</string>
     <string name="hub_load_failed">Obsah Centra se nepodařilo načíst.</string>
@@ -1205,7 +1205,7 @@
     <string name="settings_discord_service_error">Pomocnou službu Discordu se nepodařilo spustit.</string>
     <string name="settings_discord_token_error">Přihlašovací token Discordu se nepodařilo zabezpečit.</string>
     <string name="discord_presence_library">Prochází knihovnu her</string>
-    <string name="discord_presence_private_game">Hraje hru Nintendo 3DS</string>
+    <string name="discord_presence_private_game">Hraje hru Nintendo DS/3DS</string>
     <string name="discord_presence_paused">Pozastaveno</string>
     <string name="discord_presence_playing">Hraje %1$s</string>
     <string name="discord_friends_title">Přátelé v EmuCoreD</string>
@@ -1232,7 +1232,7 @@
     <string name="settings_rewind">Převíjení</string>
     <string name="settings_rewind_desc">Podržením převíjení se vrátíte zpět. Každých pár sekund se ukládá úplný snímek stavu, což spotřebovává CPU navíc.</string>
     <string name="settings_target_fps">Cílová frekvence snímků</string>
-    <string name="settings_target_fps_desc">Automaticky se použije snímková frekvence hlášená Azahar. Ruční hodnota určuje rychlost emulace; hra může vykreslovat méně snímků.</string>
+    <string name="settings_target_fps_desc">Automaticky se použije snímková frekvence hlášená aktivním jádrem. Ruční hodnoty určují rychlost emulace; hra může vykreslovat méně snímků.</string>
     <string name="settings_display_crop">Ořez obrazu</string>
     <string name="settings_display_crop_desc">Ořízne stejný počet pixelů ze všech čtyř okrajů před změnou velikosti. Výběrem 0 ořez vypnete.</string>
     <string name="settings_display_crop_pixels">%1$d px</string>
@@ -1502,7 +1502,7 @@
     <string name="profile_player">Hráč</string>
     <string name="profile_player_blocked">Player blocked.</string>
     <string name="profile_player_card_brand">KARTA HRÁČE EMUCORED</string>
-    <string name="profile_player_card_footer">Vzpomínky na Nintendo 3DS v EmuCoreD</string>
+    <string name="profile_player_card_footer">Vzpomínky na Nintendo DS/3DS v EmuCoreD</string>
     <string name="profile_player_card_share">Sdílet kartu hráče</string>
     <string name="profile_player_card_share_text">Najdi mě na EmuCoreD: %1$s</string>
     <string name="profile_player_id_format">ID hráče: %1$s</string>
@@ -1700,7 +1700,7 @@
     <string name="emulation_second_screen_swap">Prohodit horní a spodní obrazovku</string>
     <string name="emulation_second_screen_move">Tažením přesunete záložku</string>
     <string name="settings_second_screen">Druhá obrazovka</string>
-    <string name="settings_second_screen_desc">Kde se má zobrazovat spodní obrazovka 3DS během hraní.</string>
+    <string name="settings_second_screen_desc">Kde se má zobrazovat spodní obrazovka během hraní.</string>
     <string name="settings_second_screen_integrated">Obě obrazovky v jednom zobrazení</string>
     <string name="settings_second_screen_panel">Vysouvací spodní panel</string>
     <string name="settings_second_screen_width">Šířka panelu</string>

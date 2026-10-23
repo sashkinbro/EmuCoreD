@@ -1,16 +1,16 @@
 <resources>
     <string name="emulation_runtime_failure_title">Emülasyon durduruldu</string>
     <string name="emulation_runtime_failure_description">Çalışma zamanı bir hatayla karşılaştı ve güvenle devam edemiyor. Bu oturumdan çıkıp oyunu yeniden başlatın. İşleyici otomatik olarak değiştirilmedi.\n\nAyrıntılar:\n</string>
-    <string name="onboarding_core_title">Nintendo 3DS için tasarlandı</string>
-    <string name="onboarding_core_subtitle">ARM64 yeniden derleme ve Vulkan render ile temiz bir Nintendo 3DS çekirdeği.</string>
-    <string name="onboarding_core_card_title">Yerel 3DS mimarisi</string>
-    <string name="onboarding_core_card_cpu">ARM11 yürütmesi akıcı performans için Azahar\'ın dinamik yeniden derleyicisinden geçer.</string>
-    <string name="onboarding_core_card_gpu">3DS grafikleri Vulkan ile, OpenGL ve yazılım yedekleriyle işlenir.</string>
+    <string name="onboarding_core_title">Nintendo DS/3DS için tasarlandı</string>
+    <string name="onboarding_core_subtitle">Nintendo 3DS ve Nintendo DS için ARM64 dinamik yeniden derleme ve Vulkan işleme sunan yerleşik Azahar ve melonDS çekirdekleri.</string>
+    <string name="onboarding_core_card_title">İki yerleşik emülasyon çekirdeği</string>
+    <string name="onboarding_core_card_cpu">Azahar (3DS) ve melonDS (DS), akıcı performans için ARM64 dinamik yeniden derleme kullanır.</string>
+    <string name="onboarding_core_card_gpu">DS, Vulkan ve yazılımla işlemeyi destekler; 3DS ayrıca OpenGL sunar.</string>
     <string name="onboarding_core_card_reference">Ücretli bir kademe gerekmez; tüm çekirdek özellikleri kullanılabilir.</string>
     <string name="app_name">EmuCoreD</string>
 
     <string name="shell_library">Kütüphane</string>
-    <string name="shell_catalog_search">3DS\'de ara</string>
+    <string name="shell_catalog_search">DS/DSi/3DS\'de ara</string>
     <string name="shell_supported_formats">Desteklenen Formatlar</string>
 
     <string name="home_empty_title">Oyun bulunamadı</string>
@@ -45,8 +45,8 @@
     <string name="detail_show_more">Daha fazla göster</string>
     <string name="detail_show_less">Daha az göster</string>
     <string name="detail_no_data_title">Ayrıntı mevcut değil</string>
-    <string name="detail_no_data_body">Bu oyun henüz yerel Nintendo 3DS kataloğuyla eşleştirilemedi.</string>
-    <string name="detail_catalog_missing_body">Nintendo 3DS katalog ayrıntıları geçici olarak kullanılamıyor.</string>
+    <string name="detail_no_data_body">Bu oyun henüz yerel Nintendo DS/DSi/3DS kataloğuyla eşleştirilemedi.</string>
+    <string name="detail_catalog_missing_body">Nintendo DS/DSi/3DS katalog ayrıntıları geçici olarak kullanılamıyor.</string>
     <string name="detail_save_screenshot">Ekran görüntüsünü kaydet</string>
     <string name="detail_screenshot_saved">Ekran görüntüsü kaydedildi</string>
     <string name="detail_screenshot_save_failed">Ekran görüntüsü kaydedilemedi</string>
@@ -203,7 +203,7 @@
     <string name="settings_version">Sürüm</string>
     <string name="settings_emulator_core">Emülasyon Çekirdeği</string>
     <string name="settings_about_app">EmuCoreD Hakkında</string>
-    <string name="settings_about_app_desc">EmuCoreD, Azahar çekirdeğiyle çalışan bir Nintendo 3DS emülatörü ve oyun kitaplığıdır; hızlı kurulum, net gezinme ve taşınabilir cihazlara uygun arayüz sunar.</string>
+    <string name="settings_about_app_desc">EmuCoreD, melonDS ve Azahar tabanlı bir Nintendo DS ve Nintendo 3DS emülatörü ve oyun kitaplığıdır; hızlı kurulum, net gezinme ve taşınabilir cihazlara uygun bir arayüz sunar.</string>
     <string name="settings_about_studio">Geliştirici</string>
     <string name="settings_about_studio_desc">Sashkin Apps tarafından oluşturuldu.</string>
     <string name="settings_about_support_project">Projeyi Destekle</string>
@@ -244,9 +244,9 @@
     <string name="settings_help_recent_games">En son oynadığınız oyunlar için hızlı erişim satırı gösterir. Birkaç oyun arasında sık sık geçiş yapıyorsanız iyidir; daha temiz bir ana ekran istiyorsanız kapatın.</string>
     <string name="settings_help_home_search">Kütüphane arama çubuğunu doğrudan ana ekranda gösterir. Büyük kütüphaneler için açık bırakın; daha temiz bir düzen tercih ediyorsanız ve isme göre nadiren arama yapıyorsanız kapatın.</string>
     <string name="settings_help_prefer_english_game_titles">Japonca veya diğer bölgesel isimlerle gönderilen oyunlar için EmuCoreD\'nin GameIndex veritabanındaki İngilizce isimleri kullanır. Bu, öncelikle ithal sürümlerin kütüphanede daha okunaklı olmasına yardımcı olurken, İngilizce veritabanı ismi olmayan oyunlar normal isimlerini korur.</string>
-    <string name="settings_help_game_path">Oyun kitaplığına klasör ekler. EmuCoreD seçilen her klasörü özyinelemeli tarar ve sonuçları yinelenen dosya olmadan birleştirir. Listeden bir klasöre dokunarak kaldırın. Desteklenen dosyalar: .3ds, .cci, .cxi, .app, .cia ve .3dsx.</string>
+    <string name="settings_help_game_path">Oyun kitaplığına klasör ekler. EmuCoreD seçilen her klasörü özyinelemeli tarar ve sonuçları yinelenen dosya olmadan birleştirir. Listeden bir klasöre dokunarak kaldırın. Desteklenen dosyalar: .3ds, .cci, .cxi, .app, .cia, .3dsx, .nds, .srl, .dsi.</string>
     <string name="settings_help_renderer">Donanım oluşturma (rendering) için kullanılan grafik arka ucunu seçer. Vulkan modern cihazlarda genellikle en hızlısıdır, OpenGL bazı GPU\'larda uyumluluk için daha güvenli olabilir ve Yazılım (Software) temel olarak donanım modunda kötü şekilde bozulan oyunlar veya testler için bir geri dönüştür.</string>
-    <string name="settings_help_aspect_ratio">Görüntünün ekranda nasıl çerçeveleneceğini denetler. Otomatik 3DS ekranlarını uydurur; Uzat\'ı yalnızca bilinçli kullanın.</string>
+    <string name="settings_help_aspect_ratio">Görüntünün ekranda nasıl çerçeveleneceğini denetler. Otomatik DS/3DS ekranlarını uydurur; Uzat\'ı yalnızca bilinçli kullanın.</string>
     <string name="settings_help_overlay_scale">Ekran üstü düğmelerin ve çubukların boyutunu değiştirir. Dokunma doğruluğu ekran alanından daha önemliyse artırın; arayüz resmin çok büyük bir bölümünü kaplıyorsa küçültün.</string>
     <string name="settings_help_overlay_opacity">Dokunmatik kontrollerin ne kadar katı veya şeffaf görüneceğini kontrol eder. Daha düşük opaklık oyun görünümünü daha temiz tutarken, daha yüksek opaklık düğmelerin karanlık veya yoğun sahnelerde görülmesini kolaylaştırır.</string>
     <string name="settings_help_left_stick_sensitivity">Sol dokunmatik çubuğun daha güçlü hareket girdisine ne kadar hızlı ulaşacağını ayarlar. Daha yüksek değerler daha hızlı tepki verirken, daha düşük değerler küçük hareket düzeltmelerini kolaylaştırır.</string>
@@ -364,9 +364,9 @@
     <string name="settings_fps_overlay_mode_detailed">İstatistikler</string>
 
     <string name="onboarding_page_1_title">EmuCoreD\'e Hoş Geldiniz</string>
-    <string name="onboarding_page_1_subtitle">Hızlı kurulum, net gezinme ve her ekranda rahat kullanım için tasarlanmış Nintendo 3DS kitaplığınız ve başlatıcınız.</string>
+    <string name="onboarding_page_1_subtitle">Hızlı kurulum, net gezinme ve her ekranda rahat kullanım için tasarlanmış Nintendo DS/3DS kitaplığınız ve başlatıcınız.</string>
     <string name="onboarding_page_2_title">Güçlü Emülasyon</string>
-    <string name="onboarding_page_2_subtitle">Favori Nintendo 3DS oyunlarınızı gelişmiş grafik seçenekleri, özelleştirilebilir kontroller ve performans iyileştirmeleriyle oynayın.</string>
+    <string name="onboarding_page_2_subtitle">Favori Nintendo DS/3DS oyunlarınızı gelişmiş grafik seçenekleri, özelleştirilebilir kontroller ve performans iyileştirmeleriyle oynayın.</string>
     <string name="onboarding_page_3_title">Oyun Kütüphaneniz</string>
     <string name="onboarding_page_3_subtitle">Güzel kapaklar, ayrıntılı bilgiler ve favorilere hızlı erişimle kendi kitaplığınızı oluşturun.</string>
     <string name="onboarding_page_4_title">Oynamaya Hazır</string>
@@ -378,7 +378,7 @@
     <string name="onboarding_profile_fast_title">Hızlı / Güvenli Olmayan</string>
     <string name="onboarding_profile_fast_desc">Ekstra hıza ihtiyaç duyan daha zayıf cihazlar için. Bazı oyunlar daha fazla hata gösterebilir veya daha az kararlı hale gelebilir.</string>
     <string name="onboarding_title">Oynamak için hazırlanın</string>
-    <string name="onboarding_subtitle">Nintendo 3DS oyun klasörlerinizi seçin ve dosya erişimi verin.</string>
+    <string name="onboarding_subtitle">Nintendo DS/3DS oyun klasörlerinizi seçin ve dosya erişimi verin.</string>
     <string name="onboarding_games_title">Oyun klasörünü seç</string>
     <string name="onboarding_games_desc">Oyunlarınızı içeren klasörü seçin.</string>
     <string name="onboarding_status_required">Gerekli</string>
@@ -396,7 +396,7 @@
     <string name="no">Hayır</string>
     <string name="back">Geri</string>
 
-    <string name="catalog_search_title">3DS Kataloğu</string>
+    <string name="catalog_search_title">DS/DSi/3DS Kataloğu</string>
     <string name="catalog_filters_title">Filtreler</string>
     <string name="catalog_filter_genre">Tür</string>
     <string name="catalog_filter_year">Yıl</string>
@@ -408,7 +408,7 @@
     <string name="catalog_filter_any_rating">Herhangi bir derecelendirme</string>
     <string name="catalog_filters_clear">Filtreleri temizle</string>
     <string name="catalog_missing_title">Katalog veritabanı bulunamadı</string>
-    <string name="catalog_missing_body">Nintendo 3DS kataloğu şu anda kullanılamıyor.</string>
+    <string name="catalog_missing_body">Nintendo DS/DSi/3DS kataloğu şu anda kullanılamıyor.</string>
     <string name="catalog_empty_title">Eşleşme bulunamadı</string>
     <string name="catalog_empty_body">Farklı bir oyun ismi veya daha kısa bir arama ifadesi deneyin.</string>
     <string name="formats_title">Desteklenen Formatlar</string>
@@ -581,7 +581,7 @@
     <string name="settings_about_app_source_link">GitHub\'da EmuCoreD\'i açın</string>
     <string name="settings_about_app_source_url">https://github.com/sashkinbro/EmuCoreD</string>
     <string name="settings_about_core_source">Emülasyon çekirdeği</string>
-    <string name="settings_about_core_source_desc">Nintendo 3DS emülasyon çekirdeği Azahar\'a dayanır.</string>
+    <string name="settings_about_core_source_desc">Çekirdekler: Azahar (Nintendo 3DS) ve melonDS (Nintendo DS).</string>
     <string name="settings_about_core_source_link">Çekirdek kaynağını GitHub\'da görüntüle</string>
     <string name="settings_about_core_source_url">https://github.com/hrydgard/azahar</string>
     <string name="settings_touch_haptics_strength">Dokunmatik titreşim gücü</string>
@@ -1062,7 +1062,7 @@
     <string name="hub_title">EmuCore-Hub</string>
     <string name="hub_tab_news">Haberler</string>
     <string name="hub_tab_videos">Videolar</string>
-    <string name="hub_tab_history">3DS geçmişi</string>
+    <string name="hub_tab_history">Geçmiş</string>
     <string name="hub_tab_manuals">Kılavuzlar</string>
     <string name="hub_related_materials">İlgili materyaller</string>
     <string name="hub_tab_favorites">Kaydedilenler</string>
@@ -1079,7 +1079,7 @@
     <string name="hub_empty_news">Henüz haber yok.</string>
     <string name="hub_empty_videos">Henüz video yok.</string>
     <string name="hub_empty_history">Henüz tarih makalesi yok.</string>
-    <string name="hub_empty_manuals">Henüz Nintendo 3DS kılavuzu yok.</string>
+    <string name="hub_empty_manuals">Henüz oyun kılavuzu yok.</string>
     <string name="hub_empty_favorites">Kaydedilen makaleler, kılavuzlar ve videolar burada görünür.</string>
     <string name="hub_no_search_results">Eşleşen içerik bulunamadı.</string>
     <string name="hub_load_failed">Merkez içeriği yüklenemedi.</string>
@@ -1184,7 +1184,7 @@
     <string name="settings_discord_service_error">Discord yardımcı hizmeti başlatılamadı.</string>
     <string name="settings_discord_token_error">Discord giriş belirteci korunamadı.</string>
     <string name="discord_presence_library">Oyun kitaplığına göz atıyor</string>
-    <string name="discord_presence_private_game">Nintendo 3DS oyunu oynuyor</string>
+    <string name="discord_presence_private_game">Nintendo DS/3DS oyunu oynuyor</string>
     <string name="discord_presence_paused">Duraklatıldı</string>
     <string name="discord_presence_playing">%1$s oynuyor</string>
     <string name="discord_friends_title">EmuCoreD\'teki arkadaşlar</string>
@@ -1211,7 +1211,7 @@
     <string name="settings_rewind">Geri sarma</string>
     <string name="settings_rewind_desc">Geri gitmek için geri sarma düğmesini basılı tutun. Birkaç saniyede bir tam durum anlık görüntüsü kaydedilir; bu ek CPU kullanır.</string>
     <string name="settings_target_fps">Hedef kare hızı</string>
-    <string name="settings_target_fps_desc">Otomatik, Azahar tarafından bildirilen kare hızını kullanır. Elle seçilen değer emülasyon hızını belirler; oyun daha az kare gösterebilir.</string>
+    <string name="settings_target_fps_desc">Otomatik, etkin çekirdeğin bildirdiği kare hızını kullanır. Elle seçilen değerler emülasyon hızını belirler; oyun daha az kare gösterebilir.</string>
     <string name="settings_display_crop">Görüntü kırpma</string>
     <string name="settings_display_crop_desc">Ölçeklemeden önce dört kenardan eşit sayıda piksel kırpar. Kırpmayı kapatmak için 0 seçin.</string>
     <string name="settings_display_crop_pixels">%1$d px</string>
@@ -1481,7 +1481,7 @@
     <string name="profile_player">Oyuncu</string>
     <string name="profile_player_blocked">Player blocked.</string>
     <string name="profile_player_card_brand">EMUCORED OYUNCU KARTI</string>
-    <string name="profile_player_card_footer">EmuCoreD ile kaydedilen Nintendo 3DS anıları</string>
+    <string name="profile_player_card_footer">EmuCoreD ile kaydedilen Nintendo DS/3DS anıları</string>
     <string name="profile_player_card_share">Oyuncu Kartını Paylaş</string>
     <string name="profile_player_card_share_text">Beni EmuCoreD\'te bul: %1$s</string>
     <string name="profile_player_id_format">Oyuncu Kimliği: %1$s</string>
@@ -1679,7 +1679,7 @@
     <string name="emulation_second_screen_swap">Üst ve alt ekranı değiştir</string>
     <string name="emulation_second_screen_move">Sekmeyi taşımak için sürükleyin</string>
     <string name="settings_second_screen">İkinci ekran</string>
-    <string name="settings_second_screen_desc">Oyun sırasında 3DS alt ekranının gösterileceği yer.</string>
+    <string name="settings_second_screen_desc">Oyun sırasında alt ekranının gösterileceği yer.</string>
     <string name="settings_second_screen_integrated">İki ekran tek görünümde</string>
     <string name="settings_second_screen_panel">Çekmeli alt panel</string>
     <string name="settings_second_screen_width">Panel genişliği</string>

@@ -1,16 +1,16 @@
 <resources>
     <string name="emulation_runtime_failure_title">Émulation arrêtée</string>
     <string name="emulation_runtime_failure_description">L’environnement d’exécution a rencontré une erreur et ne peut pas continuer en toute sécurité. Quittez cette session et relancez le jeu. Le moteur de rendu n’a pas été modifié automatiquement.\n\nDétails :\n</string>
-    <string name="onboarding_core_title">Conçu pour la Nintendo 3DS</string>
-    <string name="onboarding_core_subtitle">Un cœur Nintendo 3DS propre avec recompilation ARM64 et rendu Vulkan.</string>
-    <string name="onboarding_core_card_title">Architecture 3DS native</string>
-    <string name="onboarding_core_card_cpu">L\'exécution ARM11 passe par le recompilateur dynamique d\'Azahar pour des performances fluides.</string>
-    <string name="onboarding_core_card_gpu">Le rendu 3DS passe par Vulkan avec des solutions de repli OpenGL et logicielle.</string>
+    <string name="onboarding_core_title">Conçu pour la Nintendo DS/3DS</string>
+    <string name="onboarding_core_subtitle">Les cœurs intégrés Azahar et melonDS émulent la Nintendo 3DS et la Nintendo DS, avec recompilation dynamique ARM64 et rendu Vulkan.</string>
+    <string name="onboarding_core_card_title">Deux cœurs d’émulation intégrés</string>
+    <string name="onboarding_core_card_cpu">Azahar (3DS) et melonDS (DS) utilisent la recompilation dynamique ARM64 pour des performances fluides.</string>
+    <string name="onboarding_core_card_gpu">La DS propose Vulkan et le rendu logiciel ; la 3DS offre aussi OpenGL.</string>
     <string name="onboarding_core_card_reference">Aucun niveau payant n’est requis ; toutes les fonctions du cœur sont disponibles.</string>
     <string name="app_name">EmuCoreD</string>
 
     <string name="shell_library">Bibliothèque</string>
-    <string name="shell_catalog_search">Recherche 3DS</string>
+    <string name="shell_catalog_search">Recherche DS/DSi/3DS</string>
     <string name="shell_supported_formats">Formats pris en charge</string>
 
     <string name="home_empty_title">Aucun jeu trouvé</string>
@@ -35,8 +35,8 @@
     <string name="detail_show_more">Afficher plus</string>
     <string name="detail_show_less">Afficher moins</string>
     <string name="detail_no_data_title">Aucun détail disponible</string>
-    <string name="detail_no_data_body">Ce jeu n\'a pas encore pu être associé au catalogue Nintendo 3DS local.</string>
-    <string name="detail_catalog_missing_body">Les détails du catalogue Nintendo 3DS sont temporairement indisponibles.</string>
+    <string name="detail_no_data_body">Ce jeu n\'a pas encore pu être associé au catalogue Nintendo DS/DSi/3DS local.</string>
+    <string name="detail_catalog_missing_body">Les détails du catalogue Nintendo DS/DSi/3DS sont temporairement indisponibles.</string>
     <string name="detail_save_screenshot">Enregistrer la capture d\'écran</string>
     <string name="detail_screenshot_saved">Capture d\'écran enregistrée</string>
     <string name="detail_screenshot_save_failed">Impossible d\'enregistrer la capture d\'écran</string>
@@ -133,7 +133,7 @@
     <string name="settings_version">Version</string>
     <string name="settings_emulator_core">Cœur d\'émulation</string>
     <string name="settings_about_app">À propos d\'EmuCoreD</string>
-    <string name="settings_about_app_desc">EmuCoreD est un émulateur Nintendo 3DS et une bibliothèque de jeux basés sur le cœur Azahar, avec une configuration rapide, une navigation claire et une interface adaptée aux consoles portables.</string>
+    <string name="settings_about_app_desc">EmuCoreD est un émulateur Nintendo DS et Nintendo 3DS et une bibliothèque de jeux basés sur melonDS et Azahar, avec une configuration rapide, une navigation claire et une interface adaptée aux appareils portables.</string>
     <string name="settings_about_studio">Développeur</string>
     <string name="settings_about_studio_desc">Créé par Sashkin Apps.</string>
     <string name="settings_about_support_project">Soutenir le projet</string>
@@ -220,15 +220,15 @@
     <string name="settings_fps_overlay_mode_detailed">Statistiques</string>
 
     <string name="onboarding_page_1_title">Bienvenue dans EmuCoreD</string>
-    <string name="onboarding_page_1_subtitle">Votre bibliothèque et lanceur Nintendo 3DS, pensés pour une configuration rapide, une navigation claire et un confort sur tous les écrans.</string>
+    <string name="onboarding_page_1_subtitle">Votre bibliothèque et lanceur Nintendo DS/3DS, pensés pour une configuration rapide, une navigation claire et un confort sur tous les écrans.</string>
     <string name="onboarding_page_2_title">Émulation puissante</string>
-    <string name="onboarding_page_2_subtitle">Profitez de vos jeux Nintendo 3DS préférés avec des options graphiques avancées, des commandes personnalisables et des optimisations.</string>
+    <string name="onboarding_page_2_subtitle">Profitez de vos jeux Nintendo DS/3DS préférés avec des options graphiques avancées, des commandes personnalisables et des optimisations.</string>
     <string name="onboarding_page_3_title">Votre bibliothèque de jeux</string>
     <string name="onboarding_page_3_subtitle">Créez votre bibliothèque personnelle avec de belles jaquettes, des informations détaillées et un accès rapide aux favoris.</string>
     <string name="onboarding_page_4_title">Prêt à jouer</string>
     <string name="onboarding_page_4_subtitle">Choisissez vos dossiers de jeux et l\'emplacement des données de l\'émulateur pour commencer.</string>
     <string name="onboarding_title">Préparez-vous à jouer</string>
-    <string name="onboarding_subtitle">Choisissez vos dossiers de jeux Nintendo 3DS et accordez l\'accès aux fichiers.</string>
+    <string name="onboarding_subtitle">Choisissez vos dossiers de jeux Nintendo DS/3DS et accordez l\'accès aux fichiers.</string>
     <string name="onboarding_games_title">Choisir le dossier de jeux</string>
     <string name="onboarding_games_desc">Sélectionnez le dossier qui contient vos jeux.</string>
     <string name="onboarding_status_required">Requis</string>
@@ -246,7 +246,7 @@
     <string name="no">Non</string>
     <string name="back">Retour</string>
 
-    <string name="catalog_search_title">Catalogue 3DS</string>
+    <string name="catalog_search_title">Catalogue DS/DSi/3DS</string>
     <string name="catalog_filters_title">Filtres</string>
     <string name="catalog_filter_genre">Genre</string>
     <string name="catalog_filter_year">Année</string>
@@ -258,7 +258,7 @@
     <string name="catalog_filter_any_rating">N\'importe quelle évaluation</string>
     <string name="catalog_filters_clear">Effacer les filtres</string>
     <string name="catalog_missing_title">Base de données du catalogue introuvable</string>
-    <string name="catalog_missing_body">Le catalogue Nintendo 3DS est temporairement indisponible.</string>
+    <string name="catalog_missing_body">Le catalogue Nintendo DS/DSi/3DS est temporairement indisponible.</string>
     <string name="catalog_empty_title">Aucune correspondance trouvée</string>
     <string name="catalog_empty_body">Essayez un autre nom de jeu ou une phrase de recherche plus courte.</string>
     <string name="formats_title">Formats pris en charge</string>
@@ -362,7 +362,7 @@
     <string name="settings_help_recent_games">Affiche une ligne d\'accès rapide pour les jeux auxquels vous avez joué en dernier. Pratique si vous naviguez souvent entre quelques titres ; désactivez-le si vous souhaitez un écran d\'accueil plus épuré.</string>
     <string name="settings_help_home_search">Affiche la barre de recherche de la bibliothèque directement sur l\'écran d\'accueil. Laissez-la activée pour les grandes bibliothèques ; désactivez-la si vous préférez une mise en page plus claire et que vous effectuez rarement des recherches par nom.</string>
     <string name="settings_help_renderer">Sélectionne le moteur graphique utilisé pour le rendu matériel. Vulkan est généralement le plus rapide sur les appareils modernes, OpenGL peut être plus sûr pour la compatibilité sur certains GPU, et Logiciel (Software) est principalement une solution de secours pour les tests ou les jeux qui plantent gravement en mode matériel.</string>
-    <string name="settings_help_aspect_ratio">Contrôle le cadrage de l\'image sur l\'écran. Auto adapte les écrans 3DS ; n\'utilisez Étirer qu\'en connaissance de cause.</string>
+    <string name="settings_help_aspect_ratio">Contrôle le cadrage de l\'image sur l\'écran. Auto adapte les écrans DS/3DS ; n\'utilisez Étirer qu\'en connaissance de cause.</string>
     <string name="settings_help_overlay_scale">Modifie la taille des boutons et sticks à l\'écran. Augmentez-la si la précision tactile compte plus que l\'espace à l\'écran ; diminuez-la si la superposition couvre une trop grande partie de l\'image.</string>
     <string name="settings_help_overlay_opacity">Contrôle l\'aspect solide ou transparent des commandes tactiles. Une opacité plus faible garde la vue du jeu plus dégagée, tandis qu\'une opacité plus élevée rend les boutons plus faciles à voir dans les scènes sombres ou chargées.</string>
     <string name="settings_help_hide_overlay_on_gamepad">Masque la superposition tactile chaque fois qu\'une manette physique est active. Cela rend l\'écran plus propre, mais désactivez-le si vous souhaitez toujours que les boutons tactiles soient disponibles pendant qu\'une manette est connectée.</string>
@@ -371,7 +371,7 @@
     <string name="settings_help_show_fps">Affiche une superposition des performances en direct pendant que le jeu tourne. Utilisez-la lors du réglage des paramètres ou pour vérifier si un ralentissement provient de la vitesse de l\'émulateur, du rythme des images ou du jeu lui-même.</string>
     <string name="settings_help_fps_overlay_mode">Permet de choisir entre un simple affichage des FPS et un panneau de statistiques plus détaillé. Utilisez le mode compact si vous souhaitez juste une vérification rapide de la vitesse, ou le mode étendu lorsque vous ajustez activement les performances.</string>
     <string name="settings_help_fps_overlay_position">Place la superposition des FPS ou des statistiques dans l\'un des quatre coins. Éloignez-la des commandes tactiles, des éléments du HUD, des sous-titres ou des mini-cartes afin qu\'elle reste lisible sans couvrir d\'informations importantes sur le jeu.</string>
-    <string name="settings_help_game_path">Ajoute des dossiers à la bibliothèque. EmuCoreD analyse chaque dossier sélectionné de façon récursive et fusionne les résultats sans doublons. Touchez un dossier de la liste pour le retirer. Formats pris en charge : .3ds, .cci, .cxi, .app, .cia et .3dsx.</string>
+    <string name="settings_help_game_path">Ajoute des dossiers à la bibliothèque. EmuCoreD analyse chaque dossier sélectionné de façon récursive et fusionne les résultats sans doublons. Touchez un dossier de la liste pour le retirer. Formats pris en charge : .3ds, .cci, .cxi, .app, .cia, .3dsx, .nds, .srl, .dsi.</string>
     <string name="settings_cover_download_url">URL de téléchargement des jaquettes</string>
     <string name="settings_cover_download_url_dialog_title">Source de jaquettes personnalisée</string>
     <string name="settings_cover_download_url_use_default">Utiliser par défaut</string>
@@ -583,7 +583,7 @@
     <string name="settings_about_app_source_link">Ouvrir EmuCoreD sur GitHub</string>
     <string name="settings_about_app_source_url">https://github.com/sashkinbro/EmuCoreD</string>
     <string name="settings_about_core_source">Noyau d\'émulation</string>
-    <string name="settings_about_core_source_desc">Basé sur Azahar, le cœur d\'émulation Nintendo 3DS.</string>
+    <string name="settings_about_core_source_desc">Cœurs : Azahar (Nintendo 3DS) et melonDS (Nintendo DS).</string>
     <string name="settings_about_core_source_link">Voir la source du noyau sur GitHub</string>
     <string name="settings_about_core_source_url">https://github.com/hrydgard/azahar</string>
     <string name="settings_touch_haptics_strength">Intensité du retour haptique</string>
@@ -1064,7 +1064,7 @@
     <string name="hub_title">EmuCore-Hub</string>
     <string name="hub_tab_news">Actualités</string>
     <string name="hub_tab_videos">Vidéos</string>
-    <string name="hub_tab_history">Historique 3DS</string>
+    <string name="hub_tab_history">Historique</string>
     <string name="hub_tab_manuals">Manuels</string>
     <string name="hub_related_materials">Documents associés</string>
     <string name="hub_tab_favorites">Enregistré</string>
@@ -1081,7 +1081,7 @@
     <string name="hub_empty_news">Aucune actualité disponible pour le moment.</string>
     <string name="hub_empty_videos">Aucune vidéo disponible pour le moment.</string>
     <string name="hub_empty_history">Aucun article historique disponible pour le moment.</string>
-    <string name="hub_empty_manuals">Aucun manuel Nintendo 3DS disponible pour le moment.</string>
+    <string name="hub_empty_manuals">Aucun manuel de jeu disponible pour le moment.</string>
     <string name="hub_empty_favorites">Les articles, manuels et vidéos enregistrés apparaîtront ici.</string>
     <string name="hub_no_search_results">Aucun contenu correspondant n\'a été trouvé.</string>
     <string name="hub_load_failed">Le contenu du Hub n\'a pas pu être chargé.</string>
@@ -1186,7 +1186,7 @@
     <string name="settings_discord_service_error">Impossible de démarrer le service auxiliaire Discord.</string>
     <string name="settings_discord_token_error">Impossible de protéger le jeton de connexion Discord.</string>
     <string name="discord_presence_library">Parcourt la bibliothèque de jeux</string>
-    <string name="discord_presence_private_game">Joue à un jeu Nintendo 3DS</string>
+    <string name="discord_presence_private_game">Joue à un jeu Nintendo DS/3DS</string>
     <string name="discord_presence_paused">En pause</string>
     <string name="discord_presence_playing">Joue à %1$s</string>
     <string name="discord_friends_title">Amis sur EmuCoreD</string>
@@ -1213,7 +1213,7 @@
     <string name="settings_rewind">Retour arrière</string>
     <string name="settings_rewind_desc">Maintenez la commande de retour arrière pour revenir en arrière. Un instantané complet est enregistré toutes les quelques secondes, ce qui consomme du CPU.</string>
     <string name="settings_target_fps">Fréquence d\'images cible</string>
-    <string name="settings_target_fps_desc">Auto utilise la fréquence d’images indiquée par Azahar. Une valeur manuelle règle le rythme de l’émulation ; le jeu peut afficher moins d’images.</string>
+    <string name="settings_target_fps_desc">Auto utilise la fréquence d’images indiquée par le cœur actif. Les valeurs manuelles règlent le rythme de l’émulation ; le jeu peut afficher moins d’images.</string>
     <string name="settings_display_crop">Rognage de l\'image</string>
     <string name="settings_display_crop_desc">Rogne le même nombre de pixels sur les quatre bords avant la mise à l’échelle. Sélectionnez 0 pour désactiver le rognage.</string>
     <string name="settings_display_crop_pixels">%1$d px</string>
@@ -1483,7 +1483,7 @@
     <string name="profile_player">Joueur</string>
     <string name="profile_player_blocked">Joueur bloqué.</string>
     <string name="profile_player_card_brand">CARTE DE JOUEUR EMUCORED</string>
-    <string name="profile_player_card_footer">Souvenirs Nintendo 3DS, suivis par EmuCoreD</string>
+    <string name="profile_player_card_footer">Souvenirs Nintendo DS/3DS, suivis par EmuCoreD</string>
     <string name="profile_player_card_share">Partager la carte de joueur</string>
     <string name="profile_player_card_share_text">Retrouvez-moi sur EmuCoreD : %1$s</string>
     <string name="profile_player_id_format">ID de joueur : %1$s</string>
@@ -1681,7 +1681,7 @@
     <string name="emulation_second_screen_swap">Échanger les écrans supérieur et inférieur</string>
     <string name="emulation_second_screen_move">Faites glisser pour déplacer l\'onglet</string>
     <string name="settings_second_screen">Deuxième écran</string>
-    <string name="settings_second_screen_desc">Où afficher l\'écran inférieur de la 3DS pendant le jeu.</string>
+    <string name="settings_second_screen_desc">Où afficher l\'écran inférieur de la pendant le jeu.</string>
     <string name="settings_second_screen_integrated">Les deux écrans dans une seule vue</string>
     <string name="settings_second_screen_panel">Panneau inférieur rétractable</string>
     <string name="settings_second_screen_width">Largeur du panneau</string>

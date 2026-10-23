@@ -1,17 +1,17 @@
 <resources>
     <string name="emulation_runtime_failure_title">Emulacja zatrzymana</string>
     <string name="emulation_runtime_failure_description">Środowisko wykonawcze napotkało błąd i nie może bezpiecznie kontynuować. Zakończ tę sesję i uruchom grę ponownie. Renderer nie został zmieniony automatycznie.\n\nSzczegóły:\n</string>
-    <string name="onboarding_core_title">Zbudowany dla Nintendo 3DS</string>
-    <string name="onboarding_core_subtitle">Czyste jądro Nintendo 3DS z rekompilacją ARM64 i renderowaniem Vulkan.</string>
-    <string name="onboarding_core_card_title">Natywna architektura 3DS</string>
-    <string name="onboarding_core_card_cpu">Wykonanie ARM11 działa przez dynamiczny rekompilator Azahar dla płynnej wydajności.</string>
-    <string name="onboarding_core_card_gpu">Grafika 3DS jest renderowana przez Vulkan z awaryjnymi ścieżkami OpenGL i programową.</string>
+    <string name="onboarding_core_title">Zbudowany dla Nintendo DS/3DS</string>
+    <string name="onboarding_core_subtitle">Wbudowane rdzenie Azahar i melonDS dla Nintendo 3DS i Nintendo DS, z dynamiczną rekompilacją ARM64 i renderowaniem Vulkan.</string>
+    <string name="onboarding_core_card_title">Dwa wbudowane rdzenie emulacji</string>
+    <string name="onboarding_core_card_cpu">Azahar (3DS) i melonDS (DS) używają dynamicznej rekompilacji ARM64, zapewniając płynne działanie.</string>
+    <string name="onboarding_core_card_gpu">DS obsługuje Vulkan i renderowanie programowe; 3DS oferuje także OpenGL.</string>
     <string name="onboarding_core_card_reference">Żaden płatny poziom nie jest wymagany; wszystkie funkcje jądra są dostępne.</string>
     <string name="app_name">EmuCoreD</string>
 
     <!-- Navigation -->
     <string name="shell_library">Biblioteka</string>
-    <string name="shell_catalog_search">Szukaj 3DS</string>
+    <string name="shell_catalog_search">Szukaj DS/DSi/3DS</string>
     <string name="shell_supported_formats">Obsługiwane formaty</string>
 
     <!-- Home Screen -->
@@ -48,8 +48,8 @@
     <string name="detail_show_more">Pokaż więcej</string>
     <string name="detail_show_less">Pokaż mniej</string>
     <string name="detail_no_data_title">Brak dostępnych szczegółów</string>
-    <string name="detail_no_data_body">Nie udało się dopasować tej gry do lokalnego katalogu Nintendo 3DS.</string>
-    <string name="detail_catalog_missing_body">Szczegóły katalogu Nintendo 3DS są chwilowo niedostępne.</string>
+    <string name="detail_no_data_body">Nie udało się dopasować tej gry do lokalnego katalogu Nintendo DS/DSi/3DS.</string>
+    <string name="detail_catalog_missing_body">Szczegóły katalogu Nintendo DS/DSi/3DS są chwilowo niedostępne.</string>
     <string name="detail_save_screenshot">Zapisz zrzut ekranu</string>
     <string name="detail_screenshot_saved">Zrzut ekranu zapisany</string>
     <string name="detail_screenshot_save_failed">Nie udało się zapisać zrzutu ekranu</string>
@@ -228,7 +228,7 @@
     <string name="settings_version">Wersja</string>
     <string name="settings_emulator_core">Rdzeń emulacji</string>
     <string name="settings_about_app">O EmuCoreD</string>
-    <string name="settings_about_app_desc">EmuCoreD to emulator Nintendo 3DS i biblioteka gier oparta na jądrze Azahar, z szybką konfiguracją, przejrzystą nawigacją i interfejsem dla urządzeń przenośnych.</string>
+    <string name="settings_about_app_desc">EmuCoreD to emulator Nintendo DS i Nintendo 3DS oraz biblioteka gier oparta na melonDS i Azahar, z szybką konfiguracją, przejrzystą nawigacją i interfejsem dla urządzeń przenośnych.</string>
     <string name="settings_about_studio">Deweloper</string>
     <string name="settings_about_studio_desc">Stworzone przez Sashkin Apps.</string>
     <string name="settings_about_app_source">Repozytorium EmuCoreD</string>
@@ -236,7 +236,7 @@
     <string name="settings_about_app_source_link">Otwórz EmuCoreD na GitHubie</string>
     <string name="settings_about_app_source_url">https://github.com/sashkinbro/EmuCoreD</string>
     <string name="settings_about_core_source">Jądro emulacji</string>
-    <string name="settings_about_core_source_desc">Oparte na Azahar, jądrze emulacji Nintendo 3DS.</string>
+    <string name="settings_about_core_source_desc">Rdzenie: Azahar (Nintendo 3DS) i melonDS (Nintendo DS).</string>
     <string name="settings_about_core_source_link">Zobacz źródło jądra na GitHub</string>
     <string name="settings_about_core_source_url">https://github.com/hrydgard/azahar</string>
     <string name="settings_about_support_project">Wesprzyj projekt</string>
@@ -303,9 +303,9 @@
     <string name="settings_help_recent_games">Pokazuje pasek szybkiego dostępu do ostatnio ogrywanych tytułów. Przydatne, jeśli często skaczesz między kilkoma grami; wyłącz, jeśli wolisz bardziej minimalistyczny ekran główny.</string>
     <string name="settings_help_home_search">Wyświetla pasek wyszukiwania w bibliotece bezpośrednio na ekranie głównym. Zostaw to włączone dla dużych kolekcji; wyłącz, jeśli wolisz czystszy układ i rzadko szukasz po nazwie.</string>
     <string name="settings_help_prefer_english_game_titles">Używa angielskich tytułów z bazy GameIndex EmuCoreD dla gier wydanych z japońskimi lub innymi regionalnymi nazwami. Pomaga to zachować czytelność biblioteki przy imporcie. Gry bez angielskiego tytułu w bazie zachowają swoją oryginalną nazwę.</string>
-    <string name="settings_help_game_path">Dodaje foldery do biblioteki gier. EmuCoreD skanuje każdy wybrany folder rekurencyjnie i scala wyniki bez duplikatów. Dotknij folderu na liście, aby go usunąć. Obsługiwane pliki: .3ds, .cci, .cxi, .app, .cia i .3dsx.</string>
+    <string name="settings_help_game_path">Dodaje foldery do biblioteki gier. EmuCoreD skanuje każdy wybrany folder rekurencyjnie i scala wyniki bez duplikatów. Dotknij folderu na liście, aby go usunąć. Obsługiwane pliki: .3ds, .cci, .cxi, .app, .cia, .3dsx, .nds, .srl, .dsi.</string>
     <string name="settings_help_renderer">Wybiera silnik graficzny używany do renderowania sprzętowego. Vulkan jest zazwyczaj najszybszy na nowoczesnych urządzeniach, OpenGL może zapewnić lepszą kompatybilność na niektórych układach GPU, a Oprogramowanie (Software) to głównie ostateczność do testów lub gier z całkowicie zepsutym renderowaniem sprzętowym.</string>
-    <string name="settings_help_aspect_ratio">Steruje kadrowaniem obrazu na ekranie. Auto dopasowuje ekrany 3DS, a Rozciągnięcie stosuj tylko świadomie.</string>
+    <string name="settings_help_aspect_ratio">Steruje kadrowaniem obrazu na ekranie. Auto dopasowuje ekrany DS/3DS, a Rozciągnięcie stosuj tylko świadomie.</string>
     <string name="settings_help_overlay_scale">Zmienia rozmiar przycisków ekranowych oraz gałek. Zwiększ, jeśli ważniejsza jest precyzja dotyku niż widoczność gry; zmniejsz, jeśli nakładka zasłania zbyt dużo obrazu.</string>
     <string name="settings_help_overlay_opacity">Kontroluje, jak widoczne lub przezroczyste jest sterowanie dotykowe. Mniejsze krycie zachowuje czystszy widok gry, podczas gdy wyższe ułatwia zobaczenie przycisków w ciemnych lub dynamicznych scenach.</string>
     <string name="settings_help_racing_mode">Sprawia, że przyciski akcji i przyciski boczne (shoulder) przełączają swój stan przytrzymania za każdym dotknięciem. Przydaje się to w grach wyścigowych, gdzie przyspieszenie musi być ciągle wciśnięte, podczas gdy Start, Select, gałki i krzyżak działają normalnie.</string>
@@ -458,9 +458,9 @@
 
     <!-- Onboarding -->
     <string name="onboarding_page_1_title">Witamy w EmuCoreD</string>
-    <string name="onboarding_page_1_subtitle">Twoja biblioteka i launcher Nintendo 3DS, zaprojektowane dla szybkiej konfiguracji, przejrzystej nawigacji i wygody na każdym ekranie.</string>
+    <string name="onboarding_page_1_subtitle">Twoja biblioteka i launcher Nintendo DS/3DS, zaprojektowane dla szybkiej konfiguracji, przejrzystej nawigacji i wygody na każdym ekranie.</string>
     <string name="onboarding_page_2_title">Skalowana siła renderowania / Emulacja 3D</string>
-    <string name="onboarding_page_2_subtitle">Graj w ulubione gry Nintendo 3DS z zaawansowanymi opcjami graficznymi, konfigurowalnym sterowaniem i optymalizacją wydajności.</string>
+    <string name="onboarding_page_2_subtitle">Graj w ulubione gry Nintendo DS/3DS z zaawansowanymi opcjami graficznymi, konfigurowalnym sterowaniem i optymalizacją wydajności.</string>
     <string name="onboarding_page_3_title">Buduj okładki i Twoją Bibliotekę Gier (Biblioteka)</string>
     <string name="onboarding_page_3_subtitle">Zbuduj własną bibliotekę gier z pięknymi okładkami, szczegółowymi informacjami i szybkim dostępem do ulubionych.</string>
     <string name="onboarding_page_4_title">Gotowy?</string>
@@ -489,7 +489,7 @@
     <string name="settings_mediatek_notice_message">Zaznaczamy że wspieranie i ułatwienia renderowania urządzeń pod układ procesora mobilnego w systemie ze sprzętem SoC na MediaTek (wraz układem z akceleratorem z Mali u Android czy opcją platform z PowerVR pod środowiskiem u MediaTek po SoC platform graficznych renderu) jest ciągle objęte u EmuCoreD na status w obszarze wspierania jedynie u wariantu dla spraw technicznych do próbnej gałęzi eksperymentalnej z rozwojem w PCSX i we wdrożeniu do użycia mobilnego. \n\nWięc nadal wystąpić przez powody niedopracowań u sterowników od producentów: mogą u Państwa bez przyczyny wyskakiwać znane u wszystkich błędy / ubytki lub awarie silnika z wygaszeniem ekranu i wyrzuceniem do systemowego launchera z powodu zawieszania u sterownika od strony smartfona u GPU, a także mogą pojawić błędy na siatce przy klatkach grafiki czy niestabilności ze słabszym bądź bardzo niepewnym renderem w klatkach podczas trwania nieprzerwanej sesji emulacji u gier pomimo tego że nadal powoli ciągle skupiamy proces do usprawnienia zgodności u wsparcia by zminimalizować na platformie pod MediaTek wszelkie niedogodności związane u tego procesora z brakiem użycia natywnego stabilnego działania bez łatek. \n\nJeśli więc na ten czas doświadczysz ciągle ze strony problemów pod procesami przy renderingu na gałęzi w MediaTek we wdrożeniach u wybranego sprzętu z używanego standardowego trybu na gałęzi GPU pod Vulkan - Zmień pod menu u renderer i sprawdź jak chodzi po przełączeniu natywnie do u użycia u OpenGL z ręcznym załączaniem (albo bez i włączenie domyślnym w MediaTek bez łatki) trybu ANGLE dla bibliotek na wspieraniu (Spróbuj w przypadku OpenGL i braku pożądanej jakości renderu, do włączenia u kompatybilności opartą specjalnie dla tego u opcji funkcję: bibliotek od środowiska ANGLE z renderu użytego wraz pod tryb u OpenGL w opcjach grafiki). Jeśli po problemach na grafice oraz próbach zmiany nadal wszystko to nie pomoże u Ciebie i po włączeniu gry ciągle jest ten u ciebie problem na telefonie, dla stabilnego pod proces u renderu, użyj i pozostań z domyślnego najstarszego renderingu w Software (Tylko proces po procesorze) pomimo znaczącego drastycznego spowolnienia na CPU przez użycie Software Renderer przy wsparciu kompatybilności.</string>
     <string name="onboarding_title">Gotowy do odpalenia gry w PSP u EmuCoreD w swoim urządzeniu Android. Miłego powrotu u najlepszych platform wspieranych platformą emulacji PCSX u nas (Rozpocznij u EmuCoreD by móc powrócić i po raz kolejny przechodzić na telefonie Twoje ulubione wspaniałe klasyki konsol od gier używając EmuCoreD u gier z PSP pod użyciem interfejsu aplikacji).</string>
 
-    <string name="onboarding_subtitle">Wybierz foldery z grami Nintendo 3DS i przyznaj dostęp do plików.</string>
+    <string name="onboarding_subtitle">Wybierz foldery z grami Nintendo DS/3DS i przyznaj dostęp do plików.</string>
     <string name="onboarding_games_title">Dodaj foldery z grami</string>
     <string name="onboarding_games_desc">Dodaj jeden lub więcej folderów zawierających Twoje gry.</string>
     <string name="onboarding_games_selected_count">Wybrano folderów: %1$d. Dotknij, aby dodać kolejny.</string>
@@ -512,7 +512,7 @@
     <string name="back">Wstecz</string>
 
     <!-- Catalog Search -->
-    <string name="catalog_search_title">Katalog 3DS</string>
+    <string name="catalog_search_title">Katalog DS/DSi/3DS</string>
     <string name="catalog_filters_title">Filtry</string>
     <string name="catalog_filter_genre">Gatunek</string>
     <string name="catalog_filter_year">Rok</string>
@@ -524,7 +524,7 @@
     <string name="catalog_filter_any_rating">Dowolna ocena</string>
     <string name="catalog_filters_clear">Wyczyść filtry</string>
     <string name="catalog_missing_title">Nie znaleziono bazy danych katalogu</string>
-    <string name="catalog_missing_body">Katalog Nintendo 3DS jest chwilowo niedostępny.</string>
+    <string name="catalog_missing_body">Katalog Nintendo DS/DSi/3DS jest chwilowo niedostępny.</string>
     <string name="catalog_empty_title">Brak pasujących wyników</string>
     <string name="catalog_empty_body">Spróbuj wpisać inną nazwę gry lub krótszą frazę wyszukiwania.</string>
     <string name="formats_title">Obsługiwane formaty</string>
@@ -1083,7 +1083,7 @@
     <string name="hub_title">EmuCore-Hub</string>
     <string name="hub_tab_news">Aktualności</string>
     <string name="hub_tab_videos">Wideo</string>
-    <string name="hub_tab_history">Historia 3DS</string>
+    <string name="hub_tab_history">Historia</string>
     <string name="hub_tab_manuals">Instrukcje</string>
     <string name="hub_related_materials">Powiązane materiały</string>
     <string name="hub_tab_favorites">Zapisane</string>
@@ -1100,7 +1100,7 @@
     <string name="hub_empty_news">Brak dostępnych aktualności.</string>
     <string name="hub_empty_videos">Brak dostępnych wideo.</string>
     <string name="hub_empty_history">Brak dostępnych artykułów historycznych.</string>
-    <string name="hub_empty_manuals">Instrukcje Nintendo 3DS są jeszcze niedostępne.</string>
+    <string name="hub_empty_manuals">Instrukcje do gier są jeszcze niedostępne.</string>
     <string name="hub_empty_favorites">Tutaj pojawią się zapisane artykuły, instrukcje i wideo.</string>
     <string name="hub_no_search_results">Nie znaleziono pasujących treści.</string>
     <string name="hub_load_failed">Nie udało się załadować zawartości Huba.</string>
@@ -1205,7 +1205,7 @@
     <string name="settings_discord_service_error">Nie udało się uruchomić usługi pomocniczej Discord.</string>
     <string name="settings_discord_token_error">Nie udało się zabezpieczyć tokenu logowania Discord.</string>
     <string name="discord_presence_library">Przegląda bibliotekę gier</string>
-    <string name="discord_presence_private_game">Gra w grę Nintendo 3DS</string>
+    <string name="discord_presence_private_game">Gra w grę Nintendo DS/3DS</string>
     <string name="discord_presence_paused">Wstrzymano</string>
     <string name="discord_presence_playing">Gra w %1$s</string>
     <string name="discord_friends_title">Znajomi w EmuCoreD</string>
@@ -1232,7 +1232,7 @@
     <string name="settings_rewind">Przewijanie</string>
     <string name="settings_rewind_desc">Przytrzymaj przewijanie, aby cofnąć. Co kilka sekund zapisywany jest pełny stan, co zużywa dodatkowy CPU.</string>
     <string name="settings_target_fps">Docelowa liczba klatek</string>
-    <string name="settings_target_fps_desc">Auto używa liczby klatek zgłaszanej przez Azahar. Wartość ręczna ustala tempo emulacji; gra może wyświetlać mniej klatek.</string>
+    <string name="settings_target_fps_desc">Auto używa liczby klatek zgłaszanej przez aktywny rdzeń. Wartości ręczne ustalają tempo emulacji; gra może wyświetlać mniej klatek.</string>
     <string name="settings_display_crop">Przycinanie obrazu</string>
     <string name="settings_display_crop_desc">Przycina taką samą liczbę pikseli ze wszystkich czterech krawędzi przed skalowaniem. Wybierz 0, aby wyłączyć przycinanie.</string>
     <string name="settings_display_crop_pixels">%1$d px</string>
@@ -1502,7 +1502,7 @@
     <string name="profile_player">Gracz</string>
     <string name="profile_player_blocked">Player blocked.</string>
     <string name="profile_player_card_brand">KARTA GRACZA EMUCORED</string>
-    <string name="profile_player_card_footer">Wspomnienia z Nintendo 3DS w EmuCoreD</string>
+    <string name="profile_player_card_footer">Wspomnienia z Nintendo DS/3DS w EmuCoreD</string>
     <string name="profile_player_card_share">Udostępnij kartę gracza</string>
     <string name="profile_player_card_share_text">Znajdź mnie na EmuCoreD: %1$s</string>
     <string name="profile_player_id_format">ID Gracza: %1$s</string>
@@ -1700,7 +1700,7 @@
     <string name="emulation_second_screen_swap">Zamień górny i dolny ekran</string>
     <string name="emulation_second_screen_move">Przeciągnij, aby przenieść zakładkę</string>
     <string name="settings_second_screen">Drugi ekran</string>
-    <string name="settings_second_screen_desc">Gdzie ma być wyświetlany dolny ekran 3DS podczas gry.</string>
+    <string name="settings_second_screen_desc">Gdzie ma być wyświetlany dolny ekran podczas gry.</string>
     <string name="settings_second_screen_integrated">Oba ekrany w jednym widoku</string>
     <string name="settings_second_screen_panel">Wysuwany dolny panel</string>
     <string name="settings_second_screen_width">Szerokość panelu</string>
