@@ -47,8 +47,7 @@ class CoverArtRepository(context: Context) {
 
     private val cacheDirectory by lazy {
         File(coverCacheDirectory, "emucored-n3ds-v2").apply {
-            if (!exists()) mkdirs()
-            Log.d(TAG, "Cover cache directory created: $absolutePath")
+            if (!exists() && mkdirs()) Log.d(TAG, "Cover cache directory created: $absolutePath")
         }
     }
 
@@ -102,7 +101,7 @@ class CoverArtRepository(context: Context) {
         }
         // 3DS CIAs often expose a title but no serial, so the cache key falls
         // back to the game title in that case.
-        val normalizedSerial = coverKey(serial, title)
+        val normalizedSerial = coverKey(serial, title, platform)
         if (normalizedSerial == null) {
             Log.d(TAG, "No serial or title provided")
             return null
@@ -117,7 +116,8 @@ class CoverArtRepository(context: Context) {
         } else {
             listOf(
                 File(cacheDirectory, "$normalizedSerial.jpg"),
-                File(cacheDirectory, "$normalizedSerial.png")
+                File(cacheDirectory, "$normalizedSerial.png"),
+                File(cacheDirectory, "$normalizedSerial.webp")
             )
         }
         preferredFiles.filter(File::exists).forEach { file ->
@@ -153,7 +153,7 @@ class CoverArtRepository(context: Context) {
             Log.d(TAG, "Cover download skipped: cover art style is disabled")
             return null
         }
-        val coverKey = coverKey(serial, title)
+        val coverKey = coverKey(serial, title, platform)
         if (coverKey == null) {
             Log.w(TAG, "Cannot download cover: no serial or title")
             return null
@@ -418,13 +418,14 @@ class CoverArtRepository(context: Context) {
     }
 
     /** Cache key for a cover: the serial when available, otherwise the title. */
-    private fun coverKey(serial: String?, title: String?): String? {
-        normalizeSerial(serial)?.let { return it }
+    private fun coverKey(serial: String?, title: String?, platform: GamePlatform): String? {
+        val prefix = if (platform == GamePlatform.NDS) "nds_" else ""
+        normalizeSerial(serial)?.let { return prefix + it }
         val normalizedTitle = title?.trim()?.lowercase(Locale.ROOT)
             ?.replace(Regex("[^a-z0-9]+"), "_")
             ?.trim('_')
             ?.take(80)
-        return normalizedTitle?.takeIf { it.isNotBlank() }
+        return normalizedTitle?.takeIf { it.isNotBlank() }?.let { prefix + it }
     }
 
     private fun resolveCoverBaseUrl(style: Int = resolveCoverArtStyle()): String? {

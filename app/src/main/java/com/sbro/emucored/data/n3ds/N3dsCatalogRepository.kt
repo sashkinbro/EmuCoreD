@@ -155,6 +155,26 @@ class N3dsCatalogRepository(private val context: Context) {
         }
     }
 
+    /** Platform metadata for the shared cover index, loaded once with that index. */
+    internal fun coverPlatforms(): Map<String, com.sbro.emucored.data.GamePlatform>? {
+        if (!ensureDatabaseReady()) return null
+        val db = getDatabase() ?: return null
+        return runCatching {
+            buildMap {
+                db.rawQuery("SELECT igdb_id, platform FROM games", null).use { cursor ->
+                    while (cursor.moveToNext()) {
+                        val platform = when (cursor.getString(1)) {
+                            "3DS" -> com.sbro.emucored.data.GamePlatform.N3DS
+                            "DS", "DSI" -> com.sbro.emucored.data.GamePlatform.NDS
+                            else -> continue
+                        }
+                        put(cursor.getLong(0).toString(), platform)
+                    }
+                }
+            }
+        }.getOrNull()
+    }
+
     data class CatalogCover(val igdbId: Long, val coverUrl: String?, val heroUrl: String?)
 
     private val coverMatchCache get() = sharedCoverMatchCache

@@ -852,7 +852,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         val snapshot: List<GameItem>
         synchronized(this) {
             allGames = allGames.map { game ->
-                val selected = covers.displayCoverPath(game.serial, game.title, game.coverArtPath)
+                val selected = covers.displayCoverPath(game.serial, game.title, game.coverArtPath, game.platform)
                 if (selected == game.coverArtPath) game else game.copy(coverArtPath = selected)
             }
             snapshot = allGames
@@ -939,9 +939,9 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
             synchronized(this@HomeViewModel) {
                 allGames = allGames.map { game ->
                     val hasSerial = !game.serial.isNullOrBlank()
-                    val resolvedCoverPath = game.serial
-                        ?.takeIf { it.isNotBlank() }
-                        ?.let(coverRepository::findCachedCoverPath)
+                    val resolvedCoverPath = coverRepository.findCachedCoverPath(
+                        game.serial, title = game.title, platform = game.platform
+                    )
                     when {
                         coverRepository.isMissingManagedCover(game.coverArtPath) ||
                             customGameCoverRepository.isMissingCustomCover(game.coverArtPath) -> {
@@ -1020,7 +1020,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                     return@map game
                 }
                 if (currentPath != null && currentPath.startsWith(cachePrefix, ignoreCase = true)) {
-                    game.copy(coverArtPath = coverRepository.findCachedCoverPath(game.serial))
+                    game.copy(coverArtPath = coverRepository.findCachedCoverPath(game.serial, title = game.title, platform = game.platform))
                 } else {
                     game
                 }
