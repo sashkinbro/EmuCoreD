@@ -292,7 +292,8 @@ internal fun HomeShelfMode(
                             .padding(horizontal = horizontalInset)
                             .padding(bottom = bottomInset + 8.dp)
                     ) { activePath ->
-                        val selectedGame = games.first { it.path == activePath }
+                        // An outgoing animation can still reference a game removed by a platform filter.
+                        val selectedGame = games.firstOrNull { it.path == activePath } ?: return@AnimatedContent
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()

@@ -507,6 +507,13 @@ fun HomeScreen(
                 label = "home-library-mode"
             ) { shelfMode ->
                 if (shelfMode) {
+                    Column(Modifier.fillMaxSize()) {
+                    LibraryPlatformTabs(
+                        available = uiState.availablePlatforms,
+                        selected = uiState.platformFilter,
+                        onSelected = viewModel::updatePlatformFilter,
+                        horizontalContentPadding = horizontalInset
+                    )
                     HomeShelfMode(
                         games = uiState.games,
                         recentGames = uiState.recentGames,
@@ -516,7 +523,7 @@ fun HomeScreen(
                         topInset = 0.dp,
                         bottomInset = 0.dp,
                         horizontalInset = horizontalInset,
-                        modifier = Modifier.fillMaxSize(),
+                        modifier = Modifier.weight(1f),
                         onExitShelfMode = viewModel::toggleShelfMode,
                         onEnable3dCoverArt = viewModel::enable3dCoverArt,
                         onGameClick = launchGame,
@@ -530,6 +537,7 @@ fun HomeScreen(
                         },
                         onLongClickRestoreCover = { game -> restoreCustomCover(game) }
                     )
+                    }
                 } else {
                     val columns = if (isListView) GridCells.Fixed(1) else GridCells.Fixed(columnsCount)
 
@@ -562,6 +570,15 @@ fun HomeScreen(
                                     onToggleShelfMode = viewModel::toggleShelfMode,
                                     onToggleLibraryViewMode = viewModel::toggleLibraryViewMode,
                                     onMenuClick = onMenuClick
+                                )
+                            }
+
+                            item(span = { androidx.compose.foundation.lazy.grid.GridItemSpan(maxLineSpan) }) {
+                                LibraryPlatformTabs(
+                                    available = uiState.availablePlatforms,
+                                    selected = uiState.platformFilter,
+                                    onSelected = viewModel::updatePlatformFilter,
+                                    horizontalContentPadding = horizontalInset
                                 )
                             }
 

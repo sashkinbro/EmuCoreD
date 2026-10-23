@@ -5,6 +5,7 @@ import android.app.Application
 import android.net.Uri
 import androidx.annotation.StringRes
 import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
 import com.sbro.emucored.R
 import com.sbro.emucored.core.CiaInstallWorker
@@ -29,6 +30,9 @@ import com.sbro.emucored.data.CoreMaintenanceRepository
 import com.sbro.emucored.data.CoreUpdateResetAction
 import com.sbro.emucored.data.CustomGameCoverRepository
 import com.sbro.emucored.data.GameItem
+import com.sbro.emucored.data.GamePlatform
+import com.sbro.emucored.data.filterLibraryPlatform
+import com.sbro.emucored.data.resolveLibraryPlatformSelection
 import com.sbro.emucored.data.GameLibraryCacheRepository
 import com.sbro.emucored.data.GameLibraryCacheSnapshot
 import com.sbro.emucored.data.GameRepository
@@ -45,6 +49,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
@@ -71,6 +76,8 @@ enum class HomeLibraryViewMode {
 
 data class HomeUiState(
     val games: List<GameItem> = emptyList(),
+    val availablePlatforms: List<GamePlatform> = emptyList(),
+    val platformFilter: GamePlatform? = null,
     val recentGames: List<GameItem> = emptyList(),
     val isLoading: Boolean = true,
     val isRefreshing: Boolean = false,
@@ -126,7 +133,7 @@ data class CiaInstallUiState(
     val installedLaunchPath: String? = null
 )
 
-class HomeViewModel(application: Application) : AndroidViewModel(application) {
+class HomeViewModel(application: Application, private val savedStateHandle: SavedStateHandle) : AndroidViewModel(application) {
 
     companion object {
         private const val AUTO_REFRESH_INTERVAL_MS = 15 * 60 * 1000L
@@ -162,7 +169,11 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     private val publishPending = AtomicBoolean(false)
     private var publishJob: Job? = null
 
-    private val _uiState = MutableStateFlow(HomeUiState())
+    private val _uiState = MutableStateFlow(HomeUiState(platformFilter =
+        savedStateHandle.get<String>("library_platform")?.let { name ->
+            GamePlatform.entries.firstOrNull { it.name == name }
+        }
+    ))
     val uiState: StateFlow<HomeUiState> = _uiState.asStateFlow()
 
     private val _ciaInstallState = MutableStateFlow(CiaInstallUiState())
@@ -578,6 +589,13 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    fun updatePlatformFilter(platform: GamePlatform?) {
+        val selection = resolveLibraryPlatformSelection(allGames, platform)
+        savedStateHandle["library_platform"] = selection.selected?.name
+        _uiState.update { it.copy(platformFilter = selection.selected) }
+        publishVisibleGames()
+    }
+
     fun updateSortOption(option: HomeSortOption) {
         _uiState.value = _uiState.value.copy(sortOption = option)
         publishVisibleGames()
@@ -835,19 +853,29 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         publishJob = viewModelScope.launch(Dispatchers.Default) {
             do {
                 publishPending.set(false)
-                val (games, recent) = resolveVisibleGames()
-                _uiState.value = _uiState.value.copy(games = games, recentGames = recent)
+                val state = _uiState.value
+                val (games, recent) = resolveVisibleGames(state)
+                _uiState.update { current ->
+                    if (current.platformFilter == state.platformFilter &&
+                        current.searchQuery == state.searchQuery && current.sortOption == state.sortOption &&
+                        current.showRecentGames == state.showRecentGames
+                    ) current.copy(games = games, recentGames = recent) else current.also { publishPending.set(true) }
+                }
             } while (publishPending.get())
         }
     }
 
     private fun publishVisibleGamesNow() {
         val snapshot = synchronized(this) { allGames }
-        val (games, recent) = filterAndSortGames(snapshot, _uiState.value)
-        _uiState.value = _uiState.value.copy(games = games, recentGames = recent)
+        _uiState.update { current ->
+            val selection = resolveLibraryPlatformSelection(snapshot, current.platformFilter, libraryInitialized)
+            val state = current.copy(availablePlatforms = selection.available, platformFilter = selection.selected)
+            val (games, recent) = filterAndSortGames(snapshot, state)
+            state.copy(games = games, recentGames = recent)
+        }
     }
 
-    private fun resolveVisibleGames(): Pair<List<GameItem>, List<GameItem>> {
+    private fun resolveVisibleGames(state: HomeUiState): Pair<List<GameItem>, List<GameItem>> {
         val covers = CoverArtRepository(getApplication())
         val snapshot: List<GameItem>
         synchronized(this) {
@@ -857,7 +885,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
             }
             snapshot = allGames
         }
-        return filterAndSortGames(snapshot, _uiState.value)
+        return filterAndSortGames(snapshot, state)
     }
 
     private fun filterAndSortGames(
@@ -865,7 +893,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         state: HomeUiState
     ): Pair<List<GameItem>, List<GameItem>> {
         val query = normalizeSearchToken(state.searchQuery)
-        val filtered = snapshot.filter { game ->
+        val filtered = snapshot.filterLibraryPlatform(state.platformFilter).filter { game ->
             query.isBlank() ||
                 normalizeSearchToken(game.title).contains(query) ||
                 normalizeSearchToken(game.fileName).contains(query) ||
@@ -905,7 +933,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                 normalizeSearchToken(game.title).contains(query) ||
                 normalizeSearchToken(game.fileName).contains(query) ||
                 normalizeSearchToken(game.serial).contains(query)
-        }.takeIf { state.showRecentGames }.orEmpty()
+        }.filterLibraryPlatform(state.platformFilter).takeIf { state.showRecentGames }.orEmpty()
         return sorted to recentGames
     }
 
