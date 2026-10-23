@@ -20,7 +20,7 @@ internal class CoverIdentityResolver(
     private fun resolveUncached(serial: String?, title: String?, platform: GamePlatform): String? {
         val serials = index.optJSONObject("serials")
         val cleanSerial = serial.orEmpty().uppercase(Locale.ROOT)
-            .replace(Regex("[-_.\\s]"), "")
+            .replace(SERIAL_SEPARATORS, "")
             .trim()
         val serialCandidates = buildList {
             if (cleanSerial.isNotBlank()) {
@@ -52,7 +52,7 @@ internal class CoverIdentityResolver(
                 ?.takeIf { platform in platformMembership[it].orEmpty() }?.let { return it }
             candidates[platform]?.firstOrNull { it.title == normalizedTitle }?.let { return it.id }
         }
-        return findFuzzyGameId(title, platform)
+        return findFuzzyGameId(normalizedTitle, platform)
     }
 
     private data class Candidate(val id: String, val title: String, val tokens: List<String>)
@@ -62,11 +62,11 @@ internal class CoverIdentityResolver(
     private val platformMembership: Map<String, Set<GamePlatform>> = buildMap {
         val serials = index.optJSONObject("serials")
         serials?.keys()?.forEach { serial ->
-            val normalized = serial.uppercase(Locale.ROOT).replace(Regex("[-_.\\s]"), "")
+            val normalized = serial.uppercase(Locale.ROOT).replace(SERIAL_SEPARATORS, "")
             val platform = when {
                 normalized.startsWith("NTR") || normalized.startsWith("TWL") -> GamePlatform.NDS
                 normalized.startsWith("CTR") || normalized.startsWith("KTR") ||
-                    normalized.matches(Regex("[0-9A-F]{16}")) -> GamePlatform.N3DS
+                    normalized.matches(HEX_TITLE_ID) -> GamePlatform.N3DS
                 else -> return@forEach
             }
             val id = idFromTableValue(serials.optString(serial)) ?: return@forEach
@@ -82,15 +82,16 @@ internal class CoverIdentityResolver(
         while (ids.hasNext()) {
             val id = ids.next()
             val name = games.optJSONObject(id)?.optString("name").orEmpty()
-            add(Candidate(id, normalizeTitle(name), titleTokens(name)))
+            val normalizedTitle = normalizeTitle(name)
+            add(Candidate(id, normalizedTitle, titleTokensFromNormalized(normalizedTitle)))
         }
     }.let { all -> GamePlatform.entries.associateWith { platform ->
         all.filter { platform in platformMembership[it.id].orEmpty() }
     } }
     private val matches = CoverMatchCache(4096)
 
-    private fun findFuzzyGameId(title: String?, platform: GamePlatform): String? {
-        val queryTokens = titleTokens(title.orEmpty())
+    private fun findFuzzyGameId(normalizedTitle: String, platform: GamePlatform): String? {
+        val queryTokens = titleTokensFromNormalized(normalizedTitle)
         if (queryTokens.isEmpty()) return null
         var bestId: String? = null
         var bestScore = 0
@@ -119,11 +120,11 @@ internal class CoverIdentityResolver(
         return if (queryInGame || gameInQuery) 50 else 0
     }
 
-    private fun titleTokens(value: String): List<String> =
-        normalizeTitle(value)
-            .replace(Regex("\\b(the|a|an|game|nintendo|edition|version)\\b"), " ")
-            .replace(Regex("ds$"), " ")
-            .replace(Regex("\\s+"), " ")
+    private fun titleTokensFromNormalized(value: String): List<String> =
+        value
+            .replace(TITLE_FILLER_WORDS, " ")
+            .replace(TRAILING_DS, " ")
+            .replace(WHITESPACE, " ")
             .trim()
             .split(' ')
             .filter { it.isNotBlank() }
@@ -132,10 +133,20 @@ internal class CoverIdentityResolver(
     private fun idFromTableValue(value: String?): String? {
         if (value.isNullOrBlank()) return null
         if (value.all(Char::isDigit)) return value
-        return Regex("covers/(?:3d/(?:dark/)?)?([0-9]+)\\.(?:jpg|jpeg|png|webp)", RegexOption.IGNORE_CASE)
-            .find(value)?.groupValues?.getOrNull(1)
+        return COVER_PATH.find(value)?.groupValues?.getOrNull(1)
     }
 
+    private companion object {
+        val SERIAL_SEPARATORS = Regex("[-_.\\s]")
+        val HEX_TITLE_ID = Regex("[0-9A-F]{16}")
+        val TITLE_FILLER_WORDS = Regex("\\b(the|a|an|game|nintendo|edition|version)\\b")
+        val TRAILING_DS = Regex("ds$")
+        val WHITESPACE = Regex("\\s+")
+        val COVER_PATH = Regex(
+            "covers/(?:3d/(?:dark/)?)?([0-9]+)\\.(?:jpg|jpeg|png|webp)",
+            RegexOption.IGNORE_CASE
+        )
+    }
 }
 
 internal class CoverMatchCache(private val capacity: Int) {

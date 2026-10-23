@@ -84,12 +84,15 @@ class CoverIndexRepository(private val context: Context) {
         )
         private val lock = Any()
         @Volatile private var cached: LoadedIndex? = null
+        private val COMBINING_MARKS = Regex("\\p{M}+")
+        private val TRADEMARK_SYMBOLS = Regex("[™®©]")
+        private val TITLE_SEPARATORS = Regex("[^\\p{L}\\p{N}]+")
 
         internal fun normalizeTitle(value: String): String =
             Normalizer.normalize(value.lowercase(Locale.ROOT), Normalizer.Form.NFKD)
-                .replace(Regex("\\p{M}+"), "")
-                .replace(Regex("[™®©]"), "")
-                .replace(Regex("[^\\p{L}\\p{N}]+"), " ")
+                .replace(COMBINING_MARKS, "")
+                .replace(TRADEMARK_SYMBOLS, "")
+                .replace(TITLE_SEPARATORS, " ")
                 .trim()
     }
 }
