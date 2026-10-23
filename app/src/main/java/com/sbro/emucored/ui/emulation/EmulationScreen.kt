@@ -982,17 +982,16 @@ fun EmulationScreen(
 
     val gameSurfaceView = remember { mutableStateOf<SurfaceView?>(null) }
     LaunchedEffect(viewModel) {
-        viewModel.saveStatePreviewRequests.collect { slot ->
-            val surfaceView = gameSurfaceView.value ?: return@collect
-            val dsActive = DsSession.isActive
-            val savePath = if (dsActive) {
-                DsSession.statePath(slot)
-            } else {
-                runCatching { NativeApp.getCurrentSaveStatePath(slot) }
-                    .getOrNull()
-            }?.takeIf { it.isNotBlank() } ?: return@collect
-            if (captureSaveStatePreview(surfaceView, savePath, dsActive)) {
-                viewModel.refreshSaveStateMetadataNow()
+        viewModel.saveStatePreviewRequests.collect { request ->
+            var captured = false
+            try {
+                val surfaceView = gameSurfaceView.value
+                if (request.isPending && surfaceView != null) {
+                    captured = captureSaveStatePreview(surfaceView, request.savePath, request.dualScreenPortrait)
+                    if (captured) viewModel.refreshSaveStateMetadataNow()
+                }
+            } finally {
+                request.complete(captured)
             }
         }
     }

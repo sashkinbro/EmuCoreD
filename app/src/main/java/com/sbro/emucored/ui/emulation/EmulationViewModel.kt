@@ -81,10 +81,8 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.ensureActive
-import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.SharingStarted
@@ -398,8 +396,8 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
             }
         }
     }
-    private val _saveStatePreviewRequests = MutableSharedFlow<Int>(extraBufferCapacity = 1)
-    val saveStatePreviewRequests = _saveStatePreviewRequests.asSharedFlow()
+    private val previewRequests = SaveStatePreviewRequests()
+    val saveStatePreviewRequests = previewRequests.requests
     private var lastCloudPlayTimeSyncAtMs: Long = 0L
     private var shouldCountCurrentProfileSession = false
     /** Profile play time is only tracked for real game launches, never for BIOS or autotests. */
@@ -914,8 +912,13 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
             actionLabel = if (showActionProgress) null else after.actionLabel
         )
         refreshSaveStateMetadata()
-        if (success) _saveStatePreviewRequests.tryEmit(AUTO_SAVE_SLOT)
+        if (success) requestSaveStatePreview(path, AUTO_SAVE_SLOT, awaitCompletion = allowDuringShutdown)
         return success
+    }
+
+    private suspend fun requestSaveStatePreview(path: String, slot: Int, awaitCompletion: Boolean = false) {
+        val savePath = resolveSaveStateFile(path, slot)?.absolutePath ?: return
+        previewRequests.request(savePath, DsSession.isActive, awaitCompletion)
     }
 
     private fun pollNativePerformanceMetrics() {
@@ -2958,6 +2961,9 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
     }
 
     private suspend fun waitForSaveStateUpdate(gamePath: String, slot: Int, previousModified: Long): Boolean {
+        if (DsSession.isActive) {
+            return awaitSaveStateFileUpdate(previousModified) { DsSession.statePath(slot)?.let(::File) }
+        }
         val statePath = runCatching { NativeApp.getCurrentSaveStatePath(slot) }.getOrNull()
             ?.takeIf { it.isNotBlank() }
             ?: runCatching { NativeApp.getSaveStatePathForFile(gamePath, slot) }.getOrNull()
@@ -3036,7 +3042,7 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
             // Refresh even on failure: whatever is on disk is the truth, and a
             // silent failure used to leave the slot looking empty.
             refreshSaveStateMetadata()
-            if (success) _saveStatePreviewRequests.tryEmit(slot)
+            if (success && path != null) requestSaveStatePreview(path, slot)
             delay(2000.milliseconds)
             _uiState.value = _uiState.value.copy(toastMessage = null)
         }
@@ -3137,7 +3143,7 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
         pausedForBackground = false
         val app = getApplication<EmuCoreDApp>()
         app.applicationScope.launch(Dispatchers.IO) {
-            val shouldAutoSave = _uiState.value.shouldAutoSaveOnExit(
+            var shouldAutoSave = _uiState.value.shouldAutoSaveOnExit(
                 currentGamePath,
                 EmulatorBridge.runtimeFailure.value
             )
@@ -3155,6 +3161,11 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
                     _keyboardMouseOverride.value = null
                     KeyboardMouseManager.setPerGameOverride(null)
                 } catch (_: Exception) { }
+                if (shouldAutoSave) {
+                    // A failed pause must still take the normal teardown path;
+                    // never save a potentially invalid session or strand exit.
+                    shouldAutoSave = runCatching { EmulatorBridge.pause() }.isSuccess
+                }
                 if (!shouldAutoSave) EmulatorBridge.requestShutdown()
                 _uiState.value = _uiState.value.copy(
                     isRunning = false,
@@ -3171,12 +3182,6 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
             }
             if (!shouldStop) return@launch
 
-            if (onExit != null) {
-                withContext(Dispatchers.Main) {
-                    onExit.invoke()
-                }
-            }
-
             cachePendingPlayTime()
 
             if (shouldAutoSave) {
@@ -3189,6 +3194,11 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
                     )
                 }
                 EmulatorBridge.requestShutdown()
+            }
+            // Keep the destination, SurfaceView and preview collector alive
+            // until the exit save and its bounded capture have completed.
+            if (onExit != null) {
+                withContext(Dispatchers.Main) { onExit.invoke() }
             }
             val teardown = EmulatorBridge.shutdownAsync()
             syncCachedPlayTimeInBackground()
