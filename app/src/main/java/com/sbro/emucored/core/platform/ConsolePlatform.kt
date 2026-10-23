@@ -4,7 +4,7 @@ import com.sbro.emucored.core.N3dsGameFormats
 import com.sbro.emucored.data.GamePlatform
 import java.util.Locale
 
-enum class CoreId { AZAHAR, MELONDS, DOLPHIN, MGBA, SAMEBOY }
+enum class CoreId { AZAHAR, MELONDS, DOLPHIN, MGBA, SAMEBOY, NESTOPIA, BSNES }
 
 /** Product identities are independent of engines: one engine can emulate several consoles. */
 enum class ConsolePlatform(
@@ -19,7 +19,9 @@ enum class ConsolePlatform(
     WII("wii", CoreId.DOLPHIN, 5, false),
     GBA("gba", CoreId.MGBA, 24, false),
     GB("gb", CoreId.SAMEBOY, 33, false),
-    GBC("gbc", CoreId.SAMEBOY, 22, false);
+    GBC("gbc", CoreId.SAMEBOY, 22, false),
+    NES("nes", CoreId.NESTOPIA, 18, false),
+    SNES("snes", CoreId.BSNES, 19, false);
 
     companion object {
         fun fromId(id: String?): ConsolePlatform? = entries.firstOrNull { it.id == id }
@@ -38,6 +40,8 @@ enum class ConsolePlatform(
                 "gba", "agb" -> setOf(GBA)
                 "gb", "sgb" -> setOf(GB)
                 "gbc", "cgb" -> setOf(GBC)
+                "nes", "unf", "unif", "fds" -> setOf(NES)
+                "sfc", "smc", "swc", "fig" -> setOf(SNES)
                 "gcm" -> setOf(GAMECUBE)
                 "wbfs", "wad" -> setOf(WII)
                 "iso", "rvz", "wia", "gcz", "ciso" -> setOf(GAMECUBE, WII)

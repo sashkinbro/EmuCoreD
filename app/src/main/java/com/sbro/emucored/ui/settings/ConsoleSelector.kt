@@ -38,4 +38,6 @@ internal fun consolePlatformLabel(platform: ConsolePlatform): String = stringRes
     ConsolePlatform.GBA -> R.string.console_gba
     ConsolePlatform.GB -> R.string.console_gb
     ConsolePlatform.GBC -> R.string.console_gbc
+    ConsolePlatform.NES -> R.string.console_nes
+    ConsolePlatform.SNES -> R.string.console_snes
 })

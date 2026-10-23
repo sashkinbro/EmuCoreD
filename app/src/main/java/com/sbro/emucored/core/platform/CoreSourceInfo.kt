@@ -18,6 +18,8 @@ data class CoreSourceInfo(
             CoreId.DOLPHIN -> CoreSourceInfo(core, "Dolphin", "https://github.com/dolphin-emu/dolphin", "GPL (COPYING)")
             CoreId.MGBA -> CoreSourceInfo(core, "mGBA", "https://github.com/mgba-emu/mgba", "MPL-2.0")
             CoreId.SAMEBOY -> CoreSourceInfo(core, "SameBoy", "https://github.com/LIJI32/SameBoy", "Expat/MIT")
+            CoreId.NESTOPIA -> CoreSourceInfo(core, "Nestopia JG", "https://gitlab.com/jgemu/nestopia", "GPL-2.0-or-later")
+            CoreId.BSNES -> CoreSourceInfo(core, "bsnes", "https://github.com/bsnes-emu/bsnes", "GPL-3.0-or-later")
         }
     }
 }

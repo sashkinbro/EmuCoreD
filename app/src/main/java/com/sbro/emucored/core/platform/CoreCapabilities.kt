@@ -31,7 +31,7 @@ class CoreCapabilities private constructor(
             ConsolePlatform.N3DS -> azahar
             ConsolePlatform.NDS -> melonDs
             ConsolePlatform.GAMECUBE, ConsolePlatform.WII, ConsolePlatform.GBA,
-            ConsolePlatform.GB, ConsolePlatform.GBC -> pending
+            ConsolePlatform.GB, ConsolePlatform.GBC, ConsolePlatform.NES, ConsolePlatform.SNES -> pending
         }
     }
 }

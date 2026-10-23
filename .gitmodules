@@ -10,3 +10,9 @@
 	path = coreGB/SameBoy
 	url = https://github.com/LIJI32/SameBoy.git
 	shallow = true
+[submodule "coreNES/nestopia"]
+	path = coreNES/nestopia
+	url = https://gitlab.com/jgemu/nestopia.git
+[submodule "coreSNES/bsnes"]
+	path = coreSNES/bsnes
+	url = https://github.com/bsnes-emu/bsnes.git

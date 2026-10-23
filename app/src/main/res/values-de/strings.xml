@@ -1838,4 +1838,6 @@
     <string name="console_gbc">Game Boy Color</string>
     <string name="console_coming_soon">%1$s (Demnächst)</string>
     <string name="settings_about_core_license">Lizenz: %1$s</string>
+    <string name="console_nes">NES</string>
+    <string name="console_snes">SNES</string>
 </resources>

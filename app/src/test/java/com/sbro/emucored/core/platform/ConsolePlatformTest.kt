@@ -5,7 +5,7 @@ import org.junit.Test
 
 class ConsolePlatformTest {
     @Test fun stableIdsCoverTheApprovedConsolesWithoutEnablingUnfinishedAdapters() {
-        assertEquals(setOf("3ds", "nds", "gamecube", "wii", "gba", "gb", "gbc"),
+        assertEquals(setOf("3ds", "nds", "gamecube", "wii", "gba", "gb", "gbc", "nes", "snes"),
             ConsolePlatform.entries.map { it.id }.toSet())
         assertEquals(setOf(ConsolePlatform.N3DS, ConsolePlatform.NDS),
             ConsolePlatform.entries.filter { it.isLaunchable }.toSet())
@@ -20,7 +20,7 @@ class ConsolePlatformTest {
         assertEquals(CoreId.SAMEBOY, ConsolePlatform.GB.core)
         assertEquals(CoreId.SAMEBOY, ConsolePlatform.GBC.core)
         assertEquals(CoreId.MGBA, ConsolePlatform.GBA.core)
-        assertEquals(7, ConsolePlatform.entries.map { it.catalogPlatformId }.toSet().size)
+        assertEquals(9, ConsolePlatform.entries.map { it.catalogPlatformId }.toSet().size)
     }
 
     @Test fun fileCandidatesAreCaseInsensitiveAndDoNotGuessAmbiguousDiscIdentity() {
@@ -28,6 +28,9 @@ class ConsolePlatformTest {
         assertEquals(setOf(ConsolePlatform.GBA), ConsolePlatform.candidatesForFileName("Game.GBA"))
         assertEquals(setOf(ConsolePlatform.GBC), ConsolePlatform.candidatesForFileName("Game.gbc"))
         assertEquals(setOf(ConsolePlatform.GB), ConsolePlatform.candidatesForFileName("Game.gb"))
+        assertEquals(setOf("nes"), ConsolePlatform.candidatesForFileName("Contra.NES").map { it.id }.toSet())
+        assertEquals(setOf("snes"), ConsolePlatform.candidatesForFileName("Game.SFC").map { it.id }.toSet())
+        assertEquals(setOf("snes"), ConsolePlatform.candidatesForFileName("Game.smc").map { it.id }.toSet())
         assertEquals(setOf(ConsolePlatform.GAMECUBE, ConsolePlatform.WII),
             ConsolePlatform.candidatesForFileName("Game.iso"))
         assertEquals(setOf(ConsolePlatform.GAMECUBE, ConsolePlatform.WII),
