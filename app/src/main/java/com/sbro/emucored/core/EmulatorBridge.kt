@@ -29,6 +29,14 @@ import java.io.FileOutputStream
 import java.lang.ref.WeakReference
 import java.util.Locale
 
+internal data class DsLaunchConfiguration(val renderer: Int, val renderScale: Int)
+
+internal fun dsLaunchConfiguration(renderer: Int, renderScale: Int) =
+    DsLaunchConfiguration(
+        renderer = if (renderer == 13) 13 else 14,
+        renderScale = renderScale.coerceIn(1, 8)
+    )
+
 /**
  * App-facing session bridge.
  *
@@ -205,7 +213,8 @@ object EmulatorBridge {
     suspend fun startEmulation(
         path: String,
         saveStateIdentityPath: String? = null,
-        dsRenderScale: Int = 1
+        dsRenderScale: Int = 1,
+        dsRenderer: Int = 14
     ): Boolean {
         if (!isNativeLoaded) {
             Log.e(TAG, "startEmulation skipped: native library is not loaded")
@@ -219,12 +228,14 @@ object EmulatorBridge {
             awaitPendingShutdown()
             if (isVmActive()) return false
             val context = getContext() ?: return false
+            val dsConfig = dsLaunchConfiguration(dsRenderer, dsRenderScale)
             return withContext(Dispatchers.IO) {
                 DsSession.start(
                     context,
                     path,
                     saveStateIdentityPath ?: path,
-                    renderScale = dsRenderScale
+                    renderScale = dsConfig.renderScale,
+                    renderer = dsConfig.renderer
                 )
             }
         }

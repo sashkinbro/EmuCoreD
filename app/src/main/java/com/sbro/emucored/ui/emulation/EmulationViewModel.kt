@@ -994,6 +994,7 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
 
             var finalLaunchPath: String? = null
             var dsRenderScale = 1
+            var dsRenderer = 14
             lifecycleMutex.withLock {
                 if (isShuttingDown || cancelPendingStart) return@launch
 
@@ -1005,6 +1006,8 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
                 val config = loadLaunchConfig()
                 dsRenderScale = config.upscaleMultiplier.roundToInt().coerceIn(1, 8)
                 val renderer = rendererOverride ?: config.renderer
+                // Preserve DS software (13) before the 3DS config normalizes renderer IDs.
+                dsRenderer = renderer
                 Log.i(TAG, "Launch config loaded renderer=$renderer override=${rendererOverride != null}")
                 _uiState.value = _uiState.value.copy(
                     statusMessage = "status_applying_config"
@@ -1162,7 +1165,7 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
                     fpsOverlayMode = liveRuntime.fpsOverlayMode,
                     confirmSaveLoadActions = liveRuntime.confirmSaveLoadActions,
                     backButtonExitsGame = liveRuntime.backButtonExitsGame,
-                    renderer = liveRuntime.renderer,
+                    renderer = renderer,
                     upscale = liveRuntime.upscale,
                     aspectRatio = liveRuntime.aspectRatio,
                     displayCrop = liveRuntime.displayCrop,
@@ -1299,7 +1302,8 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
                 EmulatorBridge.startEmulation(
                     pathToLaunch,
                     saveStateIdentityPath = path,
-                    dsRenderScale = dsRenderScale
+                    dsRenderScale = dsRenderScale,
+                    dsRenderer = dsRenderer
                 )
             } catch (error: Exception) {
                 Log.e(TAG, "EmulatorBridge.startEmulation failed", error)
