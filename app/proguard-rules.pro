@@ -1,7 +1,8 @@
 # EmuCoreD R8 rules.
 #
-# This app is a Compose/Kotlin frontend around the bundled Azahar libretro
-# core and its JNI bridge (libemucored_jni.so). Runtime name lookups need explicit keeps:
+# This Compose/Kotlin frontend uses Azahar's Android bridge (libemucore_core.so),
+# melonDS through EmuCoreD's DS bridge (libemucored_ds.so), and the frontend
+# shader bridge (libemucore_shaders.so). Runtime name lookups need explicit keeps:
 # JNI entry points, classes resolved by the Discord partner SDK,
 # and kotlinx.serialization serializers used for persisted JSON and
 # typed Navigation Compose routes. Everything else is shrunk normally.
@@ -22,6 +23,14 @@
     native <methods>;
 }
 -keepclasseswithmembers,includedescriptorclasses class com.sbro.emucored.discord.DiscordNative {
+    native <methods>;
+}
+
+# --- JNI: bundled melonDS core ----------------------------------------------
+# ds_jni.cpp exports Java_com_sbro_emucored_core_ds_EmuCoreDsNative_* symbols.
+# Keep this exact class and its native methods even if generic rules or @Keep
+# annotations change. DS has no Java callbacks resolved through FindClass.
+-keep,includedescriptorclasses class com.sbro.emucored.core.ds.EmuCoreDsNative {
     native <methods>;
 }
 
