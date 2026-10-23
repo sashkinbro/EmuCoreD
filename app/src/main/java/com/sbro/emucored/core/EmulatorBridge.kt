@@ -576,6 +576,7 @@ object EmulatorBridge {
             "renderer change requested renderer=${rendererName(resolvedRenderer)}($resolvedRenderer) vmActive=$isVmActive"
         )
         Log.i(TAG, "Renderer change requested: ${rendererName(resolvedRenderer)} vmActive=$isVmActive")
+        val previousRendererOption = CoreOptionStore.value("graphics_api")
         CoreOptionStore.set("graphics_api", RendererDefaults.coreRendererName(resolvedRenderer))
         if (isVmActive) {
             // The core re-negotiates the renderer only on boot, so the in-game
@@ -583,6 +584,8 @@ object EmulatorBridge {
             val restarted = runSerial { NativeApp.restartRenderer(resolvedRenderer) }
             isVmActive = NativeApp.hasOwnedVm()
             if (!restarted) {
+                if (previousRendererOption == null) CoreOptionStore.remove("graphics_api")
+                else CoreOptionStore.set("graphics_api", previousRendererOption)
                 Log.e(TAG, "Renderer restart failed for ${rendererName(resolvedRenderer)}")
                 return false
             }

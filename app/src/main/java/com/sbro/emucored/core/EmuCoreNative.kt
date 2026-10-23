@@ -52,6 +52,7 @@ object EmuCoreNative {
     // Emulation lifecycle. The core runs its own emulation thread.
     // ---------------------------------------------------------------------
     external fun run(path: String)
+    external fun runPaused(path: String)
     external fun stopEmulation()
     external fun pauseEmulation()
     external fun unPauseEmulation()
@@ -102,6 +103,11 @@ object EmuCoreNative {
     external fun getSavestateInfo(): Array<SaveStateInfo>?
     external fun saveState(slot: Int)
     external fun loadState(slot: Int)
+    /** Acknowledged core-thread recovery operations; never touch user slots. */
+    external fun saveTemporaryState(path: String): Boolean
+    external fun loadTemporaryState(path: String): Boolean
+    external fun getActiveRenderer(): Int
+    external fun releasePresentationContext()
 
     // ---------------------------------------------------------------------
     // Metadata, cartridges and system files.

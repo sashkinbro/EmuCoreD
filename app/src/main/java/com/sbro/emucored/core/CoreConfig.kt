@@ -50,6 +50,7 @@ internal object CoreConfig {
     /** Latest applied app values, so runtime option changes can rewrite the file. */
     @Volatile
     private var lastApplied: Values? = null
+    fun currentValues(): Values? = lastApplied
 
     /** Per-session overrides (per-game core options); never persisted globally. */
     private val transientOverrides = linkedMapOf<String, String>()

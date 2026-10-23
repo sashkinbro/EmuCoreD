@@ -21,7 +21,7 @@ class EmuWindow_Android_OpenGL : public EmuWindow_Android {
 public:
     EmuWindow_Android_OpenGL(Core::System& system, ANativeWindow* surface, bool is_secondary,
                              EGLContext* sharedContext = NULL);
-    ~EmuWindow_Android_OpenGL() override = default;
+    ~EmuWindow_Android_OpenGL() override;
 
     void TryPresenting() override;
     bool NeedsFrameCallbacks() const override {
@@ -43,6 +43,8 @@ private:
     EGLSurface egl_surface{};
     EGLContext egl_context{};
     EGLDisplay egl_display{};
+    bool owns_context = false;
+    bool display_initialized = false;
 
     enum class PresentingState {
         Initial,

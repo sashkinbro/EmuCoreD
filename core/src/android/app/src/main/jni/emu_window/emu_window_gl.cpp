@@ -83,6 +83,7 @@ EmuWindow_Android_OpenGL::EmuWindow_Android_OpenGL(Core::System& system_, ANativ
         LOG_CRITICAL(Frontend, "eglInitialize() failed");
         return;
     }
+    display_initialized = true;
     if (EGLint egl_num_configs{}; eglChooseConfig(egl_display, egl_attribs.data(), &egl_config, 1,
                                                   &egl_num_configs) != EGL_TRUE) {
         LOG_CRITICAL(Frontend, "eglChooseConfig() failed");
@@ -104,6 +105,8 @@ EmuWindow_Android_OpenGL::EmuWindow_Android_OpenGL(Core::System& system_, ANativ
                egl_context == EGL_NO_CONTEXT) {
         LOG_CRITICAL(Frontend, "eglCreateContext() failed");
         return;
+    } else {
+        owns_context = true;
     }
     if (eglSurfaceAttrib(egl_display, egl_surface, EGL_SWAP_BEHAVIOR, EGL_BUFFER_DESTROYED) !=
         EGL_TRUE) {
@@ -128,6 +131,14 @@ EmuWindow_Android_OpenGL::EmuWindow_Android_OpenGL(Core::System& system_, ANativ
     }
 
     OnFramebufferSizeChanged();
+}
+
+EmuWindow_Android_OpenGL::~EmuWindow_Android_OpenGL() {
+    // Virtual calls from the base destructor cannot dispatch here. Destroy
+    // shared contexts before terminating their EGL display, including partial init.
+    core_context.reset();
+    DestroyWindowSurface();
+    DestroyContext();
 }
 
 EGLContext* EmuWindow_Android_OpenGL::GetEGLContext() {
@@ -165,20 +176,18 @@ void EmuWindow_Android_OpenGL::DestroyWindowSurface() {
 }
 
 void EmuWindow_Android_OpenGL::DestroyContext() {
-    if (!egl_context) {
-        return;
-    }
-    if (eglGetCurrentContext() == egl_context) {
+    if (egl_context && eglGetCurrentContext() == egl_context) {
         eglMakeCurrent(egl_display, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT);
     }
-    if (!eglDestroyContext(egl_display, egl_context)) {
+    if (egl_context && owns_context && !eglDestroyContext(egl_display, egl_context)) {
         LOG_CRITICAL(Frontend, "eglDestroySurface() failed");
     }
-    if (!eglTerminate(egl_display)) {
+    if (display_initialized && !eglTerminate(egl_display)) {
         LOG_CRITICAL(Frontend, "eglTerminate() failed");
     }
     egl_context = EGL_NO_CONTEXT;
     egl_display = EGL_NO_DISPLAY;
+    display_initialized = false;
 }
 
 std::unique_ptr<Frontend::GraphicsContext> EmuWindow_Android_OpenGL::CreateSharedContext() const {
@@ -200,7 +209,7 @@ void EmuWindow_Android_OpenGL::PollEvents() {
 }
 
 void EmuWindow_Android_OpenGL::StopPresenting() {
-    if (presenting_state == PresentingState::Running) {
+    if (egl_context && eglGetCurrentContext() == egl_context) {
         eglMakeCurrent(egl_display, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT);
     }
     presenting_state = PresentingState::Stopped;

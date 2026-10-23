@@ -5,6 +5,9 @@
 #include <algorithm>
 #include <codecvt>
 #include <thread>
+#include <future>
+#include <fstream>
+#include <cryptopp/sha.h>
 #include <dlfcn.h>
 
 #include <android/api-level.h>
@@ -36,11 +39,13 @@
 #include "common/settings.h"
 #include "common/string_util.h"
 #include "core/core.h"
+#include "core/core_timing.h"
 #include "core/frontend/applets/default_applets.h"
 #include "core/frontend/camera/factory.h"
 #include "core/hle/service/am/am.h"
 #include "core/hle/service/fs/archive.h"
 #include "core/hle/service/nfc/nfc.h"
+#include "core/hle/kernel/kernel.h"
 #include "core/hw/unique_data.h"
 #include "core/loader/loader.h"
 #include "core/savestate.h"
@@ -52,6 +57,7 @@
 #include "jni/camera/still_image_camera.h"
 #include "jni/config.h"
 #include "network/announce_multiplayer_session.h"
+#include "network/network.h"
 
 #ifdef ENABLE_OPENGL
 #include "jni/emu_window/emu_window_gl.h"
@@ -103,6 +109,162 @@ std::atomic<bool> pause_emulation{false};
 std::mutex paused_mutex;
 std::mutex running_mutex;
 std::condition_variable running_cv;
+
+// Functional renderer recovery, separate from user slots and debug dumping.
+struct TemporaryStateRequest {
+    std::string path;
+    bool load;
+    std::promise<bool> completion;
+    std::atomic<bool> cancelled{false};
+    std::chrono::steady_clock::time_point deadline;
+};
+std::mutex temporary_state_mutex;
+std::shared_ptr<TemporaryStateRequest> temporary_state_request;
+std::atomic<int> active_renderer{-1};
+constexpr std::array<u8, 8> recovery_magic{'E', 'C', 'D', 'R', 'E', 'C', '0', '1'};
+
+// Validate guest state rather than serialized host objects, which can differ
+// across renderers. This runs only for explicit recovery, never once per frame.
+std::array<u8, 128> RecoveryGuestFingerprint(Core::System& system) {
+    CryptoPP::SHA256 hash;
+    std::array<u8, 128> result;
+    const auto ticks = system.CoreTiming().GetGlobalTicks();
+    hash.Update(reinterpret_cast<const u8*>(&ticks), sizeof(ticks));
+    hash.Final(result.data());
+    for (u32 core = 0; core < system.GetNumCores(); ++core) {
+        const auto& cpu = system.GetCore(core);
+        for (int index = 0; index < 16; ++index) {
+            const auto value = cpu.GetReg(index);
+            hash.Update(reinterpret_cast<const u8*>(&value), sizeof(value));
+        }
+        const auto cpsr = cpu.GetCPSR();
+        hash.Update(reinterpret_cast<const u8*>(&cpsr), sizeof(cpsr));
+        for (int index = 0; index < 32; ++index) {
+            const auto value = cpu.GetVFPReg(index);
+            hash.Update(reinterpret_cast<const u8*>(&value), sizeof(value));
+        }
+    }
+    hash.Final(result.data() + 32);
+    hash.Update(system.Memory().GetFCRAMPointer(0), Memory::FCRAM_N3DS_SIZE);
+    hash.Final(result.data() + 64);
+    hash.Update(system.Memory().GetPhysicalPointer(Memory::VRAM_PADDR), Memory::VRAM_SIZE);
+    hash.Final(result.data() + 96);
+    return result;
+}
+
+bool HasTemporaryStateRequest() {
+    std::scoped_lock lock{temporary_state_mutex};
+    return temporary_state_request != nullptr;
+}
+
+void CompleteTemporaryStateRequest(const std::shared_ptr<TemporaryStateRequest>& request, bool result) {
+    {
+        std::scoped_lock lock{temporary_state_mutex};
+        if (temporary_state_request != request) return;
+        temporary_state_request.reset();
+    }
+    request->completion.set_value(result);
+}
+
+void CancelTemporaryStateRequest() {
+    std::shared_ptr<TemporaryStateRequest> request;
+    {
+        std::scoped_lock lock{temporary_state_mutex};
+        request = temporary_state_request;
+    }
+    if (request) CompleteTemporaryStateRequest(request, false);
+}
+
+// Only the core thread calls this, while paused and after normal slot I/O drains.
+void ProcessTemporaryStateRequest(Core::System& system) {
+    std::shared_ptr<TemporaryStateRequest> request;
+    {
+        std::scoped_lock lock{temporary_state_mutex};
+        request = temporary_state_request;
+    }
+    if (!request) return;
+    if (!pause_emulation || request->cancelled || std::chrono::steady_clock::now() >= request->deadline) {
+        CompleteTemporaryStateRequest(request, false);
+        return;
+    }
+    system.Kernel().CompleteReadyAsyncOperations();
+    if (system.Kernel().AreAsyncOperationsPending()) return;
+    bool success = false;
+    try {
+        auto member = Network::GetRoomMember().lock();
+        if (!system.GetAppLoader().SupportsSaveStates() || (member && member->IsConnected())) {
+            CompleteTemporaryStateRequest(request, false);
+            return;
+        }
+        if (request->load) {
+            // App-private recovery paths are real filesystem paths, not Azahar's
+            // virtual NAND/SAF paths. Do not translate them through FileUtil.
+            std::ifstream file(request->path, std::ios::binary | std::ios::ate);
+            const auto size = file.tellg();
+            constexpr std::size_t prefix_size = recovery_magic.size() + 128;
+            if (size >= prefix_size + 256 && size <= 512LL * 1024 * 1024) {
+                std::array<u8, 8> magic;
+                std::array<u8, 128> fingerprint;
+                std::vector<u8> buffer(static_cast<std::size_t>(size) - prefix_size);
+                file.seekg(0);
+                file.read(reinterpret_cast<char*>(magic.data()), magic.size());
+                file.read(reinterpret_cast<char*>(fingerprint.data()), fingerprint.size());
+                if (magic == recovery_magic && file.read(reinterpret_cast<char*>(buffer.data()), buffer.size())) {
+                    if (system.LoadStateBuffer(std::move(buffer))) {
+                        const auto restored = RecoveryGuestFingerprint(system);
+                        success = restored == fingerprint;
+                        if (!success) {
+                            for (std::size_t component = 0; component < 4; ++component) {
+                                if (!std::equal(fingerprint.begin() + component * 32,
+                                                fingerprint.begin() + (component + 1) * 32,
+                                                restored.begin() + component * 32)) {
+                                    LOG_ERROR(Frontend, "Recovery guest mismatch component {} (timing, CPU, RAM, VRAM)", component);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        } else {
+            auto buffer = system.SaveStateBuffer();
+            const auto fingerprint = RecoveryGuestFingerprint(system);
+            std::ofstream file(request->path, std::ios::binary | std::ios::trunc);
+            file.write(reinterpret_cast<const char*>(recovery_magic.data()), recovery_magic.size());
+            file.write(reinterpret_cast<const char*>(fingerprint.data()), fingerprint.size());
+            file.write(reinterpret_cast<const char*>(buffer.data()), buffer.size());
+            file.flush();
+            file.close();
+            success = static_cast<bool>(file);
+        }
+    } catch (const std::exception& error) {
+        LOG_ERROR(Frontend, "Temporary state operation failed: {}", error.what());
+    }
+    CompleteTemporaryStateRequest(request, success);
+}
+
+bool RequestTemporaryState(const std::string& path, bool load) {
+    if (path.empty() || stop_run || !pause_emulation) return false;
+    auto request = std::make_shared<TemporaryStateRequest>();
+    request->path = path;
+    request->load = load;
+    request->deadline = std::chrono::steady_clock::now() + std::chrono::seconds(30);
+    auto completion = request->completion.get_future();
+    {
+        // Publish under the condition-variable mutex so a paused core cannot
+        // miss the wake between evaluating its predicate and entering wait.
+        std::scoped_lock pause_lock{paused_mutex};
+        std::scoped_lock lock{temporary_state_mutex};
+        if (temporary_state_request || stop_run || !pause_emulation) return false;
+        temporary_state_request = request;
+    }
+    running_cv.notify_all();
+    if (completion.wait_until(request->deadline) != std::future_status::ready) {
+        request->cancelled = true;
+        running_cv.notify_all();
+        return false;
+    }
+    return completion.get();
+}
 
 // Guards the lifetime of s_surface/s_secondary_surface and the (re)creation of the
 // EmuWindow_Android and renderer objects that consume them. Android may destroy or replace the
@@ -167,6 +329,8 @@ static void LoadDiskCacheProgress(VideoCore::LoadCallbackStage stage, int progre
 static Camera::NDK::Factory* g_ndk_factory{};
 
 static void TryShutdown() {
+    CancelTemporaryStateRequest();
+    active_renderer = -1;
     std::scoped_lock surface_lock(surface_mutex);
 
     if (!window) {
@@ -183,10 +347,10 @@ static void TryShutdown() {
     system.Shutdown();
     system.EjectCartridge();
 
-    window.reset();
     if (secondary_window) {
         secondary_window.reset();
     }
+    window.reset();
 
     InputManager::Shutdown();
     MicroProfileShutdown();
@@ -197,7 +361,7 @@ static bool CheckMicPermission() {
                                                                IDCache::GetRequestMicPermission());
 }
 
-static Core::System::ResultStatus RunCitra(const std::string& filepath) {
+static Core::System::ResultStatus RunCitra(const std::string& filepath, bool start_paused = false) {
     // Citra core only supports a single running instance
     std::scoped_lock lock(running_mutex);
 
@@ -248,6 +412,7 @@ static Core::System::ResultStatus RunCitra(const std::string& filepath) {
     });
 
     const auto graphics_api = Settings::GetWorkingGraphicsAPI();
+    active_renderer = graphics_api == Settings::GraphicsAPI::Vulkan ? 14 : 12;
     EGLContext* shared_context;
     switch (graphics_api) {
 #ifdef ENABLE_OPENGL
@@ -344,7 +509,7 @@ static Core::System::ResultStatus RunCitra(const std::string& filepath) {
     }
 
     stop_run = false;
-    pause_emulation = false;
+    pause_emulation = start_paused;
 
     LoadDiskCacheProgress(VideoCore::LoadCallbackStage::Prepare, 0, 0, "");
 
@@ -362,6 +527,14 @@ static Core::System::ResultStatus RunCitra(const std::string& filepath) {
 
     // Start running emulation
     while (!stop_run) {
+        if (HasTemporaryStateRequest() && !system.HasPendingSaveStateRequest()) {
+            ProcessTemporaryStateRequest(system);
+            if (HasTemporaryStateRequest()) {
+                std::unique_lock pause_lock{paused_mutex};
+                running_cv.wait_for(pause_lock, std::chrono::milliseconds(10));
+            }
+            continue;
+        }
         if (!pause_emulation || system.HasPendingSaveStateRequest()) {
             const bool run_guest = !pause_emulation;
             const auto result = system.RunLoop(true, run_guest);
@@ -399,7 +572,8 @@ static Core::System::ResultStatus RunCitra(const std::string& filepath) {
 
             std::unique_lock pause_lock{paused_mutex};
             running_cv.wait(pause_lock, [&system] {
-                return !pause_emulation || stop_run || system.HasPendingSaveStateRequest();
+                return !pause_emulation || stop_run || system.HasPendingSaveStateRequest() ||
+                       HasTemporaryStateRequest();
             });
             window->PollEvents();
         }
@@ -1156,6 +1330,33 @@ void Java_com_sbro_emucored_core_EmuCoreNative_run__Ljava_lang_String_2(JNIEnv* 
         env->CallStaticVoidMethod(IDCache::GetNativeLibraryClass(),
                                   IDCache::GetExitEmulationActivity(), static_cast<int>(result));
     }
+}
+
+void Java_com_sbro_emucored_core_EmuCoreNative_runPaused(JNIEnv* env, jobject, jstring j_path) {
+    stop_requested = false;
+    const auto result = RunCitra(GetJString(env, j_path), true);
+    if (result != Core::System::ResultStatus::Success) {
+        env->CallStaticVoidMethod(IDCache::GetNativeLibraryClass(),
+                                 IDCache::GetExitEmulationActivity(), static_cast<int>(result));
+    }
+}
+
+jboolean Java_com_sbro_emucored_core_EmuCoreNative_saveTemporaryState(JNIEnv* env, jobject, jstring path) {
+    return RequestTemporaryState(GetJString(env, path), false);
+}
+
+jboolean Java_com_sbro_emucored_core_EmuCoreNative_loadTemporaryState(JNIEnv* env, jobject, jstring path) {
+    return RequestTemporaryState(GetJString(env, path), true);
+}
+
+jint Java_com_sbro_emucored_core_EmuCoreNative_getActiveRenderer(JNIEnv*, jobject) {
+    return active_renderer;
+}
+
+void Java_com_sbro_emucored_core_EmuCoreNative_releasePresentationContext(JNIEnv*, jobject) {
+    std::scoped_lock lock{surface_mutex};
+    if (window) window->StopPresenting();
+    if (secondary_window) secondary_window->StopPresenting();
 }
 
 void Java_com_sbro_emucored_core_EmuCoreNative_reloadCameraDevices([[maybe_unused]] JNIEnv* env,

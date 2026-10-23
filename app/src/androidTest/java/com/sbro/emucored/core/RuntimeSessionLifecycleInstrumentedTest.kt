@@ -57,6 +57,8 @@ class RuntimeSessionLifecycleInstrumentedTest {
             DsSession.stop()
             assertFalse(CoreRuntime.saveState(1))
             assertFalse(CoreRuntime.loadState(1))
+            assertFalse(EmuCoreNative.saveTemporaryState("/unavailable-checkpoint.cst"))
+            assertFalse(EmuCoreNative.loadTemporaryState("/unavailable-checkpoint.cst"))
             assertFalse(DsSession.saveState(1))
             assertFalse(DsSession.loadState(1))
             assertNull(DsSession.statePath(1))

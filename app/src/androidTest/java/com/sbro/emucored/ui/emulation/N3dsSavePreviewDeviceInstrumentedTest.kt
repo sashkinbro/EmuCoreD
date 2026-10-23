@@ -28,6 +28,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
+import org.junit.Assert.assertArrayEquals
 import org.junit.Assume.assumeTrue
 import org.junit.Rule
 import org.junit.Test
@@ -104,6 +105,7 @@ class N3dsSavePreviewDeviceInstrumentedTest {
                 val savedSize = state.length()
                 Thread.sleep(150)
                 assertEquals("State was still being written", savedSize, state.length())
+                val userSlotContents = state.readBytes()
                 assertEquals("Save advanced the paused guest", 0.0, EmuCoreNative.getPerfStats()[1], 0.0)
                 assertTrue("Paused session lost ownership", CoreRuntime.hasSession())
 
@@ -128,10 +130,47 @@ class N3dsSavePreviewDeviceInstrumentedTest {
                 assertTrue("Paused load was not scheduled", NativeApp.loadStateFromSlot(1))
                 Thread.sleep(250)
                 assertEquals("Load advanced the paused guest", 0.0, EmuCoreNative.getPerfStats()[1], 0.0)
+                val checkpoint = File(context.cacheDir, "owned-renderer-before.cst")
+                val restored = File(context.cacheDir, "owned-renderer-after.cst")
+                assertTrue("Paused checkpoint failed", EmuCoreNative.saveTemporaryState(checkpoint.absolutePath))
+                val malformed = File(context.cacheDir, "owned-invalid-recovery.cst")
+                malformed.writeBytes(checkpoint.readBytes().also { it[148] = (it[148].toInt() xor 1).toByte() })
+                assertFalse("Recovery accepted a different build", EmuCoreNative.loadTemporaryState(malformed.absolutePath))
+                malformed.writeBytes(byteArrayOf(1, 2, 3))
+                assertFalse("Recovery accepted a truncated state", EmuCoreNative.loadTemporaryState(malformed.absolutePath))
+                assertFalse("Recovery wrote into an unavailable directory", EmuCoreNative.saveTemporaryState(
+                    File(context.cacheDir, "absent/recovery.cst").absolutePath))
+                val alternateRenderer = if (renderer == 14) 12 else 14
+                assertTrue("3DS renderer transaction failed", CoreRuntime.restartWithRenderer(alternateRenderer))
+                assertEquals("Wrong native backend after restart", alternateRenderer, EmuCoreNative.getActiveRenderer())
+                assertTrue("Renderer restart resumed the paused guest", CoreRuntime.isPaused())
+                assertTrue("Restored checkpoint failed", EmuCoreNative.saveTemporaryState(restored.absolutePath))
+                fun guestFingerprint(file: File): ByteArray {
+                    val bytes = file.readBytes()
+                    assertEquals("ECDREC01", String(bytes, 0, 8, Charsets.US_ASCII))
+                    return bytes.copyOfRange(8, 136)
+                }
+                assertArrayEquals("Renderer restart changed guest RAM/VRAM/registers/timing", guestFingerprint(checkpoint), guestFingerprint(restored))
+                assertTrue("Renderer checkpoint replaced a user slot", state.isFile)
+                assertArrayEquals("Recovery changed the user's slot", userSlotContents, state.readBytes())
                 CoreRuntime.resume()
                 await("3DS did not resume after state load", 30_000) {
                     EmuCoreNative.getPerfStats().getOrNull(1)?.let { it > 0.0 } == true
                 }
+                assertTrue("Running renderer switch failed", CoreRuntime.restartWithRenderer(renderer))
+                assertEquals(renderer, EmuCoreNative.getActiveRenderer())
+                assertFalse("Running switch left the guest paused", CoreRuntime.isPaused())
+                await("Guest did not continue after running switch", 30_000) {
+                    EmuCoreNative.getPerfStats().getOrNull(1)?.let { it > 0.0 } == true
+                }
+                // Production exit requests stop before the later worker join.
+                // Reuse this same window with the other API after that path.
+                assertTrue("Stop request did not release UI graphics ownership", CoreRuntime.requestShutdown())
+                CoreRuntime.shutdown()
+                assertFalse(CoreRuntime.hasSession())
+                CoreConfig.apply(requireNotNull(CoreConfig.currentValues()).copy(renderer = alternateRenderer))
+                assertTrue("Fresh launch after exit failed", CoreRuntime.start(romPath))
+                assertEquals(alternateRenderer, EmuCoreNative.getActiveRenderer())
             } finally {
                 CoreRuntime.shutdown()
                 CoreRuntime.detachSurface()

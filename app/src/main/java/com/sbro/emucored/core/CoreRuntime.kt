@@ -12,6 +12,8 @@ import android.view.Surface
 import java.io.File
 import java.util.Locale
 import java.util.concurrent.atomic.AtomicIntegerArray
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
 import java.util.concurrent.locks.ReentrantLock
 import kotlin.concurrent.withLock
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -59,7 +61,6 @@ internal object CoreRuntime {
     @Volatile private var performanceMetricsEnabled = false
     @Volatile private var detailedPerformanceMetrics = false
     @Volatile private var performanceMetricsSnapshot: String? = null
-    @Volatile private var requestedRenderer = RendererDefaults.defaultForHardware()
     @Volatile private var pendingCheatTitleId: Long = 0L
 
     @Volatile private var surface: Surface? = null
@@ -94,6 +95,19 @@ internal object CoreRuntime {
         presentationHandler.post {
             Choreographer.getInstance().removeFrameCallback(presentationFrameCallback)
         }
+    }
+
+    private fun releasePresentationContext(): Boolean {
+        if (Looper.myLooper() == Looper.getMainLooper()) {
+            EmuCoreNative.releasePresentationContext()
+            return true
+        }
+        val completed = CountDownLatch(1)
+        presentationHandler.post {
+            try { EmuCoreNative.releasePresentationContext() }
+            finally { completed.countDown() }
+        }
+        return completed.await(5, TimeUnit.SECONDS)
     }
 
     private val desiredPadButtons = AtomicIntegerArray(IntArray(2) { 0xFFFF })
@@ -165,7 +179,7 @@ internal object CoreRuntime {
      * for the whole session, so it must not occupy the frontend's serial
      * control lane; otherwise surface and shutdown callbacks could never run.
      */
-    fun start(gamePath: String): Boolean = lifecycleLock.withLock {
+    fun start(gamePath: String, startPaused: Boolean = false): Boolean = lifecycleLock.withLock {
         val active = context ?: return@withLock false
         if (!EmuCoreNative.isLoaded) {
             _failure.value = RuntimeFailure("core_library_missing")
@@ -201,7 +215,7 @@ internal object CoreRuntime {
 
         val thread = Thread({
             try {
-                EmuCoreNative.run(gamePath)
+                if (startPaused) EmuCoreNative.runPaused(gamePath) else EmuCoreNative.run(gamePath)
             } catch (error: Throwable) {
                 Log.e(TAG, "Emulation thread failed", error)
                 if (_failure.value == null) {
@@ -245,8 +259,8 @@ internal object CoreRuntime {
         }
         starting = false
         running = true
-        paused = false
-        startPresentationFrames()
+        paused = startPaused
+        if (!startPaused) startPresentationFrames()
         true
     }
 
@@ -269,7 +283,7 @@ internal object CoreRuntime {
 
     fun shutdown() {
         if (!running && !starting && !EmuCoreNative.isRunning() && sessionThread?.isAlive != true) return
-        requestShutdown()
+        if (!requestShutdown()) return
         running = false
         paused = false
         currentGamePath = null
@@ -280,9 +294,14 @@ internal object CoreRuntime {
         }
     }
 
-    /** Signals the core to stop without waiting for its renderer and session thread to tear down. */
-    fun requestShutdown() {
-        if (!running && !starting && !EmuCoreNative.isRunning()) return
+    /** Releases UI-owned graphics state before signalling stop; does not join the worker. */
+    fun requestShutdown(): Boolean {
+        if (!running && !starting && !EmuCoreNative.isRunning()) return true
+        stopPresentationFrames()
+        if (!releasePresentationContext()) {
+            Log.e(TAG, "UI thread did not release its presentation context")
+            return false
+        }
         stopping = true
         starting = false
         stopPresentationFrames()
@@ -292,15 +311,58 @@ internal object CoreRuntime {
         paused = false
         currentGamePath = null
         resetPadState()
+        return true
     }
 
-    /** Re-asserts the stored renderer for a fresh session. */
-    fun restartWithRenderer(renderer: Int): Boolean {
-        val path = currentGamePath
-        requestedRenderer = renderer
-        if (path.isNullOrBlank()) return false
-        shutdown()
-        return start(path)
+    fun isPaused(): Boolean = running && paused
+
+    /** Change renderer without consuming a save slot or advancing a paused guest. */
+    fun restartWithRenderer(renderer: Int): Boolean = lifecycleLock.withLock {
+        val path = currentGamePath ?: return@withLock false
+        val active = context ?: return@withLock false
+        val previousConfig = CoreConfig.currentValues() ?: return@withLock false
+        val target = RendererDefaults.normalizeAndroidRenderer(renderer)
+        if (EmuCoreNative.getActiveRenderer() == target) return@withLock true
+        val wasPaused = paused
+        val checkpoint = runCatching { File.createTempFile("3ds-renderer-", ".recovery", active.cacheDir) }
+            .getOrElse { return@withLock false }
+        pause()
+        if (!releasePresentationContext()) {
+            checkpoint.delete()
+            if (!wasPaused) resume()
+            return@withLock false
+        }
+        if (!runCatching { EmuCoreNative.saveTemporaryState(checkpoint.absolutePath) }.getOrDefault(false)) {
+            checkpoint.delete()
+            if (!wasPaused) resume()
+            return@withLock false
+        }
+        fun restore(config: CoreConfig.Values): Boolean = runCatching {
+            shutdown()
+            if (hasSession()) return@runCatching false
+            CoreConfig.apply(config)
+            if (!start(path, startPaused = true)) return@runCatching false
+            if (EmuCoreNative.getActiveRenderer() != config.renderer) return@runCatching false
+            if (!EmuCoreNative.loadTemporaryState(checkpoint.absolutePath)) return@runCatching false
+            if (!wasPaused) resume()
+            true
+        }.getOrElse { error ->
+            Log.e(TAG, "Renderer recovery failed", error)
+            false
+        }
+        if (restore(previousConfig.copy(renderer = target))) {
+            checkpoint.delete()
+            return@withLock true
+        }
+        if (restore(previousConfig)) {
+            checkpoint.delete()
+        } else {
+            shutdown()
+            if (!hasSession()) CoreConfig.apply(previousConfig)
+            _failure.value = RuntimeFailure("core_renderer_recovery_failed")
+            Log.e(TAG, "Renderer recovery checkpoint retained at ${checkpoint.absolutePath}")
+        }
+        false
     }
 
     fun hasDiscMedia(): Boolean = currentGamePath?.isNotBlank() == true
