@@ -543,13 +543,15 @@ void Java_com_sbro_emucored_core_EmuCoreNative_surfaceDestroyed([[maybe_unused]]
 
 void Java_com_sbro_emucored_core_EmuCoreNative_doFrame([[maybe_unused]] JNIEnv* env,
                                                      [[maybe_unused]] jobject obj) {
-    if (stop_run || pause_emulation) {
+    std::scoped_lock surface_lock(surface_mutex);
+    if (stop_run || pause_emulation || !window || !window->NeedsFrameCallbacks() ||
+        !s_surface) {
         return;
     }
     if (window) {
         window->TryPresenting();
     }
-    if (secondary_window) {
+    if (secondary_window && secondary_window->GetWindowInfo().render_surface) {
         secondary_window->TryPresenting();
     }
 }

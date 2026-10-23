@@ -31,6 +31,10 @@ public:
     void DoneCurrent() override;
 
     virtual void TryPresenting() {}
+    /// OpenGL mailboxes need display callbacks; Vulkan presents on the core thread.
+    virtual bool NeedsFrameCallbacks() const {
+        return false;
+    }
     // EGL Context must be shared
     // could probably use the existing
     // SharedContext for this instead, this is maybe temporary

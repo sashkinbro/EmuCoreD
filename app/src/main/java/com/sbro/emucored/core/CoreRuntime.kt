@@ -4,7 +4,10 @@ package com.sbro.emucored.core
 
 import android.content.Context
 import android.os.SystemClock
+import android.os.Handler
+import android.os.Looper
 import android.util.Log
+import android.view.Choreographer
 import android.view.Surface
 import java.io.File
 import java.util.Locale
@@ -62,6 +65,36 @@ internal object CoreRuntime {
     @Volatile private var surface: Surface? = null
     @Volatile private var surfaceWidth = 0
     @Volatile private var surfaceHeight = 0
+
+    private val presentationHandler by lazy { Handler(Looper.getMainLooper()) }
+    private val presentationFrameCallback = object : Choreographer.FrameCallback {
+        override fun doFrame(frameTimeNanos: Long) {
+            if (!running || paused || stopping) return
+            // OpenGL publishes into a mailbox; this display callback presents
+            // it to the Android window. Vulkan's native doFrame guard is a no-op.
+            runCatching { EmuCoreNative.doFrame() }
+                .onFailure { Log.e(TAG, "Unable to present the core frame", it) }
+            if (running && !paused && !stopping) {
+                Choreographer.getInstance().postFrameCallback(this)
+            }
+        }
+    }
+
+    private fun startPresentationFrames() {
+        presentationHandler.post {
+            val choreographer = Choreographer.getInstance()
+            choreographer.removeFrameCallback(presentationFrameCallback)
+            if (running && !paused && !stopping) {
+                choreographer.postFrameCallback(presentationFrameCallback)
+            }
+        }
+    }
+
+    private fun stopPresentationFrames() {
+        presentationHandler.post {
+            Choreographer.getInstance().removeFrameCallback(presentationFrameCallback)
+        }
+    }
 
     private val desiredPadButtons = AtomicIntegerArray(IntArray(2) { 0xFFFF })
     private val appliedPadButtons = AtomicIntegerArray(IntArray(2) { 0xFFFF })
@@ -213,12 +246,14 @@ internal object CoreRuntime {
         starting = false
         running = true
         paused = false
+        startPresentationFrames()
         true
     }
 
     fun pause() {
         if (!running) return
         paused = true
+        stopPresentationFrames()
         runCatching { EmuCoreNative.pauseEmulation() }
             .onFailure { Log.e(TAG, "Unable to pause emulation", it) }
     }
@@ -229,6 +264,7 @@ internal object CoreRuntime {
         attachSurface(surface, surfaceWidth, surfaceHeight)
         runCatching { EmuCoreNative.unPauseEmulation() }
             .onFailure { Log.e(TAG, "Unable to resume emulation", it) }
+        startPresentationFrames()
     }
 
     fun shutdown() {
@@ -249,6 +285,7 @@ internal object CoreRuntime {
         if (!running && !starting && !EmuCoreNative.isRunning()) return
         stopping = true
         starting = false
+        stopPresentationFrames()
         runCatching { EmuCoreNative.stopEmulation() }
             .onFailure { Log.e(TAG, "Unable to stop emulation", it) }
         running = false

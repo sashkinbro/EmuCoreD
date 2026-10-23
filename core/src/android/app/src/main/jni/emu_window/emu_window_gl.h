@@ -24,6 +24,9 @@ public:
     ~EmuWindow_Android_OpenGL() override = default;
 
     void TryPresenting() override;
+    bool NeedsFrameCallbacks() const override {
+        return true;
+    }
     void StopPresenting() override;
     void PollEvents() override;
     EGLContext* GetEGLContext() override;
