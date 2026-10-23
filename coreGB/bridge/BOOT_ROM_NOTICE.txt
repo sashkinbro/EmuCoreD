@@ -1,0 +1,45 @@
+The embedded dmg_boot and cgb_boot binaries in open_boot_roms.h are the open
+SameBoy bootstrap programs, not Nintendo BIOS images.
+Source: ../SameBoy/BootROMs at SameBoy commit 26a56bd6a122a6318a456abd80558408742d5adf; Expat (MIT) license in ../SameBoy/LICENSE.
+Copyright (c) 2015-2026 Lior Halphon.
+
+Rebuild from the pinned sources:
+ python coreGB/bridge/build_boot_roms.py coreGB/build/rgbds
+The recipe uses official RGBDS v1.0.4 Windows x64 tools from
+https://github.com/gbdev/rgbds/releases/download/v1.0.4/rgbds-win64.zip
+SHA-256 bd1d7e386f290afd57f4ea9a7353bfcd4ae10884a94c5c1f2fc42a75db7f97e6
+verified against the GitHub release asset's published digest before extraction.
+The PB12 compressor is a direct Python translation of SameBoy BootROMs/pb12.c.
+No proprietary ROM or BIOS data is included.
+
+  All files and directories in this repository, except for the iOS and HexFiend
+  directories, are licensed under the Expat License:
+
+Expat License
+
+Copyright (c) 2015-2026 Lior Halphon
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+  The files contained under the iOS directory in this repository are subject to
+  this addition condition:
+
+  A written permission from Lior Halphon is required to distribute copies or
+  substantial portions of the Software in a digital marketplace, such as
+  Apple's App Store.

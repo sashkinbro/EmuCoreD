@@ -34,6 +34,15 @@
     native <methods>;
 }
 
+# New framebuffer cores and Dolphin export JNI names from separate libraries.
+-keepclasseswithmembers,includedescriptorclasses class com.sbro.emucored.core.gba.MgbaSessionEngine { native <methods>; }
+-keepclasseswithmembers,includedescriptorclasses class com.sbro.emucored.core.gb.SameBoySessionEngine { native <methods>; }
+-keepclasseswithmembers,includedescriptorclasses class com.sbro.emucored.core.nes.NestopiaSessionEngine { native <methods>; }
+-keepclasseswithmembers,includedescriptorclasses class com.sbro.emucored.core.snes.BsnesSessionEngine { native <methods>; }
+-keepclasseswithmembers,includedescriptorclasses class com.sbro.emucored.core.dolphin.DolphinNative { native <methods>; }
+# Android audio/microphone callbacks are looked up by name in AndroidServices.cpp.
+-keep,includedescriptorclasses class com.sbro.emucored.core.dolphin.DolphinServices { *; }
+
 # --- JNI: bundled Azahar core -----------------------------------------------
 # libemucore_core.so is the vendored Android core. It resolves these Kotlin
 # classes, fields, constructors and static callbacks by name from C++

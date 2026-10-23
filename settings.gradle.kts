@@ -26,3 +26,8 @@ rootProject.name = "EmuCoreD"
 include(":app")
 include(":core-android")
 include(":core-ds")
+include(":core-dolphin")
+include(":core-gba")
+include(":core-gb")
+include(":core-nes")
+include(":core-snes")

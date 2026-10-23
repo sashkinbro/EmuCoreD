@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 cmake_minimum_required(VERSION 3.22)
-project(EmuCoreGB LANGUAGES C)
+project(EmuCoreGB LANGUAGES C CXX)
 
 file(STRINGS "${CMAKE_CURRENT_SOURCE_DIR}/SameBoy/version.mk" sameboy_version_line REGEX "^VERSION := ")
 string(REPLACE "VERSION := " "" sameboy_version "${sameboy_version_line}")
@@ -25,4 +25,19 @@ if(EMUCORED_BUILD_CORE_TESTS)
     add_executable(emucored_sameboy_contract_test tests/sameboy_contract_test.c)
     target_link_libraries(emucored_sameboy_contract_test PRIVATE emucored_sameboy)
     add_test(NAME emucored_sameboy_contract COMMAND emucored_sameboy_contract_test)
+endif()
+
+option(EMUCORED_BUILD_ANDROID_RUNTIME "Build own Android runtime" OFF)
+if(ANDROID AND EMUCORED_BUILD_ANDROID_RUNTIME)
+ add_library(emucored_gb SHARED bridge/session.cpp)
+ target_compile_features(emucored_gb PRIVATE cxx_std_17)
+ target_include_directories(emucored_gb PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/../core-common")
+ target_link_libraries(emucored_gb PRIVATE emucored_sameboy android aaudio EGL GLESv2)
+
+ if(EMUCORED_BUILD_CORE_TESTS)
+  add_executable(emucored_gb_session_contract bridge/session_contract.cpp)
+  target_include_directories(emucored_gb_session_contract PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/../core-common")
+  target_compile_features(emucored_gb_session_contract PRIVATE cxx_std_17)
+  target_link_libraries(emucored_gb_session_contract PRIVATE emucored_sameboy android aaudio EGL GLESv2)
+ endif()
 endif()

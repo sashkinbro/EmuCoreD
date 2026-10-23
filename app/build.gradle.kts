@@ -176,6 +176,11 @@ android {
 dependencies {
     implementation(project(":core-android"))
     implementation(project(":core-ds"))
+    implementation(project(":core-dolphin"))
+    implementation(project(":core-gba"))
+    implementation(project(":core-gb"))
+    implementation(project(":core-nes"))
+    implementation(project(":core-snes"))
     implementation(libs.androidx.credentials)
     implementation(libs.androidx.credentials.play.services)
     implementation(libs.google.identity)
