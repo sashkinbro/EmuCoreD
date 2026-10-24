@@ -15,10 +15,6 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.sbro.emucored.core.dolphin.DolphinSessionEngine
-import com.sbro.emucored.core.gb.SameBoySessionEngine
-import com.sbro.emucored.core.gba.MgbaSessionEngine
-import com.sbro.emucored.core.nes.NestopiaSessionEngine
-import com.sbro.emucored.core.snes.BsnesSessionEngine
 import com.sbro.emucored.core.platform.ConsolePlatform
 import com.sbro.emucored.core.platform.session.*
 import java.io.File
@@ -58,39 +54,18 @@ class RetailCoreAdaptersDeviceTest {
         assertTrue("Missing owned $platform sample", source.isFile && source.length() > 0)
         if (platform.core == com.sbro.emucored.core.platform.CoreId.DOLPHIN)
             assertEquals("Actual RVZ header disagrees with the selected console", platform, DolphinSessionEngine.probePlatform(source.path))
-        val core: CoreSessionEngine = when (platform) {
-            ConsolePlatform.GAMECUBE, ConsolePlatform.WII -> DolphinSessionEngine()
-            ConsolePlatform.GBA -> MgbaSessionEngine()
-            ConsolePlatform.GB, ConsolePlatform.GBC -> SameBoySessionEngine()
-            ConsolePlatform.NES -> NestopiaSessionEngine()
-            ConsolePlatform.SNES -> BsnesSessionEngine()
-            else -> error("Unsupported retail fixture")
-        }
+        val host = CoreSessionHost()
+        lateinit var core: CoreSessionHost.Session
         testStorageContext().use { context ->
-            val ready = CountDownLatch(1)
-            lateinit var view: SurfaceView
-            compose.setContent {
-                AndroidView(modifier = Modifier.fillMaxSize(), factory = { activity ->
-                    SurfaceView(activity).apply {
-                        keepScreenOn = true
-                        view = this
-                        holder.setFixedSize(640, 480)
-                        holder.addCallback(object : SurfaceHolder.Callback {
-                            override fun surfaceCreated(h: SurfaceHolder) = Unit
-                            override fun surfaceChanged(h: SurfaceHolder, f: Int, w: Int, height: Int) { ready.countDown() }
-                            override fun surfaceDestroyed(h: SurfaceHolder) = Unit
-                        })
-                    }
-                })
-            }
-            assertTrue("$platform presentation window unavailable", ready.await(10, TimeUnit.SECONDS))
+            val view = createWindow()
             val options = if (platform.core == com.sbro.emucored.core.platform.CoreId.DOLPHIN)
                 mapOf("audio_enabled" to "false", "graphics_backend" to "vulkan") else mapOf("audio_enabled" to "false")
             val request = EngineLaunchRequest(context, platform, source.path, "retail-${source.name}", context.filesDir,
                 options, startPaused = true)
             try {
-                core.attachSurface(view.holder.surface, 640, 480)
-                assertEquals("$platform retail boot failed", EngineStartResult.Started, core.start(request))
+                host.attachSurface(view.holder.surface, 640, 480)
+                assertEquals("$platform retail boot failed", EngineStartResult.Started, host.start(request))
+                core = host.session!!
                 assertTrue(core.isPaused)
                 core.resume()
                 val warmup = if (platform in setOf(ConsolePlatform.GB, ConsolePlatform.GBC)) 400 else 180
@@ -117,13 +92,88 @@ class RetailCoreAdaptersDeviceTest {
                 core.stop()
                 assertFalse(core.isRunning)
                 core.attachSurface(view.holder.surface, 640, 480)
-                assertEquals("$platform second retail boot failed", EngineStartResult.Started, core.start(request))
+                assertEquals("$platform second retail boot failed", EngineStartResult.Started, host.start(request))
+                core = host.session!!
                 assertTrue("$platform saved state did not survive recreation", core.loadState(state))
                 core.resume()
                 withTimeout(15_000) { while (!hasVisibleGameImage(view)) delay(100) }
                 println("RetailCoreAdapter PASS $platform boot/video/input/pause/state/corrupt-reject/reopen")
-            } finally { core.stop(); core.attachSurface(null, 0, 0) }
+            } finally { host.stop(); host.attachSurface(null, 0, 0) }
         }
+    }
+
+    @Test(timeout = 240_000)
+    fun allSevenConsolesReplaceOneAnotherInOneHost() = runBlocking {
+        val directory = InstrumentationRegistry.getArguments().getString("retailCoreRomDir").orEmpty()
+        assumeTrue("Supply owned retailCoreRomDir samples", directory.isNotBlank())
+        testStorageContext().use { context ->
+            val host = CoreSessionHost()
+            val view = createWindow()
+            host.attachSurface(view.holder.surface, 640, 480)
+            try {
+                val order = listOf(ConsolePlatform.GBA, ConsolePlatform.GAMECUBE, ConsolePlatform.GB,
+                    ConsolePlatform.WII, ConsolePlatform.GBC, ConsolePlatform.NES, ConsolePlatform.SNES,
+                    ConsolePlatform.GBA)
+                for (platform in order) {
+                    val extension = when (platform) {
+                        ConsolePlatform.GAMECUBE, ConsolePlatform.WII -> "rvz"
+                        ConsolePlatform.SNES -> "sfc"
+                        else -> platform.id
+                    }
+                    val source = File(directory, "${platform.id}.$extension")
+                    assertTrue("Missing owned $platform sample", source.isFile)
+                    val retired = host.session
+                    val options = if (platform in setOf(ConsolePlatform.GAMECUBE, ConsolePlatform.WII))
+                        mapOf("audio_enabled" to "false", "graphics_backend" to "vulkan")
+                        else mapOf("audio_enabled" to "false")
+                    assertEquals("Host replacement failed at $platform", EngineStartResult.Started,
+                        host.start(EngineLaunchRequest(context, platform, source.path,
+                            "retail-switch-${source.name}", context.filesDir, options, startPaused = true)))
+                    val guest = host.session!!
+                    assertEquals(platform, guest.platform)
+                    assertTrue(guest.isPaused)
+                    retired?.let {
+                        assertFalse(it.isRunning)
+                        it.setButton(0, EngineButton.A, true)
+                        it.requestStop()
+                        it.stop()
+                        assertFalse(it.saveState(File(context.cacheDir, "retired.state")))
+                    }
+                    assertTrue("Retired stop affected $platform", guest.isRunning)
+                    guest.resume()
+                    val warmup = if (platform in setOf(ConsolePlatform.GB, ConsolePlatform.GBC)) 400 else 180
+                    withTimeout(45_000) { while (guest.frameCount() < warmup) delay(25) }
+                    withTimeout(15_000) { while (!hasVisibleGameImage(view)) delay(100) }
+                    guest.pause()
+                    val state = File(context.cacheDir, "host-${platform.id}.state")
+                    assertTrue("Host save did not finish for $platform", guest.saveState(state))
+                    assertTrue("Host state recovery failed for $platform", guest.loadState(state))
+                    println("CoreSessionHost retail replacement PASS $platform")
+                }
+            } finally { host.stop(); host.attachSurface(null, 0, 0) }
+            assertNull(host.session)
+        }
+    }
+
+    private fun createWindow(): SurfaceView {
+        val ready = CountDownLatch(1)
+        lateinit var view: SurfaceView
+        compose.setContent {
+            AndroidView(modifier = Modifier.fillMaxSize(), factory = { activity ->
+                SurfaceView(activity).apply {
+                    keepScreenOn = true
+                    view = this
+                    holder.setFixedSize(640, 480)
+                    holder.addCallback(object : SurfaceHolder.Callback {
+                        override fun surfaceCreated(h: SurfaceHolder) = Unit
+                        override fun surfaceChanged(h: SurfaceHolder, f: Int, w: Int, height: Int) { ready.countDown() }
+                        override fun surfaceDestroyed(h: SurfaceHolder) = Unit
+                    })
+                }
+            })
+        }
+        assertTrue("Retail presentation window unavailable", ready.await(10, TimeUnit.SECONDS))
+        return view
     }
 
     private fun hasVisibleGameImage(view: SurfaceView): Boolean {
