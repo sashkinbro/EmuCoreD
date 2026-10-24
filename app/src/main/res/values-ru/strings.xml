@@ -1841,4 +1841,8 @@
     <string name="settings_about_core_license">Лицензия: %1$s</string>
     <string name="console_nes">NES</string>
     <string name="console_snes">SNES</string>
+    <string name="settings_shader_presets_manage">Управление пресетами</string>
+    <string name="settings_shader_presets_remove_title">Убрать выбранные пресеты?</string>
+    <string name="settings_shader_presets_remove_body">Выбрано пресетов: %1$d. Убрать их из списка?</string>
+    <string name="settings_shader_presets_remove_failed">Не удалось убрать выбранные пресеты.</string>
 </resources>

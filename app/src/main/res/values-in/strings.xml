@@ -1852,4 +1852,8 @@
     <string name="settings_about_core_license">Lisensi: %1$s</string>
     <string name="console_nes">NES</string>
     <string name="console_snes">SNES</string>
+    <string name="settings_shader_presets_manage">Kelola preset</string>
+    <string name="settings_shader_presets_remove_title">Hapus preset yang dipilih?</string>
+    <string name="settings_shader_presets_remove_body">Preset yang dipilih: %1$d. Hapus dari daftar?</string>
+    <string name="settings_shader_presets_remove_failed">Tidak dapat menghapus preset yang dipilih.</string>
 </resources>

@@ -1837,4 +1837,8 @@
     <string name="settings_about_core_license">라이선스: %1$s</string>
     <string name="console_nes">NES</string>
     <string name="console_snes">SNES</string>
+    <string name="settings_shader_presets_manage">프리셋 관리</string>
+    <string name="settings_shader_presets_remove_title">선택한 프리셋을 삭제할까요?</string>
+    <string name="settings_shader_presets_remove_body">선택한 프리셋: %1$d개. 목록에서 삭제할까요?</string>
+    <string name="settings_shader_presets_remove_failed">선택한 프리셋을 삭제하지 못했습니다.</string>
 </resources>

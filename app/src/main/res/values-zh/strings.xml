@@ -1839,4 +1839,8 @@
     <string name="settings_about_core_license">许可证：%1$s</string>
     <string name="console_nes">NES</string>
     <string name="console_snes">SNES</string>
+    <string name="settings_shader_presets_manage">管理预设</string>
+    <string name="settings_shader_presets_remove_title">移除所选预设？</string>
+    <string name="settings_shader_presets_remove_body">已选预设：%1$d。是否从列表中移除？</string>
+    <string name="settings_shader_presets_remove_failed">无法移除所选预设。</string>
 </resources>

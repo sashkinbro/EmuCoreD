@@ -1840,4 +1840,8 @@
     <string name="settings_about_core_license">Licencia: %1$s</string>
     <string name="console_nes">NES</string>
     <string name="console_snes">SNES</string>
+    <string name="settings_shader_presets_manage">Gestionar preajustes</string>
+    <string name="settings_shader_presets_remove_title">¿Quitar los preajustes seleccionados?</string>
+    <string name="settings_shader_presets_remove_body">Preajustes seleccionados: %1$d. ¿Quitarlos de la lista?</string>
+    <string name="settings_shader_presets_remove_failed">No se pudieron quitar los preajustes seleccionados.</string>
 </resources>

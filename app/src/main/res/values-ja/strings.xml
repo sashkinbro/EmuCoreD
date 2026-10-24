@@ -1837,4 +1837,8 @@
     <string name="settings_about_core_license">ライセンス: %1$s</string>
     <string name="console_nes">NES</string>
     <string name="console_snes">SNES</string>
+    <string name="settings_shader_presets_manage">プリセットを管理</string>
+    <string name="settings_shader_presets_remove_title">選択したプリセットを削除しますか？</string>
+    <string name="settings_shader_presets_remove_body">選択したプリセット：%1$d件。リストから削除しますか？</string>
+    <string name="settings_shader_presets_remove_failed">選択したプリセットを削除できませんでした。</string>
 </resources>

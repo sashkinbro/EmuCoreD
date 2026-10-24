@@ -1838,4 +1838,8 @@
     <string name="settings_about_core_license">Lisans: %1$s</string>
     <string name="console_nes">NES</string>
     <string name="console_snes">SNES</string>
+    <string name="settings_shader_presets_manage">Ön ayarları yönet</string>
+    <string name="settings_shader_presets_remove_title">Seçilen ön ayarlar kaldırılsın mı?</string>
+    <string name="settings_shader_presets_remove_body">Seçilen ön ayarlar: %1$d. Listeden kaldırılsın mı?</string>
+    <string name="settings_shader_presets_remove_failed">Seçilen ön ayarlar kaldırılamadı.</string>
 </resources>
