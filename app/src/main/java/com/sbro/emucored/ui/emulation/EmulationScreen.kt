@@ -190,6 +190,8 @@ import com.sbro.emucored.data.AppPreferences.Companion.FPS_OVERLAY_MODE_DETAILED
 import com.sbro.emucored.data.AppPreferences.Companion.FPS_OVERLAY_MODE_SIMPLE
 import com.sbro.emucored.data.DisplayCrop
 import com.sbro.emucored.data.GamePlatform
+import com.sbro.emucored.core.platform.SettingsCategory
+import com.sbro.emucored.ui.settings.ConsoleCoreOptionsPanel
 import com.sbro.emucored.data.OverlayControlLayout
 import com.sbro.emucored.data.OverlayLayoutSnapshot
 import com.sbro.emucored.data.PerformanceOverlayMetrics
@@ -457,14 +459,11 @@ fun EmulationScreen(
     val secondScreenMode by preferences.secondScreenMode.collectAsState(
         initial = AppPreferences.SECOND_SCREEN_MODE_PANEL
     )
-    val isNds = remember(gamePath) {
-        PlatformUiCapabilities.forGame(gamePath).platform == GamePlatform.NDS
-    }
-    val effectiveSecondScreenMode = if (isNds) {
+    val isNds = uiState.gamePlatform == GamePlatform.NDS
+    val singleScreenConsole = uiState.gamePlatform !in setOf(GamePlatform.N3DS, GamePlatform.NDS)
+    val effectiveSecondScreenMode = if (isNds || singleScreenConsole) {
         AppPreferences.SECOND_SCREEN_MODE_INTEGRATED
-    } else {
-        secondScreenMode
-    }
+    } else secondScreenMode
     val secondScreenWidth by preferences.secondScreenWidth.collectAsState(
         initial = AppPreferences.SECOND_SCREEN_WIDTH_DEFAULT
     )
@@ -840,7 +839,7 @@ fun EmulationScreen(
     // panel mode shows only the top screen in the main view and lets the
     // secondary window render the bottom screen.
     LaunchedEffect(isNds, effectiveSecondScreenMode, uiState.swapScreens, uiState.isRunning) {
-        if (!uiState.isRunning) return@LaunchedEffect
+        if (!uiState.isRunning || singleScreenConsole) return@LaunchedEffect
         if (isNds) {
             EmulatorBridge.setDsScreenLayout(DsSession.LAYOUT_STACKED)
             DsSession.setSwapScreens(uiState.swapScreens)
@@ -1068,7 +1067,7 @@ fun EmulationScreen(
                     modifier = Modifier
                         .fillMaxSize()
                         .pointerInteropFilter { event ->
-                            if (!isNds && !showControlsEditor && !uiState.showMenu && event.actionMasked == MotionEvent.ACTION_DOWN) {
+                            if (!isNds && !singleScreenConsole && !showControlsEditor && !uiState.showMenu && event.actionMasked == MotionEvent.ACTION_DOWN) {
                                 val timestamp = event.eventTime
                                 val dx = event.x - lastTapX
                                 val dy = event.y - lastTapY
@@ -1546,7 +1545,7 @@ fun EmulationScreen(
                         end = overlayRightSafeInset,
                         bottom = overlayBottomSafeInset
                     ),
-                    onScreenDoubleTap = { if (!isNds) secondScreenTabRevealSignal++ },
+                    onScreenDoubleTap = { if (!isNds && !singleScreenConsole) secondScreenTabRevealSignal++ },
                     dsMode = isNds
                 )
             }
@@ -1618,7 +1617,7 @@ fun EmulationScreen(
         // Pull-out second screen panel (bottom 3DS screen). Its z-index sits
         // above the full-screen touch controls layer so the docked tab stays
         // clickable, while the sidebar menu stays above the panel.
-        if (!isNds && effectiveSecondScreenMode == AppPreferences.SECOND_SCREEN_MODE_PANEL &&
+        if (!isNds && !singleScreenConsole && effectiveSecondScreenMode == AppPreferences.SECOND_SCREEN_MODE_PANEL &&
             !showControlsEditor
         ) {
             SecondScreenPanel(
@@ -1645,7 +1644,7 @@ fun EmulationScreen(
         }
 
         // Free-floating bottom screen window.
-        if (!isNds && effectiveSecondScreenMode == AppPreferences.SECOND_SCREEN_MODE_FLOATING &&
+        if (!isNds && !singleScreenConsole && effectiveSecondScreenMode == AppPreferences.SECOND_SCREEN_MODE_FLOATING &&
             !showControlsEditor
         ) {
             FloatingSecondScreen(
@@ -3469,7 +3468,8 @@ private fun EmulationSidebarMenu(
         uiState.compactControls -> 28.dp
         else -> 36.dp
     }
-    val capabilities = PlatformUiCapabilities.forGame(currentGamePath)
+    val capabilities = PlatformUiCapabilities.forGame(currentGamePath, uiState.gamePlatform)
+    val usesAdditionalCore = uiState.gamePlatform !in setOf(GamePlatform.N3DS, GamePlatform.NDS)
     var selectedMenuTabName by rememberSaveable { mutableStateOf(EmulationMenuTab.Session.name) }
     val selectedMenuTab = remember(selectedMenuTabName) { EmulationMenuTab.valueOf(selectedMenuTabName) }
     val firstMenuFocusRequester = remember { FocusRequester() }
@@ -3639,7 +3639,7 @@ private fun EmulationSidebarMenu(
                             }
                         }
 
-                        MenuButton(
+                        if (capabilities.supportsScreenSwap) MenuButton(
                             icon = Icons.Rounded.SwapVert,
                             text = stringResource(R.string.settings_gamepad_action_swap_screen),
                             onClick = onSwapScreens,
@@ -3990,6 +3990,8 @@ private fun EmulationSidebarMenu(
                     }
 
                     EmulationMenuTab.Controls -> {
+                        if (usesAdditionalCore) ConsoleCoreOptionsPanel(uiState.gamePlatform.console,
+                            SettingsCategory.Controls, uiState.perGameCoreOptions, onSetCoreOption)
                         gameMenuSectionsForTab(GameMenuTabId.CONTROLS, uiState.gameMenuSectionOrder)
                             .filterNot(uiState.hiddenGameMenuSections::contains)
                             .forEach { section ->
@@ -4268,6 +4270,13 @@ private fun EmulationSidebarMenu(
                     }
 
                     EmulationMenuTab.Emulation -> {
+                        if (usesAdditionalCore) {
+                            ConsoleCoreOptionsPanel(uiState.gamePlatform.console, SettingsCategory.Emulation,
+                                uiState.perGameCoreOptions, onSetCoreOption)
+                            ConsoleCoreOptionsPanel(uiState.gamePlatform.console, SettingsCategory.Audio,
+                                uiState.perGameCoreOptions, onSetCoreOption)
+                        } else {
+
                         gameMenuSectionsForTab(GameMenuTabId.EMULATION, uiState.gameMenuSectionOrder)
                             .filterNot(uiState.hiddenGameMenuSections::contains)
                             .filter(capabilities::supportsGameMenuSection)
@@ -4406,6 +4415,7 @@ private fun EmulationSidebarMenu(
                                     else -> Unit
                                 }
                             }
+                        }
                     }
 
                     EmulationMenuTab.Cheats -> {
@@ -4442,6 +4452,11 @@ private fun EmulationSidebarMenu(
                     }
 
                     EmulationMenuTab.Graphics -> {
+                        if (usesAdditionalCore) {
+                            ConsoleCoreOptionsPanel(uiState.gamePlatform.console, SettingsCategory.Graphics,
+                                uiState.perGameCoreOptions, onSetCoreOption)
+                        } else {
+
                         gameMenuSectionsForTab(GameMenuTabId.GRAPHICS, uiState.gameMenuSectionOrder)
                             .filterNot(uiState.hiddenGameMenuSections::contains)
                             .forEach { section ->
@@ -4525,6 +4540,7 @@ private fun EmulationSidebarMenu(
                                     else -> Unit
                                 }
                             }
+                        }
                     }
 
                     EmulationMenuTab.Achievements -> {

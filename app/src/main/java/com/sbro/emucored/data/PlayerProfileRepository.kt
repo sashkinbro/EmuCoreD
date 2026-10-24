@@ -118,7 +118,8 @@ data class PlayerPlayTimeDelta(
     val coverArtPath: String?,
     val durationMs: Long,
     val sessionCount: Long = 0L,
-    val lastPlayedAtMs: Long = System.currentTimeMillis()
+    val lastPlayedAtMs: Long = System.currentTimeMillis(),
+    val platform: GamePlatform? = null
 )
 
 class PlayerProfileRepository(context: Context) {
@@ -412,7 +413,8 @@ class PlayerProfileRepository(context: Context) {
                     !entry.title.equals(HOME_MENU_TITLE, ignoreCase = true) &&
                     !isAutotestPlayTimeEntry(entry)
             }
-            .groupBy { entry -> buildGameKey(entry.serial, entry.gamePath.orEmpty()) }
+            .groupBy { entry -> profileGameKey(entry.serial, entry.gamePath.orEmpty(),
+                entry.platform ?: resolveProfilePlatform(entry.serial, entry.gamePath)) }
             .map { (gameKey, gameEntries) ->
                 val latestEntry = gameEntries.maxBy { it.lastPlayedAtMs }
                 gameKey to latestEntry.copy(
@@ -444,7 +446,8 @@ class PlayerProfileRepository(context: Context) {
             validEntries.forEach { (gameKey, entry) ->
                 val cleanTitle = entry.title.ifBlank { entry.gamePath.orEmpty().substringAfterLast('/').substringBeforeLast('.') }
                 val existingGame = existingGames[gameKey].toGameMap()
-                val platform = resolveProfilePlatform(entry.serial, entry.gamePath) ?: readProfilePlatform(existingGame)
+                val platform = entry.platform ?: resolveProfilePlatform(entry.serial, entry.gamePath)
+                    ?: readProfilePlatform(existingGame)
                 val nextGame = buildMap<String, Any> {
                     put(GAME_TITLE, cleanTitle.take(MAX_GAME_TITLE_LENGTH))
                     writeProfilePlatform(this, platform)
@@ -895,15 +898,6 @@ class PlayerProfileRepository(context: Context) {
     private fun String?.cleanDisplayName(email: String?): String {
         val fallback = email?.substringBefore('@')?.takeIf { it.isNotBlank() } ?: DEFAULT_DISPLAY_NAME
         return this?.trim()?.takeIf { it.isNotBlank() }?.take(MAX_DISPLAY_NAME_LENGTH) ?: fallback
-    }
-
-    private fun buildGameKey(serial: String?, gamePath: String): String {
-        val serialKey = serial
-            ?.trim()
-            ?.uppercase()
-            ?.replace(Regex("[^A-Z0-9_-]"), "_")
-            ?.takeIf { it.isNotBlank() }
-        return serialKey ?: "P_${gamePath.sha256().take(32)}"
     }
 
     private fun buildPlayerTag(uid: String): String {

@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="cheat_catalog_browse_all">Explorar todos os cheats deste console</string>
+    <string name="cheat_catalog_manual_attach">Associar ao jogo selecionado</string>
+    <string name="cheat_catalog_manual_warning">A correspondência deste pacote com o jogo não foi verificada. Confira a região, revisão e formato antes de ativar os códigos.</string>
+    <string name="cheat_format_unsupported">O núcleo selecionado não suporta este formato de cheats.</string>
+</resources>

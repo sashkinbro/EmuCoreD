@@ -5,6 +5,8 @@ import com.sbro.emucored.data.GameMenuTabId
 import com.sbro.emucored.data.GameMenuSectionId
 import com.sbro.emucored.core.platform.ConsolePlatform
 import com.sbro.emucored.core.platform.CoreCapabilities
+import com.sbro.emucored.core.platform.CoreOptionSchema
+import com.sbro.emucored.core.platform.SettingsCategory
 import java.net.URLDecoder
 import java.nio.charset.StandardCharsets
 
@@ -14,28 +16,34 @@ class PlatformUiCapabilities private constructor(val platform: GamePlatform) {
     val supportsAzaharOptions: Boolean get() = capabilities.supportsAzaharOptions
     val supportsAnalogControls: Boolean get() = capabilities.supportsAnalogControls
     val rendererIds: List<Int> get() = capabilities.rendererIds
+    val screenCount: Int get() = capabilities.screenCount
+    val supportsScreenSwap: Boolean get() = capabilities.supportsScreenSwap
+    val supportsAudioOptions: Boolean get() = platform != GamePlatform.NDS
 
     fun supportsGameMenuTab(tab: GameMenuTabId): Boolean =
         tab != GameMenuTabId.CHEATS || supportsAzaharOptions
 
     fun supportsGameMenuSection(section: GameMenuSectionId): Boolean =
-        supportsGameMenuTab(section.tab) && (supportsAzaharOptions || section !in setOf(
-            GameMenuSectionId.EMULATION_CPU, GameMenuSectionId.EMULATION_AUDIO
-        ))
+        supportsGameMenuTab(section.tab) && when (section) {
+            GameMenuSectionId.EMULATION_CPU -> supportsAzaharOptions || CoreOptionSchema.options(platform.console).any { it.category == SettingsCategory.Emulation }
+            GameMenuSectionId.EMULATION_AUDIO -> supportsAudioOptions
+            else -> true
+        }
 
-    fun normalizeRenderer(renderer: Int): Int = renderer.takeIf { it in rendererIds } ?: 14
+    fun normalizeRenderer(renderer: Int): Int = renderer.takeIf { it in rendererIds } ?: capabilities.defaultRenderer ?: 14
     fun supportsInternalUpscaling(renderer: Int): Boolean = capabilities.maxInternalScale(renderer) > 1
-    fun maxUpscaleMultiplier(threeDsLimit: Int): Int = if (supportsAzaharOptions) threeDsLimit else 8
+    fun maxUpscaleMultiplier(threeDsLimit: Int): Int = if (supportsAzaharOptions) threeDsLimit
+        else rendererIds.maxOfOrNull(capabilities::maxInternalScale) ?: 1
 
     companion object {
         fun forGame(path: String?, cachedPlatform: GamePlatform? = null): PlatformUiCapabilities =
             PlatformUiCapabilities(
-                path?.let {
+                cachedPlatform ?: path?.let {
                     val decoded = runCatching {
                         URLDecoder.decode(it.replace("+", "%2B"), StandardCharsets.UTF_8.name())
                     }.getOrDefault(it)
-                    GamePlatform.fromFileName(decoded)
-                } ?: cachedPlatform ?: GamePlatform.N3DS
+                    GamePlatform.forPath(decoded) ?: GamePlatform.forPath(it)
+                } ?: GamePlatform.N3DS
             )
     }
 }

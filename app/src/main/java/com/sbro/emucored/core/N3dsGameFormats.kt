@@ -14,12 +14,14 @@ object N3dsGameFormats {
         "elf",
         "axf",
         "z3dsx",
+        "z3ds",
+        "zcia",
         "zcci",
         "zcxi",
     )
 
     /** Cartridge and installed-title images accepted by the core. */
-    val libraryFormats = listOf("3DS", "CCI", "CXI", "APP", "CIA")
+    val libraryFormats = listOf("3DS", "CCI", "CXI", "APP", "CIA", "Z3DS", "ZCCI", "ZCXI", "ZCIA")
 
     /** Homebrew and executable formats. */
     val homebrewFormats = listOf("3DSX", "Z3DSX", "ELF", "AXF")
@@ -36,6 +38,6 @@ object N3dsGameFormats {
      */
     fun isCiaFile(name: String): Boolean {
         val fileName = name.substringAfterLast('/')
-        return fileName.substringAfterLast('.', "").equals("cia", ignoreCase = true)
+        return fileName.substringAfterLast('.', "").lowercase(Locale.ROOT) in setOf("cia", "zcia")
     }
 }

@@ -8,8 +8,6 @@ import androidx.documentfile.provider.DocumentFile
 import java.io.File
 
 object SetupValidator {
-    private val supportedDiscExtensions = N3dsGameFormats.extensions
-    private val supportedGameExtensions = supportedDiscExtensions
     private const val MAX_GAME_READ_PROBE_FILES = 24
     private const val MAX_GAME_READ_PROBE_DIRECTORIES = 96
 
@@ -83,7 +81,7 @@ object SetupValidator {
         for (child in children) {
             if (child.isDirectory) {
                 findReadableLocalGame(context, child, budget)?.let { return it }
-            } else if (child.isFile && N3dsGameFormats.isSupportedName(child.name)) {
+            } else if (child.isFile && ConsoleGameFormats.isSupportedName(child.name)) {
                 if (!budget.tryCheckFile()) return null
                 if (isLaunchPathReadable(context, child.absolutePath)) return child.absolutePath
             }
@@ -122,8 +120,7 @@ object SetupValidator {
         if (mimeType == DocumentsContract.Document.MIME_TYPE_DIR) {
             return DocumentEntryKind.DIRECTORY
         }
-        val extension = displayName.orEmpty().substringAfterLast('.', "").lowercase()
-        if (N3dsGameFormats.isSupportedName(displayName.orEmpty()) || NdsGameFormats.isSupportedName(displayName.orEmpty())) {
+        if (ConsoleGameFormats.isSupportedName(displayName.orEmpty())) {
             return DocumentEntryKind.GAME_FILE
         }
         return if (mimeType == null) DocumentEntryKind.UNKNOWN else DocumentEntryKind.OTHER

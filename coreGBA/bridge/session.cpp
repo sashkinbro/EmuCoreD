@@ -4,10 +4,14 @@
 #include <mgba-util/vfs.h>
 #include <mgba/core/config.h>
 #include <mgba/core/core.h>
+#include <mgba/core/cheats.h>
+#include <mgba/internal/gba/cheats.h>
+#include "typed_cheats.h"
 #include <mgba/core/log.h>
 #include <mgba/gba/core.h>
 #include <mgba/internal/gba/gba.h>
 #include <mgba/internal/gba/savedata.h>
+#include <charconv>
 static void silentLog(mLogger *, int, mLogLevel, const char *, va_list) {}
 static mLogger quietLogger{silentLog, nullptr};
 struct Session {
@@ -40,6 +44,30 @@ struct Session {
 static bool (*allowBatteryInitialization)(Session *) = nullptr;
 #endif
 #define JNI(name) Java_com_sbro_emucored_core_gba_MgbaSessionEngine_##name
+static bool replaceCheats(Session* s,const std::vector<TypedCheatInput>& codes) {
+  if(!s || !s->core)return false;
+  auto* device=s->core->cheatDevice(s->core); if(!device)return false;
+  std::vector<mCheatSet*> staged;
+  auto discard=[&] {for(auto* set:staged)mCheatSetDeinit(set);};
+  for(const auto& block:codes) {
+    int type=block.format=="gba-codebreaker"?GBA_CHEAT_CODEBREAKER:block.format=="gba-action-replay"?GBA_CHEAT_PRO_ACTION_REPLAY:block.format=="gba-gameshark"?GBA_CHEAT_GAMESHARK:-1;
+    if(type<0){discard();return false;}
+    auto* set=device->createSet(device,"EmuCoreD"); if(!set){discard();return false;} staged.push_back(set);
+    const char* pattern=type==GBA_CHEAT_CODEBREAKER?"[0-9A-F]{8} [0-9A-F]{4}":"[0-9A-F]{8} [0-9A-F]{8}";
+    for(const auto& line:block.lines)if(!cheatLineMatches(line,pattern) || !mCheatAddLine(set,line.c_str(),type)){discard();return false;}
+    const auto* parsed=reinterpret_cast<GBACheatSet*>(set);
+    if(parsed->incompleteCheat!=size_t(-1) || parsed->incompletePatch || parsed->remainingAddresses){discard();return false;}
+  }
+  while(mCheatSetsSize(&device->cheats)) {
+    auto* old=*mCheatSetsGetPointer(&device->cheats,0); old->enabled=false;
+    mCheatRefresh(device,old); mCheatRemoveSet(device,old); mCheatSetDeinit(old);
+  }
+  for(auto* set:staged){set->enabled=true;mCheatAddSet(device,set);}
+  return true;
+}
+extern "C" JNIEXPORT jboolean JNICALL JNI(nativeCheats)(JNIEnv* env,jobject,jlong handle,jobjectArray formats,jobjectArray codes) {
+  std::vector<TypedCheatInput> inputs; return typedCheatInputs(env,formats,codes,inputs) && replaceCheats(reinterpret_cast<Session*>(handle),inputs);
+}
 static Session *createSession(const std::string &path,
                               const std::string &battery,
                               const std::string &platform, bool audio = true) {
@@ -184,12 +212,35 @@ extern "C" JNIEXPORT jboolean JNICALL JNI(nativeOption)(JNIEnv *e, jobject,
                                                         jstring value) {
   auto *s = (Session *)h;
   auto k = utf(e, key), v = utf(e, value);
+  if (k == "aspect_ratio") return s->output.setAspectOption(v);
   if (k == "audio_enabled" && (v == "true" || v == "false")) {
     s->output.muted = v == "false";
     return true;
   }
   if (k == "video_filter" && (v == "nearest" || v == "linear")) {
     s->output.linear = v == "linear";
+    return true;
+  }
+  if (k == "volume" || k == "frameskip") {
+    int n = -1;
+    auto parsed = std::from_chars(v.data(), v.data() + v.size(), n);
+    const int maximum = k == "volume" ? 100 : 10;
+    if (parsed.ec != std::errc{} || parsed.ptr != v.data() + v.size() || n < 0 || n > maximum) return false;
+    if (k == "volume") s->core->opts.volume = (n * 256 + 50) / 100;
+    else s->core->opts.frameskip = n;
+    s->core->reloadConfigOption(s->core, nullptr, nullptr);
+    return true;
+  }
+  if (k == "idle_optimization") {
+    auto* gba = static_cast<GBA*>(s->core->board);
+    if (v == "ignore") gba->idleOptimization = IDLE_LOOP_IGNORE;
+    else if (v == "remove") gba->idleOptimization = IDLE_LOOP_REMOVE;
+    else if (v == "detect") gba->idleOptimization = gba->idleLoop == GBA_IDLE_LOOP_NONE ? IDLE_LOOP_DETECT : IDLE_LOOP_REMOVE;
+    else return false;
+    return true;
+  }
+  if (k == "allow_opposing_directions" && (v == "true" || v == "false")) {
+    static_cast<GBA*>(s->core->board)->allowOpposingDirections = v == "true";
     return true;
   }
   return false;

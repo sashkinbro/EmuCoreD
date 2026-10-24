@@ -2,8 +2,23 @@
 #include <android/native_window_jni.h>
 
 #include "ds_emulator.h"
+#include "../../core-common/typed_cheats.h"
 
 extern "C" {
+JNIEXPORT jboolean JNICALL Java_com_sbro_emucored_core_ds_EmuCoreDsNative_nativeReplaceCheats(JNIEnv* env,jobject,jobjectArray formats,jobjectArray codes) {
+    std::vector<TypedCheatInput> inputs;if(!typedCheatInputs(env,formats,codes,inputs))return false;
+    std::vector<std::vector<uint32_t>> words;
+    for(const auto& input:inputs) {
+        if(input.format!="nds-action-replay")return false;
+        std::vector<uint32_t> block;
+        for(const auto& line:input.lines) {
+            if(!cheatLineMatches(line,"[0-9A-F]{8} [0-9A-F]{8}"))return false;
+            block.push_back(std::stoul(line.substr(0,8),nullptr,16));block.push_back(std::stoul(line.substr(9,8),nullptr,16));
+        }
+        words.push_back(std::move(block));
+    }
+    return EmuCoreDS::Emulator().ReplaceCheats(std::move(words));
+}
 
 JNIEXPORT jstring JNICALL
 Java_com_sbro_emucored_core_ds_EmuCoreDsNative_nativeGetVersion(JNIEnv* env, jobject) {

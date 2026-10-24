@@ -182,7 +182,13 @@ data class OverlayControlLayout(
     val surfaceOnly: Boolean = false
 )
 
-private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "settings")
+/** Explicit storage owner for isolated hosts/tests; normal application contexts use the shared store. */
+internal interface AppPreferencesDataStoreOwner {
+    val appPreferencesDataStore: DataStore<Preferences>
+}
+private val Context.defaultDataStore: DataStore<Preferences> by preferencesDataStore(name = "settings")
+private val Context.dataStore: DataStore<Preferences>
+    get() = (this as? AppPreferencesDataStoreOwner)?.appPreferencesDataStore ?: defaultDataStore
 
 class AppPreferences(private val context: Context) {
 

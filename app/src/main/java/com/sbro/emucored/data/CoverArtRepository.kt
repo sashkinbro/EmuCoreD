@@ -176,7 +176,7 @@ class CoverArtRepository(context: Context) {
             Log.w(TAG, "Cannot download cover: no serial or title")
             return null
         }
-        val coverBaseUrl = if (platform == GamePlatform.NDS) null else resolveCoverBaseUrl(style)
+        val coverBaseUrl = if (platform == GamePlatform.N3DS) resolveCoverBaseUrl(style) else null
         val flightKey = "$platform|$style|$darkTheme|$coverBaseUrl|$coverKey"
         lateinit var flight: PendingCoverDownload
         var ownsDownload = false
@@ -276,7 +276,7 @@ class CoverArtRepository(context: Context) {
         val normalizedSerial = normalizeSerial(serial)
         val style = resolveCoverArtStyle(styleOverride)
         if (style == AppPreferences.COVER_ART_STYLE_DISABLED) return null
-        val baseUrl = if (platform == GamePlatform.NDS) null else resolveCoverBaseUrl(style)
+        val baseUrl = if (platform == GamePlatform.N3DS) resolveCoverBaseUrl(style) else null
         if (baseUrl != null && normalizedSerial != null) return "$baseUrl/$normalizedSerial.${if (style == AppPreferences.COVER_ART_STYLE_3D) "webp" else "jpg"}"
         return CoverIndexRepository(context).find(
             serial,
@@ -437,12 +437,12 @@ class CoverArtRepository(context: Context) {
 
     /** Cache key for a cover: the serial when available, otherwise the title. */
     private fun coverKey(serial: String?, title: String?, platform: GamePlatform): String? {
-        val prefix = if (platform == GamePlatform.NDS) "nds_" else ""
+        val prefix = if (platform == GamePlatform.N3DS) "" else "${CoverIndexRepository.platformKey(platform)}_"
         normalizeSerial(serial)?.let { return prefix + it }
         val normalizedTitle = title?.trim()?.lowercase(Locale.ROOT)
-            ?.replace(Regex("[^a-z0-9]+"), "_")
-            ?.trim('_')
-            ?.take(80)
+            ?.takeIf { it.isNotBlank() }
+            ?.let { java.security.MessageDigest.getInstance("SHA-256").digest(it.toByteArray(Charsets.UTF_8))
+                .joinToString("") { byte -> "%02x".format(byte) } }
         return normalizedTitle?.takeIf { it.isNotBlank() }?.let { prefix + it }
     }
 

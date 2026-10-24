@@ -51,6 +51,7 @@ public:
     void SetRenderer(int renderer);
     bool SaveState(const std::string& path);
     bool LoadState(const std::string& path);
+    bool ReplaceCheats(std::vector<std::vector<uint32_t>> codes);
 
     bool IsRunning() const { return running_.load(); }
     void SetUserDirectory(const std::string& path);
@@ -108,6 +109,7 @@ private:
     bool state_finished_ = false;
     bool state_success_ = false;
     std::string state_path_;
+    std::vector<std::vector<uint32_t>> pending_cheats_;
     std::string rom_path_;
     std::string sram_path_;
     std::string user_dir_;

@@ -4,6 +4,22 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class LibraryPlatformSelectionTest {
+    @Test fun everyConsoleFilterSurvivesLoadingAndSeparatesIdenticalTitles() {
+        val platforms = listOf("N3DS", "NDS", "GAMECUBE", "WII", "GBA", "GB", "GBC", "NES", "SNES")
+            .map(GamePlatform::valueOf)
+        val games = platforms.reversed().map { game(it, "/games/${it.name}/shared") }
+        for (platform in platforms) {
+            val loading = resolveLibraryPlatformSelection(emptyList(), platform, libraryLoaded = false)
+            assertEquals(platform, loading.selected)
+            val loaded = resolveLibraryPlatformSelection(games, loading.selected)
+            assertEquals(platforms, loaded.available)
+            assertEquals(platform, loaded.selected)
+            assertEquals(listOf(games.single { it.platform == platform }), games.filterLibraryPlatform(platform))
+            assertNull(resolveLibraryPlatformSelection(games.filterNot { it.platform == platform }, platform).selected)
+        }
+        assertEquals(games, games.filterLibraryPlatform(null))
+    }
+
     private fun game(platform: GamePlatform, path: String) =
         GameItem("Shared title", path, path.substringAfterLast('/'), 1, 0, platform = platform)
 

@@ -7,6 +7,7 @@ internal fun PerGameSettings.resolveAgainst(defaultProfile: PerGameSettings): Pe
         gameKey = gameKey,
         gameTitle = gameTitle,
         gameSerial = gameSerial,
+        gamePlatform = gamePlatform ?: defaultProfile.gamePlatform,
         keyboardMouse = pick("keyboardMouse", keyboardMouse, defaultProfile.keyboardMouse),
         renderer = pick("renderer", renderer, defaultProfile.renderer),
         mediatekAngleOpenGl = pick("mediatekAngleOpenGl", mediatekAngleOpenGl, defaultProfile.mediatekAngleOpenGl),

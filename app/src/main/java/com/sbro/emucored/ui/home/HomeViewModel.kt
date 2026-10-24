@@ -31,8 +31,9 @@ import com.sbro.emucored.data.CoreUpdateResetAction
 import com.sbro.emucored.data.CustomGameCoverRepository
 import com.sbro.emucored.data.GameItem
 import com.sbro.emucored.data.GamePlatform
-import com.sbro.emucored.data.filterLibraryPlatform
-import com.sbro.emucored.data.resolveLibraryPlatformSelection
+import com.sbro.emucored.data.filterLibraryPlatforms
+import com.sbro.emucored.data.resolveLibraryPlatforms
+import com.sbro.emucored.data.toggleLibraryPlatform
 import com.sbro.emucored.data.GameLibraryCacheRepository
 import com.sbro.emucored.data.GameLibraryCacheSnapshot
 import com.sbro.emucored.data.GameRepository
@@ -78,7 +79,7 @@ enum class HomeLibraryViewMode {
 data class HomeUiState(
     val games: List<GameItem> = emptyList(),
     val availablePlatforms: List<GamePlatform> = emptyList(),
-    val platformFilter: GamePlatform? = null,
+    val platformFilter: Set<GamePlatform> = emptySet(),
     val recentGames: List<GameItem> = emptyList(),
     val isLoading: Boolean = true,
     val isRefreshing: Boolean = false,
@@ -170,11 +171,7 @@ class HomeViewModel(application: Application, private val savedStateHandle: Save
     private val publishPending = AtomicBoolean(false)
     private var publishJob: Job? = null
 
-    private val _uiState = MutableStateFlow(HomeUiState(platformFilter =
-        savedStateHandle.get<String>(LIBRARY_PLATFORM_STATE_KEY)?.let { name ->
-            GamePlatform.entries.firstOrNull { it.name == name }
-        }
-    ))
+    private val _uiState = MutableStateFlow(HomeUiState(platformFilter = restoreLibraryPlatforms(savedStateHandle)))
     val uiState: StateFlow<HomeUiState> = _uiState.asStateFlow()
 
     private val _ciaInstallState = MutableStateFlow(CiaInstallUiState())
@@ -182,7 +179,7 @@ class HomeViewModel(application: Application, private val savedStateHandle: Save
     private var ciaInstallJob: Job? = null
 
     init {
-        viewModelScope.persistLibraryPlatformFilter(_uiState.map { it.platformFilter }, savedStateHandle)
+        viewModelScope.persistLibraryPlatforms(_uiState.map { it.platformFilter }, savedStateHandle)
         viewModelScope.launch {
             preferences.homeGridScale.collect { scale ->
                 _uiState.value = _uiState.value.copy(homeGridScale = scale)
@@ -592,7 +589,7 @@ class HomeViewModel(application: Application, private val savedStateHandle: Save
     }
 
     fun updatePlatformFilter(platform: GamePlatform?) {
-        val selection = resolveLibraryPlatformSelection(allGames, platform)
+        val selection = resolveLibraryPlatforms(allGames, toggleLibraryPlatform(_uiState.value.platformFilter, platform), libraryInitialized)
         _uiState.update { it.copy(platformFilter = selection.selected) }
         publishVisibleGames()
     }
@@ -869,7 +866,7 @@ class HomeViewModel(application: Application, private val savedStateHandle: Save
     private fun publishVisibleGamesNow() {
         val snapshot = synchronized(this) { allGames }
         _uiState.update { current ->
-            val selection = resolveLibraryPlatformSelection(snapshot, current.platformFilter, libraryInitialized)
+            val selection = resolveLibraryPlatforms(snapshot, current.platformFilter, libraryInitialized)
             val state = current.copy(availablePlatforms = selection.available, platformFilter = selection.selected)
             val (games, recent) = filterAndSortGames(snapshot, state)
             state.copy(games = games, recentGames = recent)
@@ -881,7 +878,7 @@ class HomeViewModel(application: Application, private val savedStateHandle: Save
         val snapshot: List<GameItem>
         synchronized(this) {
             allGames = allGames.map { game ->
-                val selected = covers.displayCoverPath(game.serial, game.title, game.coverArtPath, game.platform)
+                val selected = covers.displayCoverPath(game.serial, game.coverLookupTitle, game.coverArtPath, game.platform)
                 if (selected == game.coverArtPath) game else game.copy(coverArtPath = selected)
             }
             snapshot = allGames
@@ -894,7 +891,7 @@ class HomeViewModel(application: Application, private val savedStateHandle: Save
         state: HomeUiState
     ): Pair<List<GameItem>, List<GameItem>> {
         val query = normalizeSearchToken(state.searchQuery)
-        val filtered = snapshot.filterLibraryPlatform(state.platformFilter).filter { game ->
+        val filtered = snapshot.filterLibraryPlatforms(state.platformFilter).filter { game ->
             query.isBlank() ||
                 normalizeSearchToken(game.title).contains(query) ||
                 normalizeSearchToken(game.fileName).contains(query) ||
@@ -934,7 +931,7 @@ class HomeViewModel(application: Application, private val savedStateHandle: Save
                 normalizeSearchToken(game.title).contains(query) ||
                 normalizeSearchToken(game.fileName).contains(query) ||
                 normalizeSearchToken(game.serial).contains(query)
-        }.filterLibraryPlatform(state.platformFilter).takeIf { state.showRecentGames }.orEmpty()
+        }.filterLibraryPlatforms(state.platformFilter).takeIf { state.showRecentGames }.orEmpty()
         return sorted to recentGames
     }
 
@@ -969,7 +966,7 @@ class HomeViewModel(application: Application, private val savedStateHandle: Save
                 allGames = allGames.map { game ->
                     val hasSerial = !game.serial.isNullOrBlank()
                     val resolvedCoverPath = coverRepository.findCachedCoverPath(
-                        game.serial, title = game.title, platform = game.platform
+                        game.serial, title = game.coverLookupTitle, platform = game.platform
                     )
                     when {
                         coverRepository.isMissingManagedCover(game.coverArtPath) ||
@@ -1049,7 +1046,7 @@ class HomeViewModel(application: Application, private val savedStateHandle: Save
                     return@map game
                 }
                 if (currentPath != null && currentPath.startsWith(cachePrefix, ignoreCase = true)) {
-                    game.copy(coverArtPath = coverRepository.findCachedCoverPath(game.serial, title = game.title, platform = game.platform))
+                    game.copy(coverArtPath = coverRepository.findCachedCoverPath(game.serial, title = game.coverLookupTitle, platform = game.platform))
                 } else {
                     game
                 }

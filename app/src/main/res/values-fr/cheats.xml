@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="cheat_catalog_browse_all">Parcourir tous les codes de cette console</string>
+    <string name="cheat_catalog_manual_attach">Associer au jeu sélectionné</string>
+    <string name="cheat_catalog_manual_warning">La correspondance de ce pack avec le jeu est non vérifiée. Vérifiez la région, la révision et le format avant toute activation.</string>
+    <string name="cheat_format_unsupported">Le cœur sélectionné ne prend pas en charge ce format de codes.</string>
+</resources>

@@ -44,7 +44,8 @@ fun <T> ScrollableFilterTabRow(
     verticalPadding: Dp = 6.dp,
     compact: Boolean = false,
     modifier: Modifier = Modifier,
-    enabled: (T) -> Boolean = { true }
+    enabled: (T) -> Boolean = { true },
+    isSelected: (T) -> Boolean = { it == selectedTab }
 ) {
     val listState = rememberLazyListState()
     LaunchedEffect(selectedTab, tabs) {
@@ -88,7 +89,7 @@ fun <T> ScrollableFilterTabRow(
                         interactionSource = interactionSource,
                         addFocusTarget = false
                     ),
-                selected = selectedTab == tab,
+                selected = isSelected(tab),
                 enabled = enabled(tab),
                 onClick = { onSelected(tab) },
                 interactionSource = interactionSource,

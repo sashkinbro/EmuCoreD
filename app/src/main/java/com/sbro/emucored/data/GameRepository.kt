@@ -22,7 +22,11 @@ data class GameItem(
     val coverArtPath: String? = null,
     val serial: String? = null,
     val platform: GamePlatform = GamePlatform.N3DS
-)
+) {
+    /** Keep explicit region/revision evidence for artwork while the UI title stays clean. */
+    val coverLookupTitle: String get() = if (platform in setOf(GamePlatform.N3DS, GamePlatform.NDS)) title
+        else fileName.ifBlank { title }
+}
 
 class GameRepository {
 
@@ -125,14 +129,16 @@ class GameRepository {
         title: String? = null
     ): String? {
         val platform = PlatformUiCapabilities.forGame(path).platform
+        val lookupTitle = if (platform in setOf(GamePlatform.NDS, GamePlatform.N3DS)) title
+            else DocumentPathResolver.getDisplayName(context, path)
         val candidate = if (path.startsWith("content://")) {
-            runCatching { findDocumentCover(path, context, serial, title, platform) }
+            runCatching { findDocumentCover(path, context, serial, lookupTitle, platform) }
                 .onFailure { error -> Log.w(TAG, "Unable to find cover for document URI: $path", error) }
                 .getOrNull()
         } else {
-            findLocalCover(path, context, serial, title, platform)
+            findLocalCover(path, context, serial, lookupTitle, platform)
         }
-        return CoverArtRepository(context).displayCoverPath(serial, title, candidate, platform)
+        return CoverArtRepository(context).displayCoverPath(serial, lookupTitle, candidate, platform)
     }
 
     fun downloadCoverForGame(game: GameItem, context: Context): String? {
@@ -141,8 +147,8 @@ class GameRepository {
         val serial = game.serial?.takeIf(String::isNotBlank)
         val platform = PlatformUiCapabilities.forGame(game.path, game.platform).platform
         val covers = CoverArtRepository(context)
-        val downloaded = covers.downloadCover(serial, title = game.title, platform = platform)
-        if (covers.hasIndexedCover(serial, game.title, platform)) return downloaded
+        val downloaded = covers.downloadCover(serial, title = game.coverLookupTitle, platform = platform)
+        if (covers.hasIndexedCover(serial, game.coverLookupTitle, platform)) return downloaded
         return downloaded
             ?: game.coverArtPath?.takeIf { File(it).isFile }
             ?: if (platform == GamePlatform.N3DS) N3dsGameMetadataReader.extractIcon(context, game.path) else null
@@ -177,7 +183,7 @@ class GameRepository {
                 }
 
                 file.isFile && GamePlatform.isSupportedName(file.name) -> {
-                    val platform = GamePlatform.fromFileName(file.name) ?: return@forEach
+                    val platform = com.sbro.emucored.core.ConsoleGameDiscovery.identify(context, file.absolutePath, file.name) ?: return@forEach
                     if (platform == GamePlatform.N3DS && file.extension.equals("zip", true) && N3dsGameMetadataReader.read(context, file.absolutePath) == null) return@forEach
                     val entrySize = file.length()
                     val cachedGame = cachedGamesByPath[file.absolutePath]
@@ -205,18 +211,19 @@ class GameRepository {
                     val cleanTitle = EmulatorBridge.cleanGameDisplayTitle(metadata.title, file.name)
                     val serial = metadata.serial
                     val title = cleanTitle
+                    val coverLookupTitle = if (platform in setOf(GamePlatform.N3DS, GamePlatform.NDS)) title else file.name
                     items += GameItem(
                         title = title,
                         path = file.absolutePath,
                         fileName = file.name,
                         fileSize = entrySize,
                         lastModified = file.lastModified(),
-                        coverArtPath = if (platform == GamePlatform.NDS) {
+                        coverArtPath = if (platform != GamePlatform.N3DS) {
                             customCoverRepository.findCustomCoverPath(file.absolutePath)
                                 ?: coverRepository.findCachedCoverPath(
                                     serial,
-                                    title = title,
-                                    platform = GamePlatform.NDS
+                                    title = coverLookupTitle,
+                                    platform = platform
                                 )
                                 ?: cachedGame?.coverArtPath?.takeIf { File(it).exists() }
                                 ?: coverCandidates[normalizeBaseName(file.nameWithoutExtension)]?.absolutePath
@@ -280,7 +287,7 @@ class GameRepository {
                 }
                 SetupValidator.DocumentEntryKind.GAME_FILE -> {
                     val uriPath = file.uri.toString()
-                    val platform = GamePlatform.fromFileName(name) ?: continue
+                    val platform = com.sbro.emucored.core.ConsoleGameDiscovery.identify(context, uriPath, name) ?: continue
                     val fileSize = runCatching { file.length() }.getOrDefault(0L)
                     if (platform == GamePlatform.N3DS && name.endsWith(".zip", true) && N3dsGameMetadataReader.read(context, uriPath) == null) continue
                     val entrySize = fileSize
@@ -312,18 +319,19 @@ class GameRepository {
                     val cleanTitle = cleanScannedTitle(metadata.title, name)
                     val serial = metadata.serial
                     val title = cleanTitle
+                    val coverLookupTitle = if (platform in setOf(GamePlatform.N3DS, GamePlatform.NDS)) title else name
                     items += GameItem(
                         title = title,
                         path = uriPath,
                         fileName = name,
                         fileSize = entrySize,
                         lastModified = lastModified,
-                        coverArtPath = if (platform == GamePlatform.NDS) {
+                        coverArtPath = if (platform != GamePlatform.N3DS) {
                             customCoverRepository.findCustomCoverPath(uriPath)
                                 ?: coverRepository.findCachedCoverUri(
                                     serial,
-                                    title = title,
-                                    platform = GamePlatform.NDS
+                                    title = coverLookupTitle,
+                                    platform = platform
                                 )
                                 ?: cachedGame?.coverArtPath
                                 ?: coverCandidates[normalizeBaseName(name.substringBeforeLast('.'))]?.uri?.toString()
@@ -356,6 +364,7 @@ class GameRepository {
             ?.let { it.title to it.serial } ?: (null to null)
         GamePlatform.NDS -> com.sbro.emucored.core.NdsGameMetadataReader.read(context, path)
             ?.let { it.title to it.serial } ?: (null to null)
+        else -> null to null
     }
 
     private fun findLocalCover(

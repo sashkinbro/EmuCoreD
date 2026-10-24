@@ -10,6 +10,11 @@ import android.view.Surface
 import com.sbro.emucored.data.AppPreferences
 import com.sbro.emucored.data.GamePlatform
 import com.sbro.emucored.core.ds.DsSession
+import com.sbro.emucored.core.platform.session.AdditionalConsoleSession
+import com.sbro.emucored.core.platform.session.EngineLaunchRequest
+import com.sbro.emucored.core.platform.session.ConsoleSessionStorage
+import com.sbro.emucored.core.platform.session.CoreCheatCode
+import com.sbro.emucored.core.platform.CoreOptionPreferences
 import com.sbro.emucored.data.DisplayCrop
 import com.sbro.emucored.ui.common.invalidateCoverImage
 import kotlinx.coroutines.CoroutineScope
@@ -28,6 +33,7 @@ import java.io.File
 import java.io.FileOutputStream
 import java.lang.ref.WeakReference
 import java.util.Locale
+import kotlin.math.roundToInt
 
 internal data class DsLaunchConfiguration(val renderer: Int, val renderScale: Int)
 
@@ -215,7 +221,8 @@ object EmulatorBridge {
         saveStateIdentityPath: String? = null,
         dsRenderScale: Int = 1,
         dsRenderer: Int = 14,
-        dsSwapScreens: Boolean = false
+        dsSwapScreens: Boolean = false,
+        platformOverride: GamePlatform? = null
     ): Boolean {
         if (!isNativeLoaded) {
             Log.e(TAG, "startEmulation skipped: native library is not loaded")
@@ -225,7 +232,23 @@ object EmulatorBridge {
             Log.e(TAG, "startEmulation rejected blank game path")
             return false
         }
-        if (GamePlatform.fromFileName(path) == GamePlatform.NDS) {
+        val context = getContext() ?: return false
+        val identity = saveStateIdentityPath ?: path
+        val platform = platformOverride ?: ConsoleGameDiscovery.identify(context, path) ?: return false
+        GamePlatform.remember(identity, platform)
+        if (platform != GamePlatform.N3DS && platform != GamePlatform.NDS) {
+            awaitPendingShutdown()
+            if (isVmActive()) return false
+            AdditionalConsoleSession.attachSurface(lastSurface, lastSurfaceWidth, lastSurfaceHeight)
+            val root = ConsoleSessionStorage.root(context.filesDir)
+            val userDirectory = if (platform.console.core == com.sbro.emucored.core.platform.CoreId.DOLPHIN)
+                File(root, "dolphin") else root
+            return BackupSessionGate.start(active = { AdditionalConsoleSession.isActive }) {
+                AdditionalConsoleSession.start(EngineLaunchRequest(context, platform.console, path, identity,
+                    userDirectory, CoreOptionPreferences(context).effectiveOptions(platform.console, identity)))
+            }
+        }
+        if (platform == GamePlatform.NDS) {
             awaitPendingShutdown()
             if (isVmActive()) return false
             val context = getContext() ?: return false
@@ -312,6 +335,7 @@ object EmulatorBridge {
     }
 
     suspend fun pause() {
+        if (AdditionalConsoleSession.isActive) { AdditionalConsoleSession.pause(); return }
         if (DsSession.isActive) {
             DsSession.pause()
             return
@@ -325,6 +349,7 @@ object EmulatorBridge {
     }
 
     suspend fun resume() {
+        if (AdditionalConsoleSession.isActive) { AdditionalConsoleSession.resume(); return }
         if (DsSession.isActive) {
             DsSession.resume()
             return
@@ -340,6 +365,7 @@ object EmulatorBridge {
 
     /** Requests native stop immediately; renderer teardown continues asynchronously. */
     fun requestShutdown() {
+        if (AdditionalConsoleSession.isActive) { AdditionalConsoleSession.requestStop(); return }
         if (DsSession.isActive) {
             DsSession.stop()
             return
@@ -351,6 +377,17 @@ object EmulatorBridge {
 
     /** Queues one teardown operation and lets all callers await the same session release. */
     fun shutdownAsync(): Job {
+        if (AdditionalConsoleSession.isActive) return synchronized(shutdownLock) {
+            shutdownJob?.takeIf { it.isActive }?.let { return@synchronized it }
+            serialScope.launch {
+                resetKeyStatus()
+                AdditionalConsoleSession.stop()
+                BackupSessionGate.stopped()
+            }.also { job ->
+                shutdownJob = job
+                job.invokeOnCompletion { synchronized(shutdownLock) { if (shutdownJob === job) shutdownJob = null } }
+            }
+        }
         if (DsSession.isActive) {
             return serialScope.launch {
                 DsSession.stop()
@@ -398,6 +435,7 @@ object EmulatorBridge {
     }
 
     fun hasValidVm(): Boolean {
+        if (AdditionalConsoleSession.isActive) return AdditionalConsoleSession.isRunning
         if (DsSession.isActive) return true
         if (!isNativeLoaded) return false
         return try {
@@ -410,7 +448,7 @@ object EmulatorBridge {
     fun isVmActive(): Boolean {
         // A status read never performs teardown. The core can still own its
         // window after a failed worker and needs an explicit shutdown.
-        return DsSession.isActive || isVmActive || (isNativeLoaded && NativeApp.hasOwnedVm())
+        return AdditionalConsoleSession.isActive || DsSession.isActive || isVmActive || (isNativeLoaded && NativeApp.hasOwnedVm())
     }
 
     fun getGameTitle(path: String): String = getGameMetadata(path).title
@@ -450,7 +488,7 @@ object EmulatorBridge {
                     )
                 }
             }
-            if (!NdsGameFormats.isSupportedName(path)) {
+            if (GamePlatform.forPath(path) == GamePlatform.N3DS) {
                 runCatching { N3dsGameMetadataReader.read(context, path) }.getOrNull()?.let { metadata ->
                     return GameMetadata(
                         title = metadata.title?.let { normalizeNativeGameTitle(it, inferredMetadata.title) }
@@ -481,7 +519,7 @@ object EmulatorBridge {
         if (looksLikeStoragePath(trimmed)) return fallbackDisplay
         val withoutExtension = if (trimmed.contains('.')) {
             val ext = trimmed.substringAfterLast('.', "").lowercase(Locale.ROOT)
-            if (ext in N3dsGameFormats.extensions) trimmed.substringBeforeLast('.') else trimmed
+            if (GamePlatform.isSupportedName(trimmed)) trimmed.substringBeforeLast('.') else trimmed
         } else {
             trimmed
         }
@@ -534,6 +572,7 @@ object EmulatorBridge {
     }
 
     suspend fun saveState(slot: Int): Boolean {
+        if (AdditionalConsoleSession.isActive) return AdditionalConsoleSession.saveState(slot)
         if (DsSession.isActive) {
             return withContext(Dispatchers.IO) { DsSession.saveState(slot) }
         }
@@ -548,7 +587,14 @@ object EmulatorBridge {
         return saved
     }
 
+    suspend fun replaceCheats(codes: List<CoreCheatCode>): Boolean {
+        if (AdditionalConsoleSession.isActive) return AdditionalConsoleSession.session?.replaceCheats(codes) == true
+        if (DsSession.isActive) return withContext(Dispatchers.IO) { DsSession.replaceCheats(codes) }
+        return false
+    }
+
     suspend fun loadState(slot: Int): Boolean {
+        if (AdditionalConsoleSession.isActive) return AdditionalConsoleSession.loadState(slot)
         if (DsSession.isActive) {
             return withContext(Dispatchers.IO) { DsSession.loadState(slot) }
         }
@@ -568,6 +614,7 @@ object EmulatorBridge {
     }
 
     suspend fun setRenderer(gpuType: Int): Boolean {
+        if (AdditionalConsoleSession.isActive) return false // Backend replacement requires an owned checkpoint restart.
         if (DsSession.isActive) {
             return withContext(Dispatchers.IO) { DsSession.setRenderer(gpuType) }
         }
@@ -594,6 +641,10 @@ object EmulatorBridge {
     }
 
     suspend fun setUpscaleMultiplier(multiplier: Float) {
+        if (AdditionalConsoleSession.isActive) {
+            AdditionalConsoleSession.session?.applyOption("resolution", multiplier.roundToInt().coerceIn(1, 4).toString())
+            return
+        }
         val normalized = normalizeUpscale(multiplier)
         if (DsSession.isActive) {
             DsSession.setRenderScale(Math.round(normalized).coerceIn(1, 8))
@@ -690,6 +741,7 @@ object EmulatorBridge {
     }
 
     fun onSurfaceCreated(generation: Long) {
+        if (AdditionalConsoleSession.isActive) return
         if (!isNativeLoaded) return
         if (generation != _presentationSurfaceGeneration.value) return
         Log.i(TAG, "onSurfaceCreated: generation=$generation")
@@ -716,6 +768,11 @@ object EmulatorBridge {
         lastSurface = surface
         lastSurfaceWidth = width
         lastSurfaceHeight = height
+        AdditionalConsoleSession.attachSurface(surface, width, height)
+        if (AdditionalConsoleSession.isActive) {
+            NativeApp.rememberSurface(surface, width, height)
+            return
+        }
         // Publish the window synchronously so a session that is already
         // booting can hand it to the core before System::Init blocks.
         runCatching { NativeApp.rememberSurface(surface, width, height) }
@@ -742,6 +799,7 @@ object EmulatorBridge {
 
     /** Attaches (or replaces) the second screen surface for the bottom screen panel. */
     fun onSecondarySurfaceChanged(surface: Surface, width: Int, height: Int) {
+        if (AdditionalConsoleSession.isActive) return
         if (!isNativeLoaded) return
         DsSession.setSecondarySurface(surface)
         if (DsSession.isActive) return
@@ -760,6 +818,7 @@ object EmulatorBridge {
 
     /** Detaches the second screen surface; the panel was closed. */
     fun onSecondarySurfaceDestroyed() {
+        if (AdditionalConsoleSession.isActive) return
         if (!isNativeLoaded) return
         DsSession.setSecondarySurface(null)
         if (DsSession.isActive) return
@@ -780,6 +839,7 @@ object EmulatorBridge {
      * own layout choice; this only affects the running session.
      */
     fun setScreenLayout(option: Int) {
+        if (AdditionalConsoleSession.isActive) return
         if (DsSession.isActive) return
         if (!isNativeLoaded) return
         NativeApp.logCrashBreadcrumb("screen layout requested option=$option")
@@ -806,6 +866,7 @@ object EmulatorBridge {
 
     /** Swaps which 3DS screen is counted as the prominent one. */
     fun setSwapScreens(swap: Boolean) {
+        if (AdditionalConsoleSession.isActive) return
         if (DsSession.isActive) {
             DsSession.setSwapScreens(swap)
             return
@@ -846,6 +907,8 @@ object EmulatorBridge {
         lastSurface = null
         lastSurfaceWidth = 0
         lastSurfaceHeight = 0
+        AdditionalConsoleSession.attachSurface(null, 0, 0)
+        if (AdditionalConsoleSession.isActive) return
         Log.i(TAG, "onSurfaceDestroyed: called, version $oldVersion -> $surfaceEventVersion")
         DsSession.setSurface(null)
         if (DsSession.isActive) return

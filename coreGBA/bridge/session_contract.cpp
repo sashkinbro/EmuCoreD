@@ -84,6 +84,16 @@ int main(int argc, char **argv) {
     JNI(nativeButton)(nullptr, nullptr, (jlong)s, 0, 0, true);
     CHECK(c->getKeys(c) & 1);
     c->busWrite32(c, 0x02000040, 0x12345678);
+    CHECK(replaceCheats(s,{{"gba-codebreaker",{"82000040 A55A"}}}));
+    CHECK(JNI(nativeFrame)(nullptr,nullptr,(jlong)s));
+    CHECK(c->busRead16(c,0x02000040)==0xa55a);
+    CHECK(!replaceCheats(s,{{"gba-codebreaker",{"42000040 A55A"}}}));
+    c->busWrite16(c,0x02000040,0);
+    CHECK(JNI(nativeFrame)(nullptr,nullptr,(jlong)s));
+    CHECK(c->busRead16(c,0x02000040)==0xa55a);
+    CHECK(replaceCheats(s,{}));c->busWrite16(c,0x02000040,0);
+    CHECK(JNI(nativeFrame)(nullptr,nullptr,(jlong)s));CHECK(c->busRead16(c,0x02000040)==0);
+    c->busWrite32(c,0x02000040,0x12345678);
     std::vector<uint8_t> b(c->stateSize(c));
     CHECK(c->saveState(c, b.data()));
     c->busWrite32(c, 0x02000040, 0);

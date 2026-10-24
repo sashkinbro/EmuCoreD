@@ -14,7 +14,8 @@ data class EngineLaunchRequest(
     val identityPath: String,
     val userDirectory: File,
     val options: Map<String, String> = emptyMap(),
-    val startPaused: Boolean = false
+    val startPaused: Boolean = false,
+    val sourceDisplayName: String = File(launchPath).name
 )
 
 sealed interface EngineStartResult {
@@ -49,5 +50,6 @@ interface CoreSessionEngine {
     suspend fun saveState(target: File): Boolean
     suspend fun loadState(source: File): Boolean
     suspend fun applyOption(key: String, value: String): Boolean
+    suspend fun replaceCheats(codes: List<CoreCheatCode>): Boolean = codes.isEmpty()
     fun frameCount(): Long
 }

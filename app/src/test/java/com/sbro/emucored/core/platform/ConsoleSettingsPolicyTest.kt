@@ -15,14 +15,17 @@ class ConsoleSettingsPolicyTest {
     @Test fun changingConsoleRetainsSupportedCategoryAndNormalizesUnsupportedSelection() {
         assertEquals(SettingsCategory.Graphics, ConsoleSettingsPolicy.normalizeCategory(ConsolePlatform.NDS, SettingsCategory.Graphics))
         assertEquals(SettingsCategory.Multiplayer, ConsoleSettingsPolicy.normalizeCategory(ConsolePlatform.N3DS, SettingsCategory.Multiplayer))
-        assertEquals(SettingsCategory.General, ConsoleSettingsPolicy.normalizeCategory(ConsolePlatform.GBA, SettingsCategory.Graphics))
+        assertEquals(SettingsCategory.Graphics, ConsoleSettingsPolicy.normalizeCategory(ConsolePlatform.GBA, SettingsCategory.Graphics))
     }
 
-    @Test fun unavailableNativeAdaptersCannotExposeCoreConfigurationCategories() {
-        ConsolePlatform.entries.filterNot { it.isLaunchable }.forEach { platform ->
-            assertFalse(ConsoleSettingsPolicy.categories(platform).contains(SettingsCategory.Graphics))
-            assertFalse(ConsoleSettingsPolicy.categories(platform).contains(SettingsCategory.Controls))
-            assertFalse(ConsoleSettingsPolicy.categories(platform).contains(SettingsCategory.Emulation))
+    @Test fun everyIntegratedCoreHasItsOwnConfigurationWithoutAzaharMultiplayer() {
+        ConsolePlatform.entries.forEach { platform ->
+            val categories = ConsoleSettingsPolicy.categories(platform)
+            assertTrue(platform.id, categories.contains(SettingsCategory.Graphics))
+            assertTrue(platform.id, categories.contains(SettingsCategory.Controls))
+            assertTrue(platform.id, categories.contains(SettingsCategory.Emulation))
+            assertEquals(platform == ConsolePlatform.N3DS, categories.contains(SettingsCategory.Multiplayer))
+            assertEquals(platform != ConsolePlatform.NDS, categories.contains(SettingsCategory.Audio))
         }
     }
 }

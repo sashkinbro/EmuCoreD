@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="cheat_catalog_browse_all">Показать все читы для этой консоли</string>
+    <string name="cheat_catalog_manual_attach">Привязать к выбранной игре</string>
+    <string name="cheat_catalog_manual_warning">Соответствие этого набора игре не подтверждено. Перед включением кодов проверьте регион, ревизию и формат.</string>
+    <string name="cheat_format_unsupported">Выбранное ядро не поддерживает этот формат читов.</string>
+</resources>

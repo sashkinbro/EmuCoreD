@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="formats_images_body">展開済みのゲームイメージを使用してください。ZIP・7zアーカイブはインポート前に展開してください。</string>
+    <string name="formats_3ds_body">CIA・ZCIAパッケージは起動前にインストールされます。暗号化されたゲームには、ご自身のシステムキーが必要です。</string>
+    <string name="formats_ds_body">DSおよびDSi拡張対応カートリッジはDSモードで動作します。DSi専用ゲームにはDSi実行環境が必要です。</string>
+    <string name="formats_fds_body">FDSゲームには、ファームウェアフォルダー内に8 KiBのdisksys.rom BIOSが必要です。</string>
+    <string name="formats_executables_body">DOL・ELF実行ファイルは、起動前に対象の本体を選択する必要がある場合があります。</string>
+</resources>

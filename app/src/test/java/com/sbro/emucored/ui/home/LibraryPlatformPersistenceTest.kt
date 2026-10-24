@@ -12,6 +12,35 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class LibraryPlatformPersistenceTest {
+    @Test fun multiplePlatformsSurviveProcessRecreationAndMigrateTheSingleFilter() = runBlocking {
+        val saved = SavedStateHandle(mapOf(LIBRARY_PLATFORM_STATE_KEY to "NDS"))
+        assertEquals(setOf(GamePlatform.NDS), restoreLibraryPlatforms(saved))
+        val selected = MutableStateFlow(setOf(GamePlatform.NDS, GamePlatform.GBA, GamePlatform.SNES))
+        val job = persistLibraryPlatforms(selected, saved)
+        try {
+            yield()
+            assertEquals(setOf(GamePlatform.NDS, GamePlatform.GBA, GamePlatform.SNES), restoreLibraryPlatforms(saved))
+            assertNull(saved.get<String>(LIBRARY_PLATFORM_STATE_KEY))
+            selected.value = emptySet()
+            yield()
+            assertTrue(restoreLibraryPlatforms(saved).isEmpty())
+        } finally { job.cancelAndJoin() }
+    }
+
+    @Test fun removedPlatformsDoNotReappearWhenTheLibraryReturnsAfterRecreation() = runBlocking {
+        val saved = SavedStateHandle()
+        val selected = MutableStateFlow(setOf(GamePlatform.NDS, GamePlatform.GBA))
+        val job = persistLibraryPlatforms(selected, saved)
+        try {
+            yield()
+            selected.value = com.sbro.emucored.data.resolveLibraryPlatforms(
+                listOf(GameItem("DS", "game.nds", "game.nds", 1, 0, platform = GamePlatform.NDS)), selected.value
+            ).selected
+            yield()
+            assertEquals(setOf(GamePlatform.NDS), restoreLibraryPlatforms(saved))
+        } finally { job.cancelAndJoin() }
+    }
+
     @Test fun rescanNormalizationCannotResurrectAnOldFilterAfterProcessRecreation() = runBlocking {
         val state = SavedStateHandle(mapOf(LIBRARY_PLATFORM_STATE_KEY to GamePlatform.NDS.name))
         val selected = MutableStateFlow<GamePlatform?>(GamePlatform.NDS)

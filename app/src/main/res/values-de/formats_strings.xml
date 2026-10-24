@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="formats_images_body">Verwende entpackte Spielabbilder. Entpacke ZIP- und 7z-Archive vor dem Import.</string>
+    <string name="formats_3ds_body">CIA- und ZCIA-Pakete werden vor dem Start installiert. Verschlüsselte Spiele benötigen deine eigenen Systemschlüssel.</string>
+    <string name="formats_ds_body">DS- und DSi-erweiterte Module laufen im DS-Modus. Reine DSi-Spiele benötigen eine DSi-Laufzeitumgebung.</string>
+    <string name="formats_fds_body">FDS-Spiele benötigen ein 8 KiB großes disksys.rom-BIOS im Firmware-Ordner.</string>
+    <string name="formats_executables_body">Bei DOL- und ELF-Dateien muss vor dem Start eventuell die Konsole ausgewählt werden.</string>
+</resources>

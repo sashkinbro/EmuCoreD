@@ -63,6 +63,11 @@ class GameLibraryCacheRepository(context: Context) {
                             fileName = fileName
                         )
                         val fileSize = game.optLong("file_size")
+                        val declaredPlatform = game.optString("platform")
+                        val platform = if (declaredPlatform.isNotBlank()) {
+                            runCatching { GamePlatform.valueOf(declaredPlatform) }.getOrNull() ?: continue
+                        } else GamePlatform.fromFileName(fileName) ?: continue
+                        GamePlatform.remember(path, platform)
                         add(
                             GameItem(
                                 title = title,
@@ -72,9 +77,7 @@ class GameLibraryCacheRepository(context: Context) {
                                 lastModified = game.optLong("last_modified"),
                                 coverArtPath = game.optString("cover_art_path").takeIf { it.isNotBlank() },
                                 serial = serial,
-                                platform = runCatching {
-                                    GamePlatform.valueOf(game.optString("platform"))
-                                }.getOrDefault(GamePlatform.N3DS)
+                                platform = platform
                             )
                         )
                     }
@@ -116,6 +119,7 @@ class GameLibraryCacheRepository(context: Context) {
                             "games",
                             JSONArray().apply {
                                 games.forEach { game ->
+                                    GamePlatform.remember(game.path, game.platform)
                                     put(
                                         JSONObject().apply {
                                             put("title", game.title)

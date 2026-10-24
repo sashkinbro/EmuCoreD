@@ -7,6 +7,8 @@ import com.sbro.emucored.core.DocumentPathResolver
 import com.sbro.emucored.core.EmulatorBridge
 import com.sbro.emucored.core.EmulatorStorage
 import com.sbro.emucored.core.NativeApp
+import com.sbro.emucored.core.platform.session.ConsoleSessionStorage
+import com.sbro.emucored.core.platform.session.ConsoleStateSlotTransaction
 import kotlinx.coroutines.flow.first
 import org.json.JSONArray
 import org.json.JSONObject
@@ -45,7 +47,14 @@ data class SaveStateImportCandidate(
     val targetSlot: Int,
     val serial: String?,
     val format: SaveStateImportFormat,
-    val sizeBytes: Long
+    val sizeBytes: Long,
+    val platform: GamePlatform? = null,
+    val gamePath: String? = null,
+    val metadataJson: String? = null,
+    val checksum: String? = null,
+    val sourcePreviewEntry: String? = null,
+    val previewChecksum: String? = null,
+    val targetRelativePath: String? = null
 )
 
 data class SaveStateImportPreview(
@@ -111,6 +120,7 @@ internal fun findFallbackSaveStateFile(
 private fun String?.normalizeSaveStateSerialKey(): String? {
     if (this.isNullOrBlank()) return null
     val cleanSerial = trim().uppercase(Locale.ROOT)
+    if (cleanSerial.matches(Regex("[0-9A-F]{16}"))) return cleanSerial
     val regex = Regex("([A-Z]{4})[^A-Z0-9]*([0-9]{3})[^A-Z0-9]*([0-9]{2})")
     val altRegex = Regex("([A-Z]{4})[^A-Z0-9]*([0-9]{5})")
     regex.find(cleanSerial)?.let { match ->
@@ -143,7 +153,8 @@ data class SaveStateEntryInfo(
     val gamePath: String?,
     val gameTitle: String,
     val coverArtPath: String?,
-    val isAutoSave: Boolean = slot == AUTO_SAVE_SLOT
+    val isAutoSave: Boolean = slot == AUTO_SAVE_SLOT,
+    val platform: GamePlatform? = null
 ) {
     val canLoad: Boolean get() = !gamePath.isNullOrBlank()
 }
@@ -154,14 +165,17 @@ class SaveStateRepository(private val context: Context) {
     private val gameLibraryCacheRepository = GameLibraryCacheRepository(context)
     private val coverArtRepository = CoverArtRepository(context)
     private val preferences = AppPreferences(context)
+    private val consoleIndex = ConsoleSaveStateIndex(context.filesDir)
 
     fun listSlots(
         gamePath: String,
         gameSerial: String? = null,
         gameTitle: String? = null
     ): List<SaveStateSlotInfo> {
-        if (GamePlatform.fromFileName(gamePath) == GamePlatform.NDS) {
-            val dsEntries = listDsEntries(gamePath, gameTitle, gameSerial).associateBy { it.slot }
+        val platform = platformForGame(gamePath)
+        if (platform == GamePlatform.NDS || platform?.let { it !in setOf(GamePlatform.N3DS, GamePlatform.NDS) } == true) {
+            val dsEntries = (if (platform == GamePlatform.NDS) listDsEntries(gamePath, gameTitle, gameSerial)
+                else listConsoleEntries(gamePath)).associateBy { it.slot }
             return SAVE_STATE_SLOTS.map { slot ->
                 val entry = dsEntries[slot]
                 SaveStateSlotInfo(
@@ -174,6 +188,7 @@ class SaveStateRepository(private val context: Context) {
                 )
             }
         }
+        ConsoleStateSlotTransaction.recoverDirectory(saveStatesDir())
         val saveStateFiles = saveStatesDir().listFiles().orEmpty()
         return SAVE_STATE_SLOTS.map { slot ->
             val path = runCatching { NativeApp.getSaveStatePathForFile(gamePath, slot) }.getOrNull()
@@ -182,7 +197,7 @@ class SaveStateRepository(private val context: Context) {
                 saveStateFiles = saveStateFiles,
                 gameSerial = gameSerial,
                 slot = slot
-            )
+            )?.takeIf { SaveStateFileIntegrity.validate(it, GamePlatform.N3DS) }
             SaveStateSlotInfo(
                 slot = slot,
                 exists = file?.exists() == true,
@@ -219,11 +234,15 @@ class SaveStateRepository(private val context: Context) {
         filterGameSerial: String? = null
     ): List<SaveStateEntryInfo> {
         val consoleEntries = if (filterGamePath.isNullOrBlank()) {
-            listAllEntriesFast()
+            listAllEntriesFast() + listDsEntries() + listConsoleEntries()
         } else {
-            listEntriesForGame(filterGamePath, filterGameTitle, filterGameSerial)
+            when (platformForGame(filterGamePath)) {
+                GamePlatform.NDS -> listDsEntries(filterGamePath, filterGameTitle, filterGameSerial)
+                GamePlatform.N3DS, null -> listEntriesForGame(filterGamePath, filterGameTitle, filterGameSerial)
+                else -> listConsoleEntries(filterGamePath)
+            }
         }
-        return (consoleEntries + listDsEntries(filterGamePath, filterGameTitle, filterGameSerial))
+        return consoleEntries.distinctBy { it.absolutePath }
             .sortedWith(
                 compareByDescending<SaveStateEntryInfo> { it.lastModified }
                     .thenBy { it.gameTitle.lowercase(Locale.ROOT) }
@@ -235,12 +254,12 @@ class SaveStateRepository(private val context: Context) {
         if (entries.isEmpty()) return entries
         val libraryIndex = loadLibraryIndex()
         val unresolvedSlots = entries.asSequence()
-            .filter { it.gamePath == null }
+            .filter { it.gamePath == null && it.platform == GamePlatform.N3DS }
             .map { it.slot }
             .toSet()
         val savePathToGame = HashMap<String, GameItem>()
         if (unresolvedSlots.isNotEmpty()) {
-            libraryIndex.allGames.forEach { game ->
+            libraryIndex.allGames.filter { it.platform == GamePlatform.N3DS }.forEach { game ->
                 if (game.path.isBlank()) return@forEach
                 unresolvedSlots.forEach { slot ->
                     val expected = runCatching {
@@ -256,7 +275,8 @@ class SaveStateRepository(private val context: Context) {
             if (entry.gamePath != null && !entry.coverArtPath.isNullOrBlank()) {
                 entry
             } else {
-                val match = libraryIndex.findBestMatch(serial = entry.serial, titleHint = entry.gameTitle)
+                val match = entry.gamePath?.let(libraryIndex.byPath::get)
+                    ?: libraryIndex.findBestMatch(serial = entry.serial, titleHint = entry.gameTitle, platform = entry.platform)
                     ?: savePathToGame[entry.absolutePath.lowercase(Locale.ROOT)]
                 if (match == null) {
                     entry
@@ -264,6 +284,7 @@ class SaveStateRepository(private val context: Context) {
                     entry.copy(
                         gamePath = match.path,
                         gameTitle = match.title,
+                        platform = match.platform,
                         coverArtPath = match.coverArtPath ?: entry.coverArtPath
                     )
                 }
@@ -271,7 +292,22 @@ class SaveStateRepository(private val context: Context) {
         }
     }
 
+    private fun platformForGame(path: String): GamePlatform? = GamePlatform.forPath(path)
+        ?: PerGameSettingsRepository(context).get(path)?.gamePlatform
+        ?: consoleIndex.entries(path).firstOrNull()?.platform
+
+    private fun listConsoleEntries(gamePath: String? = null): List<SaveStateEntryInfo> =
+        consoleIndex.entries(gamePath).map { record ->
+            SaveStateEntryInfo(record.file.absolutePath, record.file.name, record.platform.console.id.uppercase(Locale.ROOT),
+                null, record.slot, record.file.length(), record.file.lastModified(), record.gamePath, record.title,
+                record.metadata.optString("coverArtPath").takeIf { it.isNotBlank() && File(it).isFile }
+                    ?: coverArtRepository.findCachedCoverPath(null, title = record.title, platform = record.platform),
+                record.slot == AUTO_SAVE_SLOT, record.platform)
+        }
+
     fun deleteEntry(entry: SaveStateEntryInfo): Boolean {
+        if (!managedStateFile(File(entry.absolutePath))) return false
+        if (entry.fileName.endsWith(".ecs")) return ConsoleStateSlotTransaction.delete(File(entry.absolutePath))
         val deleted = runCatching {
             File(entry.absolutePath).takeIf(File::exists)?.delete() == true
         }.getOrDefault(false)
@@ -282,33 +318,12 @@ class SaveStateRepository(private val context: Context) {
         return deleted
     }
 
-    fun backupEntries(entries: List<SaveStateEntryInfo>, destination: Uri): Boolean {
-        val contentResolver = context.contentResolver
-        val existingEntries = entries.map { File(it.absolutePath) }.filter(File::exists)
-        if (existingEntries.isEmpty()) return false
-        return runCatching {
-            contentResolver.openOutputStream(destination)?.use { output ->
-                ZipOutputStream(output).use { zip ->
-                    val manifest = JSONObject().put(
-                        "entries",
-                        JSONArray().apply {
-                            existingEntries.forEach { file ->
-                                put(JSONObject().put("fileName", file.name))
-                            }
-                        }
-                    )
-                    zip.putNextEntry(ZipEntry("manifest.json"))
-                    zip.write(manifest.toString().toByteArray())
-                    zip.closeEntry()
-                    existingEntries.forEach { file ->
-                        zip.putNextEntry(ZipEntry("slots/${file.name}"))
-                        file.inputStream().use { it.copyTo(zip) }
-                        zip.closeEntry()
-                    }
-                }
-            } != null
-        }.getOrDefault(false)
-    }
+    fun backupEntries(entries: List<SaveStateEntryInfo>, destination: Uri): Boolean = runCatching {
+        if (entries.isEmpty()) return@runCatching false
+        context.contentResolver.openOutputStream(destination)?.use { output ->
+            SaveStateArchive(context.filesDir, saveStatesDir()).write(entries, output)
+        } != null
+    }.getOrDefault(false)
 
     fun analyzeImport(
         source: Uri,
@@ -324,6 +339,11 @@ class SaveStateRepository(private val context: Context) {
                     input.copyBoundedTo(output, MAX_IMPORT_ARCHIVE_BYTES)
                 }
             } ?: error("Unable to open the selected file")
+
+            val archive = SaveStateArchive(context.filesDir, saveStatesDir())
+            val modern = runCatching { ZipFile(stagedFile).use(archive::recognizes) }.getOrDefault(false)
+            if (modern) return archive.preview(stagedFile, displayName, gamePath,
+                gamePath?.let(::platformForGame), gameSerial)
 
             val detectedVersion = readCoreSaveStateHeader(stagedFile.inputStream())
             val rawCandidates = if (detectedVersion != null) {
@@ -360,10 +380,18 @@ class SaveStateRepository(private val context: Context) {
         require(stagedFile.canonicalFile.parentFile == importDir) { "Invalid staged import path" }
         if (!stagedFile.isFile) return SaveStateImportResult(importedCount = 0, failedCount = preview.candidates.size)
 
+        if (preview.candidates.any { it.platform != null }) {
+            return try {
+                require(preview.candidates.all { it.platform != null })
+                SaveStateArchive(context.filesDir, saveStatesDir()).importStates(stagedFile, preview.candidates)
+            } finally { stagedFile.delete() }
+        }
         var imported = 0
         var failed = 0
         try {
             val importCandidate: (SaveStateImportCandidate, ZipFile?) -> Unit = { candidate, zip ->
+                    require(candidate.targetFileName == File(candidate.targetFileName).name &&
+                        parseExternalSaveStateName(candidate.targetFileName) != null) { "Invalid target state name" }
                     val target = File(saveStatesDir(), candidate.targetFileName)
                     if (target.exists()) {
                         failed++
@@ -382,6 +410,10 @@ class SaveStateRepository(private val context: Context) {
                             }
                             check(readCoreSaveStateHeader(temporary.inputStream()) != null) {
                                 "Invalid core save state"
+                            }
+                            check(SaveStateFileIntegrity.validate(temporary, GamePlatform.N3DS) &&
+                                parseExternalSaveStateName(target.name)?.serial == SaveStateFileIntegrity.azaharTitleId(temporary)) {
+                                "Invalid or foreign 3DS save state"
                             }
                             check(!target.exists()) { "Target slot is no longer empty" }
                             check(temporary.renameTo(target)) { "Unable to finalize imported save state" }
@@ -542,16 +574,21 @@ class SaveStateRepository(private val context: Context) {
         if (!saveFile.exists()) return null
 
         val sidecar = File("${saveFile.absolutePath}.png")
-        if (sidecar.isFile && sidecar.length() > 0L) return sidecar.absolutePath
+        if (sidecar.lastModified() >= saveFile.lastModified() && SaveStateArchive.validPng(sidecar)) return sidecar.absolutePath
 
         val previewDir = File(context.cacheDir, "save-previews").apply { mkdirs() }
         val previewFile = File(previewDir, "${saveFile.absolutePath.sha1()}.png")
-        if (previewFile.isFile && previewFile.lastModified() >= saveFile.lastModified()) {
+        if (previewFile.lastModified() >= saveFile.lastModified() && SaveStateArchive.validPng(previewFile)) {
             return previewFile.absolutePath
         }
 
         return null
     }
+    private fun managedStateFile(file: File): Boolean = runCatching {
+        file.extension.lowercase(Locale.ROOT) in setOf("cst", "dss", "ecs") &&
+            listOf(saveStatesDir(), File(context.filesDir, "ds/states"), ConsoleSessionStorage.stateRoot(context.filesDir))
+                .any { file.canonicalPath.startsWith(it.canonicalPath + File.separator) }
+    }.getOrDefault(false)
     private fun listDsEntries(
         filterGamePath: String? = null,
         filterGameTitle: String? = null,
@@ -565,10 +602,12 @@ class SaveStateRepository(private val context: Context) {
         val entries = mutableListOf<SaveStateEntryInfo>()
         root.listFiles().orEmpty().forEach { gameDir ->
             if (!gameDir.isDirectory) return@forEach
+            if (!ConsoleStateSlotTransaction.recoverDirectory(gameDir)) return@forEach
             gameDir.listFiles().orEmpty().forEach { file ->
                 val match = DS_STATE_FILE_REGEX.matchEntire(file.name) ?: return@forEach
                 if (!file.isFile) return@forEach
                 val slot = match.groupValues[1].toIntOrNull() ?: return@forEach
+                if (slot !in SAVE_STATE_SLOTS || !SaveStateFileIntegrity.validate(file, GamePlatform.NDS)) return@forEach
                 val metadata = runCatching {
                     JSONObject(File("${file.absolutePath}.json").readText())
                 }.getOrNull()
@@ -585,9 +624,9 @@ class SaveStateRepository(private val context: Context) {
                     serial.normalizeSaveStateSerialKey() == expectedSerial
                 val titleMatches = expectedTitle != null &&
                     normalizeTitleKey(title) == expectedTitle
-                if ((expectedPath != null || expectedSerial != null || expectedTitle != null) &&
-                    !pathMatches && !serialMatches && !titleMatches
-                ) {
+                // A supplied identity is authoritative; matching titles/serials must not mix two ROM paths.
+                if ((expectedPath != null && !pathMatches) ||
+                    (expectedPath == null && (expectedSerial != null || expectedTitle != null) && !serialMatches && !titleMatches)) {
                     return@forEach
                 }
                 val coverPath = metadata?.optString("coverArtPath").orEmpty()
@@ -608,7 +647,8 @@ class SaveStateRepository(private val context: Context) {
                     gamePath = gamePath,
                     gameTitle = title,
                     coverArtPath = coverPath,
-                    isAutoSave = slot == AUTO_SAVE_SLOT
+                    isAutoSave = slot == AUTO_SAVE_SLOT,
+                    platform = GamePlatform.NDS
                 )
             }
         }
@@ -616,15 +656,17 @@ class SaveStateRepository(private val context: Context) {
     }
 
     private fun normalizeStatePathKey(path: String): String =
-        path.trim().removePrefix("!").replace('\\', '/').lowercase(Locale.ROOT)
+        path.trim().removePrefix("!").replace('\\', '/')
 
     private fun listAllEntriesFast(): List<SaveStateEntryInfo> {
+        if (!ConsoleStateSlotTransaction.recoverDirectory(saveStatesDir())) return emptyList()
         val files = saveStatesDir()
             .listFiles()
             .orEmpty()
             .filter { it.isFile && isPrimarySaveState(it.name) }
 
         return files.mapNotNull { file ->
+            if (!SaveStateFileIntegrity.validate(file, GamePlatform.N3DS)) return@mapNotNull null
             val parsed = parseSaveStateName(file.name) ?: return@mapNotNull null
             parsed.toFastEntry(file)
         }.sortedWith(
@@ -670,7 +712,8 @@ class SaveStateRepository(private val context: Context) {
                     gameTitle = fallbackInfo.title,
                     coverArtPath = fallbackInfo.coverArtPath
                         ?: coverArtRepository.findCachedCoverPath(serialKey),
-                    isAutoSave = slot.isAutoSave
+                    isAutoSave = slot.isAutoSave,
+                    platform = GamePlatform.N3DS
                 )
             }
             .sortedByDescending { it.lastModified }
@@ -690,7 +733,11 @@ class SaveStateRepository(private val context: Context) {
                 fileSize = 0L,
                 lastModified = recent.lastPlayedAt,
                 coverArtPath = null,
-                serial = recent.serial
+                serial = recent.serial,
+                platform = GamePlatform.forPath(recent.path)
+                    ?: cachedLibraryGames.firstOrNull { it.path == recent.path }?.platform
+                    ?: PerGameSettingsRepository(context).get(recent.path)?.gamePlatform
+                    ?: GamePlatform.N3DS
             )
         }
         val libraryGames = (recentGames + cachedLibraryGames)
@@ -759,7 +806,8 @@ class SaveStateRepository(private val context: Context) {
             gamePath = null,
             gameTitle = resolvedTitle,
             coverArtPath = coverArtRepository.findCachedCoverPath(serial),
-            isAutoSave = slot == AUTO_SAVE_SLOT
+            isAutoSave = slot == AUTO_SAVE_SLOT,
+            platform = GamePlatform.N3DS
         )
     }
 
@@ -819,15 +867,15 @@ class SaveStateRepository(private val context: Context) {
         val byPath: Map<String, GameItem>,
         val allGames: List<GameItem>
     ) {
-        fun findBestMatch(serial: String?, titleHint: String?): GameItem? {
-            serial?.let { bySerial[it] }?.let { return it }
+        fun findBestMatch(serial: String?, titleHint: String?, platform: GamePlatform? = null): GameItem? {
+            serial?.let { bySerial[it] }?.takeIf { platform == null || it.platform == platform }?.let { return it }
             val titleKey = titleHint
                 ?.trim()
                 ?.lowercase(Locale.ROOT)
                 ?.replace(Regex("[^\\p{L}\\p{N}]+"), " ")
                 ?.replace(Regex("\\s+"), " ")
                 ?.trim()
-            return titleKey?.let { byTitle[it]?.firstOrNull() }
+            return titleKey?.let { byTitle[it]?.filter { game -> platform == null || game.platform == platform }?.singleOrNull() }
         }
     }
 

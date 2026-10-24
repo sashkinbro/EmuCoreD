@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="cheat_catalog_browse_all">Bu konsolun tüm hilelerine göz at</string>
+    <string name="cheat_catalog_manual_attach">Seçili oyunla ilişkilendir</string>
+    <string name="cheat_catalog_manual_warning">Bu paketin oyunla eşleşmesi doğrulanmadı. Kodları etkinleştirmeden önce bölgeyi, revizyonu ve biçimi kontrol edin.</string>
+    <string name="cheat_format_unsupported">Seçili çekirdek bu hile biçimini desteklemiyor.</string>
+</resources>

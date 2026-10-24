@@ -63,6 +63,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.layout.ContentScale
 import com.sbro.emucored.R
 import com.sbro.emucored.data.SaveStateEntryInfo
+import com.sbro.emucored.ui.common.gamePlatformLabelResource
 import com.sbro.emucored.data.SaveStateImportFormat
 import com.sbro.emucored.data.SaveStateImportPreview
 import com.sbro.emucored.data.SaveStateRepository
@@ -711,7 +712,9 @@ private fun SaveEntryCard(
                         overflow = TextOverflow.Ellipsis
                     )
                     Text(
-                        text = entry.serial,
+                        text = entry.platform?.let { stringResource(gamePlatformLabelResource(it)) }
+                            ?.let { label -> if (entry.serial.equals(entry.platform?.console?.id, true)) label else "$label • ${entry.serial}" }
+                            ?: entry.serial,
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 1,

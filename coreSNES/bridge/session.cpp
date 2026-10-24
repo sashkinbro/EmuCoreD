@@ -1,14 +1,17 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 #include "android_output.h"
 #include "libretro.h"
+#include "typed_cheats.h"
 #include <map>
 #include <memory>
 #include <mutex>
 extern "C" bool emucored_bsnes_loaded();
+extern "C" bool emucored_bsnes_valid_cheat(const char*);
 extern "C" bool emucored_bsnes_load_game(const char* path);
 namespace {
 struct Session {
     AndroidOutput output;
+    Session() { output.defaultAspect = 4.0 / 3; }
     uint64_t romHash = 0;
     std::string directory;
     std::map<std::string, std::string> options{{"bsnes_ppu_fast","ON"}, {"bsnes_dsp_fast","ON"}, {"bsnes_entropy","Low"}};
@@ -27,7 +30,11 @@ bool environment(unsigned command, void* data) {
         *static_cast<const char**>(data) = active->directory.c_str(); return true;
     case RETRO_ENVIRONMENT_GET_VARIABLE: {
         auto* variable = static_cast<retro_variable*>(data);
-        auto found = active->options.find(variable->key);
+        // Upstream publishes the shorter SA1/SFX keys but queries legacy aliases.
+        std::string key = variable->key;
+        if (key == "bsnes_cpu_sa1_overclock") key = "bsnes_sa1_overclock";
+        if (key == "bsnes_cpu_sfx_overclock") key = "bsnes_sfx_overclock";
+        auto found = active->options.find(key);
         if (found == active->options.end()) return false;
         variable->value = found->second.c_str(); return true;
     }
@@ -56,6 +63,22 @@ int16_t input(unsigned player, unsigned device, unsigned, unsigned button) {
 }
 }
 #define JNI(name) extern "C" JNIEXPORT name JNICALL
+JNI(jboolean) Java_com_sbro_emucored_core_snes_BsnesSessionEngine_nativeCheats(JNIEnv* env,jobject,jlong handle,jobjectArray formats,jobjectArray codes) {
+    auto* session=reinterpret_cast<Session*>(handle);if(!session || session!=active)return false;
+    std::vector<TypedCheatInput> inputs; if(!typedCheatInputs(env,formats,codes,inputs))return false;
+    std::vector<std::string> staged;
+    for(const auto& block:inputs)for(auto line:block.lines) {
+        const char* pattern=block.format=="snes-game-genie"?"[0-9A-F]{4}-[0-9A-F]{4}":
+            block.format=="snes-pro-action-replay"?"[0-9A-F]{8}":block.format=="snes-raw-address-value"?"[0-9A-F]{6}:[0-9A-F]{2}":nullptr;
+        if(!pattern || !cheatLineMatches(line,pattern))return false;
+        for(auto& ch:line){if(ch==':')ch='=';else ch=std::tolower(static_cast<unsigned char>(ch));}
+        if(!emucored_bsnes_valid_cheat(line.c_str()))return false;
+        staged.push_back(std::move(line));
+    }
+    retro_cheat_reset(); unsigned index=0;
+    for(const auto& line:staged)retro_cheat_set(index++,true,line.c_str());
+    return true;
+}
 JNI(jlong) Java_com_sbro_emucored_core_snes_BsnesSessionEngine_nativeCreate(JNIEnv* env,jobject,jstring path,jstring directory) {
     std::scoped_lock lock(ownership);
     if(active) return 0;
@@ -66,13 +89,14 @@ JNI(jlong) Java_com_sbro_emucored_core_snes_BsnesSessionEngine_nativeCreate(JNIE
     retro_set_input_poll(poll); retro_set_input_state(input); retro_init();
     const auto source=utf(env,path);
     if(!emucored_bsnes_load_game(source.c_str())) { retro_deinit(); active=nullptr; return 0; }
+    retro_cheat_reset();
     if(!session->output.initAudio(48000)) { retro_unload_game(); retro_deinit(); active=nullptr; return 0; }
     return reinterpret_cast<jlong>(session.release());
 }
 JNI(void) Java_com_sbro_emucored_core_snes_BsnesSessionEngine_nativeDestroy(JNIEnv*,jobject,jlong handle) {
     std::scoped_lock lock(ownership);
     auto* session=reinterpret_cast<Session*>(handle); if(!session || session!=active) return;
-    retro_unload_game(); retro_deinit(); active=nullptr; delete session;
+    retro_cheat_reset(); retro_unload_game(); retro_deinit(); active=nullptr; delete session;
 }
 JNI(jboolean) Java_com_sbro_emucored_core_snes_BsnesSessionEngine_nativeFrame(JNIEnv*,jobject,jlong handle) {
     if(reinterpret_cast<Session*>(handle)!=active || !active || !emucored_bsnes_loaded()) return false;
@@ -105,13 +129,33 @@ JNI(jboolean) Java_com_sbro_emucored_core_snes_BsnesSessionEngine_nativeStateFil
 JNI(jboolean) Java_com_sbro_emucored_core_snes_BsnesSessionEngine_nativeOption(JNIEnv* env,jobject,jlong handle,jstring key,jstring value) {
     auto* s=reinterpret_cast<Session*>(handle); if(!s || s!=active) return false;
     const auto k=utf(env,key),v=utf(env,value);
+    if(k=="aspect_ratio") return s->output.setAspectOption(v);
     if(k=="audio_enabled" && (v=="true" || v=="false")) { s->output.muted=v=="false"; return true; }
     if(k=="video_filter" && (v=="nearest" || v=="linear")) { s->output.linear=v=="linear"; return true; }
-    const std::map<std::string,std::vector<std::string>> allowed={
-        {"bsnes_ppu_fast",{"ON","OFF"}}, {"bsnes_dsp_fast",{"ON","OFF"}},
-        {"bsnes_entropy",{"Low","High","None"}}, {"bsnes_blur_emulation",{"ON","OFF"}},
-        {"bsnes_ppu_no_sprite_limit",{"ON","OFF"}}, {"bsnes_ppu_show_overscan",{"ON","OFF"}},
-        {"bsnes_hotfixes",{"ON","OFF"}}, {"bsnes_mode7_scale",{"1x","2x","3x","4x"}}};
+    static const std::map<std::string,std::vector<std::string>> allowed={
+        {"bsnes_ppu_fast",{"ON","OFF"}},
+        {"bsnes_dsp_fast",{"ON","OFF"}},
+        {"bsnes_entropy",{"Low","High","None"}},
+        {"bsnes_blur_emulation",{"ON","OFF"}},
+        {"bsnes_ppu_no_sprite_limit",{"ON","OFF"}},
+        {"bsnes_ppu_show_overscan",{"ON","OFF"}},
+        {"bsnes_hotfixes",{"ON","OFF"}},
+        {"bsnes_mode7_scale",{"1x","2x","3x","4x","5x","6x","7x","8x"}},
+        {"bsnes_cpu_fastmath",{"ON","OFF"}},
+        {"bsnes_ppu_deinterlace",{"ON","OFF"}},
+        {"bsnes_ppu_no_vram_blocking",{"ON","OFF"}},
+        {"bsnes_mode7_perspective",{"ON","OFF"}},
+        {"bsnes_mode7_supersample",{"ON","OFF"}},
+        {"bsnes_mode7_mosaic",{"ON","OFF"}},
+        {"bsnes_dsp_cubic",{"ON","OFF"}},
+        {"bsnes_dsp_echo_shadow",{"ON","OFF"}},
+        {"bsnes_coprocessor_delayed_sync",{"ON","OFF"}},
+        {"bsnes_coprocessor_prefer_hle",{"ON","OFF"}},
+        {"bsnes_cpu_overclock",{"10","20","30","40","50","60","70","80","90","100","110","120","130","140","150","160","170","180","190","200","210","220","230","240","250","260","270","280","290","300","310","320","330","340","350","360","370","380","390","400"}},
+        {"bsnes_sa1_overclock",{"10","20","30","40","50","60","70","80","90","100","110","120","130","140","150","160","170","180","190","200","210","220","230","240","250","260","270","280","290","300","310","320","330","340","350","360","370","380","390","400"}},
+        {"bsnes_sfx_overclock",{"10","20","30","40","50","60","70","80","90","100","110","120","130","140","150","160","170","180","190","200","210","220","230","240","250","260","270","280","290","300","310","320","330","340","350","360","370","380","390","400","410","420","430","440","450","460","470","480","490","500","510","520","530","540","550","560","570","580","590","600","610","620","630","640","650","660","670","680","690","700","710","720","730","740","750","760","770","780","790","800"}},
+        {"bsnes_run_ahead_frames",{"OFF","1","2","3","4"}},
+        {"bsnes_video_filter",{"None","NTSC (RF)","NTSC (Composite)","NTSC (S-Video)","NTSC (RGB)"}}};
     auto found=allowed.find(k); if(found==allowed.end() || std::find(found->second.begin(),found->second.end(),v)==found->second.end()) return false;
     s->options[k]=v; s->optionsChanged=true; return true;
 }

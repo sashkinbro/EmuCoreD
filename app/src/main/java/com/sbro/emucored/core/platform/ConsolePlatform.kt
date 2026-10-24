@@ -1,8 +1,6 @@
 package com.sbro.emucored.core.platform
 
-import com.sbro.emucored.core.N3dsGameFormats
 import com.sbro.emucored.data.GamePlatform
-import java.util.Locale
 
 enum class CoreId { AZAHAR, MELONDS, DOLPHIN, MGBA, SAMEBOY, NESTOPIA, BSNES }
 
@@ -28,30 +26,11 @@ enum class ConsolePlatform(
         fun fromId(id: String?): ConsolePlatform? = entries.firstOrNull { it.id == id }
         fun fromCatalogPlatformId(id: Int): ConsolePlatform? = entries.firstOrNull { id in it.catalogPlatformIds }
 
-        fun fromGamePlatform(platform: GamePlatform): ConsolePlatform = when (platform) {
-            GamePlatform.N3DS -> N3DS
-            GamePlatform.NDS -> NDS
-        }
+        fun fromGamePlatform(platform: GamePlatform): ConsolePlatform = valueOf(platform.name)
 
         /** Candidate discovery only. Disc/executable headers must resolve ambiguous containers. */
         fun candidatesForFileName(name: String): Set<ConsolePlatform> {
-            val extension = name.substringAfterLast('/').substringAfterLast('\\')
-                .substringAfterLast('.', "").lowercase(Locale.ROOT)
-            return when (extension) {
-                "nds", "srl", "dsi" -> setOf(NDS)
-                "gba", "agb" -> setOf(GBA)
-                "gb", "sgb" -> setOf(GB)
-                "gbc", "cgb" -> setOf(GBC)
-                "nes", "unf", "unif", "fds" -> setOf(NES)
-                "sfc", "smc", "swc", "fig" -> setOf(SNES)
-                "gcm" -> setOf(GAMECUBE)
-                "wbfs", "wad" -> setOf(WII)
-                "iso", "rvz", "wia", "gcz", "ciso" -> setOf(GAMECUBE, WII)
-                "dol" -> setOf(GAMECUBE, WII)
-                "elf" -> setOf(N3DS, GAMECUBE, WII)
-                in N3dsGameFormats.extensions -> setOf(N3DS)
-                else -> emptySet()
-            }
+            return com.sbro.emucored.core.ConsoleGameFormats.candidatesForFileName(name)
         }
     }
 }

@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="cheat_catalog_browse_all">مرور همه تقلب‌های این کنسول</string>
+    <string name="cheat_catalog_manual_attach">اتصال به بازی انتخاب‌شده</string>
+    <string name="cheat_catalog_manual_warning">مطابقت این بسته با بازی تأیید نشده است. پیش از فعال‌سازی کدها، منطقه، بازبینی و قالب را بررسی کنید.</string>
+    <string name="cheat_format_unsupported">هسته انتخاب‌شده از این قالب تقلب پشتیبانی نمی‌کند.</string>
+</resources>

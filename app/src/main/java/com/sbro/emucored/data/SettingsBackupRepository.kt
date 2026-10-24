@@ -23,6 +23,7 @@ class SettingsBackupRepository(
 ) {
     private val homeBackgroundRepository = HomeBackgroundRepository(context)
     private val customFontRepository = CustomFontRepository(context)
+    private val coreOptionPreferences = com.sbro.emucored.core.platform.CoreOptionPreferences(context)
 
     suspend fun backup(destination: Uri, includeSaveStates: Boolean = false): Boolean {
         return runCatching {
@@ -57,6 +58,7 @@ class SettingsBackupRepository(
     internal suspend fun writeBackup(output: OutputStream, includeSaveStates: Boolean = false) {
         ZipOutputStream(output).use { zip ->
             zip.writeJsonEntry("settings.json", preferences.exportJson())
+            zip.writeJsonEntry("core-options.json", coreOptionPreferences.exportJson())
             zip.writeJsonEntry("per-game-settings.json", perGameSettingsRepository.exportJson())
             zip.writeJsonEntry("cheats.json", cheatRepository.exportJson())
             zip.writeFlatDirectory(
@@ -88,6 +90,7 @@ class SettingsBackupRepository(
             generateSequence { zip.nextEntry }.forEach { entry ->
                 when (entry.name) {
                     "settings.json" -> preferences.importJson(JSONObject(zip.readBytes().decodeToString()))
+                    "core-options.json" -> coreOptionPreferences.importJson(JSONObject(zip.readBytes().decodeToString()))
                     "per-game-settings.json" -> perGameSettingsRepository.importJson(JSONObject(zip.readBytes().decodeToString()))
                     "cheats.json" -> cheatRepository.importJson(JSONObject(zip.readBytes().decodeToString()))
                     CustomFontRepository.BACKUP_ENTRY -> {

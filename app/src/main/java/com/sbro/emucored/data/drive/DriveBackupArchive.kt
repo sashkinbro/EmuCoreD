@@ -35,10 +35,14 @@ import java.util.zip.ZipOutputStream
 data class DriveSnapshot(val file: File, val digest: String, val manifest: JSONObject)
 
 /** An explicit data allowlist; never archives filesDir, databases, credentials, games or BIOS. */
-class DriveBackupArchive(private val context: Context) {
+class DriveBackupArchive(
+    private val context: Context,
+    private val deviceId: () -> String = { DriveBackupState.get(context).value.deviceId }
+) {
     private val preferences = AppPreferences(context)
     private val perGame = PerGameSettingsRepository(context)
     private val cheats = CheatRepository(context)
+    private val coreOptions = com.sbro.emucored.core.platform.CoreOptionPreferences(context)
     val workDir = File(context.noBackupFilesDir, "drive-backup").apply { mkdirs() }
     private val transaction = File(context.noBackupFilesDir, "drive-restore")
     private val journal get() = AtomicFile(File(transaction, "journal.json"))
@@ -49,6 +53,11 @@ class DriveBackupArchive(private val context: Context) {
             throw DriveBackupException("storage")
         }
         return linkedMapOf(
+            "console-states" to com.sbro.emucored.core.platform.session.ConsoleSessionStorage.stateRoot(context.filesDir),
+            "console-data" to File(context.filesDir, "consoles"),
+            "console-dolphin" to File(context.filesDir, "consoles/dolphin"),
+            "ds-states" to File(context.filesDir, "ds/states"),
+            "ds-saves" to File(context.filesDir, "ds/saves"),
             "memory-stick" to EmulatorStorage.sdmcDir(context, path),
             "memory-cards" to EmulatorStorage.memoryCardsDir(context, path),
             "save-states" to EmulatorStorage.saveStatesDir(context, path),
@@ -62,13 +71,14 @@ class DriveBackupArchive(private val context: Context) {
     }
 
     private fun allowed(name: String): Boolean {
-        if (name in JSON_FILES) return true
+        if (name in JSON_FILES || name == "core-options.json") return true
+        if (ConsoleBackupPaths.allowed(name)) return true
         val parts = name.split('/')
         if (parts.size < 2 || parts.any { it.isBlank() || it == "." || it == ".." || '\\' in it || ':' in it }) return false
         return when (parts[0]) {
             "memory-stick" -> parts.drop(1).none { it.startsWith(".") } && !name.endsWith(".tmp")
             "memory-cards" -> parts.size == 2 && !parts[1].startsWith(".") && !name.endsWith(".tmp")
-            "save-states" -> parts.size == 2 && name.endsWith(".cst", true)
+            "save-states" -> parts.size == 2 && (name.endsWith(".cst", true) || name.endsWith(".cst.png", true) || name.endsWith(".cst.json", true))
             "cheat-files" -> parts.size == 2 && name.endsWith(".txt", true)
             "patches" -> parts.size == 2 && (
                 name.endsWith(".pnach", true) || name.endsWith(".cht", true) ||
@@ -115,22 +125,29 @@ class DriveBackupArchive(private val context: Context) {
         val sources = sortedMapOf<String, File>()
         roots().forEach { (prefix, root) ->
             if (prefix == "textures" && !includeTextures) return@forEach
-            if (root.isDirectory) root.walkTopDown().onEnter { !Files.isSymbolicLink(it.toPath()) }.forEach { source ->
+            if (root.isDirectory) root.walkTopDown().onEnter { directory ->
+                !Files.isSymbolicLink(directory.toPath()) && (prefix != "console-data" || directory == root ||
+                    directory.relativeTo(root).invariantSeparatorsPath.substringBefore('/') in setOf("gba", "gb", "gbc", "nes", "snes"))
+            }.forEach { source ->
                 if (source.isFile && !Files.isSymbolicLink(source.toPath())) {
                     val name = "$prefix/${source.relativeTo(root).invariantSeparatorsPath}"
-                    if (allowed(name) && source.canonicalPath.startsWith(root.canonicalPath + File.separator)) sources[name] = source
+                    val stateSidecar = prefix in setOf("console-states", "ds-states", "save-states") &&
+                        source.extension in setOf("png", "json")
+                    val stateExists = !stateSidecar || File(source.path.substringBeforeLast('.')).isFile
+                    if (stateExists && allowed(name) && source.canonicalPath.startsWith(root.canonicalPath + File.separator)) sources[name] = source
                 }
             }
         }
         val json = sortedMapOf(
             "settings.json" to portableSettings(exportSettings()),
             "per-game.json" to portablePerGame(perGame.exportJson()),
-            "cheats.json" to cheats.exportJson()
+            "cheats.json" to cheats.exportJson(),
+            "core-options.json" to coreOptions.exportJson()
         )
         val manifest = JSONObject().put("format", FORMAT).put("schema", 1)
             .put("appVersion", BuildConfig.VERSION_NAME).put("coreVersion", ProfileDeviceInfoProvider.CORE_VERSION)
             .put("createdAt", System.currentTimeMillis()).put("device", "${Build.MANUFACTURER} ${Build.MODEL}")
-            .put("deviceId", DriveBackupState.get(context).value.deviceId)
+            .put("deviceId", deviceId())
         try {
             ZipOutputStream(file.outputStream().buffered()).use { zip ->
                 suspend fun entry(name: String, input: InputStream) {
@@ -177,7 +194,7 @@ class DriveBackupArchive(private val context: Context) {
                     if (!allowed(name) || !seen.add(name)) invalid()
                     val size = spec.getLong("size")
                     if (size < 0 || size > Long.MAX_VALUE - total) invalid()
-                    if (name in JSON_FILES && size > MAX_JSON_BYTES) invalid()
+                    if ((name in JSON_FILES || name == "core-options.json") && size > MAX_JSON_BYTES) invalid()
                     total += size
                 }
                 if (!seen.containsAll(JSON_FILES)) invalid()
@@ -199,6 +216,11 @@ class DriveBackupArchive(private val context: Context) {
                     if (actual != size || hash.digest().hex() != spec.getString("sha256")) invalid()
                 }
                 JSON_FILES.forEach { JSONObject(File(stage, it).readText()) }
+                File(stage, "core-options.json").takeIf(File::isFile)?.let { file ->
+                    val options = JSONObject(file.readText())
+                    if (options.optInt("version") != 1 || options.optJSONObject("values") == null) invalid()
+                }
+                validateConsoleStates(stage, files)
                 return manifest
             }
         } catch (error: Throwable) {
@@ -208,6 +230,41 @@ class DriveBackupArchive(private val context: Context) {
                 is ZipException, is JSONException -> DriveBackupException("invalid", error)
                 is IOException -> DriveBackupException("storage", error)
                 else -> error
+            }
+        }
+    }
+
+    private fun validateConsoleStates(stage: File, files: JSONArray) {
+        val specifications = (0 until files.length()).associate { i ->
+            val spec = files.getJSONObject(i)
+            spec.getString("name") to spec
+        }
+        specifications.forEach { (name, spec) ->
+            val file = File(stage, name)
+            when {
+                name.startsWith("console-states/") && name.endsWith(".ecs") -> {
+                    val parts = name.split('/')
+                    val console = com.sbro.emucored.core.platform.ConsolePlatform.fromId(parts[1]) ?: invalid()
+                    val platform = com.sbro.emucored.data.GamePlatform.valueOf(console.name)
+                    if (!com.sbro.emucored.data.SaveStateFileIntegrity.validate(file, platform)) invalid()
+                    if ("$name.json" !in specifications) invalid()
+                    val metadataFile = File(stage, "$name.json")
+                    if (metadataFile.length() !in 1..65_536) invalid()
+                    val metadata = JSONObject(metadataFile.readText())
+                    val identity = metadata.optString("gamePath")
+                    val slot = metadata.optInt("slot", -1)
+                    if (identity.isBlank() || identity.length > 8192 || slot !in 0..10 ||
+                        metadata.optString("platform") != platform.name ||
+                        com.sbro.emucored.core.platform.session.ConsoleSessionStorage.identityKey(identity) != parts[2] ||
+                        parts[3] != "${console.id}_${parts[2]}_slot$slot.ecs") invalid()
+                    val digest = metadata.optString("sha256")
+                    if ((console.core == com.sbro.emucored.core.platform.CoreId.DOLPHIN || digest.isNotBlank()) && digest != spec.getString("sha256")) invalid()
+                }
+                name.startsWith("ds-states/") && name.endsWith(".dss") ->
+                    if (!com.sbro.emucored.data.SaveStateFileIntegrity.validate(file, com.sbro.emucored.data.GamePlatform.NDS)) invalid()
+            }
+            if (name.substringBefore('/') in setOf("console-states", "ds-states", "save-states") && name.endsWith(".png")) {
+                if (name.removeSuffix(".png") !in specifications || !com.sbro.emucored.data.SaveStateArchive.validPng(file)) invalid()
             }
         }
     }
@@ -224,7 +281,7 @@ class DriveBackupArchive(private val context: Context) {
         for (i in 0 until files.length()) {
             val name = files.getJSONObject(i).getString("name")
             val prefix = name.substringBefore('/')
-            val category = if (prefix in setOf("side-artwork", "covers")) "customization" else prefix
+            val category = if (prefix in setOf("side-artwork", "covers")) "customization" else ConsoleBackupPaths.category(prefix)
             if (category !in categories || prefix !in currentRoots) continue
             val root = currentRoots.getValue(prefix).canonicalFile
             val target = File(root, name.substringAfter('/')).canonicalFile
@@ -239,6 +296,7 @@ class DriveBackupArchive(private val context: Context) {
         writeAtomic(File(transaction, "settings.json"), oldSettings)
         writeAtomic(File(transaction, "per-game.json"), perGame.exportJson())
         writeAtomic(File(transaction, "cheats.json"), cheats.exportJson())
+        writeAtomic(File(transaction, "core-options.json"), coreOptions.exportJson())
         for (i in 0 until changes.length()) {
             val change = changes.getJSONObject(i)
             if (change.getBoolean("existed")) {
@@ -273,7 +331,10 @@ class DriveBackupArchive(private val context: Context) {
                     }
                 }
                 importSettings(incoming)
-                if ("settings" in categories) perGame.importJson(portablePerGame(JSONObject(File(stage, "per-game.json").readText())))
+                if ("settings" in categories) {
+                    perGame.importJson(portablePerGame(JSONObject(File(stage, "per-game.json").readText())))
+                    File(stage, "core-options.json").takeIf(File::isFile)?.let { coreOptions.importJson(JSONObject(it.readText())) }
+                }
             }
             if ("cheat-files" in categories) cheats.importJson(JSONObject(File(stage, "cheats.json").readText()))
             writeAtomic(journal.baseFile, record.put("committed", true))
@@ -300,6 +361,7 @@ class DriveBackupArchive(private val context: Context) {
             importSettings(JSONObject(File(transaction, "settings.json").readText()))
             perGame.importJson(JSONObject(File(transaction, "per-game.json").readText()))
             cheats.importJson(JSONObject(File(transaction, "cheats.json").readText()))
+            File(transaction, "core-options.json").takeIf(File::isFile)?.let { coreOptions.importJson(JSONObject(it.readText())) }
         }
         journal.delete()
     }

@@ -102,6 +102,16 @@ int main(int argc, char **argv) {
       JNI(nativeFrame)(nullptr, nullptr, (jlong)s);
       CHECK(!(GB_read_memory(s->gb, 0xff00) & 1));
       GB_write_memory(s->gb, 0xc040, 0x5a);
+      CHECK(replaceCheats(s,{{"gb-gameshark",{"01A540C0"}}}));
+      CHECK(GB_read_memory(s->gb,0xc040)==0xa5);
+      CHECK(!replaceCheats(s,{{"nds-action-replay",{"02000000 00000063"}}}));
+      CHECK(GB_read_memory(s->gb,0xc040)==0xa5);
+      CHECK(replaceCheats(s,{}));
+      CHECK(GB_read_memory(s->gb,0xc040)==0x5a);
+      CHECK(replaceCheats(s,{{"gb-game-genie",{"A51-50F"}}}));
+      CHECK(GB_read_memory(s->gb,0x150)==0xa5);
+      CHECK(replaceCheats(s,{}));
+      CHECK(GB_read_memory(s->gb,0x150)==0x3e);
       std::vector<uint8_t> b(GB_get_save_state_size(s->gb));
       GB_save_state_to_buffer(s->gb, b.data());
       GB_write_memory(s->gb, 0xc040, 0xa5);

@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="cheat_catalog_browse_all">Procházet všechny cheaty pro tuto konzoli</string>
+    <string name="cheat_catalog_manual_attach">Přiřadit k vybrané hře</string>
+    <string name="cheat_catalog_manual_warning">Shoda tohoto balíčku s hrou není ověřena. Před zapnutím kódů zkontrolujte region, revizi a formát.</string>
+    <string name="cheat_format_unsupported">Vybrané jádro tento formát cheatů nepodporuje.</string>
+</resources>

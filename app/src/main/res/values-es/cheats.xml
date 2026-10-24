@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="cheat_catalog_browse_all">Explorar todos los trucos de esta consola</string>
+    <string name="cheat_catalog_manual_attach">Asociar al juego seleccionado</string>
+    <string name="cheat_catalog_manual_warning">No se ha verificado que este paquete corresponda al juego. Comprueba la región, revisión y formato antes de activar códigos.</string>
+    <string name="cheat_format_unsupported">El núcleo seleccionado no admite este formato de trucos.</string>
+</resources>

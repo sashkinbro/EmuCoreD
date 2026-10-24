@@ -12,6 +12,7 @@
 #include <string>
 #include <unistd.h>
 #include <vector>
+#include "display_geometry.h"
 struct AndroidOutput {
   ANativeWindow *window = nullptr;
   AAudioStream *audio = nullptr;
@@ -21,6 +22,15 @@ struct AndroidOutput {
   bool displayInitialized = false;
   GLuint program = 0, texture = 0;
   bool muted = false, linear = false;
+  double defaultAspect = 0, displayAspect = 0;
+  bool setAspectOption(const std::string& value) {
+    if (value == "auto") displayAspect = 0;
+    else if (value == "pixel") displayAspect = -1;
+    else if (value == "4:3") displayAspect = 4.0 / 3;
+    else if (value == "16:9") displayAspect = 16.0 / 9;
+    else return false;
+    return true;
+  }
   static constexpr uint32_t audioCapacity = 16384;
   int audioChannels = 2;
   int audioRate = 48000;
@@ -189,7 +199,7 @@ struct AndroidOutput {
     return true;
   }
   void present(const uint32_t *pixels, int w, int h) {
-    if (!window)
+    if (!window || !pixels || w <= 0 || h <= 0)
       return;
     if (display == EGL_NO_DISPLAY && !initGL())
       return;
@@ -202,12 +212,11 @@ struct AndroidOutput {
     glViewport(0, 0, sw, sh);
     glClearColor(0, 0, 0, 1);
     glClear(GL_COLOR_BUFFER_BIT);
-    int vw = sw, vh = sw * h / w;
-    if (vh > sh) {
-      vh = sh;
-      vw = sh * w / h;
-    }
-    glViewport((sw - vw) / 2, (sh - vh) / 2, vw, vh);
+    const double ratio = displayAspect > 0 ? displayAspect :
+        (displayAspect == 0 && defaultAspect > 0 ? defaultAspect : double(w) / h);
+    const auto viewport = displayViewport(sw, sh, ratio);
+    if (!viewport.width || !viewport.height) return;
+    glViewport(viewport.x, viewport.y, viewport.width, viewport.height);
     glUseProgram(program);
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, texture);

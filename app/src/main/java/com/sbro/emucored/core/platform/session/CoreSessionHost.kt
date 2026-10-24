@@ -116,6 +116,7 @@ class CoreSessionHost(private val factory: CoreEngineFactory = AndroidCoreEngine
         suspend fun saveState(target: File): Boolean = command(false) { engine.saveState(target) }
         suspend fun loadState(source: File): Boolean = command(false) { engine.loadState(source) }
         suspend fun applyOption(key: String, value: String): Boolean = command(false) { engine.applyOption(key, value) }
+        suspend fun replaceCheats(codes: List<CoreCheatCode>): Boolean = command(false) { engine.replaceCheats(codes) }
         suspend fun stop() = lifecycle.withLock { if (current === this) stopLocked() }
 
         private suspend fun <T> command(unavailable: T, action: suspend () -> T): T =

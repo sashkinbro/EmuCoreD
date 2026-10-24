@@ -6,6 +6,8 @@ import android.view.Surface
 import com.sbro.emucored.core.platform.ConsolePlatform
 import com.sbro.emucored.core.platform.CoreId
 import com.sbro.emucored.core.platform.session.CoreSessionEngine
+import com.sbro.emucored.core.platform.session.CoreCheatCode
+import com.sbro.emucored.core.platform.session.CoreCheatFormats
 import com.sbro.emucored.core.platform.session.EngineButton
 import com.sbro.emucored.core.platform.session.EngineLaunchRequest
 import com.sbro.emucored.core.platform.session.EngineStartResult
@@ -20,6 +22,7 @@ import kotlinx.coroutines.withContext
 
 /** One Dolphin process runtime serves either GameCube or Wii in EmuCoreD's own UI. */
 class DolphinSessionEngine : CoreSessionEngine {
+    data class GameIdentity(val platform:ConsolePlatform,val gameId:String,val revision:Int?,val titleId:String?)
     override val coreId = CoreId.DOLPHIN
     private val lifecycle = Mutex()
     @Volatile private var ownsRuntime = false
@@ -187,6 +190,10 @@ class DolphinSessionEngine : CoreSessionEngine {
         DolphinNative.option(key, value)
     }
     override fun frameCount(): Long = owned(0L) { DolphinNative.frames() }
+    override suspend fun replaceCheats(codes:List<CoreCheatCode>):Boolean {
+        if(codes.size>4096 || codes.any{!CoreCheatFormats.accepts(coreId,it)})return false
+        return ownedIo(false){DolphinNative.cheats(codes.map{it.format}.toTypedArray(),codes.map{it.code}.toTypedArray())}
+    }
 
     companion object {
         private val ownership = NativeSessionOwnership()
@@ -215,6 +222,13 @@ class DolphinSessionEngine : CoreSessionEngine {
             1 -> ConsolePlatform.GAMECUBE
             2 -> ConsolePlatform.WII
             else -> null
+        }
+        fun probeGameIdentity(path:String):GameIdentity? {
+            if(!DolphinNative.available)return null
+            val values=DolphinNative.probeIdentity(path)?:return null
+            if(values.size!=4)return null
+            val platform=runCatching{ConsolePlatform.valueOf(values[0])}.getOrNull()?:return null
+            return GameIdentity(platform,values[1],values[2].toIntOrNull(),values[3].takeIf{it.isNotBlank()})
         }
         internal fun gameCubeButton(button: EngineButton): Int = when (button) {
             EngineButton.A -> 0; EngineButton.B -> 1; EngineButton.X -> 2; EngineButton.Y -> 3

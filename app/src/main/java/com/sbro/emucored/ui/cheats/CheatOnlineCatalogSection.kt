@@ -130,6 +130,10 @@ internal fun CheatOnlineCatalogSection(
     gamesLoading: Boolean,
     onInstalled: () -> Unit
 ) {
+    if(selectedGame!=null && selectedGame.platform!=com.sbro.emucored.data.GamePlatform.N3DS) {
+        TypedCheatOnlineCatalogSection(selectedGame,identity,resolvingIdentity || gamesLoading,onInstalled)
+        return
+    }
     val context = LocalContext.current
     val uriHandler = LocalUriHandler.current
     val scope = rememberCoroutineScope()

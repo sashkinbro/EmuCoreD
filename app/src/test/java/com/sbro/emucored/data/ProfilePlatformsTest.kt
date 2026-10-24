@@ -4,6 +4,65 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class ProfilePlatformsTest {
+    @Test fun everyConsoleHasItsOwnProfileFilter() {
+        assertEquals(setOf("ALL", "N3DS", "NDS", "GAMECUBE", "WII", "GBA", "GB", "GBC", "NES", "SNES", "UNKNOWN"),
+            ProfilePlatformFilter.entries.map { it.name }.toSet())
+    }
+
+    @Test fun allConsoleIdentitiesRoundTripAndFilterWithoutChangingLegacyFields() {
+        val names = listOf("N3DS", "NDS", "GAMECUBE", "WII", "GBA", "GB", "GBC", "NES", "SNES")
+        val games = names.mapIndexed { index, name ->
+            val platform = GamePlatform.valueOf(name)
+            val record = mutableMapOf<String, Any>("s" to "IPKE", "ms" to index.toLong())
+            writeProfilePlatform(record, platform)
+            assertEquals(platform, readProfilePlatform(record))
+            assertEquals("IPKE", record["s"])
+            assertEquals(index.toLong(), record["ms"])
+            game(name, "IPKE", (index + 1) * 100L).copy(platform = platform)
+        }.reversed()
+        for (name in names) {
+            val platform = GamePlatform.valueOf(name)
+            assertEquals(games.filter { it.platform == platform },
+                games.filterProfilePlatform(ProfilePlatformFilter.valueOf(name)))
+        }
+        assertTrue(games.filterProfilePlatform(ProfilePlatformFilter.UNKNOWN).isEmpty())
+    }
+
+    @Test fun breakdownSubtractsEveryKnownConsoleBeforeAssigningUnclassifiedRemainder() {
+        val games = listOf("N3DS", "NDS", "GAMECUBE", "WII", "GBA", "GB", "GBC", "NES", "SNES")
+            .mapIndexed { index, name -> game(name, null, (index + 1) * 100L)
+                .copy(platform = GamePlatform.valueOf(name)) }
+        val result = profilePlatformBreakdown(games + games.first(), 11, 5_000L, complete = true)
+        assertEquals(ProfilePlatformTotal(2, 500L), result.unknown)
+        for (entry in games) assertEquals(ProfilePlatformTotal(1, entry.totalPlayTimeMs), result[entry.platform])
+        assertEquals(11, result.platforms.values.sumOf { it.games } + result.unknown.games)
+        assertEquals(5_000L, result.platforms.values.sumOf { it.playTimeMs } + result.unknown.playTimeMs)
+        val partial = profilePlatformBreakdown(games.takeLast(2), 11, 5_000L, complete = false)
+        assertEquals(ProfilePlatformTotal(), partial.unknown)
+        assertEquals(2, partial.platforms.values.sumOf { it.games })
+    }
+
+    @Test fun explicitUnrecognizedPlatformIsNeverReclassifiedAsLegacyDsFromSerial() {
+        assertNull(readProfilePlatform(mapOf("p" to "FUTURE_CONSOLE", "s" to "IPKE")))
+        assertEquals(GamePlatform.NDS, readProfilePlatform(mapOf("s" to "IPKE")))
+    }
+
+    @Test fun newConsoleProfileKeysDoNotCollideAndLegacyKeysStayStable() {
+        assertEquals("IPKE", profileGameKey("ipke", "/games/shared", GamePlatform.NDS))
+        assertEquals("CTR-P-ABCE", profileGameKey("CTR-P-ABCE", "/games/shared", GamePlatform.N3DS))
+        assertEquals(profileGameKey(null, "/games/shared", null),
+            profileGameKey(null, "/games/shared", GamePlatform.NDS))
+        val keys = listOf("GAMECUBE", "WII", "GBA", "GB", "GBC", "NES", "SNES")
+            .map { profileGameKey("SAME", "/games/shared", GamePlatform.valueOf(it)) }
+        assertEquals(7, keys.toSet().size)
+        assertFalse("SAME" in keys)
+        val entries = listOf("GAMECUBE", "WII").map {
+            PlayerPlayTimeDelta("/games/shared.rvz", "Shared", "SAME", null, 10L,
+                platform = GamePlatform.valueOf(it))
+        }
+        assertNotEquals(profilePlayTimeCacheKey(entries[0]), profilePlayTimeCacheKey(entries[1]))
+    }
+
     private fun game(key: String, serial: String?, time: Long) = PlayerGamePlayStat(
         gameKey = key, title = "A shared title", serial = serial, coverArtPath = null,
         totalPlayTimeMs = time, sessions = 1, lastPlayedAtMs = null

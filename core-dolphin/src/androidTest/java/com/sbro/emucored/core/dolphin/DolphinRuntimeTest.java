@@ -6,6 +6,7 @@ import android.content.Intent;
 import android.graphics.Bitmap;
 import android.os.Handler;
 import android.os.Looper;
+import android.os.ParcelFileDescriptor;
 import android.view.PixelCopy;
 import android.test.InstrumentationTestCase;
 import java.io.File;
@@ -26,8 +27,18 @@ public final class DolphinRuntimeTest extends InstrumentationTestCase {
     public void testWiiVulkan() throws Exception { exercise(true, "vulkan"); }
     public void testGameCubeOpenGL() throws Exception { exercise(false, "opengl"); }
     public void testWiiOpenGL() throws Exception { exercise(true, "opengl"); }
+    public void testGameCubeVulkanHeldDescriptor() throws Exception { exercise(false, "vulkan", true); }
+    public void testWiiVulkanHeldDescriptor() throws Exception { exercise(true, "vulkan", true); }
+    public void testGameCubeElfVulkanHeldDescriptor() throws Exception { exercise(false, "vulkan", true, true); }
+    public void testWiiElfVulkanHeldDescriptor() throws Exception { exercise(true, "vulkan", true, true); }
 
     private void exercise(boolean wii, String backend) throws Exception {
+        exercise(wii, backend, false);
+    }
+    private void exercise(boolean wii, String backend, boolean heldDescriptor) throws Exception {
+        exercise(wii, backend, heldDescriptor, false);
+    }
+    private void exercise(boolean wii, String backend, boolean heldDescriptor, boolean elf) throws Exception {
         File base = new File(getInstrumentation().getTargetContext().getFilesDir(), "runtime-" + wii + "-" + backend + "-" + System.nanoTime());
         assertTrue(base.mkdirs() || base.isDirectory());
         File logger = new File(base, "Config/Logger.ini");
@@ -37,15 +48,18 @@ public final class DolphinRuntimeTest extends InstrumentationTestCase {
         }
         File sys = new File(base.getParentFile(), "runtime-sys");
         copyAsset("Sys", sys);
-        File dol = new File(base, "video.dol");
-        try (FileOutputStream out = new FileOutputStream(dol)) { out.write(homebrew(wii)); }
+        File dol = new File(base, elf ? "video.elf" : "video.dol");
+        try (FileOutputStream out = new FileOutputStream(dol)) { out.write(elf ? homebrewElf(wii) : homebrew(wii)); }
+        ParcelFileDescriptor descriptor = heldDescriptor ? ParcelFileDescriptor.open(dol, ParcelFileDescriptor.MODE_READ_ONLY) : null;
+        String launchPath = descriptor == null ? dol.getAbsolutePath() : "/proc/self/fd/" + descriptor.getFd();
         Intent intent = new Intent(getInstrumentation().getTargetContext(), RuntimeSurfaceActivity.class)
             .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
         RuntimeSurfaceActivity activity = (RuntimeSurfaceActivity)getInstrumentation().startActivitySync(intent);
         assertTrue(activity.ready.await(10, TimeUnit.SECONDS));
         try {
+            assertEquals(wii ? 2 : 1, DolphinNative.probe(launchPath));
             DolphinNative.surface(activity.view.getHolder().getSurface(), 640, 480);
-            assertEquals(0, DolphinNative.start(dol.getAbsolutePath(), base.getAbsolutePath(), sys.getAbsolutePath(), wii, true,
+            assertEquals(0, DolphinNative.start(launchPath, base.getAbsolutePath(), sys.getAbsolutePath(), wii, true,
                 new String[]{"graphics_backend"}, new String[]{backend}));
             assertEquals(2, DolphinNative.status());
             assertTrue(DolphinNative.pause(false));
@@ -63,6 +77,42 @@ public final class DolphinRuntimeTest extends InstrumentationTestCase {
             assertTrue("Middle YUYV bar must be green", ((green >> 8) & 255) > ((green >> 16) & 255) + 70);
             assertTrue("Right YUYV bar must be blue", (blue & 255) > ((blue >> 8) & 255) + 70);
             pixels.recycle();
+            // Exercise actual Config consumers and a visible renderer effect,
+            // rather than testing a frontend option map.
+            assertTrue(DolphinNative.optionCapabilities().length >= 50);
+            assertNull(DolphinNative.optionValue("unsupported"));
+            assertFalse(DolphinNative.option("cpu_backend", "interpreter"));
+            assertFalse(DolphinNative.option("dsp_jit", "false"));
+            assertFalse(DolphinNative.option("shader_compilation", "hybrid"));
+            assertFalse(DolphinNative.option("msaa", "3"));
+            assertFalse(DolphinNative.option("volume", "101"));
+            assertFalse(DolphinNative.option("volume", " 50"));
+            assertFalse(DolphinNative.option("speed", "NaN"));
+            assertFalse(DolphinNative.option("skip_efb_access", "yes"));
+            assertOption("resolution", "2");
+            assertOption("resolution", "1");
+            assertOption("anisotropy", "4");
+            assertOption("anisotropy", "default");
+            assertOption("texture_cache_accuracy", "safe");
+            assertOption("texture_cache_accuracy", "balanced");
+            assertOption("volume", "37");
+            assertOption("volume", "100");
+            assertOption("audio_buffer_size", "120");
+            assertOption("audio_preserve_pitch", "true");
+            assertOption("audio_fill_gaps", "false");
+            assertOption("skip_duplicate_xfbs", "false");
+            assertOption("aspect_ratio", "16:9");
+            awaitFrames(3);
+            Bitmap wide = copyPixels(activity);
+            int topWide = wide.getPixel(320, 20);
+            assertTrue("16:9 must letterbox a 4:3 surface", ((topWide >> 16) & 255) < 35 && ((topWide >> 8) & 255) < 35 && (topWide & 255) < 35);
+            wide.recycle();
+            assertOption("aspect_ratio", "4:3");
+            awaitFrames(3);
+            Bitmap standard = copyPixels(activity);
+            int topStandard = standard.getPixel(320, 20);
+            assertTrue("4:3 must restore the green bar into the former letterbox", ((topStandard >> 8) & 255) > ((topStandard >> 16) & 255) + 70);
+            standard.recycle();
             assertTrue(DolphinNative.pause(true));
             assertEquals(2, DolphinNative.status());
             assertFalse(DolphinNative.speed(Float.NaN));
@@ -87,9 +137,29 @@ public final class DolphinRuntimeTest extends InstrumentationTestCase {
         } finally {
             DolphinNative.requestStop();
             DolphinNative.stop();
+            if (descriptor != null) descriptor.close();
             assertEquals(0, DolphinNative.status());
             getInstrumentation().runOnMainSync(activity::finish);
         }
+    }
+
+    private void assertOption(String key, String value) {
+        assertTrue("Live option must apply: " + key, DolphinNative.option(key, value));
+        assertEquals("Read actual upstream Config: " + key, value, DolphinNative.optionValue(key));
+    }
+    private void awaitFrames(long count) throws Exception {
+        long target = DolphinNative.frames() + count, deadline = System.nanoTime() + 10_000_000_000L;
+        while (DolphinNative.frames() < target && System.nanoTime() < deadline) Thread.sleep(20);
+        assertTrue("Changed config must still produce real frames", DolphinNative.frames() >= target);
+    }
+    private Bitmap copyPixels(RuntimeSurfaceActivity activity) throws Exception {
+        Bitmap bitmap = Bitmap.createBitmap(640, 480, Bitmap.Config.ARGB_8888);
+        CountDownLatch done = new CountDownLatch(1);
+        AtomicInteger status = new AtomicInteger(-1);
+        PixelCopy.request(activity.view, bitmap, result -> { status.set(result); done.countDown(); }, new Handler(Looper.getMainLooper()));
+        assertTrue(done.await(5, TimeUnit.SECONDS));
+        assertEquals(PixelCopy.SUCCESS, status.get());
+        return bitmap;
     }
     private void copyAsset(String path, File target) throws Exception {
         AssetManager assets = getInstrumentation().getTargetContext().getAssets();
@@ -106,6 +176,26 @@ public final class DolphinRuntimeTest extends InstrumentationTestCase {
         }
     }
     // Original CC0 program, identical to bridge/tests/generate_homebrew.py.
+    private static byte[] homebrewElf(boolean wii) {
+        byte[] dol = homebrew(wii);
+        ByteBuffer source = ByteBuffer.wrap(dol).order(ByteOrder.BIG_ENDIAN);
+        int textSize = source.getInt(0x90), dataSize = source.getInt(0xac);
+        ByteBuffer result = ByteBuffer.allocate(256 + textSize + dataSize).order(ByteOrder.BIG_ENDIAN);
+        result.put(new byte[]{0x7f, 'E', 'L', 'F', 1, 2, 1});
+        result.putShort(16, (short)2); result.putShort(18, (short)20); result.putInt(20, 1);
+        result.putInt(24, 0x80004000); result.putInt(28, 52);
+        result.putShort(40, (short)52); result.putShort(42, (short)32); result.putShort(44, (short)2);
+        for (int segment = 0; segment < 2; segment++) {
+            int offset = segment == 0 ? 256 : 256 + textSize;
+            int address = segment == 0 ? 0x80004000 : 0x80100000;
+            int size = segment == 0 ? textSize : dataSize;
+            result.position(52 + segment * 32);
+            result.putInt(1).putInt(offset).putInt(address).putInt(address).putInt(size).putInt(size)
+                .putInt(segment == 0 ? 5 : 6).putInt(4);
+        }
+        result.position(256); result.put(dol, 256, textSize + dataSize);
+        return result.array();
+    }
     private static byte[] homebrew(boolean wii) {
         ArrayList<Integer> code = new ArrayList<>();
         code.add(0x3C60CC00); code.add(0x60632000);

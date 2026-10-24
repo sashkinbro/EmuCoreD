@@ -7,13 +7,23 @@ import org.json.JSONArray
 import org.json.JSONObject
 import java.io.File
 import java.util.Locale
+import com.sbro.emucored.core.platform.session.CoreCheatCode
+import com.sbro.emucored.core.platform.session.CoreCheatFormats
+import com.sbro.emucored.data.cheats.TypedCheatCatalog
+import com.sbro.emucored.data.cheats.TypedCheatPack
+import com.sbro.emucored.data.cheats.CheatGameIdentity
 
 data class CheatBlock(
     val id: String,
     val title: String,
     val lines: List<String>,
     val enabled: Boolean,
-    val author: String? = null
+    val author: String? = null,
+    val format: String = "3ds-gateway",
+    val sourceUrl:String?=null,
+    val sourcePackId:String?=null,
+    val license:String?=null,
+    val manualAssociation:Boolean=false
 )
 
 data class CheatGameConfig(
@@ -36,6 +46,22 @@ class CheatRepository(private val context: Context) {
     private val importedDir = EmulatorStorage.importedCheatsDir(context)
     private val stateFile = File(EmulatorStorage.appStateDir(context), "cheat-state.json")
     private val activeTargetsFile = File(EmulatorStorage.appStateDir(context), "cheat-active-targets.json")
+
+    fun typedGameConfig(platform:GamePlatform,path:String):CheatGameConfig? =
+        getGameConfig(TypedCheatCatalog.gameKey(platform,path),"",null)
+
+    fun enabledTypedCodes(platform:GamePlatform,path:String):List<CoreCheatCode> =
+        typedGameConfig(platform,path)?.blocks.orEmpty().filter { it.enabled }.map { CoreCheatCode(it.format,it.lines.joinToString("\n")) }
+            .filter { CoreCheatFormats.accepts(platform.console.core,it) }
+
+    fun importTypedPack(gamePath:String,identity:CheatGameIdentity,pack:TypedCheatPack,raw:String,manual:Boolean=false):Int {
+        require(pack.platform==identity.platform)
+        require(manual || pack.matches(identity)){"Cheat pack does not match selected game"}
+        require(TypedCheatCatalog.sha256(raw.toByteArray(Charsets.UTF_8))==pack.sha256)
+        val blocks=TypedCheatCatalog.parsePack(raw,pack).map{it.copy(manualAssociation=manual)}
+        return importCheatFile(TypedCheatCatalog.gameKey(identity.platform,gamePath),TypedCheatCatalog.serialize(blocks),
+            enableAllByDefault=false,mergeWithExisting=true)
+    }
 
     fun getGameConfig(gameKey: String, serial: String, crc: String?): CheatGameConfig? {
         val sourceFile = resolveImportedFile(gameKey)
@@ -116,9 +142,7 @@ class CheatRepository(private val context: Context) {
         val enabledIds = if (enableAllByDefault) {
             blocks.map { it.id }
         } else {
-            blocks.filter {
-                it.enabled || old.contains(it.id) || cheatBlockSignature(it) in oldEnabledSignatures
-            }.map { it.id }
+            blocks.filter { cheatBlockSignature(it) in oldEnabledSignatures }.map { it.id }
         }
         state.put(normalizedGameKey, JSONArray(enabledIds))
         if (normalizedGameKey != gameKey) state.remove(gameKey)
@@ -132,31 +156,18 @@ class CheatRepository(private val context: Context) {
     ): List<CheatBlock> {
         val merged = linkedMapOf<String, CheatBlock>()
         (existing + imported).forEach { block ->
-            val key = block.title.trim().lowercase(Locale.US)
+            val key = block.format + "\u0000" + block.id
             val previous = merged[key]
             merged[key] = if (previous == null) {
                 block
             } else {
-                previous.copy(
-                    lines = (previous.lines + block.lines).distinct(),
-                    enabled = previous.enabled || block.enabled,
-                    author = previous.author ?: block.author
-                )
+                block.copy(enabled=false,author=block.author ?: previous.author)
             }
         }
         return merged.values.toList()
     }
 
-    private fun serializeCheatBlocks(blocks: List<CheatBlock>): String = buildString {
-        blocks.forEachIndexed { index, block ->
-            if (index > 0) append('\n')
-            append("// ").append(block.title).append('\n')
-            block.author?.takeIf { it.isNotBlank() }?.let { author ->
-                append("Author = ").append(author).append('\n')
-            }
-            block.lines.forEach { line -> append(line).append('\n') }
-        }
-    }
+    private fun serializeCheatBlocks(blocks: List<CheatBlock>): String = serializeImportedCheatBlocks(blocks)
 
     fun setEnabledBlocks(gameKey: String, enabledIds: Set<String>) = synchronized(CHEAT_IO_LOCK) {
         val normalizedGameKey = normalizeGameKey(gameKey)
@@ -198,7 +209,9 @@ class CheatRepository(private val context: Context) {
         crc: String?,
         includeCheats: Boolean = true
     ) = synchronized(CHEAT_IO_LOCK) {
+        if(GamePlatform.entries.any{it!=GamePlatform.N3DS && gameKey.startsWith("${it.name}_")})return@synchronized
         val source = resolveImportedFile(gameKey)
+        if(source.isFile && parseCheatBlocks(source.readText()).any { it.format!="3ds-gateway" }) return@synchronized
         val normalizedGameKey = source.nameWithoutExtension
         val normalizedCrc = effectiveCrc(crc, serial, normalizedGameKey)
         val normalizedSerial = serial?.trim()?.uppercase()?.takeIf { it.isNotBlank() }
@@ -420,6 +433,7 @@ class CheatRepository(private val context: Context) {
 
     private fun cheatBlockSignature(block: CheatBlock): String {
         return block.title.trim().lowercase() + "\u0000" +
+            block.format + "\u0000" +
             block.author?.trim().orEmpty() + "\u0000" +
             block.lines.joinToString("\n")
     }
@@ -476,5 +490,15 @@ internal fun parseGatewayCheatBlocks(raw: String): List<CheatBlock> {
 }
 
 internal fun parseCheatBlocks(raw: String, serialFilter: String? = null): List<CheatBlock> {
+    if(raw.trimStart().startsWith("{")) return runCatching { com.sbro.emucored.data.cheats.TypedCheatCatalog.parseStored(raw) }.getOrDefault(emptyList())
     return parseGatewayCheatBlocks(raw)
+}
+
+internal fun serializeImportedCheatBlocks(blocks:List<CheatBlock>):String {
+    if(blocks.any{it.format!="3ds-gateway"}) return TypedCheatCatalog.serialize(blocks)
+    return buildString { blocks.forEach { block ->
+        append('[').append(block.title.replace('\n',' ').replace('\r',' ').replace(']',')')).append("]\n")
+        if(block.enabled)append("*citra_enabled\n")
+        block.lines.forEach{append(it).append('\n')};append('\n')
+    } }
 }

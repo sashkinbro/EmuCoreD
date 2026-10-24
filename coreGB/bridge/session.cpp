@@ -2,8 +2,11 @@
 #include "android_output.h"
 #include "gb.h"
 #include "open_boot_roms.h"
+#include "typed_cheats.h"
 #include <sys/stat.h>
+#include <charconv>
 struct Session {
+  std::vector<TypedCheatInput> activeCheats;
   AndroidOutput output;
   GB_gameboy_t *gb = nullptr;
   std::vector<uint32_t> pixels = std::vector<uint32_t>(160 * 144);
@@ -23,6 +26,27 @@ struct Session {
     }
   }
 };
+static bool replaceCheats(Session* s,const std::vector<TypedCheatInput>& codes) {
+  if(!s || !s->gb)return false;
+  auto* temporary=GB_init(GB_alloc(),GB_MODEL_CGB_E);
+  if(!temporary)return false;
+  bool valid=true;
+  for(const auto& block:codes) {
+    const char* pattern=block.format=="gb-gameshark"?"[0-9A-F]{8}":block.format=="gb-game-genie"?"[0-9A-F]{3}-[0-9A-F]{3}(-[0-9A-F]{3})?":nullptr;
+    if(!pattern) {valid=false;break;}
+    for(const auto& line:block.lines) if(!cheatLineMatches(line,pattern) || !GB_import_cheat(temporary,line.c_str(),"",true)) {valid=false;break;}
+    if(!valid)break;
+  }
+  GB_dealloc(temporary); if(!valid)return false;
+  const auto previous=s->activeCheats;
+  auto install=[&](const std::vector<TypedCheatInput>& list) {
+    GB_remove_all_cheats(s->gb);
+    for(const auto& block:list)for(const auto& line:block.lines)if(!GB_import_cheat(s->gb,line.c_str(),"",true))return false;
+    GB_set_cheats_enabled(s->gb,!list.empty()); return true;
+  };
+  if(!install(codes)) {install(previous);return false;}
+  s->activeCheats=codes; return true;
+}
 // Accept the canonical formats emitted by this pinned engine. Reject incomplete
 // reads before handing any data to SameBoy (its loader silently accepts short
 // RAM).
@@ -93,6 +117,9 @@ static void sample(GB_gameboy_t *g, GB_sample_t *p) {
   }
 }
 #define JNI(name) Java_com_sbro_emucored_core_gb_SameBoySessionEngine_##name
+extern "C" JNIEXPORT jboolean JNICALL JNI(nativeCheats)(JNIEnv* env,jobject,jlong handle,jobjectArray formats,jobjectArray codes) {
+  std::vector<TypedCheatInput> inputs; return typedCheatInputs(env,formats,codes,inputs) && replaceCheats(reinterpret_cast<Session*>(handle),inputs);
+}
 static Session *createSession(const std::string &path,
                               const std::string &battery,
                               const std::string &platform, bool audio = true) {
@@ -219,6 +246,7 @@ extern "C" JNIEXPORT jboolean JNICALL JNI(nativeOption)(JNIEnv *e, jobject,
                                                         jstring value) {
   auto *s = (Session *)h;
   auto k = utf(e, key), v = utf(e, value);
+  if (k == "aspect_ratio") return s->output.setAspectOption(v);
   if (k == "audio_enabled" && (v == "true" || v == "false")) {
     s->output.muted = v == "false";
     return true;
@@ -231,6 +259,30 @@ extern "C" JNIEXPORT jboolean JNICALL JNI(nativeOption)(JNIEnv *e, jobject,
     GB_set_color_correction_mode(s->gb, v == "true"
                                             ? GB_COLOR_CORRECTION_CORRECT_CURVES
                                             : GB_COLOR_CORRECTION_DISABLED);
+    return true;
+  }
+  if (k == "palette") {
+    const GB_palette_t* palette = nullptr;
+    if (v == "dmg") palette = &GB_PALETTE_DMG;
+    else if (v == "grey") palette = &GB_PALETTE_GREY;
+    else if (v == "pocket") palette = &GB_PALETTE_MGB;
+    else if (v == "light") palette = &GB_PALETTE_GBL;
+    else return false;
+    GB_set_palette(s->gb, palette);
+    return true;
+  }
+  if (k == "highpass_filter") {
+    if (v == "off") GB_set_highpass_filter_mode(s->gb, GB_HIGHPASS_OFF);
+    else if (v == "accurate") GB_set_highpass_filter_mode(s->gb, GB_HIGHPASS_ACCURATE);
+    else if (v == "remove_dc") GB_set_highpass_filter_mode(s->gb, GB_HIGHPASS_REMOVE_DC_OFFSET);
+    else return false;
+    return true;
+  }
+  if (k == "interference_volume") {
+    int volume = -1;
+    auto parsed = std::from_chars(v.data(), v.data() + v.size(), volume);
+    if (parsed.ec != std::errc{} || parsed.ptr != v.data() + v.size() || volume < 0 || volume > 100) return false;
+    GB_set_interference_volume(s->gb, volume / 100.0);
     return true;
   }
   return false;

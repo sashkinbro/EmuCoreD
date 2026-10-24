@@ -11,9 +11,8 @@ object ConsoleSettingsPolicy {
     fun categories(platform: ConsolePlatform): List<SettingsCategory> = SettingsCategory.entries.filter { category ->
         when {
             category in shared -> true
-            !platform.isLaunchable -> false
             category == SettingsCategory.Multiplayer -> platform == ConsolePlatform.N3DS
-            category == SettingsCategory.Audio -> platform == ConsolePlatform.N3DS
+            category == SettingsCategory.Audio -> platform != ConsolePlatform.NDS
             else -> true
         }
     }

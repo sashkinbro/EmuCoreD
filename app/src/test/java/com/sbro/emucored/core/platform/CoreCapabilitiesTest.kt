@@ -23,15 +23,22 @@ class CoreCapabilitiesTest {
         assertTrue(threeDs.supportsScreenSwap)
     }
 
-    @Test fun unavailableAdaptersNeverInheritAzaharControlsOrClaimRenderingSupport() {
-        ConsolePlatform.entries.filterNot { it.isLaunchable }.forEach { platform ->
+    @Test fun packagedAdaptersExposeOnlyTheirOwnVideoAndInputCapabilities() {
+        listOf(ConsolePlatform.GAMECUBE, ConsolePlatform.WII).forEach { platform ->
             val capabilities = CoreCapabilities.forPlatform(platform)
-            assertFalse(platform.id, capabilities.supportsAzaharOptions)
-            assertFalse(platform.id, capabilities.supportsScreenSwap)
-            assertEquals(platform.id, 1, capabilities.screenCount)
-            assertTrue(platform.id, capabilities.rendererIds.isEmpty())
-            assertNull(platform.id, capabilities.defaultRenderer)
-            assertEquals(platform.id, 1, capabilities.maxInternalScale(14))
+            assertEquals(listOf(14, 12), capabilities.rendererIds)
+            assertEquals(14, capabilities.defaultRenderer)
+            assertEquals(4, capabilities.maxInternalScale(14))
+            assertTrue(capabilities.supportsAnalogControls)
+            assertFalse(capabilities.supportsScreenSwap)
+        }
+        listOf(ConsolePlatform.GBA, ConsolePlatform.GB, ConsolePlatform.GBC, ConsolePlatform.NES, ConsolePlatform.SNES).forEach { platform ->
+            val capabilities = CoreCapabilities.forPlatform(platform)
+            assertEquals(listOf(13), capabilities.rendererIds)
+            assertFalse(capabilities.supportsAnalogControls)
+            assertFalse(capabilities.supportsAzaharOptions)
+            assertFalse(capabilities.supportsMappedAction("swap_screens"))
+            assertTrue(capabilities.supportsMappedAction("a"))
         }
     }
 
@@ -46,6 +53,7 @@ class CoreCapabilitiesTest {
             .forEach { assertTrue(it, ds.supportsMappedAction(it)) }
         listOf("zl", "zr", "home", "rewind", "fast_forward", "right_stick_up", "left_stick_down")
             .forEach { assertFalse(it, ds.supportsMappedAction(it)) }
-        assertFalse(CoreCapabilities.forPlatform(ConsolePlatform.GBA).supportsMappedAction("a"))
+        assertTrue(CoreCapabilities.forPlatform(ConsolePlatform.GBA).supportsMappedAction("a"))
+        assertFalse(CoreCapabilities.forPlatform(ConsolePlatform.GBA).supportsMappedAction("x"))
     }
 }

@@ -208,6 +208,7 @@ import com.sbro.emucored.core.RendererDefaults
 import com.sbro.emucored.core.PlatformUiCapabilities
 import com.sbro.emucored.data.GamePlatform
 import com.sbro.emucored.core.platform.ConsolePlatform
+import com.sbro.emucored.core.platform.CoreOptionSchema
 import com.sbro.emucored.core.platform.ConsoleSettingsPolicy
 import com.sbro.emucored.core.platform.CoreCapabilities
 import com.sbro.emucored.core.platform.CoreId
@@ -322,7 +323,7 @@ fun SettingsScreen(
     var selectedPlatformId by rememberSaveable(initialTab) {
         mutableStateOf(if (initialTab.isDsSettingsLink() || DsSession.isActive) ConsolePlatform.NDS.id else ConsolePlatform.N3DS.id)
     }
-    val selectedPlatform = ConsolePlatform.fromId(selectedPlatformId)?.takeIf { it.isLaunchable } ?: ConsolePlatform.N3DS
+    val selectedPlatform = ConsolePlatform.fromId(selectedPlatformId) ?: ConsolePlatform.N3DS
     val activeTab = ConsoleSettingsPolicy.normalizeCategory(selectedPlatform, selectedTab)
     val pendingGamepadActionId = remember { mutableStateOf<String?>(null) }
     var pendingGamepadPadIndex by rememberSaveable { mutableIntStateOf(0) }
@@ -1134,6 +1135,8 @@ private fun SettingsContent(
     onOpenTouchControlCreator: (() -> Unit)? = null
 ) {
     val supportsAzaharOptions = CoreCapabilities.forPlatform(platform).supportsAzaharOptions
+    val coreOptionsRevision by viewModel.coreOptionsRevision.collectAsState()
+    val consoleCoreOptions = remember(platform, coreOptionsRevision) { viewModel.coreOptions(platform) }
     val gamepadActions = remember(platform) {
         val capabilities = CoreCapabilities.forPlatform(platform)
         GamepadManager.mappableButtonActions().filter { capabilities.supportsMappedAction(it.id) }
@@ -1189,6 +1192,10 @@ private fun SettingsContent(
                     entries = searchEntries,
                     onOpen = onSearchResultSelected
                 )
+            } else if (platform !in setOf(ConsolePlatform.N3DS, ConsolePlatform.NDS) &&
+                selectedTab in setOf(SettingsTab.Graphics, SettingsTab.Audio)) {
+                ConsoleCoreOptionsPanel(platform, selectedTab, consoleCoreOptions,
+                    onChange = { key, value -> viewModel.setConsoleCoreOption(platform, key, value) })
             } else when (selectedTab) {
                 SettingsTab.General -> {
                     SettingsSection(title = stringResource(R.string.settings_general_tab)) {
@@ -1431,6 +1438,8 @@ private fun SettingsContent(
                 }
 
                 SettingsTab.Controls -> {
+                    ConsoleCoreOptionsPanel(platform, SettingsCategory.Controls, consoleCoreOptions,
+                        onChange = { key, value -> viewModel.setConsoleCoreOption(platform, key, value) })
                     SettingsSection(title = stringResource(R.string.settings_touch_controls)) {
                         if (supportsAzaharOptions) {
                             ActionItem(
@@ -2218,6 +2227,8 @@ private fun SettingsContent(
                 }
 
                 SettingsTab.Emulation -> {
+                    ConsoleCoreOptionsPanel(platform, SettingsCategory.Emulation, consoleCoreOptions,
+                        onChange = { key, value -> viewModel.setConsoleCoreOption(platform, key, value) })
                     SettingsSection(title = stringResource(R.string.emulation_performance_stats)) {
                         ToggleItem(
                             icon = Icons.Rounded.Speed,
@@ -3050,11 +3061,7 @@ private fun GameMenuSettingsTab(
     platform: ConsolePlatform,
     viewModel: SettingsViewModel
 ) {
-    val capabilities = PlatformUiCapabilities.forGame(null, when (platform) {
-        ConsolePlatform.NDS -> GamePlatform.NDS
-        ConsolePlatform.N3DS -> GamePlatform.N3DS
-        else -> error("Game menu configuration requires an integrated console")
-    })
+    val capabilities = PlatformUiCapabilities.forGame(null, GamePlatform.valueOf(platform.name))
     val supportedTabs = uiState.gameMenuTabOrder.filter(capabilities::supportsGameMenuTab)
     SettingsSection(title = stringResource(R.string.settings_game_menu_preview_section)) {
         SettingsInlineNote(stringResource(R.string.settings_game_menu_content_summary))
@@ -4099,8 +4106,10 @@ private fun rememberSettingsSearchEntries(platform: ConsolePlatform, dsRenderer:
     @Composable
     fun entry(tab: SettingsTab, @StringRes titleRes: Int): SettingsSearchEntry? {
         if (tab !in ConsoleSettingsPolicy.categories(platform)) return null
+        if (platform !in setOf(ConsolePlatform.N3DS, ConsolePlatform.NDS) &&
+            tab in setOf(SettingsTab.Graphics, SettingsTab.Audio)) return null
         if (platform == ConsolePlatform.NDS && dsRenderer == 13 && titleRes == R.string.settings_upscale) return null
-        if (platform == ConsolePlatform.NDS && when (tab) {
+        if (platform != ConsolePlatform.N3DS && when (tab) {
             SettingsTab.Graphics -> titleRes !in setOf(R.string.settings_renderer, R.string.settings_upscale)
             SettingsTab.Controls -> titleRes !in setOf(
                 R.string.settings_overlay_scale, R.string.settings_overlay_opacity,
@@ -4114,7 +4123,7 @@ private fun rememberSettingsSearchEntries(platform: ConsolePlatform, dsRenderer:
         }) return null
         return SettingsSearchEntry(tab = tab, title = stringResource(titleRes), summary = tab.label())
     }
-    return listOfNotNull(
+    val legacy = listOfNotNull(
         entry(SettingsTab.General, R.string.settings_language),
         entry(SettingsTab.General, R.string.settings_tv_interface),
         entry(SettingsTab.General, R.string.settings_theme),
@@ -4198,6 +4207,10 @@ private fun rememberSettingsSearchEntries(platform: ConsolePlatform, dsRenderer:
         entry(SettingsTab.Emulation, R.string.settings_fps_overlay_metrics),
         entry(SettingsTab.Updates, R.string.settings_updates_tab)
     )
+    return legacy + CoreOptionSchema.options(platform).map { option ->
+        SettingsSearchEntry(option.category, coreOptionTitle(option), option.category.label())
+    }
+
 }
 
 @Composable
@@ -4546,7 +4559,7 @@ private fun ActionItem(
 }
 
 @Composable
-private fun SliderItem(
+internal fun SliderItem(
     icon: ImageVector,
     title: String,
     subtitle: String,
@@ -5496,7 +5509,7 @@ internal fun CoreOptionSettingsRows(
 }
 
 @Composable
-private fun CoreStringChoiceSection(
+internal fun CoreStringChoiceSection(
     title: String,
     options: List<Pair<String, String>>,
     selectedValue: String,

@@ -11,6 +11,7 @@ extern "C" bool emucored_bsnes_loaded();
 extern "C" bool emucored_bsnes_load_game(const char*);
 extern "C" unsigned emucored_bsnes_bus_read(unsigned);
 extern "C" void emucored_bsnes_bus_write(unsigned, unsigned);
+extern "C" bool emucored_bsnes_valid_cheat(const char*);
 #define CHECK(x) do { if (!(x)) { std::fprintf(stderr, "FAIL line %d: %s\n", __LINE__, #x); return 1; } } while (0)
 static unsigned frames, audio_frames;
 static uint32_t center_pixel;
@@ -62,6 +63,11 @@ int main(int argc, char** argv) {
         for (unsigned frame = 0; frame < 8; ++frame) retro_run();
         CHECK(frames == 8 && audio_frames > 0);
         CHECK(((center_pixel >> 16) & 255) > 200 && (center_pixel & 255) < 40);
+        emucored_bsnes_bus_write(0x7e0040,0x5a);
+        CHECK(emucored_bsnes_valid_cheat("7e0040a5"));CHECK(!emucored_bsnes_valid_cheat("7e0040zz"));
+        retro_cheat_reset();retro_cheat_set(0,true,"7e0040a5");
+        CHECK(emucored_bsnes_bus_read(0x7e0040)==0xa5);
+        retro_cheat_reset();CHECK(emucored_bsnes_bus_read(0x7e0040)==0x5a);
         std::vector<unsigned char> state(retro_serialize_size()); CHECK(state.size() > 1024);
         CHECK(retro_serialize(state.data(), state.size()));
         retro_run(); CHECK(retro_unserialize(state.data(), state.size()));

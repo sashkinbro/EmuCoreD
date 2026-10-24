@@ -18,14 +18,10 @@ internal fun ConsoleSelector(selected: ConsolePlatform, onSelected: (ConsolePlat
         selectedTab = selected,
         onSelected = onSelected,
         key = { it.id },
-        label = { platform ->
-            val name = consolePlatformLabel(platform)
-            if (platform.isLaunchable) name else stringResource(R.string.console_coming_soon, name)
-        },
+        label = { platform -> consolePlatformLabel(platform) },
         icon = { Icons.Rounded.Gamepad },
         verticalPadding = 0.dp,
-        modifier = Modifier.testTag("settings-console-tabs"),
-        enabled = { it.isLaunchable }
+        modifier = Modifier.testTag("settings-console-tabs")
     )
 }
 

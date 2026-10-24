@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="cheat_catalog_browse_all">Jelajahi semua cheat untuk konsol ini</string>
+    <string name="cheat_catalog_manual_attach">Tautkan ke game yang dipilih</string>
+    <string name="cheat_catalog_manual_warning">Kecocokan paket ini dengan game belum diverifikasi. Periksa wilayah, revisi, dan format sebelum mengaktifkan kode.</string>
+    <string name="cheat_format_unsupported">Core yang dipilih tidak mendukung format cheat ini.</string>
+</resources>

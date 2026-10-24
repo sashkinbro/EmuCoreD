@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="formats_images_body">Używaj rozpakowanych obrazów gier. Przed importem rozpakuj archiwa ZIP i 7z.</string>
+    <string name="formats_3ds_body">Pakiety CIA i ZCIA są instalowane przed uruchomieniem. Zaszyfrowane gry wymagają własnych kluczy systemowych.</string>
+    <string name="formats_ds_body">Kartridże DS i z ulepszeniami DSi działają w trybie DS. Gry tylko dla DSi wymagają środowiska DSi.</string>
+    <string name="formats_fds_body">Gry FDS wymagają BIOS-u disksys.rom o rozmiarze 8 KiB w folderze oprogramowania układowego.</string>
+    <string name="formats_executables_body">Pliki wykonywalne DOL i ELF mogą wymagać wyboru konsoli przed uruchomieniem.</string>
+</resources>

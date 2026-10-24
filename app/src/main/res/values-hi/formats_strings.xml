@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="formats_images_body">निकाली गई गेम इमेज का उपयोग करें। आयात करने से पहले ZIP और 7z संग्रह निकालें।</string>
+    <string name="formats_3ds_body">CIA और ZCIA पैकेज चलाने से पहले इंस्टॉल किए जाते हैं। एन्क्रिप्ट किए गए गेम के लिए आपकी अपनी सिस्टम कुंजियाँ चाहिए।</string>
+    <string name="formats_ds_body">DS और DSi-संवर्धित कार्ट्रिज DS मोड में चलते हैं। केवल DSi वाले गेम के लिए DSi वातावरण चाहिए।</string>
+    <string name="formats_fds_body">FDS गेम के लिए फ़र्मवेयर फ़ोल्डर में 8 KiB का disksys.rom BIOS चाहिए।</string>
+    <string name="formats_executables_body">DOL और ELF फ़ाइलें चलाने से पहले उनका कंसोल चुनना पड़ सकता है।</string>
+</resources>

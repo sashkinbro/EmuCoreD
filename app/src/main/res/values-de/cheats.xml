@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="cheat_catalog_browse_all">Alle Cheats für diese Konsole durchsuchen</string>
+    <string name="cheat_catalog_manual_attach">Dem ausgewählten Spiel zuordnen</string>
+    <string name="cheat_catalog_manual_warning">Die Übereinstimmung dieses Pakets mit dem Spiel ist nicht bestätigt. Prüfe Region, Revision und Format, bevor du Codes aktivierst.</string>
+    <string name="cheat_format_unsupported">Der ausgewählte Kern unterstützt dieses Cheatformat nicht.</string>
+</resources>

@@ -88,6 +88,16 @@ int main(int argc, char **argv) {
       CHECK(system.data && system.size > 64);
       auto *ram = (uint8_t *)system.data;
       ram[64] = 0x37;
+      CHECK(replaceCheats(s,{{"nes-raw-address-value",{"0040:A5"}}}));
+      CHECK(JNI(nativeFrame)(nullptr,nullptr,(jlong)s));CHECK(ram[64]==0xa5);
+      CHECK(!replaceCheats(s,{{"nes-game-genie",{"INVALID"}}}));
+      ram[64]=0;CHECK(JNI(nativeFrame)(nullptr,nullptr,(jlong)s));CHECK(ram[64]==0xa5);
+      CHECK(replaceCheats(s,{}));ram[64]=0;
+      CHECK(JNI(nativeFrame)(nullptr,nullptr,(jlong)s));CHECK(ram[64]==0);
+      Cheats::Code original(0xe100,0xa5);char gameGenie[9]{};
+      CHECK(NES_SUCCEEDED(Cheats::GameGenieEncode(original,gameGenie)));
+      CHECK(replaceCheats(s,{{"nes-game-genie",{gameGenie}}}));CHECK(Cheats(s->emulator).NumCodes()==1);
+      CHECK(replaceCheats(s,{}));ram[64]=0x37;
       auto b = state(s);
       ram[64] = 0xa9;
       CHECK(!b.empty());
@@ -97,6 +107,56 @@ int main(int argc, char **argv) {
       CHECK(envelopeContract(s, b, d));
       delete s;
     }
+  }
+  {
+    // Original test BIOS: reset/NMI/IRQ loop at $e000, no vendor firmware.
+    std::vector<uint8_t> bios(8192, 0xea);
+    bios[0] = 0x4c; bios[1] = 0; bios[2] = 0xe0;
+    for (int offset = 0x1ffa; offset < 8192; offset += 2) {
+      bios[offset] = 0; bios[offset + 1] = 0xe0;
+    }
+    std::vector<uint8_t> disk(16 + 65500 * 2);
+    memcpy(disk.data(), "FDS\x1a", 4); disk[4] = 2;
+    for (int side = 0; side < 2; ++side) {
+      disk[16 + side * 65500] = 1;
+      memcpy(disk.data() + 17 + side * 65500, "*NINTENDO-HVC*", 13);
+    }
+    const auto image = d + "/original-disk.fds", firmware = d + "/original-fds-bios.bin";
+    CHECK(writeBytes(image, disk.data(), disk.size()));
+    CHECK(writeBytes(firmware, bios.data(), bios.size()));
+    CHECK(!createSession(image, d + "/fds.sav", "NES", false));
+    for (int attempt = 0; attempt < 2; ++attempt) {
+      auto *s = createSession(image, d + "/fds.sav", "NES", false, firmware);
+      CHECK(s);
+      Fds drive(s->emulator);
+      CHECK(drive.GetNumSides() == 2 && drive.IsAnyDiskInserted());
+      CHECK(applyDiskOption(s, "fds_disk_side", "1"));
+      CHECK(drive.GetCurrentDiskSide() == 1);
+      CHECK(!applyDiskOption(s, "fds_disk_side", "2"));
+      CHECK(!applyDiskOption(s, "fds_disk_side", "-1"));
+      CHECK(applyDiskOption(s, "fds_ejected", "true"));
+      CHECK(!drive.IsAnyDiskInserted());
+      CHECK(applyDiskOption(s, "fds_ejected", "false"));
+      CHECK(drive.GetCurrentDiskSide() == 1);
+      for (int i = 0; i < 4; ++i) CHECK(JNI(nativeFrame)(nullptr, nullptr, (jlong)s));
+      auto checkpoint = state(s);
+      CHECK(!checkpoint.empty());
+      CHECK(applyDiskOption(s, "fds_disk_side", "0"));
+      CHECK(restore(s, checkpoint));
+      CHECK(drive.GetCurrentDiskSide() == 1);
+      delete s;
+      CHECK(readBytes(image) == disk);
+    }
+    // Firmware from a retired session must not make a missing-BIOS launch succeed.
+    CHECK(!createSession(image, d + "/fds.sav", "NES", false));
+    const std::string corruptPatch = "not a valid UPS patch";
+    CHECK(writeBytes(d + "/fds.sav.fds.ups", corruptPatch.data(), corruptPatch.size()));
+    CHECK(!createSession(image, d + "/fds.sav", "NES", false, firmware));
+    const auto retainedPatch = readBytes(d + "/fds.sav.fds.ups");
+    CHECK(std::string(retainedPatch.begin(), retainedPatch.end()) == corruptPatch);
+    CHECK(unlink((d + "/fds.sav.fds.ups").c_str()) == 0);
+    puts("PASS FDS: original BIOS/two-side image, missing and stale BIOS rejection, "
+         "disk insert/eject/side bounds, frames/state restore/reopen, corrupt patch preservation, readonly source");
   }
   puts("PASS Nestopia Android session: mappers 0/1/2/4 real "
        "frames/pixels/buttons/state restore/envelope rejection/recreation");

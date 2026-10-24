@@ -133,6 +133,7 @@ import com.sbro.emucored.data.PlayerLeaderboardEntry
 import com.sbro.emucored.data.PlayerProfile
 import com.sbro.emucored.data.GamePlatform
 import com.sbro.emucored.data.ProfilePlatformFilter
+import com.sbro.emucored.ui.common.gamePlatformLabelResource
 import com.sbro.emucored.data.filterProfilePlatform
 import com.sbro.emucored.data.profilePlatform
 import com.sbro.emucored.data.profilePlatformBreakdown
@@ -2364,11 +2365,8 @@ private fun ProShowcaseGameChoice(
 }
 
 @Composable
-private fun profilePlatformLabel(platform: GamePlatform?): String = stringResource(when (platform) {
-    GamePlatform.NDS -> R.string.profile_platform_ds
-    GamePlatform.N3DS -> R.string.profile_platform_3ds
-    null -> R.string.profile_platform_unknown
-})
+private fun profilePlatformLabel(platform: GamePlatform?): String =
+    stringResource(platform?.let(::gamePlatformLabelResource) ?: R.string.profile_platform_unknown)
 
 @Composable
 private fun ProfileGamePlatformLabel(game: PlayerGamePlayStat) {
@@ -2391,9 +2389,7 @@ private fun ProfilePlatformFilterRow(selected: ProfilePlatformFilter, onSelect: 
                 label = {
                     Text(when (filter) {
                         ProfilePlatformFilter.ALL -> stringResource(R.string.catalog_filter_all_platforms)
-                        ProfilePlatformFilter.NDS -> profilePlatformLabel(GamePlatform.NDS)
-                        ProfilePlatformFilter.N3DS -> profilePlatformLabel(GamePlatform.N3DS)
-                        ProfilePlatformFilter.UNKNOWN -> profilePlatformLabel(null)
+                        else -> profilePlatformLabel(filter.platform)
                     })
                 }
             )
@@ -2407,7 +2403,9 @@ private fun ProfilePlatformSummaryCard(profile: PlayerProfile) {
         profilePlatformBreakdown(profile.games, profile.gamesPlayed, profile.totalPlayTimeMs, complete = true)
     }
     val showUnknown = totals.unknown.games > 0 || totals.unknown.playTimeMs > 0L
-    val rows = listOf<GamePlatform?>(GamePlatform.NDS, GamePlatform.N3DS) + if (showUnknown) listOf(null) else emptyList()
+    val rows: List<GamePlatform?> = GamePlatform.entries.filter {
+        totals[it].games > 0 || totals[it].playTimeMs > 0L
+    } + if (showUnknown) listOf(null) else emptyList()
     Surface(
         modifier = Modifier.fillMaxWidth(),
         shape = neonShape(24.dp),
@@ -2418,11 +2416,7 @@ private fun ProfilePlatformSummaryCard(profile: PlayerProfile) {
             Text(stringResource(R.string.profile_platform_breakdown_title),
                 style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold))
             rows.forEach { platform ->
-                val total = when (platform) {
-                    GamePlatform.NDS -> totals.ds
-                    GamePlatform.N3DS -> totals.threeDs
-                    null -> totals.unknown
-                }
+                val total = totals[platform]
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp),
                     verticalAlignment = Alignment.CenterVertically) {
                     Text(profilePlatformLabel(platform), modifier = Modifier.weight(1f),

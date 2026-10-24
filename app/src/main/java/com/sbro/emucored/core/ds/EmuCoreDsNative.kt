@@ -44,4 +44,5 @@ object EmuCoreDsNative {
     external fun nativeSetRenderer(renderer: Int)
     external fun nativeSaveState(path: String): Boolean
     external fun nativeLoadState(path: String): Boolean
+    external fun nativeReplaceCheats(formats:Array<String>,codes:Array<String>):Boolean
 }

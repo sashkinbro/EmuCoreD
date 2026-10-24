@@ -34,6 +34,11 @@ import com.sbro.emucored.core.normalizeUpscale
 import com.sbro.emucored.core.normalizeUpscale
 import com.sbro.emucored.data.AppPreferences
 import com.sbro.emucored.core.PlatformUiCapabilities
+import com.sbro.emucored.core.ConsoleGameDiscovery
+import com.sbro.emucored.core.platform.CoreOptionPreferences
+import com.sbro.emucored.core.platform.CoreOptionSchema
+import com.sbro.emucored.core.platform.session.AdditionalConsoleSession
+import com.sbro.emucored.core.platform.session.ConsoleSessionStorage
 import com.sbro.emucored.data.GamePlatform
 import com.sbro.emucored.data.DsSettingsPolicy
 import com.sbro.emucored.data.forPlatform
@@ -130,6 +135,7 @@ private fun buildPerformanceOverlayHeader(application: Application): String {
 enum class EmulationTransportMode { None, FastForward, Rewind }
 
 data class EmulationUiState(
+    val gamePlatform: GamePlatform = GamePlatform.N3DS,
     val runtimeFailure: RuntimeFailure? = null,
     val isRunning: Boolean = false,
     val isStarting: Boolean = false,
@@ -404,6 +410,14 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
     private var shouldTrackCurrentProfilePlayTime = false
     private val playTimeSyncMutex = Mutex()
     init {
+        viewModelScope.launch(Dispatchers.IO) {
+            com.sbro.emucored.data.cheats.CheatRuntimeUpdates.changes.collect { identity ->
+                if (identity == currentGamePath && activeGamePlatform() != GamePlatform.N3DS) {
+                    refreshAvailableTypedCheats()
+                    syncCheatsForCurrentGame()
+                }
+            }
+        }
         viewModelScope.launch {
             preferences.migrateOverlayLayoutIfNeeded()
         }
@@ -822,7 +836,8 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
                         serial = serial,
                         coverArtPath = coverArtPath,
                         durationMs = durationMs,
-                        sessionCount = if (shouldCountCurrentProfileSession) 1L else 0L
+                        sessionCount = if (shouldCountCurrentProfileSession) 1L else 0L,
+                        platform = activeGamePlatform()
                     )
                 )
             }.isSuccess
@@ -1039,6 +1054,11 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
                 performShutdown()
             }
 
+            currentGamePath?.let { source ->
+                val known = ConsoleGameDiscovery.identify(getApplication(), source)
+                    ?: GamePlatform.forPath(source)
+                if (known != null) _uiState.value = _uiState.value.copy(gamePlatform = known)
+            }
             var finalLaunchPath: String? = null
             var dsRenderScale = 1
             var dsRenderer = 14
@@ -1061,7 +1081,7 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
                 )
                 delay(200.milliseconds)
 
-                if (activeGamePlatform() != GamePlatform.NDS) {
+                if (activeGamePlatform() == GamePlatform.N3DS) {
                     EmulatorBridge.applyRuntimeConfig(
                         emulatorDataPath = config.emulatorDataPath,
                         renderer = renderer,
@@ -1097,6 +1117,7 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
                 val bootSourcePath = launchPathOverride?.takeIf { it.isNotBlank() } ?: path
                 val launchPath = when {
                     bootSourcePath.isNullOrBlank() -> null
+                    activeGamePlatform() !in setOf(GamePlatform.N3DS, GamePlatform.NDS) -> bootSourcePath
                     bootSourcePath.startsWith("content://") && DocumentPathResolver.getDisplayName(getApplication(), bootSourcePath)
                         .substringAfterLast('.', "").equals("elf", ignoreCase = true) ->
                             DocumentPathResolver.prepareElfLaunchPath(getApplication(), bootSourcePath)
@@ -1160,7 +1181,7 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
                         launchPath?.removePrefix("!")?.startsWith("/") == true -> "file"
                         else -> "unknown"
                     }
-                    pendingPerGameCoreOptions = if (activeGamePlatform() == GamePlatform.NDS) emptyMap() else (
+                    pendingPerGameCoreOptions = if (activeGamePlatform() != GamePlatform.N3DS) emptyMap() else (
                         existingProfile
                             ?: safePath.takeIf { it.isNotBlank() }?.let(perGameSettingsRepository::get)
                         )?.coreOptions.orEmpty()
@@ -1363,7 +1384,8 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
                     saveStateIdentityPath = path,
                     dsRenderScale = dsRenderScale,
                     dsRenderer = dsRenderer,
-                    dsSwapScreens = _uiState.value.swapScreens
+                    dsSwapScreens = _uiState.value.swapScreens,
+                    platformOverride = activeGamePlatform()
                 )
             } catch (error: Exception) {
                 Log.e(TAG, "EmulatorBridge.startEmulation failed", error)
@@ -1380,6 +1402,10 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
                 EmulatorBridge.setSwapScreens(_uiState.value.swapScreens)
                 RetroAchievementsRepository.get(getApplication()).onGameStarted(pathToLaunch)
                 syncCheatsForCurrentGame()
+                if (activeGamePlatform() !in setOf(GamePlatform.N3DS, GamePlatform.NDS)) {
+                    _uiState.value = _uiState.value.copy(perGameCoreOptions = CoreOptionPreferences(getApplication())
+                        .effectiveOptions(activeGamePlatform().console, currentGamePath))
+                }
                 // Per-game core options win over the global store.
                 pendingPerGameCoreOptions.forEach { (coreKey, coreValue) ->
                     NativeApp.applyCoreOption(coreKey, coreValue)
@@ -1535,6 +1561,28 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
      * made while the core is live (BIOS only) still persists globally.
      */
     fun setCoreOption(key: String, value: String) {
+        val selectedPlatform = activeGamePlatform()
+        if (selectedPlatform !in setOf(GamePlatform.N3DS, GamePlatform.NDS)) {
+            val option = CoreOptionSchema.options(selectedPlatform.console).find { it.key == key } ?: return
+            if (!option.accepts(value)) return
+            viewModelScope.launch(Dispatchers.IO) {
+                val identity = currentGamePath ?: return@launch
+                if (!option.restartRequired && AdditionalConsoleSession.session?.applyOption(key, value) != true) return@launch
+                val store = CoreOptionPreferences(getApplication())
+                if (!store.setGameOverride(selectedPlatform.console, identity, key, value)) return@launch
+                val existing = perGameSettingsRepository.get(identity)
+                val coreOptions = store.gameOverrides(selectedPlatform.console, identity)
+                val profile = existing?.copy(gamePlatform = selectedPlatform, coreOptions = coreOptions,
+                    providedKeys = existing.providedKeys?.plus("coreOptions")) ?: PerGameSettings(
+                    gameKey = identity, gameTitle = resolvePerGameTitle(_uiState.value), gamePlatform = selectedPlatform,
+                    gameSerial = currentGameSerial.takeIf(String::isNotBlank), coreOptions = coreOptions,
+                    providedKeys = setOf("coreOptions"))
+                perGameSettingsRepository.save(profile)
+                _uiState.value = _uiState.value.copy(gameSettingsProfileActive = true,
+                    perGameCoreOptions = store.effectiveOptions(selectedPlatform.console, identity))
+            }
+            return
+        }
         if (key == "swap_screen") {
             value.toBooleanStrictOrNull()?.let { swapped -> updateScreenSwap { swapped } }
             return
@@ -2096,6 +2144,10 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
      */
     fun refreshAvailableCheats() {
         viewModelScope.launch(Dispatchers.IO) {
+            if (activeGamePlatform() != GamePlatform.N3DS) {
+                refreshAvailableTypedCheats()
+                return@launch
+            }
             val path = currentGamePath
             val metadata = path?.takeIf { it.isNotBlank() }?.let { EmulatorBridge.getGameMetadata(it) }
             val serial = currentGameSerial.takeIf { it.isNotBlank() }
@@ -2263,7 +2315,7 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
 
     private fun activePerGameKey(): String? = currentGamePath?.takeIf { it.isNotBlank() }
 
-    private fun activeGamePlatform(): GamePlatform = PlatformUiCapabilities.forGame(currentGamePath).platform
+    private fun activeGamePlatform(): GamePlatform = GamePlatform.forPath(currentGamePath.orEmpty()) ?: _uiState.value.gamePlatform
 
     private fun resolvePerGameTitle(state: EmulationUiState): String {
         return state.currentGameTitle
@@ -2443,6 +2495,38 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
         val gameKey = activePerGameKey() ?: return
         val platform = activeGamePlatform()
         val settings = preferences.settingsSnapshot.first()
+        if (platform !in setOf(GamePlatform.N3DS, GamePlatform.NDS)) {
+            val options = CoreOptionPreferences(getApplication())
+            val previous = options.effectiveOptions(platform.console, gameKey)
+            val global = CoreOptionSchema.resolve(platform.console, options.globalOptions(platform.console))
+            val changed = mutableListOf<String>()
+            val guest = AdditionalConsoleSession.session
+            for (definition in CoreOptionSchema.options(platform.console).filterNot { it.restartRequired }) {
+                val value = global.getValue(definition.key)
+                if (value == previous[definition.key]) continue
+                if (guest != null && !guest.applyOption(definition.key, value)) {
+                    for (key in changed.asReversed()) previous[key]?.let { guest.applyOption(key, it) }
+                    return
+                }
+                changed += definition.key
+            }
+            options.resetGame(platform.console, gameKey)
+            perGameSettingsRepository.delete(gameKey)
+            currentTouchControlsLayoutProfile = null
+            currentCustomTouchControlsProfile = null
+            pendingPerGameCoreOptions = emptyMap()
+            GamepadManager.clearPerGameOverrides()
+            refreshKeyboardMouseOverride()
+            val actualRenderer = _uiState.value.renderer
+            _uiState.value = _uiState.value.withGlobalRuntimeDefaults(settings, platform, false)
+                .withOverlayLayoutSnapshot(preferences.overlayLayoutSnapshot.first()).copy(
+                    renderer = actualRenderer, upscale = global["resolution"]?.toFloatOrNull() ?: 1f,
+                    gameSettingsProfileActive = false, perGameCoreOptions = global)
+            syncGamepadRuntimeSettings(_uiState.value)
+            syncNativePerformanceOverlayState(_uiState.value)
+            updateCrashContext()
+            return
+        }
         val defaults = settings.forPlatform(platform)
         val config = loadLaunchConfig(includeProfile = false, globalSettings = settings)
         val layout = preferences.overlayLayoutSnapshot.first()
@@ -2459,7 +2543,7 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
             return
         }
         EmulatorBridge.setUpscaleMultiplier(defaults.upscaleMultiplier)
-        if (platform != GamePlatform.NDS) {
+        if (platform == GamePlatform.N3DS) {
             EmulatorBridge.applyRuntimeConfig(
                 emulatorDataPath = config.emulatorDataPath,
                 renderer = config.renderer,
@@ -2492,7 +2576,7 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
         refreshKeyboardMouseOverride()
         // Restore the global/core-default value of any option that was overridden
         // only by this game, so the live core matches the reset profile.
-        if (platform != GamePlatform.NDS) pendingPerGameCoreOptions.keys.forEach { key ->
+        if (platform == GamePlatform.N3DS) pendingPerGameCoreOptions.keys.forEach { key ->
             NativeApp.getCoreOption(key)?.let { baseValue -> NativeApp.applyCoreOption(key, baseValue) }
         }
         pendingPerGameCoreOptions = emptyMap()
@@ -2503,7 +2587,7 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
         EmulatorBridge.setSwapScreens(resetSwap)
         syncNativePerformanceOverlayState(_uiState.value)
         syncGamepadRuntimeSettings(_uiState.value)
-        if (platform != GamePlatform.NDS) withContext(Dispatchers.IO) { syncCheatsForCurrentGame() }
+        if (platform == GamePlatform.N3DS) withContext(Dispatchers.IO) { syncCheatsForCurrentGame() }
         updateCrashContext()
     }
 
@@ -2547,7 +2631,14 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
             if (activeGamePlatform() == GamePlatform.NDS) config.copy(
                 renderer = DsSettingsPolicy.normalizeRenderer(config.renderer),
                 upscaleMultiplier = DsSettingsPolicy.normalizeUpscaleMultiplier(config.upscaleMultiplier)
-            ) else config
+            ) else if (activeGamePlatform() != GamePlatform.N3DS) {
+                val platform = activeGamePlatform()
+                val options = CoreOptionPreferences(getApplication()).effectiveOptions(platform.console, currentGamePath)
+                config.copy(renderer = if (platform in setOf(GamePlatform.GAMECUBE, GamePlatform.WII))
+                    (if (options["graphics_backend"] == "opengl") 12 else 14) else 13,
+                    upscaleMultiplier = options["resolution"]?.toFloatOrNull() ?: 1f,
+                    swapScreens = false, shaderChainEnabled = false)
+            } else config
         }
     }
 
@@ -2723,6 +2814,7 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
             gameKey = gameKey,
             gameTitle = gameTitle,
             gameSerial = gameSerial,
+            gamePlatform = activeGamePlatform(),
             renderer = renderer,
             upscaleMultiplier = upscale,
             aspectRatio = aspectRatio,
@@ -2812,8 +2904,8 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
         metadata: com.sbro.emucored.core.GameMetadata,
         cheatsEnabled: Boolean = _uiState.value.enableCheats
     ) {
-        if (activeGamePlatform() == GamePlatform.NDS) {
-            _uiState.value = _uiState.value.copy(cheatsGameKey = null, availableCheats = emptyList())
+        if (activeGamePlatform() != GamePlatform.N3DS) {
+            refreshAvailableTypedCheats()
             return
         }
         val serial = metadata.serial.orEmpty()
@@ -2832,8 +2924,22 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
         }
     }
 
-    private fun syncCheatsForCurrentGame(gameKeyOverride: String? = null) {
-        if (activeGamePlatform() == GamePlatform.NDS) return
+    private fun refreshAvailableTypedCheats() {
+        val identity = currentGamePath ?: return
+        val platform = activeGamePlatform()
+        val config = cheatRepository.typedGameConfig(platform, identity)
+        if (identity != currentGamePath || platform != activeGamePlatform()) return
+        _uiState.value = _uiState.value.copy(cheatsGameKey = config?.gameKey, availableCheats = config?.blocks.orEmpty())
+    }
+
+    private suspend fun syncCheatsForCurrentGame(gameKeyOverride: String? = null) {
+        if (activeGamePlatform() != GamePlatform.N3DS) {
+            val identity = currentGamePath ?: return
+            val platform = activeGamePlatform()
+            val codes = if (_uiState.value.enableCheats) cheatRepository.enabledTypedCodes(platform, identity) else emptyList()
+            if (identity == currentGamePath && platform == activeGamePlatform()) EmulatorBridge.replaceCheats(codes)
+            return
+        }
         val state = _uiState.value
         val serial = currentGameSerial.takeIf { it.isNotBlank() }
         val crc = currentGameCrc.takeIf { it.isNotBlank() }
@@ -2961,6 +3067,7 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
     }
 
     private suspend fun waitForSaveStateUpdate(gamePath: String, slot: Int, previousModified: Long): Boolean {
+        if (AdditionalConsoleSession.isActive) return AdditionalConsoleSession.stateFile(slot)?.isFile == true
         if (DsSession.isActive) {
             return awaitSaveStateFileUpdate(previousModified) { DsSession.statePath(slot)?.let(::File) }
         }
@@ -2975,6 +3082,9 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
     }
 
     private fun resolveSaveStateFile(gamePath: String, slot: Int): File? {
+        val platform = activeGamePlatform()
+        if (platform !in setOf(GamePlatform.N3DS, GamePlatform.NDS))
+            return ConsoleSessionStorage.stateFile(getApplication<Application>().filesDir, platform.console, gamePath, slot)
         if (DsSession.isActive) {
             return DsSession.statePath(slot)?.let(::File)
         }

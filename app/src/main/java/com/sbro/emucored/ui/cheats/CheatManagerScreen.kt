@@ -51,6 +51,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -62,7 +63,11 @@ import com.sbro.emucored.data.CheatGameConfig
 import com.sbro.emucored.data.CheatRepository
 import com.sbro.emucored.data.ContentLibraryRepository
 import com.sbro.emucored.data.GameItem
-import com.sbro.emucored.core.NativeApp
+import com.sbro.emucored.data.cheats.CheatRuntimeUpdates
+import com.sbro.emucored.data.cheats.TypedCheatCatalog
+import com.sbro.emucored.core.platform.session.CoreCheatFormats
+import com.sbro.emucored.core.platform.session.CoreCheatCode
+import com.sbro.emucored.data.GamePlatform
 import com.sbro.emucored.data.SelectedGameIdentity
 import com.sbro.emucored.ui.common.AppAlertDialog
 import com.sbro.emucored.ui.common.LibraryGamePicker
@@ -100,6 +105,7 @@ fun CheatManagerScreen(onBackClick: () -> Unit) {
     var config by remember { mutableStateOf<CheatGameConfig?>(null) }
     var resolvingIdentity by remember { mutableStateOf(false) }
     var pendingDelete by remember { mutableStateOf<CheatGameConfig?>(null) }
+    var pendingDeletePath by remember { mutableStateOf<String?>(null) }
     var selectedCheatCategory by remember { mutableStateOf<CheatCategory?>(null) }
     var cheatSearchVisible by remember { mutableStateOf(false) }
     var cheatSearchQuery by remember { mutableStateOf("") }
@@ -113,6 +119,8 @@ fun CheatManagerScreen(onBackClick: () -> Unit) {
     val deleteSuccess = stringResource(R.string.cheat_manager_delete_success)
 
     suspend fun loadConfig(selectedIdentity: SelectedGameIdentity?): CheatGameConfig? = withContext(Dispatchers.IO) {
+        val game = games.firstOrNull { it.path == selectedPath }
+        if (game != null && game.platform != GamePlatform.N3DS) return@withContext cheatRepository.typedGameConfig(game.platform,game.path)
         val serial = selectedIdentity?.serial.orEmpty()
         val crc = selectedIdentity?.crc
         val keys = buildList {
@@ -124,6 +132,7 @@ fun CheatManagerScreen(onBackClick: () -> Unit) {
     }
 
     fun syncSelectedGame() {
+        val changedPath=selectedPath
         scope.launch {
             val loaded = loadConfig(identity) ?: return@launch
             config = loaded
@@ -135,12 +144,7 @@ fun CheatManagerScreen(onBackClick: () -> Unit) {
                         loaded.crc,
                         includeCheats = true
                     )
-                    val coreFile = cheatRepository.activeCoreCheatFile(loaded.gameKey, loaded.serial, loaded.crc)
-                    if (coreFile != null) {
-                        NativeApp.loadCheats(coreFile.absolutePath)
-                    } else {
-                        NativeApp.clearCheats()
-                    }
+                    changedPath?.let(CheatRuntimeUpdates::notifyChanged)
                 }
             }
         }
@@ -206,7 +210,11 @@ fun CheatManagerScreen(onBackClick: () -> Unit) {
         scope.launch {
             val result = withContext(Dispatchers.IO) {
                 runCatching {
-                    val text = context.contentResolver.openInputStream(uri)?.use { it.readBytes().decodeToString() }
+                    val text = context.contentResolver.openInputStream(uri)?.use { input ->
+                        val bytes=java.io.ByteArrayOutputStream();val buffer=ByteArray(16*1024)
+                        while(true){val n=input.read(buffer);if(n<0)break;require(bytes.size()+n<=4*1024*1024);bytes.write(buffer,0,n)}
+                        bytes.toByteArray().decodeToString()
+                    }
                         ?: return@runCatching 0
                     val fallbackName = runCatching {
                         context.contentResolver.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)
@@ -214,14 +222,21 @@ fun CheatManagerScreen(onBackClick: () -> Unit) {
                                 if (cursor.moveToFirst()) cursor.getString(0) else null
                             }
                     }.getOrNull()?.substringBeforeLast('.')
-                    val gameKey = identity?.let { resolved ->
+                    val typedGame=selectedGame?.takeIf{it.platform!=GamePlatform.N3DS}
+                    val gameKey = typedGame?.let{TypedCheatCatalog.gameKey(it.platform,it.path)} ?: identity?.let { resolved ->
                         if (!resolved.serial.isNullOrBlank() && !resolved.crc.isNullOrBlank()) {
                             "${resolved.serial}_${resolved.crc}"
                         } else resolved.crc ?: resolved.serial
                     } ?: selectedGame?.serial?.takeIf { it.isNotBlank() }
                         ?: fallbackName
                         ?: "cheat_${System.currentTimeMillis()}"
-                    cheatRepository.importCheatFile(gameKey, text, enableAllByDefault = false)
+                    val contents=if(typedGame==null)text else {
+                        val blocks=com.sbro.emucored.data.parseCheatBlocks(text).map{block ->
+                            if(block.format=="3ds-gateway")block.copy(format=if(typedGame.platform==GamePlatform.NDS)"nds-action-replay" else "unclassified") else block
+                        }
+                        TypedCheatCatalog.serialize(blocks)
+                    }
+                    cheatRepository.importCheatFile(gameKey, contents, enableAllByDefault = false)
                 }.getOrDefault(0)
             }
             if (result > 0) {
@@ -282,29 +297,19 @@ fun CheatManagerScreen(onBackClick: () -> Unit) {
                             Switch(
                                 checked = cheatsEnabled,
                                 onCheckedChange = { enabled ->
+                                    val changedPath=selectedPath
+                                    val currentConfig=config
                                     scope.launch {
                                         preferences.setEnableCheats(enabled)
-                                        val currentConfig = config
-                                        if (currentConfig != null) {
+                                        withContext(Dispatchers.IO) { if (currentConfig != null) {
                                             cheatRepository.syncActiveCheats(
                                                 currentConfig.gameKey,
                                                 currentConfig.serial,
                                                 currentConfig.crc,
                                                 includeCheats = enabled
                                             )
-                                            val coreFile = cheatRepository.activeCoreCheatFile(
-                                                currentConfig.gameKey,
-                                                currentConfig.serial,
-                                                currentConfig.crc
-                                            )
-                                            if (coreFile != null) {
-                                                NativeApp.loadCheats(coreFile.absolutePath)
-                                            } else {
-                                                NativeApp.clearCheats()
-                                            }
-                                        } else {
-                                            NativeApp.clearCheats()
-                                        }
+                                        } }
+                                        changedPath?.let(CheatRuntimeUpdates::notifyChanged)
                                     }
                                 }
                             )
@@ -517,9 +522,15 @@ fun CheatManagerScreen(onBackClick: () -> Unit) {
                         }
                     } else {
                         items(visibleInstalledBlocks, key = { block -> "cheat-block-${block.id}" }) { block ->
+                            val supported=remember(block.format,block.lines,selectedGame?.platform) {
+                                selectedGame?.platform?.let { CoreCheatFormats.accepts(it.console.core,
+                                    CoreCheatCode(block.format,block.lines.joinToString("\n"))) } ?: false
+                            }
                             CheatToggleCard(
                                 block = block,
+                                supported = supported,
                                 onEnabledChange = { enabled ->
+                                    val changedPath=selectedPath
                                     val latest = config ?: current
                                     val updatedBlocks = latest.blocks.map { item ->
                                         if (item.id == block.id) item.copy(enabled = enabled) else item
@@ -536,16 +547,7 @@ fun CheatManagerScreen(onBackClick: () -> Unit) {
                                                 latest.serial,
                                                 latest.crc
                                             )
-                                            val coreFile = cheatRepository.activeCoreCheatFile(
-                                                latest.gameKey,
-                                                latest.serial,
-                                                latest.crc
-                                            )
-                                            if (coreFile != null) {
-                                                NativeApp.loadCheats(coreFile.absolutePath)
-                                            } else {
-                                                NativeApp.clearCheats()
-                                            }
+                                            changedPath?.let(CheatRuntimeUpdates::notifyChanged)
                                         }
                                     }
                                 },
@@ -561,7 +563,7 @@ fun CheatManagerScreen(onBackClick: () -> Unit) {
                 item(key = "cheat-delete") {
                     OutlinedButton(
                         shape = neonButtonShape(),
-                        onClick = { pendingDelete = current },
+                        onClick = { pendingDelete = current;pendingDeletePath=selectedPath },
                         modifier = Modifier.animateItem(
                             fadeInSpec = tween(220),
                             placementSpec = tween(220),
@@ -585,7 +587,7 @@ fun CheatManagerScreen(onBackClick: () -> Unit) {
             confirmButton = {
                 TextButton(onClick = {
                     cheatRepository.deleteImportedCheats(current.gameKey, current.serial, current.crc)
-                    NativeApp.clearCheats()
+                    pendingDeletePath?.let(CheatRuntimeUpdates::notifyChanged)
                     config = null
                     pendingDelete = null
                     Toast.makeText(context, deleteSuccess, Toast.LENGTH_SHORT).show()
@@ -698,9 +700,11 @@ private fun CheatCategoryCard(
 @Composable
 private fun CheatToggleCard(
     block: CheatBlock,
+    supported: Boolean,
     onEnabledChange: (Boolean) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val links=LocalUriHandler.current
     Surface(
         modifier = modifier.fillMaxWidth(),
         shape = neonShape(16.dp),
@@ -724,9 +728,15 @@ private fun CheatToggleCard(
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
+                if(!supported)Text(stringResource(R.string.cheat_format_unsupported),style=MaterialTheme.typography.bodySmall,
+                    color=MaterialTheme.colorScheme.onSurfaceVariant)
+                block.sourceUrl?.takeIf{it.startsWith("https://")}?.let { source ->
+                    TextButton(onClick={runCatching{links.openUri(source)}}){Text(stringResource(R.string.content_source))}
+                }
             }
             Switch(
                 checked = block.enabled,
+                enabled = supported || block.enabled,
                 onCheckedChange = onEnabledChange
             )
         }

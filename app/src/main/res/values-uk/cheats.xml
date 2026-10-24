@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="cheat_catalog_browse_all">Переглянути всі чіти для цієї консолі</string>
+    <string name="cheat_catalog_manual_attach">Прив’язати до вибраної гри</string>
+    <string name="cheat_catalog_manual_warning">Відповідність цього набору грі не підтверджена. Перед увімкненням кодів перевірте регіон, ревізію та формат.</string>
+    <string name="cheat_format_unsupported">Вибране ядро не підтримує цей формат чітів.</string>
+</resources>

@@ -3,6 +3,7 @@
 package com.sbro.emucored.core
 
 import android.content.Context
+import com.sbro.emucored.core.platform.session.AdditionalConsoleSession
 import android.os.SystemClock
 import android.os.Handler
 import android.os.Looper
@@ -460,16 +461,24 @@ internal object CoreRuntime {
     fun setPadButtons(port: Int, buttons: Int) {
         if (port !in 0..1) return
         desiredPadButtons.set(port, buttons and 0xFFFF)
+        if (AdditionalConsoleSession.isActive) { AdditionalConsoleSession.setPadButtons(port, buttons); return }
         flushPadButtons(port)
     }
 
     fun setPadAnalog(port: Int, lx: Int, ly: Int, rx: Int, ry: Int) {
         if (port !in 0..1) return
         desiredPadAnalog.set(port, packedAnalog(lx, ly, rx, ry))
+        if (AdditionalConsoleSession.isActive) { AdditionalConsoleSession.setPadAnalog(port, lx, ly, rx, ry); return }
         flushPadAnalog(port)
     }
 
     fun setTouchState(x: Int, y: Int, pressed: Boolean) {
+        if (AdditionalConsoleSession.isActive) {
+            AdditionalConsoleSession.session?.setTouch(
+                (x.coerceIn(0, FRAMEBUFFER_WIDTH) * surfaceWidth.toLong() / FRAMEBUFFER_WIDTH).toInt(),
+                (y.coerceIn(0, FRAMEBUFFER_HEIGHT) * surfaceHeight.toLong() / FRAMEBUFFER_HEIGHT).toInt(), pressed)
+            return
+        }
         if (!running) return
         runCatching {
             EmuCoreNative.onTouchEvent(
@@ -477,6 +486,15 @@ internal object CoreRuntime {
                 y.toFloat(),
                 pressed
             )
+        }
+    }
+
+    internal fun replayAdditionalInput() {
+        for (port in 0..1) {
+            AdditionalConsoleSession.setPadButtons(port, desiredPadButtons.get(port))
+            val axes = desiredPadAnalog.get(port)
+            AdditionalConsoleSession.setPadAnalog(port, axes and 255, (axes ushr 8) and 255,
+                (axes ushr 16) and 255, (axes ushr 24) and 255)
         }
     }
 
@@ -626,6 +644,10 @@ internal object CoreRuntime {
     }
 
     fun setTimeControl(mode: Int) {
+        if (AdditionalConsoleSession.isActive) {
+            AdditionalConsoleSession.setTimeControl(mode, CoreOptionStore.optional("turbo_limit")?.toFloatOrNull() ?: 2f)
+            return
+        }
         // 0 normal, 1 fast forward, 2 rewind (the core has no rewind).
         if (!running) return
         val speed = if (mode == 1) CoreOptionStore.optional("turbo_limit")?.toDoubleOrNull() ?: 2.0

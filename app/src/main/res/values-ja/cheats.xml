@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="cheat_catalog_browse_all">この本体のすべてのチートを表示</string>
+    <string name="cheat_catalog_manual_attach">選択したゲームに関連付ける</string>
+    <string name="cheat_catalog_manual_warning">このパックとゲームの一致は未確認です。コードを有効にする前に、地域、リビジョン、形式を確認してください。</string>
+    <string name="cheat_format_unsupported">選択したコアはこのチート形式に対応していません。</string>
+</resources>

@@ -18,13 +18,15 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Description
-import androidx.compose.material.icons.rounded.FolderZip
-import androidx.compose.material.icons.rounded.Memory
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -33,7 +35,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.sbro.emucored.R
-import com.sbro.emucored.core.N3dsGameFormats
+import com.sbro.emucored.core.ConsoleGameFormats
+import com.sbro.emucored.core.platform.ConsolePlatform
+import com.sbro.emucored.data.GamePlatform
+import com.sbro.emucored.ui.common.gamePlatformLabelResource
+import com.sbro.emucored.ui.settings.ConsoleSelector
 import com.sbro.emucored.ui.common.ScreenTopBar
 import com.sbro.emucored.ui.common.appScreenTopPadding
 import com.sbro.emucored.ui.common.navigationBarsHorizontalPaddingValues
@@ -46,6 +52,8 @@ import com.sbro.emucored.ui.theme.neon.neonShape
 fun SupportedFormatsScreen(
     onBackClick: (() -> Unit)? = null
 ) {
+    var selectedConsole by rememberSaveable { mutableStateOf(ConsolePlatform.N3DS) }
+    val profile = ConsoleGameFormats.profile(selectedConsole)
     val topInset = appScreenTopPadding()
     val bottomInset = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
     val horizontalSystemBarPadding = navigationBarsHorizontalPaddingValues()
@@ -70,26 +78,34 @@ fun SupportedFormatsScreen(
                     .padding(horizontal = ScreenHorizontalPadding),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
+                ConsoleSelector(selected = selectedConsole, onSelected = { selectedConsole = it })
+                val requirement = when (selectedConsole) {
+                    ConsolePlatform.N3DS -> R.string.formats_3ds_body
+                    ConsolePlatform.NDS -> R.string.formats_ds_body
+                    ConsolePlatform.NES -> R.string.formats_fds_body
+                    else -> R.string.formats_images_body
+                }
                 FormatGroupCard(
                     icon = Icons.Rounded.Description,
-                    title = stringResource(R.string.formats_psp_supported_title),
-                    body = stringResource(R.string.formats_psp_supported_body),
-                    formats = N3dsGameFormats.libraryFormats
+                    title = stringResource(gamePlatformLabelResource(GamePlatform.valueOf(selectedConsole.name))),
+                    body = stringResource(requirement),
+                    formats = profile.images.map { it.uppercase(java.util.Locale.ROOT) }
                 )
-
-                FormatGroupCard(
-                    icon = Icons.Rounded.Memory,
-                    title = stringResource(R.string.formats_psp_recommended_title),
-                    body = stringResource(R.string.formats_psp_recommended_body),
-                    formats = N3dsGameFormats.libraryFormats + N3dsGameFormats.homebrewFormats
-                )
-
-                FormatGroupCard(
-                    icon = Icons.Rounded.FolderZip,
-                    title = stringResource(R.string.formats_psp_homebrew_title),
-                    body = stringResource(R.string.formats_psp_homebrew_body),
-                    formats = N3dsGameFormats.homebrewFormats
-                )
+                if (profile.executables.isNotEmpty()) {
+                    FormatGroupCard(
+                        icon = Icons.Rounded.Description,
+                        title = stringResource(R.string.formats_psp_homebrew_title),
+                        body = stringResource(R.string.formats_executables_body),
+                        formats = profile.executables.map { it.uppercase(java.util.Locale.ROOT) }
+                    )
+                }
+                if (requirement != R.string.formats_images_body) {
+                    Text(
+                        text = stringResource(R.string.formats_images_body),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             }
         }
     }

@@ -48,6 +48,7 @@ object DsSession {
     private var appContext: Context? = null
     private var launchPath: String? = null
     private var launchIdentityPath: String? = null
+    private var appliedCheats:List<com.sbro.emucored.core.platform.session.CoreCheatCode> = emptyList()
 
     @Synchronized
     fun start(
@@ -125,6 +126,7 @@ object DsSession {
         secondarySurface = null
         stateDirectory = null
         keyMask = 0xFFF
+        appliedCheats=emptyList()
     }
 
     fun setSecondarySurface(surface: Surface?) {
@@ -155,6 +157,14 @@ object DsSession {
     }
 
     fun currentRenderScale(): Int = renderScale
+    @Synchronized
+    fun replaceCheats(codes:List<com.sbro.emucored.core.platform.session.CoreCheatCode>):Boolean {
+        if(!isActive || codes.size>4096 || codes.any{!com.sbro.emucored.core.platform.session.CoreCheatFormats.accepts(
+            com.sbro.emucored.core.platform.CoreId.MELONDS,it)})return false
+        val applied=EmuCoreDsNative.nativeReplaceCheats(codes.map{it.format}.toTypedArray(),codes.map{it.code}.toTypedArray())
+        if(applied)appliedCheats=codes.toList()
+        return applied
+    }
 
     @Synchronized
     fun setRenderer(renderer: Int): Boolean {
@@ -169,6 +179,7 @@ object DsSession {
         val identity = launchIdentityPath ?: path
         val previousRenderer = this.renderer
         val wasPaused = isPaused
+        val currentCheats=appliedCheats.toList()
         val swap = swapScreens
         val layout = layoutMode
         val scale = renderScale
@@ -195,6 +206,7 @@ object DsSession {
             setLayout(layout)
             setSwapScreens(swap)
             if (!EmuCoreDsNative.nativeLoadState(checkpoint.absolutePath)) return@runCatching false
+            if (!replaceCheats(currentCheats)) return@runCatching false
             if (!wasPaused) resume()
             true
         }.getOrElse {

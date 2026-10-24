@@ -14,6 +14,8 @@ final class DolphinNative {
     static native boolean speed(float multiplier);
     static native boolean state(String path, boolean save);
     static native boolean option(String key, String value);
+    static native String optionValue(String key);
+    static native String[] optionCapabilities();
     static native long frames();
     static native int probe(String path);
 }

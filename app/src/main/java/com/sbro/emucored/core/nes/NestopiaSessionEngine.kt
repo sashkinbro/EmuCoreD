@@ -10,9 +10,12 @@ import java.io.File
 /** All JNI calls, including open and teardown, run on the session's owned thread. */
 class NestopiaSessionEngine : ThreadedFrameSessionEngine() {
  override val coreId = CoreId.NESTOPIA
+ override fun validateLaunch(request: EngineLaunchRequest): String? =
+  NesFirmwarePolicy.failureReason(request.launchPath, request.userDirectory)
  override fun nativeOpen(request: EngineLaunchRequest, directory: File): Long {
   System.loadLibrary("emucored_nes")
-  return nativeCreate(request.launchPath,File(directory,"battery.sav").absolutePath,request.platform.name)
+  return nativeCreate(request.launchPath,File(directory,"battery.sav").absolutePath,request.platform.name,
+   File(request.userDirectory, "firmware/disksys.rom").absolutePath)
  }
  override fun nativeClose(handle: Long) = nativeDestroy(handle)
  override fun nativeRunFrame(handle: Long): Boolean = nativeFrame(handle)
@@ -22,7 +25,9 @@ class NestopiaSessionEngine : ThreadedFrameSessionEngine() {
  override fun nativeSetButton(handle: Long, player: Int, button: EngineButton, pressed: Boolean) = nativeButton(handle,player,button.ordinal,pressed)
  override fun nativeState(handle: Long, path: File, save: Boolean): Boolean = nativeStateFile(handle,path.absolutePath,save)
  override fun nativeApplyOption(handle: Long, key: String, value: String): Boolean = nativeOption(handle,key,value)
- private external fun nativeCreate(path: String,battery: String,platform: String): Long
+ override fun nativeReplaceCheats(handle: Long, formats: Array<String>, codes: Array<String>): Boolean = nativeCheats(handle,formats,codes)
+ private external fun nativeCheats(handle: Long, formats: Array<String>, codes: Array<String>): Boolean
+ private external fun nativeCreate(path: String,battery: String,platform: String,firmware: String): Long
  private external fun nativeDestroy(handle: Long)
  private external fun nativeFrame(handle: Long): Boolean
  private external fun nativeRate(handle: Long): Double

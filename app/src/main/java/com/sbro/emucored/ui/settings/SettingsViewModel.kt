@@ -230,6 +230,16 @@ data class AppUpdateUiState(
 class SettingsViewModel(application: Application) : AndroidViewModel(application) {
 
     private val preferences = AppPreferences(application)
+    private val coreOptionPreferences = com.sbro.emucored.core.platform.CoreOptionPreferences(application)
+    private val _coreOptionsRevision = MutableStateFlow(0)
+    val coreOptionsRevision: StateFlow<Int> = _coreOptionsRevision.asStateFlow()
+
+    fun coreOptions(platform: com.sbro.emucored.core.platform.ConsolePlatform): Map<String, String> =
+        coreOptionPreferences.effectiveOptions(platform)
+
+    fun setConsoleCoreOption(platform: com.sbro.emucored.core.platform.ConsolePlatform, key: String, value: String) {
+        if (coreOptionPreferences.setGlobal(platform, key, value)) _coreOptionsRevision.value++
+    }
     private val customFontRepository = CustomFontRepository(application)
     private val homeBackgroundRepository = HomeBackgroundRepository(application)
     private val emulationSideArtworkRepository = EmulationSideArtworkRepository(application)
@@ -930,6 +940,8 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
     fun resetAllSettings() {
         viewModelScope.launch {
             preferences.resetAllSettings()
+            coreOptionPreferences.resetAll()
+            _coreOptionsRevision.value++
         }
     }
 

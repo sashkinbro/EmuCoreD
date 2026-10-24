@@ -25,6 +25,7 @@ class PlayTimeSyncCacheRepository(context: Context) {
                     title = entry.title.ifBlank { existing.title },
                     serial = entry.serial ?: existing.serial,
                     coverArtPath = entry.coverArtPath ?: existing.coverArtPath,
+                    platform = entry.platform ?: existing.platform,
                     durationMs = existing.durationMs + entry.durationMs,
                     sessionCount = existing.sessionCount + entry.sessionCount,
                     lastPlayedAtMs = maxOf(existing.lastPlayedAtMs, entry.lastPlayedAtMs)
@@ -59,6 +60,7 @@ class PlayTimeSyncCacheRepository(context: Context) {
                         title = entry.title.ifBlank { existing.title },
                         serial = entry.serial ?: existing.serial,
                         coverArtPath = entry.coverArtPath ?: existing.coverArtPath,
+                        platform = entry.platform ?: existing.platform,
                         durationMs = existing.durationMs + entry.durationMs,
                         sessionCount = existing.sessionCount + entry.sessionCount,
                         lastPlayedAtMs = maxOf(existing.lastPlayedAtMs, entry.lastPlayedAtMs)
@@ -100,7 +102,8 @@ class PlayTimeSyncCacheRepository(context: Context) {
                         coverArtPath = json.optString("cover").takeIf { it.isNotBlank() },
                         durationMs = json.optLong("durationMs"),
                         sessionCount = json.optLong("sessions"),
-                        lastPlayedAtMs = json.optLong("lastPlayedAtMs")
+                        lastPlayedAtMs = json.optLong("lastPlayedAtMs"),
+                        platform = GamePlatform.entries.firstOrNull { it.name == json.optString("platform") }
                     )
                     if (!entry.gamePath.isNullOrBlank() && entry.durationMs > 0L && !isAutotestPlayTimeEntry(entry)) {
                         put(buildCacheKey(entry), entry)
@@ -122,14 +125,14 @@ class PlayTimeSyncCacheRepository(context: Context) {
                     .put("durationMs", entry.durationMs)
                     .put("sessions", entry.sessionCount)
                     .put("lastPlayedAtMs", entry.lastPlayedAtMs)
+                    .put("platform", entry.platform?.name.orEmpty())
             )
         }
         preferences.edit { putString(KEY_PENDING_ENTRIES, array.toString()) }
     }
 
     private fun buildCacheKey(entry: PlayerPlayTimeDelta): String {
-        return entry.serial?.takeIf { it.isNotBlank() }?.uppercase()
-            ?: entry.gamePath.orEmpty()
+        return profilePlayTimeCacheKey(entry)
     }
 
     private companion object {

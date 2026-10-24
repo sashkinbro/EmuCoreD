@@ -48,6 +48,45 @@ class CoverIdentityResolverTest {
             .resolve("NTR-P-B6FE", null, GamePlatform.NDS))
     }
 
+    @Test fun titleNormalizationPreservesPlusVersionsAndDropsTrademarks() {
+        assertEquals("super mario bros 3 plus", CoverIndexRepository.normalizeTitle("Super Mario Bros. 3+"))
+        assertEquals("final fantasy plus plus", CoverIndexRepository.normalizeTitle("Final Fantasy ++"))
+        assertEquals("pokemon", CoverIndexRepository.normalizeTitle("Pok\u00e9mon\u2122"))
+    }
+
+    @Test fun schemaThreeRequiresUnambiguousScopedTitles() {
+        val scoped = JSONObject("""{
+          "platform":"nes","version":3,
+          "games":{"1":{"name":"Contra"},"2":{"name":"Contra"},"3":{"name":"Solo Hero"}},
+          "titles":{"contra":"1","solo hero":"3"},
+          "title_candidates":{"contra":["1","2"],"solo hero":["3"]}
+        }""")
+        val resolver = CoverIdentityResolver(scoped, emptyMap(), GamePlatform.NES)
+        assertNull(resolver.resolve(null, "Contra (USA)", GamePlatform.NES))
+        assertNull(resolver.resolve(null, "Contra", GamePlatform.NES))
+        assertEquals("3", resolver.resolve(null, "Solo Hero (USA)", GamePlatform.NES))
+        assertNull(resolver.resolve(null, "Solo Hero", GamePlatform.SNES))
+        assertNull(resolver.resolve(null, "Solo Hero 2", GamePlatform.NES))
+    }
+
+    @Test fun selectedAssetHashTracksFallbackStyleAndRejectsUnsafePaths() {
+        val light = "a".repeat(64)
+        val flat = "b".repeat(64)
+        val game = JSONObject().put("path", "platforms/nes/flat/7.jpg")
+            .put("path_3d", "platforms/nes/3d/7.webp")
+            .put("sha256", flat).put("sha256_3d", light)
+        val selected = CoverIndexRepository.selectAsset(game, GamePlatform.NES, true, true)!!
+        assertEquals("platforms/nes/3d/7.webp", selected.path)
+        assertEquals(light, selected.sha256)
+        game.put("path_3d_dark", "platforms/snes/3d/dark/7.webp")
+        assertEquals(light, CoverIndexRepository.selectAsset(game, GamePlatform.NES, true, true)!!.sha256)
+        game.put("path", "platforms/nes/../snes/flat/7.jpg").remove("path_3d")
+        assertNull(CoverIndexRepository.selectAsset(game, GamePlatform.NES, false, false))
+        game.put("path", "covers/7.jpg")
+        assertNull(CoverIndexRepository.selectAsset(game, GamePlatform.NES, false, false))
+        assertEquals(flat, CoverIndexRepository.selectAsset(game, GamePlatform.NDS, false, false)!!.sha256)
+    }
+
     @Test fun concurrentRepeatedMissResolvesOnlyOnce() {
         val cache = CoverMatchCache(4)
         val calls = java.util.concurrent.atomic.AtomicInteger()

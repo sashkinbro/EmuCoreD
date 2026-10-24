@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="cheat_catalog_browse_all">浏览此主机的所有金手指</string>
+    <string name="cheat_catalog_manual_attach">关联到所选游戏</string>
+    <string name="cheat_catalog_manual_warning">尚未验证此包与游戏是否匹配。启用代码前，请检查地区、修订版本和格式。</string>
+    <string name="cheat_format_unsupported">所选核心不支持此金手指格式。</string>
+</resources>

@@ -143,6 +143,10 @@ import com.sbro.emucored.ui.common.premiumFilterChipColors
 import com.sbro.emucored.ui.common.tvGamepadFocusableCard
 import com.sbro.emucored.ui.common.tvFocusGroup
 import com.sbro.emucored.ui.common.navigationBarsHorizontalPaddingValues
+import com.sbro.emucored.core.platform.CoreOptionPreferences
+import com.sbro.emucored.core.platform.CoreOptionSchema
+import com.sbro.emucored.core.platform.ConsolePlatform
+import com.sbro.emucored.core.platform.SettingsCategory
 import com.sbro.emucored.ui.theme.ScreenHorizontalPadding
 import com.sbro.emucored.ui.theme.neon.LocalNeonTheme
 import com.sbro.emucored.ui.theme.neon.NeonSystemBanner
@@ -184,6 +188,15 @@ fun PerGameSettingsManagerScreen(
 ) {
     val context = LocalContext.current
     val repository = remember(context) { PerGameSettingsRepository(context) }
+    val coreOptionPreferences = remember(context) { CoreOptionPreferences(context) }
+    fun resetCoreOverrides(gameKey: String) {
+        ConsolePlatform.entries.forEach { coreOptionPreferences.resetGame(it, gameKey) }
+    }
+    fun syncCoreOverrides(profile: PerGameSettings) {
+        val platform = PlatformUiCapabilities.forGame(profile.gameKey, profile.gamePlatform).platform.console
+        if (platform !in setOf(ConsolePlatform.N3DS, ConsolePlatform.NDS))
+            coreOptionPreferences.replaceGameOverrides(platform, profile.gameKey, profile.coreOptions)
+    }
     val shaderRepository = remember(context) { RetroArchShaderRepository(context) }
     val preferences = remember(context) { AppPreferences(context) }
     val libraryCacheRepository = remember(context) { GameLibraryCacheRepository(context) }
@@ -232,6 +245,7 @@ fun PerGameSettingsManagerScreen(
                         providedKeys = null
                     )
                 )
+                syncCoreOverrides(draft)
                 repository.getAll()
             }
         }
@@ -298,7 +312,11 @@ fun PerGameSettingsManagerScreen(
                     val json = context.contentResolver.openInputStream(uri)?.use { input ->
                         JSONObject(input.readBytes().decodeToString())
                     } ?: return@runCatching false
+                    val previousKeys = repository.getAll().map { it.gameKey }
                     repository.importJson(json)
+                    previousKeys.forEach(::resetCoreOverrides)
+                    // An imported profile replaces its complete override set.
+                    repository.getAll().forEach(::syncCoreOverrides)
                     true
                 }.getOrDefault(false)
             }
@@ -319,7 +337,7 @@ fun PerGameSettingsManagerScreen(
                     fileSize = 0L,
                     lastModified = profile.updatedAt,
                     serial = profile.gameSerial,
-                    platform = PlatformUiCapabilities.forGame(profile.gameKey).platform
+                    platform = PlatformUiCapabilities.forGame(profile.gameKey, profile.gamePlatform).platform
                 )
             }
         (libraryGames + profileOnlyGames).sortedBy { it.title.lowercase() }
@@ -331,7 +349,7 @@ fun PerGameSettingsManagerScreen(
         selectedGamePath?.let { path -> availableGames.firstOrNull { it.path == path } }
     }
     LaunchedEffect(selectedGame) {
-        if (!PlatformUiCapabilities.forGame(selectedGame?.path, selectedGame?.platform).supportsAzaharOptions && selectedTab == GameSettingsManagerTab.Audio) {
+        if (!PlatformUiCapabilities.forGame(selectedGame?.path, selectedGame?.platform).supportsAudioOptions && selectedTab == GameSettingsManagerTab.Audio) {
             selectedTab = GameSettingsManagerTab.Core
         }
     }
@@ -488,6 +506,7 @@ fun PerGameSettingsManagerScreen(
                             scope.launch {
                                 profiles = withContext(Dispatchers.IO) {
                                     repository.delete(game.path)
+                                    resetCoreOverrides(game.path)
                                     repository.getAll()
                                 }
                             }
@@ -534,7 +553,7 @@ fun PerGameSettingsManagerScreen(
                     modifier = Modifier.gameManagerFullBleed()
                 ) {
                     GameSettingsManagerTabRow(
-                        supportsAudio = PlatformUiCapabilities.forGame(selectedGame?.path, selectedGame?.platform).supportsAzaharOptions,
+                        supportsAudio = PlatformUiCapabilities.forGame(selectedGame?.path, selectedGame?.platform).supportsAudioOptions,
                         selectedTab = selectedTab,
                         onSelected = { selectedTab = it }
                     )
@@ -687,6 +706,7 @@ fun PerGameSettingsManagerScreen(
                         scope.launch {
                             profiles = withContext(Dispatchers.IO) {
                                 repository.delete(profile.gameKey)
+                                resetCoreOverrides(profile.gameKey)
                                 repository.getAll()
                             }
                             pendingDeleteProfile.value = null
@@ -714,6 +734,7 @@ fun PerGameSettingsManagerScreen(
                     onClick = {
                         scope.launch {
                             profiles = withContext(Dispatchers.IO) {
+                                repository.getAll().forEach { resetCoreOverrides(it.gameKey) }
                                 repository.deleteAll()
                                 repository.getAll()
                             }
@@ -942,6 +963,16 @@ private fun GameSettingsTabContent(
     val nativeUpscaleLabel = stringResource(R.string.settings_upscale_native)
     val context = LocalContext.current
     val preferences = remember(context) { AppPreferences(context) }
+    val optionPreferences = remember(context) { CoreOptionPreferences(context) }
+    val console = capabilities.platform.console
+    val usesTypedOptions = console !in setOf(ConsolePlatform.N3DS, ConsolePlatform.NDS)
+    val values = CoreOptionSchema.resolve(console, optionPreferences.globalOptions(console), draft.coreOptions)
+    val typedCategory = when (selectedTab) {
+        GameSettingsManagerTab.Core -> SettingsCategory.Graphics
+        GameSettingsManagerTab.Runtime -> SettingsCategory.Emulation
+        GameSettingsManagerTab.Audio -> SettingsCategory.Audio
+        GameSettingsManagerTab.Controls -> SettingsCategory.Controls
+    }
     val globalKeyboardMouseSettings by preferences.keyboardMouseSettings.collectAsState(
         initial = KeyboardMouseSettings()
     )
@@ -949,8 +980,13 @@ private fun GameSettingsTabContent(
         modifier = Modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
+        if (usesTypedOptions) ConsoleCoreOptionsPanel(
+            platform = console, category = typedCategory, values = values,
+            onChange = { key, value -> onDraftChange(draft.copy(coreOptions = draft.coreOptions + (key to value))) },
+            onReset = { key -> onDraftChange(draft.copy(coreOptions = draft.coreOptions - key)) }
+        )
         when (selectedTab) {
-            GameSettingsManagerTab.Core -> {
+            GameSettingsManagerTab.Core -> if (!usesTypedOptions) {
                 EditorSection(title = stringResource(R.string.game_settings_manager_section_profile)) {
                     SelectionRow(
                         title = stringResource(R.string.settings_renderer),
@@ -2000,6 +2036,7 @@ private fun SettingsSnapshot.toPerGameSettings(game: GameItem): PerGameSettings 
         gameKey = game.path,
         gameTitle = game.title,
         gameSerial = game.serial,
+        gamePlatform = game.platform,
         renderer = renderer,
         mediatekAngleOpenGl = mediatekAngleOpenGl,
         upscaleMultiplier = upscaleMultiplier,

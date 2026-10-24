@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="formats_images_body">استخدم صور ألعاب مفكوكة الضغط. فك ضغط أرشيفات ZIP و7z قبل الاستيراد.</string>
+    <string name="formats_3ds_body">تُثبَّت حزم CIA وZCIA قبل التشغيل. تتطلب الألعاب المشفرة مفاتيح النظام الخاصة بك.</string>
+    <string name="formats_ds_body">تعمل خراطيش DS والمحسّنة لـ DSi في وضع DS. تتطلب الألعاب الحصرية لـ DSi بيئة تشغيل DSi.</string>
+    <string name="formats_fds_body">تتطلب ألعاب FDS ملف BIOS باسم disksys.rom بحجم 8 KiB في مجلد البرامج الثابتة.</string>
+    <string name="formats_executables_body">قد تتطلب ملفات DOL وELF التنفيذية اختيار جهازها قبل التشغيل.</string>
+</resources>

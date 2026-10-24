@@ -19,6 +19,12 @@ internal object DolphinNative {
     external fun speed(multiplier: Float): Boolean
     external fun state(path: String, save: Boolean): Boolean
     external fun option(key: String, value: String): Boolean
+    /** Actual upstream Config readback. Null when stopped or the key is unavailable. */
+    external fun optionValue(key: String): String?
+    /** key<TAB>boot|live<TAB>accepted values; reflects initialized GPU capabilities. */
+    external fun optionCapabilities(): Array<String>
     external fun frames(): Long
     external fun probe(path: String): Int
+    external fun probeIdentity(path:String):Array<String>?
+    external fun cheats(formats:Array<String>,codes:Array<String>):Boolean
 }

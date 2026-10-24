@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="cheat_catalog_browse_all">Przeglądaj wszystkie kody dla tej konsoli</string>
+    <string name="cheat_catalog_manual_attach">Przypisz do wybranej gry</string>
+    <string name="cheat_catalog_manual_warning">Zgodność tego pakietu z grą nie została potwierdzona. Przed włączeniem kodów sprawdź region, rewizję i format.</string>
+    <string name="cheat_format_unsupported">Wybrany rdzeń nie obsługuje tego formatu kodów.</string>
+</resources>

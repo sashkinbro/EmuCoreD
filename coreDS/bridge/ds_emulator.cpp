@@ -12,6 +12,7 @@
 #include <mutex>
 #include <sys/system_properties.h>
 #include <vector>
+#include <unistd.h>
 
 #include "Args.h"
 #include "GPU.h"
@@ -185,12 +186,16 @@ bool DsEmulator::Start(const std::string& rom_path, const std::string& sram_path
     }
 
     running_ = true;
+    state_pending_ = 0;
+    pending_cheats_.clear();
     thread_ = std::thread(&DsEmulator::Run, this);
     return true;
 }
 
 void DsEmulator::Stop() {
-    if (!running_.exchange(false)) {
+    const bool was_running=running_.exchange(false);
+    state_cv_.notify_all();
+    if (!was_running) {
         {
             std::lock_guard lock(surface_mutex_);
             DetachVulkanSurfaceLocked();
@@ -241,8 +246,15 @@ void DsEmulator::Run() {
     while (running_.load() && !stop_requested_.load()) {
         const int pending_state = state_pending_.exchange(0, std::memory_order_acquire);
         if (pending_state != 0 && nds_) {
-            const bool state_ok = pending_state == 1 ? WriteStateFile(state_path_)
-                                                     : ReadStateFile(state_path_);
+            bool state_ok=false;
+            if(pending_state==3) {
+                std::vector<melonDS::ARCode> staged;
+                for(auto& words:pending_cheats_) {
+                    melonDS::ARCode code{};code.Name="EmuCoreD";code.Enabled=true;code.Code=std::move(words);
+                    staged.push_back(std::move(code));
+                }
+                nds_->AREngine.Cheats=std::move(staged);pending_cheats_.clear();state_ok=true;
+            }else state_ok = pending_state == 1 ? WriteStateFile(state_path_) : ReadStateFile(state_path_);
             {
                 std::lock_guard state_lock(state_mutex_);
                 state_success_ = state_ok;
@@ -301,6 +313,8 @@ void DsEmulator::Run() {
     std::lock_guard surface_lock(surface_mutex_);
     if (presenter_) presenter_->ReleaseGraphicsContext();
     if (secondary_presenter_) secondary_presenter_->ReleaseGraphicsContext();
+    {std::lock_guard state_lock(state_mutex_);state_success_=false;state_finished_=true;state_pending_=0;pending_cheats_.clear();}
+    state_cv_.notify_all();
 }
 
 void DsEmulator::PresentFrame() {
@@ -736,8 +750,34 @@ bool DsEmulator::PerformStateRequest(const std::string& path, bool save) {
     state_finished_ = false;
     state_success_ = false;
     state_pending_.store(save ? 1 : 2, std::memory_order_release);
-    state_cv_.wait(state_lock, [&] { return state_finished_; });
-    return state_success_;
+    state_cv_.wait(state_lock, [&] { return state_finished_ || !running_.load(); });
+    return state_finished_ && state_success_;
+}
+
+bool DsEmulator::ReplaceCheats(std::vector<std::vector<uint32_t>> codes) {
+    for(const auto& words:codes) {
+        if(words.empty() || words.size()%2)return false;
+        for(size_t i=0;i<words.size();) {
+            const uint32_t a=words[i++],b=words[i++];const uint32_t op=a>>24;
+            if(op>=0xC0 && op<0xD0 && op!=0xC0 && op!=0xC4 && op!=0xC5 && op!=0xC6)return false;
+            if(op>=0xDD && op<0xE0)return false;
+            if(op==0xD4 && (a&255)>8)return false;
+            if(op>=0xE0 && op<=0xEF) {
+                const uint64_t payload=((uint64_t(b)+7)/8)*2;
+                if(payload>words.size()-i)return false;i+=static_cast<size_t>(payload);
+            }
+            if(op>=0xF0 && b>1048576)return false;
+            if(op==0xC0 && b>65535)return false;
+        }
+    }
+    std::lock_guard call_lock(state_call_mutex_);
+    if(!running_.load() || stop_requested_.load())return false;
+    std::unique_lock state_lock(state_mutex_);
+    if(state_pending_.load()!=0)return false;
+    pending_cheats_=std::move(codes);state_finished_=false;state_success_=false;
+    state_pending_.store(3,std::memory_order_release);
+    state_cv_.wait(state_lock,[&]{return state_finished_ || !running_.load();});
+    return state_finished_ && state_success_;
 }
 
 bool DsEmulator::WriteStateFile(const std::string& path) {
@@ -748,10 +788,17 @@ bool DsEmulator::WriteStateFile(const std::string& path) {
     state.Finish();
     if (state.Error || state.Length() == 0 || state.Buffer() == nullptr) return false;
 
-    std::ofstream file(path, std::ios::binary | std::ios::trunc);
+    const std::string pending = path + ".pending";
+    std::FILE* file = std::fopen(pending.c_str(), "wb");
     if (!file) return false;
-    file.write(reinterpret_cast<const char*>(state.Buffer()), state.Length());
-    return file.good();
+    bool success = std::fwrite(state.Buffer(), 1, state.Length(), file) == state.Length();
+    // Complete the new file before replacing a valid user slot. Every close path is checked.
+    if (std::fflush(file) != 0) success = false;
+    if (success && fsync(fileno(file)) != 0) success = false;
+    if (std::fclose(file) != 0) success = false;
+    if (success) success = std::rename(pending.c_str(), path.c_str()) == 0;
+    if (!success) std::remove(pending.c_str());
+    return success;
 }
 
 bool DsEmulator::ReadStateFile(const std::string& path) {

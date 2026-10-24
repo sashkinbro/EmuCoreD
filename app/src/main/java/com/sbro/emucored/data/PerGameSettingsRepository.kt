@@ -16,6 +16,7 @@ data class PerGameSettings(
     val gameKey: String,
     val gameTitle: String,
     val gameSerial: String? = null,
+    val gamePlatform: GamePlatform? = null,
     val renderer: Int = EmulatorBridge.AUTO_RENDERER,
     val mediatekAngleOpenGl: Boolean = false,
     val upscaleMultiplier: Float = UPSCALE_DEFAULT,
@@ -62,7 +63,7 @@ data class PerGameSettings(
     val audioMuted: Boolean = false,
     val audioOutputLatencyMs: Int = AudioDefaults.OUTPUT_LATENCY_MS_DEFAULT,
     val audioMinimalOutputLatency: Boolean = AudioDefaults.MINIMAL_OUTPUT_LATENCY_DEFAULT,
-    /** Per-game Azahar libretro core option overrides (key -> value). */
+    /** Per-game core option overrides. Keys are validated against the selected engine before launch. */
     val coreOptions: Map<String, String> = emptyMap(),
     val providedKeys: Set<String>? = null,
     val updatedAt: Long = System.currentTimeMillis()
@@ -172,11 +173,15 @@ class PerGameSettingsRepository(context: Context) {
 
 internal fun JSONObject.toPerGameSettings(): PerGameSettings {
     val providedKeys = keys().asSequence().toSet()
+    val platform = optString("gamePlatform").takeIf(String::isNotBlank)
+        ?.let { runCatching { GamePlatform.valueOf(it) }.getOrNull() }
+        ?: GamePlatform.forPath(optString("gameKey"))
     return PerGameSettings(
         gameKey = optString("gameKey"),
         gameTitle = optString("gameTitle"),
         gameSerial = optString("gameSerial").takeIf { it.isNotBlank() },
-        renderer = sanitizeRendererValue(optInt("renderer", RendererDefaults.AUTO), optString("gameKey")),
+        gamePlatform = platform,
+        renderer = sanitizeRendererValue(optInt("renderer", RendererDefaults.AUTO), optString("gameKey"), platform),
         mediatekAngleOpenGl = optBoolean("mediatekAngleOpenGl", false),
         upscaleMultiplier = readUpscaleMultiplier(),
         aspectRatio = optInt("aspectRatio", 1).let(::sanitizeAspectRatioValue),
@@ -281,9 +286,10 @@ internal fun PerGameSettings.toJson(): JSONObject {
         put("gameKey", gameKey)
         put("gameTitle", gameTitle)
         put("gameSerial", gameSerial)
+        gamePlatform?.let { put("gamePlatform", it.name) }
         val keys = providedKeys
         fun shouldWrite(key: String): Boolean = keys == null || key in keys
-        if (shouldWrite("renderer")) put("renderer", sanitizeRendererValue(renderer, gameKey))
+        if (shouldWrite("renderer")) put("renderer", sanitizeRendererValue(renderer, gameKey, gamePlatform))
         if (shouldWrite("mediatekAngleOpenGl")) put("mediatekAngleOpenGl", mediatekAngleOpenGl)
         if (shouldWrite("upscaleMultiplier")) put("upscaleMultiplier", upscaleMultiplier.toDouble())
         if (shouldWrite("aspectRatio")) put("aspectRatio", sanitizeAspectRatioValue(aspectRatio))
@@ -457,8 +463,8 @@ private fun JSONObject.toOverlayControlLayout(): OverlayControlLayout {
     )
 }
 
-private fun sanitizeRendererValue(value: Int, gameKey: String): Int {
-    return PlatformUiCapabilities.forGame(gameKey).normalizeRenderer(value)
+private fun sanitizeRendererValue(value: Int, gameKey: String, platform: GamePlatform? = null): Int {
+    return PlatformUiCapabilities.forGame(gameKey, platform).normalizeRenderer(value)
 }
 
 private fun sanitizeAspectRatioValue(value: Int): Int {
