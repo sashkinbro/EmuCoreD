@@ -24,6 +24,7 @@
     <string name="home_recent_title">Нещодавно відкриті</string>
     <string name="home_sort_size_desc">Найбільші</string>
     <string name="home_sort_size_asc">Найменші</string>
+    <string name="home_sort_platform">За платформою</string>
     <string name="home_empty_search_title">Немає результатів</string>
     <string name="home_empty_search_subtitle">Спробуйте іншу назву або змініть сортування.</string>
     <string name="home_status_ready">Готово</string>

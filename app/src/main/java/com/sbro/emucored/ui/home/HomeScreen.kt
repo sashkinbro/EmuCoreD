@@ -58,6 +58,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.Sort
 import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.material.icons.rounded.Close
+import androidx.compose.material.icons.rounded.Devices
 import androidx.compose.material.icons.rounded.Download
 import androidx.compose.material.icons.rounded.FolderOpen
 import androidx.compose.material.icons.rounded.History
@@ -111,6 +112,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
 import com.sbro.emucored.ui.common.gameCoverAspectRatio
 import com.sbro.emucored.ui.common.gameCoverContentScale
+import com.sbro.emucored.ui.common.gamePlatformLabelResource
 import com.sbro.emucored.ui.common.isGenerated3dCover
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -128,6 +130,8 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -149,6 +153,7 @@ import com.sbro.emucored.core.TvUiMetrics
 import com.sbro.emucored.core.availableProSupportOffers
 import com.sbro.emucored.data.CustomGameCoverRepository
 import com.sbro.emucored.data.GameItem
+import com.sbro.emucored.data.GamePlatform
 import com.sbro.emucored.data.HomeBackgroundRepository
 import com.sbro.emucored.data.HomeBackgroundType
 import com.sbro.emucored.ui.common.GameCoverArt
@@ -247,6 +252,9 @@ fun HomeScreen(
     val isListView = uiState.libraryViewMode == HomeLibraryViewMode.LIST
     val standardViewMode = if (isShelfView) uiState.lastStandardLibraryViewMode else uiState.libraryViewMode
     val gridState = rememberLazyGridState()
+    val librarySections = remember(uiState.games, uiState.sortOption) {
+        buildHomeLibrarySections(uiState.games, uiState.sortOption)
+    }
     val scope = rememberCoroutineScope()
     val showScrollToTop by remember(gridState) {
         derivedStateOf { gridState.firstVisibleItemIndex > 2 || gridState.firstVisibleItemScrollOffset > 900 }
@@ -412,15 +420,17 @@ fun HomeScreen(
     )
 
     val coverPrefetchWindow = remember(
-        uiState.games, columnsCount, isListView, uiState.isCoverArtDisabled, customCoverRepository
+        librarySections, columnsCount, isListView, uiState.isCoverArtDisabled, customCoverRepository
     ) {
         val rowSize = if (isListView) 1 else columnsCount.coerceAtLeast(1)
-        HomeCoverPrefetchWindow(uiState.games.chunked(rowSize).map { row ->
-            HomeCoverPrefetchRow(homeLibraryRowKey(row.first()), row.map { game ->
-                game.coverArtPath.takeUnless {
-                    uiState.isCoverArtDisabled && !customCoverRepository.isCustomCoverPath(it)
-                }
-            })
+        HomeCoverPrefetchWindow(librarySections.flatMap { section ->
+            section.games.chunked(rowSize).map { row ->
+                HomeCoverPrefetchRow(homeLibraryRowKey(row.first()), row.map { game ->
+                    game.coverArtPath.takeUnless {
+                        uiState.isCoverArtDisabled && !customCoverRepository.isCustomCoverPath(it)
+                    }
+                })
+            }
         })
     }
     HomeCoverPrefetch(
@@ -693,7 +703,22 @@ fun HomeScreen(
                                     }
                                 }
 
-                                homeLibraryItems(uiState.games, columnsCount, isListView) { rowGames, rowColumns ->
+                                homeLibraryItems(
+                                    sections = librarySections,
+                                    columns = columnsCount,
+                                    listView = isListView,
+                                    header = { section ->
+                                        section.platform?.let { platform ->
+                                            Box(
+                                                Modifier
+                                                    .fillMaxWidth()
+                                                    .padding(horizontal = horizontalInset)
+                                            ) {
+                                                HomePlatformHeader(platform, section.games.size)
+                                            }
+                                        }
+                                    }
+                                ) { rowGames, rowColumns ->
                                     val rowFocusRequester = libraryFocusRegistry.rememberRowRequester(homeLibraryRowKey(rowGames.first()))
                                     Row(
                                         modifier = Modifier.fillMaxWidth().padding(horizontal = horizontalInset),
@@ -1046,6 +1071,36 @@ private fun HomeSectionDivider(modifier: Modifier = Modifier) {
 }
 
 @Composable
+private fun HomePlatformHeader(platform: GamePlatform, count: Int) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 16.dp, bottom = 8.dp)
+            .semantics(mergeDescendants = true) { heading() },
+        verticalArrangement = Arrangement.spacedBy(6.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Text(
+                text = stringResource(gamePlatformLabelResource(platform)),
+                modifier = Modifier.weight(1f),
+                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            Text(
+                text = java.text.NumberFormat.getIntegerInstance().format(count),
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+        HomeSectionDivider()
+    }
+}
+
+@Composable
 private fun HomeHeader(
     gamesCount: Int,
     isWide: Boolean,
@@ -1221,6 +1276,7 @@ private fun HomeHeader(
                             GameContextMenuDivider()
                             HomeSortOption.entries.forEach { option ->
                                 val label = when (option) {
+                                    HomeSortOption.PLATFORM -> R.string.home_sort_platform
                                     HomeSortOption.TITLE_ASC -> R.string.home_sort_title_asc
                                     HomeSortOption.TITLE_DESC -> R.string.home_sort_title_desc
                                     HomeSortOption.RECENT_DESC -> R.string.home_sort_recent_desc
@@ -1231,6 +1287,7 @@ private fun HomeHeader(
                                 GameContextMenuItem(
                                     text = stringResource(label),
                                     icon = when (option) {
+                                        HomeSortOption.PLATFORM -> Icons.Rounded.Devices
                                         HomeSortOption.TITLE_ASC,
                                         HomeSortOption.TITLE_DESC -> Icons.Rounded.SortByAlpha
                                         HomeSortOption.RECENT_DESC,

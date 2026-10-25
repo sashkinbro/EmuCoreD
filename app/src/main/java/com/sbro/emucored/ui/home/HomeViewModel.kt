@@ -69,7 +69,8 @@ enum class HomeSortOption {
     RECENT_DESC,
     RECENT_ASC,
     SIZE_DESC,
-    SIZE_ASC
+    SIZE_ASC,
+    PLATFORM
 }
 
 enum class HomeLibraryViewMode {
@@ -94,7 +95,7 @@ data class HomeUiState(
     val homeBackgroundRevision: Int = 0,
     val homeBackgroundDim: Int = AppPreferences.DEFAULT_HOME_BACKGROUND_DIM,
     val searchQuery: String = "",
-    val sortOption: HomeSortOption = HomeSortOption.TITLE_ASC,
+    val sortOption: HomeSortOption = HomeSortOption.PLATFORM,
     val libraryViewMode: HomeLibraryViewMode = HomeLibraryViewMode.GRID,
     val lastStandardLibraryViewMode: HomeLibraryViewMode = HomeLibraryViewMode.GRID,
     val isCoverArtDisabled: Boolean = true,
@@ -898,6 +899,10 @@ class HomeViewModel(application: Application, private val savedStateHandle: Save
                 normalizeSearchToken(game.serial).contains(query)
         }
         val sorted = when (state.sortOption) {
+            HomeSortOption.PLATFORM -> filtered.sortedWith(
+                compareBy<GameItem> { normalizeSortToken(it.title) }
+                    .thenBy { normalizeSortToken(it.fileName) }
+            )
             HomeSortOption.TITLE_ASC -> filtered.sortedWith(
                 compareBy<GameItem> { normalizeSortToken(it.title) }
                     .thenBy { normalizeSortToken(it.fileName) }

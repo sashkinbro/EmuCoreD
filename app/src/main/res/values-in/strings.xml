@@ -34,6 +34,7 @@
     <string name="home_sort_recent_asc">Pembaruan terlama</string>
     <string name="home_sort_size_desc">Terbesar</string>
     <string name="home_sort_size_asc">Terkecil</string>
+    <string name="home_sort_platform">Berdasarkan platform</string>
     <string name="home_empty_search_title">Tidak ada hasil</string>
     <string name="home_empty_search_subtitle">Coba nama lain atau ubah penyortiran.</string>
     <string name="home_status_ready">Siap</string>

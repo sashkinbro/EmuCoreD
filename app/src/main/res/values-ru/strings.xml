@@ -23,6 +23,7 @@
     <string name="home_recent_title">Недавно открытые</string>
     <string name="home_sort_size_desc">Самые большие</string>
     <string name="home_sort_size_asc">Самые маленькие</string>
+    <string name="home_sort_platform">По платформе</string>
     <string name="home_empty_search_title">Нет результатов</string>
     <string name="home_empty_search_subtitle">Попробуйте другое название или измените сортировку.</string>
     <string name="home_status_ready">Готово</string>

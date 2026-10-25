@@ -34,6 +34,7 @@
     <string name="home_sort_recent_asc">Nejstarší aktualizované</string>
     <string name="home_sort_size_desc">Největší</string>
     <string name="home_sort_size_asc">Nejmenší</string>
+    <string name="home_sort_platform">Podle platformy</string>
     <string name="home_empty_search_title">Žádné výsledky</string>
     <string name="home_empty_search_subtitle">Zkuste jiný název nebo změňte řazení.</string>
     <string name="home_status_ready">Připraveno</string>

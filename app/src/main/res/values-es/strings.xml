@@ -23,6 +23,7 @@
     <string name="home_recent_title">Abiertos recientemente</string>
     <string name="home_sort_size_desc">Más grande</string>
     <string name="home_sort_size_asc">Más pequeño</string>
+    <string name="home_sort_platform">Por plataforma</string>
     <string name="home_empty_search_title">Sin resultados</string>
     <string name="home_empty_search_subtitle">Prueba con un nombre diferente o cambia la clasificación.</string>
     <string name="home_status_ready">Listo</string>

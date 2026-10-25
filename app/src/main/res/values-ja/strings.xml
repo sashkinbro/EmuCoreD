@@ -32,6 +32,7 @@
     <string name="home_sort_recent_asc">古い更新</string>
     <string name="home_sort_size_desc">サイズが大きい順</string>
     <string name="home_sort_size_asc">サイズが小さい順</string>
+    <string name="home_sort_platform">プラットフォーム別</string>
     <string name="home_empty_search_title">検索結果なし</string>
     <string name="home_empty_search_subtitle">別の名前を試すか、並べ替えを変更してください。</string>
     <string name="home_status_ready">準備完了</string>

@@ -32,6 +32,7 @@
     <string name="home_sort_recent_asc">Meno recenti</string>
     <string name="home_sort_size_desc">Più grandi</string>
     <string name="home_sort_size_asc">Più piccoli</string>
+    <string name="home_sort_platform">Per piattaforma</string>
     <string name="home_empty_search_title">Nessun risultato</string>
     <string name="home_empty_search_subtitle">Prova con un nome diverso o cambia l\'ordinamento.</string>
     <string name="home_status_ready">Pronto</string>

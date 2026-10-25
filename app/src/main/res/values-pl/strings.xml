@@ -34,6 +34,7 @@
     <string name="home_sort_recent_asc">Najdawniej aktualizowane</string>
     <string name="home_sort_size_desc">Największe</string>
     <string name="home_sort_size_asc">Najmniejsze</string>
+    <string name="home_sort_platform">Według platformy</string>
     <string name="home_empty_search_title">Brak wyników</string>
     <string name="home_empty_search_subtitle">Spróbuj innej nazwy lub zmień sortowanie.</string>
     <string name="home_status_ready">Gotowe</string>

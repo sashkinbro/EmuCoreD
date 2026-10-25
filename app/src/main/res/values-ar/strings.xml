@@ -32,6 +32,7 @@
     <string name="home_sort_recent_asc">الأقدم تحديثًا</string>
     <string name="home_sort_size_desc">الأكبر حجمًا</string>
     <string name="home_sort_size_asc">الأصغر حجمًا</string>
+    <string name="home_sort_platform">حسب المنصة</string>
     <string name="home_empty_search_title">لا توجد نتائج</string>
     <string name="home_empty_search_subtitle">جرب اسمًا مختلفًا أو قم بتغيير طريقة الفرز.</string>
     <string name="home_status_ready">جاهز</string>
