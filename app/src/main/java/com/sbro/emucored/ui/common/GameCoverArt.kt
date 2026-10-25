@@ -75,13 +75,20 @@ fun gameCoverContentScale(coverPath: String?, defaultScale: ContentScale): Conte
     if (isGenerated3dCover(coverPath)) ContentScale.Crop else defaultScale
 
 private val imageLoadingSemaphore = Semaphore(4)
+private val imagePrefetchSemaphore = Semaphore(1)
+
+/** Only one speculative cover competes with the visible cards, using their exact cache/size. */
+internal suspend fun prefetchGameCoverArt(context: android.content.Context, coverPath: String) {
+    if (getCachedBitmap(coverPath) != null) return
+    imagePrefetchSemaphore.withPermit { preloadGameCoverArt(context, coverPath) }
+}
 
 /** Loads a cover into the shared bitmap cache before a screen displays its card. */
 suspend fun preloadGameCoverArt(context: android.content.Context, coverPath: String?): Boolean {
     if (coverPath.isNullOrBlank()) return false
     if (getCachedBitmap(coverPath) != null) return true
     val bitmap = withContext(Dispatchers.IO) {
-        imageLoadingSemaphore.withPermit { loadBitmap(context, coverPath) }
+        imageLoadingSemaphore.withPermit { getCachedBitmap(coverPath) ?: loadBitmap(context, coverPath) }
     } ?: return false
     putCachedBitmap(coverPath, bitmap)
     return true
@@ -141,7 +148,7 @@ fun GameCoverArt(
         isLoading = true
         val loadedBitmap = withContext(Dispatchers.IO) {
             imageLoadingSemaphore.withPermit {
-                loadBitmap(context, coverPath)
+                getCachedBitmap(coverPath) ?: loadBitmap(context, coverPath)
             }
         }
         if (loadedBitmap != null) {
