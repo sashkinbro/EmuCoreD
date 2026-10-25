@@ -49,6 +49,7 @@
 #include "InputCommon/ControllerInterface/Touch/InputOverrider.h"
 #include "UICommon/UICommon.h"
 #include "VideoCommon/Present.h"
+#include "VideoCommon/AsyncRequests.h"
 #include "VideoCommon/VideoBackendBase.h"
 #include "VideoCommon/VideoConfig.h"
 #include "VideoCommon/VideoEvents.h"
@@ -264,8 +265,24 @@ bool Option(std::string key, const std::string& value, bool boot) {
   if (!boot && key == "msaa" && std::find(g_backend_info.AAModes.begin(), g_backend_info.AAModes.end(),
                                          u32(std::stoi(value))) == g_backend_info.AAModes.end()) return false;
   if (!boot && key == "gpu_texture_decoding" && value == "true" && !g_backend_info.bSupportsGPUTextureDecoding) return false;
-  binding->write(value);
-  return binding->read() == value;
+  if (boot) {
+    binding->write(value);
+    return binding->read() == value;
+  }
+  // Config's CPU callback refreshes g_Config, but the normal GPU promotion to
+  // g_ActiveConfig is driven by GX EFB copies. VI-only titles can keep scanning
+  // the same RAM XFB forever without issuing a GX frame. Apply on the CPU first
+  // (so its Config callbacks run synchronously), then ask the GPU to consume the
+  // change. AsyncRequests also services jobs while paused. Never write video
+  // configuration or recreate GPU resources directly from this host thread.
+  auto result = std::make_shared<std::promise<bool>>();
+  auto completed = result->get_future();
+  Core::RunOnCPUThread(Core::System::GetInstance(), [binding, value, result] {
+    binding->write(value);
+    AsyncRequests::GetInstance()->PushBlockingEvent([] { CheckForConfigChanges(); });
+    result->set_value(binding->read() == value);
+  });
+  return completed.get();
 }
 std::string ReadOption(std::string key) {
   key = OptionKey(std::move(key));

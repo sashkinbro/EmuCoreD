@@ -100,7 +100,11 @@ public final class DolphinRuntimeTest extends InstrumentationTestCase {
             assertOption("audio_buffer_size", "120");
             assertOption("audio_preserve_pitch", "true");
             assertOption("audio_fill_gaps", "false");
+            // This guest deliberately never submits GX EFB copies: its VI
+            // repeatedly scans a static RAM XFB. Live config must reach the
+            // renderer even without Dolphin's usual GX after_frame_event.
             assertOption("skip_duplicate_xfbs", "false");
+            awaitFrames(3);
             assertOption("aspect_ratio", "16:9");
             awaitFrames(3);
             Bitmap wide = copyPixels(activity);
@@ -148,9 +152,13 @@ public final class DolphinRuntimeTest extends InstrumentationTestCase {
         assertEquals("Read actual upstream Config: " + key, value, DolphinNative.optionValue(key));
     }
     private void awaitFrames(long count) throws Exception {
-        long target = DolphinNative.frames() + count, deadline = System.nanoTime() + 10_000_000_000L;
+        long initial = DolphinNative.frames(), target = initial + count;
+        long deadline = System.nanoTime() + 10_000_000_000L;
         while (DolphinNative.frames() < target && System.nanoTime() < deadline) Thread.sleep(20);
-        assertTrue("Changed config must still produce real frames", DolphinNative.frames() >= target);
+        assertTrue("Changed config must still produce real frames: initial=" + initial +
+            " target=" + target + " actual=" + DolphinNative.frames() +
+            " status=" + DolphinNative.status() + " aspect=" + DolphinNative.optionValue("aspect_ratio") +
+            " skipDuplicate=" + DolphinNative.optionValue("skip_duplicate_xfbs"), DolphinNative.frames() >= target);
     }
     private Bitmap copyPixels(RuntimeSurfaceActivity activity) throws Exception {
         Bitmap bitmap = Bitmap.createBitmap(640, 480, Bitmap.Config.ARGB_8888);
@@ -175,7 +183,7 @@ public final class DolphinRuntimeTest extends InstrumentationTestCase {
             }
         }
     }
-    // Original CC0 program, identical to bridge/tests/generate_homebrew.py.
+    // Original CC0 VI-only program, identical to bridge/tests/generate_homebrew.py.
     private static byte[] homebrewElf(boolean wii) {
         byte[] dol = homebrew(wii);
         ByteBuffer source = ByteBuffer.wrap(dol).order(ByteOrder.BIG_ENDIAN);
