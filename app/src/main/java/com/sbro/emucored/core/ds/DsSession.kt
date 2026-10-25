@@ -35,8 +35,7 @@ object DsSession {
 
     private var layoutMode: Int = LAYOUT_STACKED
 
-    private var lastSampleAtMs: Long = 0L
-    private var lastSampleFrames: Long = 0L
+    private val performanceSampler = GuestFrameRateSampler()
 
     private var renderScale: Int = 1
     private var renderer: Int = 14
@@ -64,6 +63,7 @@ object DsSession {
         if (isActive) return false
         if (path.isBlank()) return false
         if (GamePlatform.fromFileName(path) != GamePlatform.NDS) return false
+        performanceSampler.reset()
 
         val appContext = context.applicationContext
         this.appContext = appContext
@@ -107,8 +107,6 @@ object DsSession {
         isActive = true
         isPaused = startPaused
         keyMask = 0xFFF
-        lastSampleAtMs = 0L
-        lastSampleFrames = 0L
         EmuCoreDsNative.nativeSetScreenLayout(layoutMode)
         EmuCoreDsNative.nativeSetSwapScreens(swapScreens)
         surface?.let { EmuCoreDsNative.nativeSurfaceChanged(it) }
@@ -118,6 +116,7 @@ object DsSession {
 
     @Synchronized
     fun stop() {
+        performanceSampler.reset()
         if (!isActive) return
         isActive = false
         isPaused = false
@@ -236,20 +235,17 @@ object DsSession {
     const val LAYOUT_BOTTOM_ONLY = 3
     const val LAYOUT_SIDE_BY_SIDE = 4
 
+    @Synchronized
     fun performanceMetricsSnapshot(): String? {
-        if (!isActive) return null
-        val now = SystemClock.elapsedRealtime()
-        val frames = EmuCoreDsNative.nativeGetFrameCount()
-        val previousAt = lastSampleAtMs
-        val previousFrames = lastSampleFrames
-        lastSampleAtMs = now
-        lastSampleFrames = frames
-        if (previousAt == 0L) return null
-        val seconds = (now - previousAt) / 1000.0
-        if (seconds <= 0.0) return null
-        val fps = ((frames - previousFrames) / seconds).coerceAtLeast(0.0)
-        val speed = (fps / 59.826 * 100.0).coerceAtLeast(0.0)
-        val frameTime = if (fps > 0.5) 1000.0 / fps else 0.0
+        if (!isActive || isPaused) {
+            performanceSampler.reset()
+            return null
+        }
+        val sample = performanceSampler.sample(SystemClock.elapsedRealtime(), EmuCoreDsNative.nativeGetFrameCount())
+            ?: return null
+        val fps = sample.fps
+        val speed = sample.speedPercent
+        val frameTime = sample.frameTimeMs
         val overlay = String.format(Locale.US, "FPS: %.1f | Speed: %.1f%%", fps, speed) +
             String.format(Locale.US, "\nFrame: %.1f ms", frameTime)
         return String.format(Locale.US, "%.3f\n%.3f\n%s", fps, speed, overlay)
@@ -260,14 +256,17 @@ object DsSession {
         if (isActive) {
             EmuCoreDsNative.nativeSetPaused(true)
             isPaused = true
+            performanceSampler.reset()
         }
     }
 
     @Synchronized
     fun resume() {
         if (isActive) {
+            val wasPaused = isPaused
             EmuCoreDsNative.nativeSetPaused(false)
             isPaused = false
+            if (wasPaused) performanceSampler.reset()
         }
     }
 
