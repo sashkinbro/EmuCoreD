@@ -522,6 +522,7 @@ class AppPreferences(private val context: Context) {
         private val PREFER_ENGLISH_GAME_TITLES = booleanPreferencesKey("prefer_english_game_titles")
         private val RECENT_GAMES = stringPreferencesKey("recent_games")
         private val HOME_LIBRARY_VIEW_MODE = intPreferencesKey("home_library_view_mode")
+        private val LIBRARY_PLATFORM_FILTERS = stringSetPreferencesKey("library_platform_filters")
         private const val MAX_RECENT_GAMES = 8
         // Overlay customization
         private val OVERLAY_SCALE = intPreferencesKey("overlay_scale")
@@ -681,6 +682,14 @@ class AppPreferences(private val context: Context) {
 
     val homeGridScale: Flow<Float> = context.dataStore.data
         .map { prefs -> (prefs[HOME_GRID_SCALE] ?: DEFAULT_HOME_GRID_SCALE).coerceIn(MIN_HOME_GRID_SCALE, MAX_HOME_GRID_SCALE) }
+        .distinctUntilChanged()
+
+    val libraryPlatformFilters: Flow<Set<GamePlatform>> = context.dataStore.data
+        .map { prefs ->
+            prefs[LIBRARY_PLATFORM_FILTERS].orEmpty()
+                .mapNotNull { name -> GamePlatform.entries.firstOrNull { it.name == name } }
+                .toSet()
+        }
         .distinctUntilChanged()
 
     val homeBackgroundType: Flow<HomeBackgroundType> = context.dataStore.data
@@ -855,6 +864,15 @@ class AppPreferences(private val context: Context) {
 
     suspend fun setHomeGridScale(scale: Float) {
         context.dataStore.edit { it[HOME_GRID_SCALE] = scale.coerceIn(MIN_HOME_GRID_SCALE, MAX_HOME_GRID_SCALE) }
+    }
+
+    suspend fun setLibraryPlatformFilters(platforms: Set<GamePlatform>) {
+        context.dataStore.edit {
+            it[LIBRARY_PLATFORM_FILTERS] = GamePlatform.entries
+                .filter(platforms::contains)
+                .map(GamePlatform::name)
+                .toSet()
+        }
     }
 
     suspend fun setHomeBackgroundType(type: HomeBackgroundType) {

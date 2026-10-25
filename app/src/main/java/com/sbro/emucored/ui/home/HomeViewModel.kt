@@ -153,6 +153,7 @@ class HomeViewModel(application: Application, private val savedStateHandle: Save
     private var coverSyncJob: Job? = null
     private var searchJob: Job? = null
     private var libraryInitialized = false
+    private var libraryPlatformFilterTouched = false
     private var currentLibraryRoot: String? = null
     private var currentLibraryPaths: List<String> = emptyList()
     private var preferEnglishGameTitles = false
@@ -180,7 +181,27 @@ class HomeViewModel(application: Application, private val savedStateHandle: Save
     private var ciaInstallJob: Job? = null
 
     init {
+        // Capture this before starting the SavedStateHandle writer below; otherwise
+        // its initial empty emission can hide the selection persisted in DataStore.
+        val hasSessionSelection =
+            savedStateHandle.contains(LIBRARY_PLATFORMS_STATE_KEY) ||
+                savedStateHandle.contains(LIBRARY_PLATFORM_STATE_KEY)
         viewModelScope.persistLibraryPlatforms(_uiState.map { it.platformFilter }, savedStateHandle)
+        viewModelScope.launch {
+            if (!hasSessionSelection && !libraryPlatformFilterTouched) {
+                val stored = runCatching { preferences.libraryPlatformFilters.first() }
+                    .getOrDefault(emptySet())
+                if (stored.isNotEmpty() && !libraryPlatformFilterTouched) {
+                    _uiState.update { it.copy(platformFilter = stored) }
+                    publishVisibleGames()
+                }
+            }
+            // Persist after loading so the initial empty state cannot overwrite
+            // the user's platform selection on a fresh app start.
+            _uiState.map { it.platformFilter }.distinctUntilChanged().collect { selected ->
+                preferences.setLibraryPlatformFilters(selected)
+            }
+        }
         viewModelScope.launch {
             preferences.homeGridScale.collect { scale ->
                 _uiState.value = _uiState.value.copy(homeGridScale = scale)
@@ -590,6 +611,7 @@ class HomeViewModel(application: Application, private val savedStateHandle: Save
     }
 
     fun updatePlatformFilter(platform: GamePlatform?) {
+        libraryPlatformFilterTouched = true
         val selection = resolveLibraryPlatforms(allGames, toggleLibraryPlatform(_uiState.value.platformFilter, platform), libraryInitialized)
         _uiState.update { it.copy(platformFilter = selection.selected) }
         publishVisibleGames()
