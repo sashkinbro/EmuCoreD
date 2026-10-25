@@ -17,6 +17,10 @@ android {
             targets += "emucored_dolphin"
         } }
     }
+    buildTypes {
+        debug { externalNativeBuild { cmake { arguments += "-DEMUCORED_DIAGNOSTICS=ON" } } }
+        release { externalNativeBuild { cmake { arguments += "-DEMUCORED_DIAGNOSTICS=OFF" } } }
+    }
     externalNativeBuild { cmake { path = file("../coreGameCube/dolphin/CMakeLists.txt"); version = "3.30.5" } }
     compileOptions { sourceCompatibility = JavaVersion.VERSION_17; targetCompatibility = JavaVersion.VERSION_17 }
 }

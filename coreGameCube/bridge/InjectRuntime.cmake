@@ -1,5 +1,8 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 # Runs at upstream project(), without editing the pinned upstream checkout.
+option(EMUCORED_BUILD_CORE_TESTS "Build original standalone native contracts" OFF)
+option(EMUCORED_DIAGNOSTICS "Enable development diagnostics" OFF)
+add_compile_definitions(EMUCORED_DIAGNOSTICS=$<BOOL:${EMUCORED_DIAGNOSTICS}>)
 foreach(feature ENABLE_QT ENABLE_TESTS ENABLE_LLVM ENABLE_ANALYTICS ENABLE_AUTOUPDATE
     ENCODE_FRAMEDUMPS USE_UPNP USE_DISCORD_PRESENCE USE_RETRO_ACHIEVEMENTS USE_MGBA
     USE_SANITIZERS ENABLE_SDL)

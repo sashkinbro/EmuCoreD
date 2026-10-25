@@ -36,3 +36,5 @@ target_link_options(emucored_dolphin PRIVATE "-Wl,--no-undefined" "-Wl,--exclude
 # Only our JNI entrypoints are exported; bundled engines keep their C++ symbols local.
 target_link_options(emucored_dolphin PRIVATE "-Wl,--version-script=${BRIDGE_DIR}/exports.map")
 set_property(TARGET emucored_dolphin APPEND PROPERTY LINK_DEPENDS "${BRIDGE_DIR}/exports.map")
+
+include("${CMAKE_CURRENT_LIST_DIR}/Diagnostics.cmake")

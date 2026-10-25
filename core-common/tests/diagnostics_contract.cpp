@@ -78,7 +78,7 @@ int main(int argc, char** argv) {
   require(argc == 2, "pass a writable empty directory");
   std::string file = std::string(argv[1]) + "/forbidden-diagnostic.log";
   require(!File::Exists(file), "test directory contains a stale log");
-  File::SetUserPath(File::F_MAINLOG_IDX, file);
+  File::SetUserPath(F_MAINLOG_IDX, file);
   Common::Log::LogManager::Init();
   auto* manager = Common::Log::LogManager::GetInstance();
   require(manager != nullptr, "renderers require an inert manager object");
