@@ -24,7 +24,6 @@ data class ConsoleControlsProfile(
 object ConsoleControlsDefaults {
     /** Unsupported controls remain stored but hidden, so switching consoles never removes user data. */
     fun layout(scope: ConsoleControlsScope): TouchControlsLayoutProfile {
-        if (scope.platform == ConsolePlatform.N3DS) return TouchControlsLayoutProfile()
         val basic = setOf("a", "b", "select", "start", "dpad_cluster")
         val visible = when (scope.platform) {
             ConsolePlatform.GB, ConsolePlatform.GBC, ConsolePlatform.NES -> basic
@@ -38,7 +37,10 @@ object ConsoleControlsDefaults {
                 "classic" -> setOf("l", "r", "zl", "zr", "left_stick")
                 else -> setOf("l", "r", "left_stick")
             }
-            ConsolePlatform.N3DS -> error("Handled above")
+            // Both Circle Pad/C-stick inputs are part of the 3DS control surface. The
+            // right analog is used by the C-stick, Circle Pad Pro, and New 3DS models.
+            ConsolePlatform.N3DS -> basic +
+                setOf("x", "y", "home", "touch", "l", "r", "zl", "zr", "left_stick", "right_stick")
         }
         val controls = AppPreferences.defaultOverlayControlLayouts().mapValues { (id, layout) ->
             layout.copy(visible = id in visible)
@@ -60,12 +62,23 @@ object ConsoleControlsDefaults {
         perGameCustom: CustomTouchControlLibrary? = null
     ): ConsoleControlsProfile {
         val inherited = saved[scope.key] ?: ConsoleControlsProfile(
-            if (legacyLayout == TouchControlsLayoutProfile()) layout(scope) else legacyLayout,
+            if (legacyLayout.isFactoryDefault()) layout(scope) else legacyLayout,
             legacyCustom
         )
         if (perGameLayout == null && perGameCustom == null) return inherited
         return ConsoleControlsProfile(perGameLayout ?: inherited.layout, perGameCustom ?: inherited.customControls)
     }
+
+    /**
+     * DataStore represents an untouched global layout as an empty control map, while
+     * [TouchControlsLayoutProfile] carries the factory map. Both shapes mean "never
+     * customized" and must select the console-specific defaults instead of inheriting
+     * the shared map where controls such as the right stick are disabled.
+     */
+    private fun TouchControlsLayoutProfile.isFactoryDefault(): Boolean =
+        this == TouchControlsLayoutProfile() ||
+            (controlLayouts.isEmpty() &&
+                copy(controlLayouts = AppPreferences.defaultOverlayControlLayouts()) == TouchControlsLayoutProfile())
 }
 
 /** The same bounded representation is used by DataStore and settings backup/restore. */

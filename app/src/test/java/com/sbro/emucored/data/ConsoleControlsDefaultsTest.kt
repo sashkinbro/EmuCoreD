@@ -17,13 +17,17 @@ class ConsoleControlsDefaultsTest {
         }
     }
 
-    @Test fun freshConsolesExposeTheirActualInputsIncludingBothGameCubeSticks() {
+    @Test fun freshConsolesExposeTheirActualInputsIncludingEveryAnalogStick() {
         val basic = setOf("a", "b", "select", "start", "dpad_cluster")
         val expected = mapOf(
             ConsolePlatform.GB to basic, ConsolePlatform.GBC to basic, ConsolePlatform.NES to basic,
             ConsolePlatform.GBA to basic + setOf("l", "r"),
             ConsolePlatform.SNES to basic + setOf("x", "y", "l", "r"),
-            ConsolePlatform.GAMECUBE to basic + setOf("x", "y", "l", "r", "left_stick", "right_stick")
+            ConsolePlatform.NDS to basic - "dpad_cluster" +
+                setOf("x", "y", "l", "r", "dpad_up", "dpad_down", "dpad_left", "dpad_right"),
+            ConsolePlatform.GAMECUBE to basic + setOf("x", "y", "l", "r", "left_stick", "right_stick"),
+            ConsolePlatform.N3DS to basic +
+                setOf("x", "y", "home", "touch", "l", "r", "zl", "zr", "left_stick", "right_stick")
         )
         expected.forEach { (platform, visible) ->
             val layout = ConsoleControlsDefaults.layout(ConsoleControlsScope(platform))
@@ -42,13 +46,38 @@ class ConsoleControlsDefaultsTest {
         assertEquals(ConsoleControlsScope(ConsolePlatform.WII).key, ConsoleControlsScope(ConsolePlatform.WII, "invalid").key)
     }
 
-    @Test fun threeDsDefaultsStayUnchangedAndDsHasNoAnalogControls() {
-        assertEquals(TouchControlsLayoutProfile(), ConsoleControlsDefaults.layout(ConsoleControlsScope(ConsolePlatform.N3DS)))
+    @Test fun threeDsEnablesBothAnalogSticksAndDsHasNoAnalogControls() {
+        val threeDs = ConsoleControlsDefaults.layout(ConsoleControlsScope(ConsolePlatform.N3DS))
+        assertTrue(threeDs.controlLayouts.getValue("left_stick").visible)
+        assertTrue(threeDs.controlLayouts.getValue("right_stick").visible)
+        assertEquals(
+            AppPreferences.defaultOverlayControlLayouts().keys,
+            threeDs.controlLayouts.keys
+        )
         val ds = ConsoleControlsDefaults.layout(ConsoleControlsScope(ConsolePlatform.NDS))
         assertFalse(ds.controlLayouts.getValue("left_stick").visible)
         assertFalse(ds.controlLayouts.getValue("right_stick").visible)
         assertTrue(ds.controlLayouts.getValue("dpad_up").visible)
         assertFalse(ds.controlLayouts.getValue("dpad_cluster").visible)
+    }
+
+    @Test fun unsetGlobalLayoutSelectsConsoleDefaultsInsteadOfHidingRequiredSticks() {
+        // DataStore feeds an empty control map until the user saves a layout; this is the
+        // shape a fresh install and an old untouched install both produce.
+        val fresh = OverlayLayoutSnapshot(controlLayouts = emptyMap())
+        ConsoleControlsScope.all.forEach { scope ->
+            assertEquals(scope.key, ConsoleControlsDefaults.layout(scope),
+                fresh.forConsoleControls(scope).toTouchControlsLayoutProfile())
+        }
+        for (scope in listOf(
+            ConsoleControlsScope(ConsolePlatform.N3DS),
+            ConsoleControlsScope(ConsolePlatform.GAMECUBE),
+            ConsoleControlsScope(ConsolePlatform.WII, "remote"),
+            ConsoleControlsScope(ConsolePlatform.WII, "nunchuk"),
+            ConsoleControlsScope(ConsolePlatform.WII, "classic")
+        )) {
+            assertTrue(scope.key, fresh.forConsoleControls(scope).controlLayouts.getValue("right_stick").visible)
+        }
     }
 
     @Test fun customizedLegacyLayoutAndCombosArePreservedExactlyWithoutMigrationOnRead() {

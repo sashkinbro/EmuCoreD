@@ -4,11 +4,31 @@ import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import com.sbro.emucored.core.platform.ConsolePlatform
 import com.sbro.emucored.data.AppPreferences
+import com.sbro.emucored.data.ConsoleControlsDefaults
+import com.sbro.emucored.data.ConsoleControlsScope
 import com.sbro.emucored.data.OverlayControlLayout
+import com.sbro.emucored.data.OverlayLayoutSnapshot
+import com.sbro.emucored.data.forConsoleControls
 import org.junit.Assert.*
 import org.junit.Test
 
 class ConsoleOverlayCanvasLayoutTest {
+    @Test fun factoryLayoutsRenderBothSticksOnEveryAnalogConsole() {
+        for (scope in ConsoleControlsScope.all) {
+            val policy = ConsoleOverlayPolicy.forPlatform(scope.platform, scope.wiiProfile)
+            val layout = layout(policy, ConsoleControlsDefaults.layout(scope).controlLayouts)
+            assertEquals("${scope.key} left stick", policy.leftAnalog, layout.leftStick != null)
+            assertEquals("${scope.key} right stick", policy.rightAnalog, layout.rightStick != null)
+        }
+    }
+
+    @Test fun freshThreeDsSessionRendersRightStickThroughScopeResolution() {
+        val scope = ConsoleControlsScope(ConsolePlatform.N3DS)
+        val resolved = OverlayLayoutSnapshot(controlLayouts = emptyMap()).forConsoleControls(scope)
+        val layout = layout(ConsoleOverlayPolicy.forPlatform(ConsolePlatform.N3DS), resolved.controlLayouts)
+        assertTrue(layout.rightStick?.visible == true)
+    }
+
     @Test fun unsupportedControlsStayAbsentEvenWhenGlobalProfileAndEditorRequestThem() {
         val controls = AppPreferences.defaultOverlayControlLayouts().mapValues { (_, value) -> value.copy(visible = true) }
         val stored = controls.toMap()

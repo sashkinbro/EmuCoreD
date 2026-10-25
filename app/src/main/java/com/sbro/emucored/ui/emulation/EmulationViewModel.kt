@@ -944,8 +944,14 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
                 if (performanceCpuName.isNotBlank()) append('\n').append("CPU: ").append(performanceCpuName)
                 if (performanceGpuName.isNotBlank()) append('\n').append("GPU: ").append(performanceGpuName)
                 measured.backend?.let { append('\n').append("Renderer: ").append(it) }
-                if (measured.width != null && measured.height != null) {
-                    append('\n').append("Res: ").append(measured.width).append('x').append(measured.height)
+                // Engines report the guest/display size, not the internal render size.
+                // Apply the active upscale so this line follows in-game resolution changes.
+                measured.width?.let { width ->
+                    measured.height?.let { height ->
+                        scaledPerformanceResolution(width, height, state.upscale)?.let { resolution ->
+                            append('\n').append("Res: ").append(resolution)
+                        }
+                    }
                 }
             }
             _performanceState.value = EmulationPerformanceState(
@@ -985,8 +991,9 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
         }
         val upscale = normalizeUpscale(state.upscale)
         val upscaleLabel = if (upscale <= 1f) "Native" else "${upscale.roundToInt()}x"
-        val width = if (dsActive) (256f * upscale).toInt() else (400f * upscale).toInt()
-        val height = if (dsActive) (386f * upscale).toInt() else (240f * upscale).toInt()
+        val baseWidth = if (dsActive) 256 else 400
+        val baseHeight = if (dsActive) 386 else 240
+        val resolution = scaledPerformanceResolution(baseWidth, baseHeight, upscale)
         return buildString {
             append(metrics)
             if (performanceCpuName.isNotBlank()) {
@@ -1000,11 +1007,11 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
                 .append(rendererName)
                 .append(" | ")
                 .append(upscaleLabel)
-            append('\n')
-                .append("Res: ")
-                .append(width)
-                .append('x')
-                .append(height)
+            resolution?.let {
+                append('\n')
+                    .append("Res: ")
+                    .append(it)
+            }
         }
     }
 
@@ -2077,6 +2084,8 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
                 else preferences.setUpscaleMultiplier(normalizedUpscale)
             }
             EmulatorBridge.setUpscaleMultiplier(normalizedUpscale)
+            // Refresh the HUD immediately instead of waiting for the next 250 ms sample.
+            pollNativePerformanceMetrics()
             updateCrashContext()
         }
     }
