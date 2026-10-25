@@ -20,6 +20,9 @@ import androidx.compose.ui.res.stringResource
 import com.sbro.emucored.R
 import com.sbro.emucored.core.DocumentPathResolver
 import com.sbro.emucored.core.PlatformUiCapabilities
+import com.sbro.emucored.core.platform.ConsolePlatform
+import com.sbro.emucored.core.platform.CoreOptionPreferences
+import com.sbro.emucored.ui.common.ConsoleOverlayPolicy
 import com.sbro.emucored.data.AppPreferences
 import com.sbro.emucored.data.CustomTouchControlLibrary
 import com.sbro.emucored.data.GamePlatform
@@ -44,6 +47,7 @@ fun ControlsLayoutEditorHostScreen(
     gamePath: String? = null,
     gameTitle: String? = null,
     gameSerial: String? = null,
+    platformId: String? = null,
     onBackClick: () -> Unit
 ) {
     val context = LocalContext.current
@@ -199,14 +203,23 @@ fun ControlsLayoutEditorHostScreen(
         stringResource(R.string.controls_editor_game_inherited, resolvedGameTitle)
     }
 
-    val dsMode = normalizedGamePath?.let {
-        PlatformUiCapabilities.forGame(it).platform == GamePlatform.NDS
-    } == true
+    val platform = ConsolePlatform.fromId(platformId)
+        ?: normalizedGamePath?.let { PlatformUiCapabilities.forGame(it).platform.console }
+        ?: ConsolePlatform.N3DS
+    val effectiveWiiProfile = remember(context, normalizedGamePath, platform) {
+        CoreOptionPreferences(context).effectiveOptions(platform, normalizedGamePath)["wii_profile"] ?: "nunchuk"
+    }
+    val activeWiiProfile = normalizedGamePath?.takeIf {
+        it == com.sbro.emucored.core.platform.session.AdditionalConsoleSession.activeIdentityPath
+    }?.let { com.sbro.emucored.core.platform.session.AdditionalConsoleSession.activeWiiControllerProfile }
+    val consolePolicy = ConsoleOverlayPolicy.forPlatform(platform, activeWiiProfile ?: effectiveWiiProfile)
+    val dsMode = platform == ConsolePlatform.NDS
     ControlsEditorScreen(
         state = state,
         subtitle = subtitle,
         manageActivityOrientation = !dsMode,
         dsMode = dsMode,
+        consolePolicy = consolePolicy,
         onBackClick = ::finishEditor,
         onUpdateControlOffset = { controlId, offset ->
             updateState { current ->

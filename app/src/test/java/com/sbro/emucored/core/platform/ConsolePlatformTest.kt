@@ -21,10 +21,10 @@ class ConsolePlatformTest {
         ConsolePlatform.entries.forEach { assertTrue(it.catalogPlatformId in it.catalogPlatformIds) }
     }
 
-    @Test fun stableIdsCoverTheApprovedConsolesWithoutEnablingUnfinishedAdapters() {
+    @Test fun stableIdsCoverAllNineIntegratedConsoles() {
         assertEquals(setOf("3ds", "nds", "gamecube", "wii", "gba", "gb", "gbc", "nes", "snes"),
             ConsolePlatform.entries.map { it.id }.toSet())
-        assertEquals(setOf(ConsolePlatform.N3DS, ConsolePlatform.NDS),
+        assertEquals(ConsolePlatform.entries.toSet(),
             ConsolePlatform.entries.filter { it.isLaunchable }.toSet())
         ConsolePlatform.entries.forEach { assertEquals(it, ConsolePlatform.fromId(it.id)) }
         assertNull(ConsolePlatform.fromId("unknown"))

@@ -999,7 +999,7 @@ private fun GameSettingsTabContent(
                         },
                         selectedValue = capabilities.normalizeRenderer(draft.renderer),
                         onSelected = { onDraftChange(draft.copy(renderer = it)) },
-                        helpText = stringResource(R.string.settings_help_renderer),
+                        helpText = stringResource(if (console == ConsolePlatform.NDS) R.string.legacy_help_ds_renderer else R.string.settings_help_renderer),
                         onResetToDefault = {
                             onDraftChange(draft.copy(renderer = capabilities.normalizeRenderer(defaultProfile.renderer)))
                         }
@@ -1019,7 +1019,7 @@ private fun GameSettingsTabContent(
                         onSelected = { key ->
                             onDraftChange(draft.copy(upscaleMultiplier = upscaleKeyToMultiplier(key)))
                         },
-                        helpText = stringResource(R.string.settings_help_upscale),
+                        helpText = stringResource(if (console == ConsolePlatform.NDS) R.string.legacy_help_ds_upscale else R.string.settings_help_upscale),
                         onResetToDefault = {
                             onDraftChange(
                                 draft.copy(
@@ -1735,6 +1735,7 @@ private fun PerGameKeyboardMouseSettingsSection(
         if (settings.keyboardEnabled) {
             SelectionRow(
                 title = stringResource(R.string.settings_keyboard_target_player),
+                helpText = stringResource(R.string.legacy_help_keyboard_target),
                 options = listOf(
                     0 to stringResource(R.string.settings_gamepad_player_1),
                     1 to stringResource(R.string.settings_gamepad_player_2)
@@ -1757,6 +1758,7 @@ private fun PerGameKeyboardMouseSettingsSection(
         if (settings.mouseEnabled) {
             SelectionRow(
                 title = stringResource(R.string.settings_mouse_target_player),
+                helpText = stringResource(R.string.legacy_help_mouse_target),
                 options = listOf(
                     0 to stringResource(R.string.settings_gamepad_player_1),
                     1 to stringResource(R.string.settings_gamepad_player_2)
@@ -1783,6 +1785,7 @@ private fun PerGameKeyboardMouseSettingsSection(
             )
             SelectionRow(
                 title = stringResource(R.string.settings_mouse_wheel),
+                helpText = stringResource(R.string.legacy_help_mouse_wheel),
                 options = listOf(
                     AppPreferences.MOUSE_WHEEL_OFF to stringResource(R.string.settings_mouse_wheel_off),
                     AppPreferences.MOUSE_WHEEL_DPAD to stringResource(R.string.settings_mouse_wheel_dpad),
@@ -1797,6 +1800,7 @@ private fun PerGameKeyboardMouseSettingsSection(
             if (settings.mouseWheelMode != AppPreferences.MOUSE_WHEEL_OFF) {
                 SliderRow(
                     title = stringResource(R.string.settings_mouse_wheel_pulse),
+                    helpText = stringResource(R.string.legacy_help_mouse_wheel_pulse),
                     value = settings.mouseWheelPulseMs.toFloat(),
                     valueLabel = "${settings.mouseWheelPulseMs} ms",
                     range = AppPreferences.MOUSE_WHEEL_PULSE_MIN_MS.toFloat()..
@@ -1821,6 +1825,7 @@ private fun PerGameKeyboardMouseSettingsSection(
             if (settings.mouseAimMode != KeyboardMouseBindings.MOUSE_AIM_OFF) {
                 SliderRow(
                     title = stringResource(R.string.settings_mouse_sensitivity),
+                    helpText = stringResource(R.string.legacy_help_mouse_sensitivity),
                     value = settings.mouseSensitivity.toFloat(),
                     valueLabel = "${settings.mouseSensitivity}%",
                     range = AppPreferences.MOUSE_SENSITIVITY_MIN.toFloat()..
@@ -1832,6 +1837,7 @@ private fun PerGameKeyboardMouseSettingsSection(
                 )
                 SliderRow(
                     title = stringResource(R.string.settings_mouse_vertical_sensitivity),
+                    helpText = stringResource(R.string.legacy_help_mouse_vertical_sensitivity),
                     value = settings.mouseVerticalSensitivity.toFloat(),
                     valueLabel = "${settings.mouseVerticalSensitivity}%",
                     range = AppPreferences.MOUSE_VERTICAL_SENSITIVITY_MIN.toFloat()..
@@ -1843,6 +1849,7 @@ private fun PerGameKeyboardMouseSettingsSection(
                 )
                 SliderRow(
                     title = stringResource(R.string.settings_mouse_smoothing),
+                    helpText = stringResource(R.string.legacy_help_mouse_smoothing),
                     value = settings.mouseSmoothing.toFloat(),
                     valueLabel = "${settings.mouseSmoothing}%",
                     range = AppPreferences.MOUSE_SMOOTHING_MIN.toFloat()..
@@ -1854,6 +1861,7 @@ private fun PerGameKeyboardMouseSettingsSection(
                 )
                 SliderRow(
                     title = stringResource(R.string.settings_mouse_deadzone),
+                    helpText = stringResource(R.string.legacy_help_mouse_deadzone),
                     value = settings.mouseAimDeadzone.toFloat(),
                     valueLabel = "${settings.mouseAimDeadzone}%",
                     range = AppPreferences.MOUSE_DEADZONE_MIN.toFloat()..

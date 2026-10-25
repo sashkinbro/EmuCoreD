@@ -55,6 +55,8 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -109,6 +111,7 @@ import com.sbro.emucored.ui.common.OverlayDpadDirection
 import com.sbro.emucored.ui.common.VectorAnalogStick
 import com.sbro.emucored.ui.common.VectorDpadCluster
 import com.sbro.emucored.ui.common.VectorOverlayButton
+import com.sbro.emucored.ui.common.ConsoleOverlayPolicy
 import com.sbro.emucored.ui.common.buildOverlayCanvasLayout
 import com.sbro.emucored.ui.common.overlayDpadArrowDefault
 import com.sbro.emucored.ui.common.snapOverlayDragDelta
@@ -414,7 +417,9 @@ fun ControlsEditorScreen(
     onSetStickSurfaceMode: (String, Boolean) -> Unit,
     onResetLayout: () -> Unit,
     onCustomControlsChange: (CustomTouchControlLibrary) -> Unit = {},
-    dsMode: Boolean = false
+    dsMode: Boolean = false,
+    consolePolicy: ConsoleOverlayPolicy = ConsoleOverlayPolicy.forPlatform(
+        if (dsMode) com.sbro.emucored.core.platform.ConsolePlatform.NDS else com.sbro.emucored.core.platform.ConsolePlatform.N3DS)
 ) {
     val context = LocalContext.current
     val resources = LocalResources.current
@@ -732,10 +737,11 @@ fun ControlsEditorScreen(
                 .background(Color.Black.copy(alpha = 0.34f))
         )
 
+        CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
         PreviewLayout(
             state = state,
             controlLayouts = editorControlLayouts,
-            customControls = editorCustomControls.controls,
+            customControls = consolePolicy.customControls(editorCustomControls.controls),
             selectedControlId = selectedControlId,
             showGrid = showLayoutGrid,
             snapToGrid = snapToGrid,
@@ -744,6 +750,7 @@ fun ControlsEditorScreen(
             onCommitControlPosition = ::persistControlPosition,
             onCommitControlPositions = ::persistControlPositions,
             dsMode = dsMode,
+            consolePolicy = consolePolicy,
             onSetCustomControlPosition = { controlId, x, y ->
                 val current = editorCustomControls.controls.firstOrNull { it.id == controlId } ?: return@PreviewLayout
                 setCustomControlLocally(current.copy(positionX = x, positionY = y))
@@ -763,6 +770,7 @@ fun ControlsEditorScreen(
                 Modifier.fillMaxSize()
             }
         )
+        }
         Column(
             modifier = Modifier
                 .align(Alignment.TopCenter)
@@ -1178,6 +1186,7 @@ fun ControlsEditorScreen(
 
     if (showCreateComboDialog) {
         ComboActionDialog(
+            consolePolicy = consolePolicy,
             title = stringResource(R.string.touch_control_creator_create),
             initialActionId = CustomTouchControl.DEFAULT_ACTION_ID,
             initialSecondaryActionId = null,
@@ -1195,6 +1204,7 @@ fun ControlsEditorScreen(
     }
     if (comboDialogControl != null) {
         ComboActionDialog(
+            consolePolicy = consolePolicy,
             title = comboDialogControl.name,
             initialActionId = comboDialogControl.actionId,
             initialSecondaryActionId = comboDialogControl.secondaryActionId,
@@ -1211,6 +1221,7 @@ fun ControlsEditorScreen(
     val standardComboActionId = standardComboControlId?.let(::actionIdForControlId)
     if (standardComboControlId != null && standardComboActionId != null) {
         ComboActionDialog(
+            consolePolicy = consolePolicy,
             title = controlTitle(standardComboControlId),
             initialActionId = standardComboActionId,
             initialSecondaryActionId = null,
@@ -1354,7 +1365,8 @@ private fun ComboActionDialog(
     confirmLabel: String,
     onDismiss: () -> Unit,
     onConfirm: (String, String?) -> Unit,
-    primaryEditable: Boolean = true
+    primaryEditable: Boolean = true,
+    consolePolicy: ConsoleOverlayPolicy = ConsoleOverlayPolicy.forPlatform(com.sbro.emucored.core.platform.ConsolePlatform.N3DS)
 ) {
     var actionId by remember(initialActionId) { mutableStateOf(initialActionId) }
     var secondaryActionId by remember(initialSecondaryActionId) {
@@ -1412,6 +1424,8 @@ private fun ComboActionDialog(
                 ) {
                     if (primaryEditable) {
                         ActionSelector(
+                            actionSupported = consolePolicy::supportsAction,
+                            labelOverride = consolePolicy::buttonLabel,
                             selectedActionId = actionId,
                             testTagPrefix = "controls_editor_combo_primary",
                             onSelect = { selected ->
@@ -1434,6 +1448,8 @@ private fun ComboActionDialog(
                     description = stringResource(R.string.touch_control_creator_combo_action_desc)
                 ) {
                     ActionSelector(
+                        actionSupported = consolePolicy::supportsAction,
+                        labelOverride = consolePolicy::buttonLabel,
                         selectedActionId = secondaryActionId,
                         excludedActionId = actionId,
                         allowNone = true,
@@ -1615,7 +1631,9 @@ private fun PreviewLayout(
     overlayRightSafeInset: Dp? = null,
     overlayTopSafeInset: Dp? = null,
     overlayBottomSafeInset: Dp? = null,
-    dsMode: Boolean = false
+    dsMode: Boolean = false,
+    consolePolicy: ConsoleOverlayPolicy = ConsoleOverlayPolicy.forPlatform(
+        if (dsMode) com.sbro.emucored.core.platform.ConsolePlatform.NDS else com.sbro.emucored.core.platform.ConsolePlatform.N3DS)
 ) {
     val density = LocalDensity.current
     val safeDrawingPadding = WindowInsets.safeDrawing.asPaddingValues()
@@ -1689,7 +1707,8 @@ private fun PreviewLayout(
             safeTopInset = safeTop,
             safeBottomInset = safeBottom,
             previewMode = true,
-            dsMode = dsMode
+            dsMode = dsMode,
+            consolePolicy = consolePolicy
         )
 
         val showLeftStick = layout.leftStick?.visible == true
@@ -1916,6 +1935,7 @@ private fun PreviewLayout(
                 else -> 1f
             }
             PreviewCanvasButton(
+                labelOverride = consolePolicy.buttonLabel(spec.id),
                 spec = spec,
                 visualStyle = state.touchControlVisualStyle,
                 pressEffect = state.touchControlPressEffect,
@@ -2048,6 +2068,7 @@ private fun PreviewLayout(
                 if (vectorDrawable != null) {
                     VectorOverlayButton(
                         drawableRes = vectorDrawable,
+                        labelOverride = consolePolicy.buttonLabel(control.actionId),
                         width = control.widthDp.dp,
                         height = control.heightDp.dp,
                         shape = control.composeShape(),
@@ -2234,7 +2255,8 @@ private fun PreviewCanvasButton(
     onSelectControl: (String) -> Unit,
     onMoveControlBy: (String, Pair<Float, Float>) -> Unit,
     onCommitControlPosition: (String) -> Unit,
-    baseZIndex: Float = 0f
+    baseZIndex: Float = 0f,
+    labelOverride: String? = null
 ) {
     DraggableControl(
         id = spec.id,
@@ -2252,6 +2274,7 @@ private fun PreviewCanvasButton(
     ) {
         VectorOverlayButton(
             drawableRes = spec.drawableRes,
+            labelOverride = labelOverride,
             width = spec.width,
             height = spec.height,
             shape = spec.shape,

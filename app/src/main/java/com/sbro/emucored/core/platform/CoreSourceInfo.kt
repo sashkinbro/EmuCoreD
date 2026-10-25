@@ -1,6 +1,6 @@
 package com.sbro.emucored.core.platform
 
-/** Upstream attribution, including engines whose Android adapters are still pending. */
+/** Upstream attribution for the integrated Nintendo engines. */
 data class CoreSourceInfo(
     val core: CoreId,
     val name: String,

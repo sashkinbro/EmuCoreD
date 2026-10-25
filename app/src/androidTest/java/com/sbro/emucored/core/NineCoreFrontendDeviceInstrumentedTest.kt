@@ -145,8 +145,11 @@ class NineCoreFrontendDeviceInstrumentedTest {
                             enableCheats = false, layoutOption = 0, swapScreens = false)
                     }
                     attach(view)
+                    val launchPath = if (platform in setOf(GamePlatform.N3DS, GamePlatform.NDS))
+                        requireNotNull(DocumentPathResolver.prepareGameLaunchPath(context, game.source.path))
+                    else game.source.path
                     val launched = measured("valid-boot", 180_000) {
-                        EmulatorBridge.startEmulation(game.source.path, game.identity,
+                        EmulatorBridge.startEmulation(launchPath, game.identity,
                             dsRenderScale = 1, dsRenderer = 14, dsSwapScreens = false, platformOverride = platform)
                     }
                     assertTrue(diagnostic("Valid $platform boot failed: ${EmulatorBridge.runtimeFailure.value}"), launched)

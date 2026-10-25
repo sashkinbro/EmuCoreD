@@ -144,11 +144,14 @@ fun ActionSelector(
     excludedActionId: String? = null,
     allowNone: Boolean = false,
     testTagPrefix: String? = null,
-    onSelect: (String?) -> Unit
+    onSelect: (String?) -> Unit,
+    actionSupported: (String) -> Boolean = { true },
+    labelOverride: (String) -> String? = { null }
 ) {
     val actions = CustomTouchControl.ALLOWED_ACTION_IDS
         .filterNot { it in CreatorExcludedActionIds }
         .filterNot { it == excludedActionId }
+        .filter(actionSupported)
     FlowRow(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -173,7 +176,7 @@ fun ActionSelector(
             FilterChip(
                 selected = selectedActionId == action,
                 onClick = { onSelect(action) },
-                label = { Text(actionLabel(action)) },
+                label = { Text(labelOverride(action) ?: actionLabel(action)) },
                 leadingIcon = if (selectedActionId == action) {
                     { Icon(Icons.Rounded.Check, contentDescription = null) }
                 } else {

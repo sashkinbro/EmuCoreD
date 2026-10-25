@@ -146,6 +146,12 @@ import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.toggleableState
+import androidx.compose.ui.state.ToggleableState
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
@@ -230,6 +236,7 @@ import com.sbro.emucored.ui.settings.ControlsEditorScreen
 import com.sbro.emucored.ui.settings.KeyboardMouseSettingsDialog
 import com.sbro.emucored.ui.settings.toControlsEditorState
 import com.sbro.emucored.data.forPlatform
+import com.sbro.emucored.ui.common.ConsoleOverlayPolicy
 import com.sbro.emucored.core.PlatformUiCapabilities
 import com.sbro.emucored.core.AzaharCoreOptions
 import com.sbro.emucored.core.azaharCoreOptionHelpRes
@@ -313,7 +320,8 @@ internal data class TouchButtonSpec(
     val onClick: (() -> Unit)? = null,
     val tapToHold: Boolean = false,
     val longPressDelayMs: Long = 0L,
-    val onLongPressChange: ((Boolean) -> Unit)? = null
+    val onLongPressChange: ((Boolean) -> Unit)? = null,
+    val labelOverride: String? = null
 )
 
 internal data class TouchButtonPressAction(
@@ -461,6 +469,11 @@ fun EmulationScreen(
     )
     val isNds = uiState.gamePlatform == GamePlatform.NDS
     val singleScreenConsole = uiState.gamePlatform !in setOf(GamePlatform.N3DS, GamePlatform.NDS)
+    val overlayWiiProfile = com.sbro.emucored.core.platform.session.AdditionalConsoleSession.activeWiiControllerProfile
+        ?: uiState.perGameCoreOptions["wii_profile"] ?: "nunchuk"
+    val overlayPolicy = remember(uiState.gamePlatform, overlayWiiProfile) {
+        ConsoleOverlayPolicy.forPlatform(uiState.gamePlatform.console, overlayWiiProfile)
+    }
     val effectiveSecondScreenMode = if (isNds || singleScreenConsole) {
         AppPreferences.SECOND_SCREEN_MODE_INTEGRATED
     } else secondScreenMode
@@ -1509,18 +1522,18 @@ fun EmulationScreen(
                     invertRightStick = uiState.invertRightStick,
                     invertLeftStickHorizontal = uiState.invertLeftStickHorizontal,
                     invertRightStickHorizontal = uiState.invertRightStickHorizontal,
-                    rightStickUpToR2 = uiState.gamepadRightStickUpToR2,
-                    rightStickDownToL2 = uiState.gamepadRightStickDownToL2,
-                    touchscreenRightStick = if (isNds) false else uiState.touchscreenRightStick,
+                    rightStickUpToR2 = uiState.gamepadRightStickUpToR2 && overlayPolicy.supportsAction("zr"),
+                    rightStickDownToL2 = uiState.gamepadRightStickDownToL2 && overlayPolicy.supportsAction("zl"),
+                    touchscreenRightStick = overlayPolicy.rightAnalog && uiState.touchscreenRightStick,
                     touchscreenRightStickSensitivity = uiState.touchscreenRightStickSensitivity / 100f,
-                    touchscreenLeftStick = if (isNds) false else uiState.touchscreenLeftStick,
+                    touchscreenLeftStick = overlayPolicy.leftAnalog && uiState.touchscreenLeftStick,
                     touchscreenLeftStickSensitivity = uiState.touchscreenLeftStickSensitivity / 100f,
                     touchHaptics = uiState.touchHaptics,
                     touchHapticsPreset = uiState.touchHapticsPreset,
                     touchHapticsStrength = uiState.touchHapticsStrength,
                     visualStyle = uiState.touchControlVisualStyle,
                     pressEffect = uiState.touchControlPressEffect,
-                    customControls = if (isNds) emptyList() else uiState.customTouchControls.controls,
+                    customControls = overlayPolicy.customControls(uiState.customTouchControls.controls),
                     dpadOffset = uiState.dpadOffset,
                     lstickOffset = uiState.lstickOffset,
                     rstickOffset = uiState.rstickOffset,
@@ -1546,7 +1559,8 @@ fun EmulationScreen(
                         bottom = overlayBottomSafeInset
                     ),
                     onScreenDoubleTap = { if (!isNds && !singleScreenConsole) secondScreenTabRevealSignal++ },
-                    dsMode = isNds
+                    dsMode = isNds,
+                    consolePolicy = overlayPolicy
                 )
             }
         }
@@ -1610,7 +1624,8 @@ fun EmulationScreen(
                 onSetStickSurfaceMode = viewModel::setTouchStickSurfaceMode,
                 onResetLayout = viewModel::resetTouchControlsLayout,
                 onCustomControlsChange = viewModel::setCustomTouchControls,
-                dsMode = isNds
+                dsMode = isNds,
+                consolePolicy = overlayPolicy
             )
         }
 
@@ -2197,7 +2212,8 @@ private fun OnScreenControls(
     onScreenDoubleTap: () -> Unit = {},
     respectSystemInsets: Boolean = true,
     safeInsets: PaddingValues? = null,
-    dsMode: Boolean = false
+    dsMode: Boolean = false,
+    consolePolicy: ConsoleOverlayPolicy = ConsoleOverlayPolicy.forPlatform(com.sbro.emucored.core.platform.ConsolePlatform.N3DS)
 ) {
     val density = LocalDensity.current
     val safeDrawingPadding = safeInsets ?: WindowInsets.safeDrawing.asPaddingValues()
@@ -2264,7 +2280,7 @@ private fun OnScreenControls(
         dispatchTouchL2()
     }
 
-    fun buttonPressHandler(id: String): ((Boolean) -> Unit)? = when (id) {
+    fun buttonPressHandler(id: String): ((Boolean) -> Unit)? = when (consolePolicy.inputAlias(id)) {
         "zl" -> { pressed ->
             touchL2Pressed = pressed
             dispatchTouchL2()
@@ -2318,7 +2334,8 @@ private fun OnScreenControls(
             safeTopInset = safeTop,
             safeBottomInset = safeBottom,
             stickToggleTarget = stickToggleTarget,
-            dsMode = dsMode
+            dsMode = dsMode,
+            consolePolicy = consolePolicy
         )
         var extraDpadDirections by remember { mutableStateOf(emptySet<OverlayDpadDirection>()) }
         val currentExtraDpadDirections by rememberUpdatedState(extraDpadDirections)
@@ -2373,12 +2390,13 @@ private fun OnScreenControls(
             return specs.filter { it.visible }.map { spec ->
                 val pressActions = listOfNotNull(
                     buttonPressHandler(spec.id)?.let {
-                        TouchButtonPressAction(touchButtonActionOwner(spec.id), it)
+                        TouchButtonPressAction(touchButtonActionOwner(consolePolicy.inputAlias(spec.id)), it)
                     }
                 )
                 TouchButtonSpec(
                     id = spec.id,
                     drawableRes = spec.drawableRes,
+                    labelOverride = consolePolicy.buttonLabel(spec.id),
                     width = spec.width,
                     height = spec.height,
                     x = spec.x,
@@ -2428,11 +2446,11 @@ private fun OnScreenControls(
                 val travelY = (maxHeight - safeTop - safeBottom - height).coerceAtLeast(0.dp)
                 val pressActions = listOfNotNull(
                     buttonPressHandler(control.actionId)?.let {
-                        TouchButtonPressAction(touchButtonActionOwner(control.actionId), it)
+                        TouchButtonPressAction(touchButtonActionOwner(consolePolicy.inputAlias(control.actionId)), it)
                     },
                     control.secondaryActionId?.let { actionId ->
                         buttonPressHandler(actionId)?.let {
-                            TouchButtonPressAction(touchButtonActionOwner(actionId), it)
+                            TouchButtonPressAction(touchButtonActionOwner(consolePolicy.inputAlias(actionId)), it)
                         }
                     }
                 )
@@ -2444,6 +2462,7 @@ private fun OnScreenControls(
                     y = safeTop + travelY * control.positionY,
                     shape = control.composeShape(),
                     customControl = control,
+                    labelOverride = if (control.usesVectorStyle) consolePolicy.buttonLabel(control.actionId) else null,
                     haptics = control.haptics,
                     pressActions = pressActions,
                     tapToHold = control.pressMode == CustomTouchControlPressMode.TOGGLE
@@ -2465,6 +2484,7 @@ private fun OnScreenControls(
                 invertLeftStickHorizontal = invertLeftStickHorizontal,
                 onPadInput = onPadInput,
                 onScreenDoubleTap = onScreenDoubleTap,
+                guestTouchEnabled = consolePolicy.guestTouch && !dsMode,
                 visualStyle = visualStyle,
                 pressEffect = pressEffect,
                 onTouchHaptic = ::performTouchHaptic
@@ -2564,6 +2584,20 @@ private fun OnScreenControls(
     }
 }
 
+internal fun forwardOverlayGuestTouch(x: Float, y: Float, pressed: Boolean) {
+    val rect = NativeApp.getDisplayDrawRect() ?: return
+    val width = rect[2] - rect[0]
+    val height = rect[3] - rect[1]
+    if (width <= 0f || height <= 0f) return
+    val fractionX = ((x - rect[0]) / width).coerceIn(0f, 1f)
+    val fractionY = ((y - rect[1]) / height).coerceIn(0f, 1f)
+    NativeApp.setTouchState(
+        x = (fractionX * FRAMEBUFFER_TOUCH_WIDTH).roundToInt(),
+        y = (fractionY * FRAMEBUFFER_TOUCH_HEIGHT).roundToInt(),
+        pressed = pressed
+    )
+}
+
 @Composable
 internal fun TouchButtonGroup(
     specs: List<TouchButtonSpec>,
@@ -2582,7 +2616,9 @@ internal fun TouchButtonGroup(
     visualStyle: TouchControlVisualStyle,
     pressEffect: TouchControlPressEffect,
     onTouchHaptic: (ButtonPhase) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    guestTouchEnabled: Boolean = true,
+    onGuestTouch: (Float, Float, Boolean) -> Unit = ::forwardOverlayGuestTouch
 ) {
     val density = LocalDensity.current
     val coroutineScope = rememberCoroutineScope()
@@ -2604,6 +2640,8 @@ internal fun TouchButtonGroup(
     val currentInvertLeftStick by rememberUpdatedState(invertLeftStick)
     val currentInvertLeftStickHorizontal by rememberUpdatedState(invertLeftStickHorizontal)
     val currentOnScreenDoubleTap by rememberUpdatedState(onScreenDoubleTap)
+    val currentGuestTouchEnabled by rememberUpdatedState(guestTouchEnabled)
+    val currentOnGuestTouch by rememberUpdatedState(onGuestTouch)
     var lastTouchscreenDownTime by remember { mutableStateOf(0L) }
     var lastTouchscreenDownPosition by remember { mutableStateOf(Offset.Zero) }
     var touchPointerId by remember { mutableStateOf<Long?>(null) }
@@ -2809,26 +2847,16 @@ internal fun TouchButtonGroup(
      * lands on the emulated bottom screen.
      */
     fun forwardTouchscreenPointer(x: Float, y: Float, pressed: Boolean) {
-        val rect = NativeApp.getDisplayDrawRect() ?: return
-        val width = rect[2] - rect[0]
-        val height = rect[3] - rect[1]
-        if (width <= 0f || height <= 0f) return
-        val fractionX = ((x - rect[0]) / width).coerceIn(0f, 1f)
-        val fractionY = ((y - rect[1]) / height).coerceIn(0f, 1f)
-        NativeApp.setTouchState(
-            x = (fractionX * FRAMEBUFFER_TOUCH_WIDTH).roundToInt(),
-            y = (fractionY * FRAMEBUFFER_TOUCH_HEIGHT).roundToInt(),
-            pressed = pressed
-        )
+        if (currentGuestTouchEnabled) currentOnGuestTouch(x, y, pressed)
     }
 
     fun releaseTouchscreenPointer() {
         if (touchPointerId == null) return
-        NativeApp.setTouchState(0, 0, false)
+        currentOnGuestTouch(0f, 0f, false)
         touchPointerId = null
     }
 
-    DisposableEffect(routingKey, touchscreenRightStick, touchscreenLeftStick) {
+    DisposableEffect(routingKey, touchscreenRightStick, touchscreenLeftStick, guestTouchEnabled) {
         val stateAtStart = pointerState
         val specsAtStart = specById
         val pressActionsAtStart = pressActionsByOwner
@@ -2874,7 +2902,7 @@ internal fun TouchButtonGroup(
             // - pointerInput delivers proper per-pointer press/move/release events and cancellation
             // - pointerInteropFilter could miss ACTION_UP under rapid multitouch / Samsung OneUI
             //   which caused stuck keys and completely dead overlay on some devices (e.g., Samsung S26)
-            .pointerInput(routingKey, touchscreenRightStick, touchscreenLeftStick) {
+            .pointerInput(routingKey, touchscreenRightStick, touchscreenLeftStick, guestTouchEnabled) {
                 awaitPointerEventScope {
                     while (true) {
                         val event = awaitPointerEvent()
@@ -2914,7 +2942,7 @@ internal fun TouchButtonGroup(
                                             TouchscreenStickGestureTarget.NONE -> Unit
                                         }
                                         change.consume()
-                                    } else if (touchPointerId == null) {
+                                    } else if (currentGuestTouchEnabled && touchPointerId == null) {
                                         touchPointerId = pointerId
                                         val now = change.uptimeMillis
                                         val distance = (change.position - lastTouchscreenDownPosition)
@@ -3059,6 +3087,7 @@ internal fun TouchButtonGroup(
             } else {
                 VectorOverlayButton(
                     drawableRes = vectorDrawable ?: requireNotNull(spec.drawableRes),
+                    labelOverride = spec.labelOverride,
                     width = spec.width,
                     height = spec.height,
                     shape = spec.shape,
@@ -4469,6 +4498,15 @@ private fun EmulationSidebarMenu(
                             horizontalInset = sectionLabelInset
                         )
 
+                        if (uiState.gamePlatform == GamePlatform.NDS) {
+                            ScreenSwapMenuRow(
+                                platform = uiState.gamePlatform,
+                                swapped = uiState.swapScreens,
+                                enabled = !uiState.isActionInProgress,
+                                onSwapScreens = onSwapScreens
+                            )
+                        }
+
                         LiveSelectionRow(
                             title = stringResource(R.string.settings_renderer),
                             options = capabilities.rendererIds.map { renderer ->
@@ -4480,7 +4518,7 @@ private fun EmulationSidebarMenu(
                             },
                             currentValue = capabilities.normalizeRenderer(uiState.renderer),
                             onValueChange = onSetRenderer,
-                            helpText = stringResource(R.string.settings_help_renderer),
+                            helpText = stringResource(if (uiState.gamePlatform == GamePlatform.NDS) R.string.legacy_help_ds_renderer else R.string.settings_help_renderer),
                             onResetToDefault = {
                                 onSetRenderer(capabilities.normalizeRenderer(globalDefaults.renderer))
                             }
@@ -4500,7 +4538,7 @@ private fun EmulationSidebarMenu(
                             ).map { (value, label) -> LiveSelectionOption(value, label) },
                             currentValue = upscaleMultiplierValue(uiState.upscale.coerceIn(1f, capabilities.maxUpscaleMultiplier(10).toFloat())),
                             onValueChange = { onSetUpscale(upscaleKeyToMultiplier(it)) },
-                            helpText = stringResource(R.string.settings_help_upscale),
+                            helpText = stringResource(if (uiState.gamePlatform == GamePlatform.NDS) R.string.legacy_help_ds_upscale else R.string.settings_help_upscale),
                             onResetToDefault = { onSetUpscale(globalDefaults.upscaleMultiplier.coerceIn(1f, capabilities.maxUpscaleMultiplier(10).toFloat())) }
                         ) else Text(stringResource(R.string.settings_ds_software_native_resolution))
 
@@ -5246,20 +5284,44 @@ private fun ConnectedInputBadge(
 }
 
 @Composable
+internal fun ScreenSwapMenuRow(
+    platform: GamePlatform,
+    swapped: Boolean,
+    enabled: Boolean = true,
+    onSwapScreens: () -> Unit
+) {
+    if (!com.sbro.emucored.core.platform.CoreCapabilities.forPlatform(platform.console).supportsScreenSwap) return
+    SettingsToggle(
+        title = stringResource(R.string.settings_gamepad_action_swap_screen),
+        helpText = stringResource(R.string.legacy_help_screen_swap),
+        checked = swapped,
+        enabled = enabled,
+        onCheckedChange = { requested -> if (requested != swapped) onSwapScreens() },
+        modifier = Modifier
+            .testTag("game-menu-screen-swap")
+            .semantics(mergeDescendants = true) {
+                role = Role.Switch
+                toggleableState = if (swapped) ToggleableState.On else ToggleableState.Off
+            }
+    )
+}
+
+@Composable
 private fun SettingsToggle(
     title: String,
     checked: Boolean,
     enabled: Boolean = true,
     onCheckedChange: (Boolean) -> Unit,
     helpText: String? = null,
-    onResetToDefault: (() -> Unit)? = null
+    onResetToDefault: (() -> Unit)? = null,
+    modifier: Modifier = Modifier
 ) {
     val interactionSource = remember { MutableInteractionSource() }
     val context = LocalContext.current
     val resetToast = stringResource(R.string.settings_reset_to_default_toast)
     val shape = neonShape(16.dp)
     Surface(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .combinedClickable(
                 interactionSource = interactionSource,
@@ -5374,6 +5436,7 @@ private fun SecondScreenSettingsRows() {
     if (mode == AppPreferences.SECOND_SCREEN_MODE_PANEL) {
         LiveSelectionRow(
             title = stringResource(R.string.settings_second_screen_width),
+            helpText = stringResource(R.string.legacy_help_second_screen_width),
             options = (AppPreferences.SECOND_SCREEN_WIDTH_MIN..AppPreferences.SECOND_SCREEN_WIDTH_MAX step 2)
                 .map { LiveSelectionOption(it, "$it%") },
             currentValue = width,

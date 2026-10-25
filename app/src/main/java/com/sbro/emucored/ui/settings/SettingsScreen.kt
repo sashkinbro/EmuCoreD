@@ -306,7 +306,7 @@ fun SettingsScreen(
     onBackClick: (() -> Unit)? = null,
     onOpenLanguageScreen: (() -> Unit)? = null,
     onOpenMemoryCardManager: (() -> Unit)? = null,
-    onOpenControlsLayoutEditor: (() -> Unit)? = null,
+    onOpenControlsLayoutEditor: ((ConsolePlatform) -> Unit)? = null,
     onOpenThemeManager: (() -> Unit)? = null,
     onOpenTouchControlCreator: (() -> Unit)? = null,
     viewModel: SettingsViewModel = viewModel()
@@ -632,7 +632,7 @@ fun SettingsScreen(
                     searchQuery = ""
                 },
                 onOpenMemoryCardManager = onOpenMemoryCardManager,
-                onOpenControlsLayoutEditor = onOpenControlsLayoutEditor,
+                onOpenControlsLayoutEditor = onOpenControlsLayoutEditor?.let { open -> { open(selectedPlatform) } },
                 onOpenThemeManager = onOpenThemeManager,
                 onOpenTouchControlCreator = onOpenTouchControlCreator,
                 viewModel = viewModel,
@@ -1996,6 +1996,7 @@ private fun SettingsContent(
                     SettingsSection(title = stringResource(R.string.settings_covers_tab)) {
                         ChoiceSection(
                             title = stringResource(R.string.settings_cover_art_style),
+                            helpText = stringResource(R.string.legacy_help_cover_style),
                             options = listOf(
                                 AppPreferences.COVER_ART_STYLE_3D to stringResource(R.string.settings_cover_art_style_3d),
                                 AppPreferences.COVER_ART_STYLE_DISABLED to stringResource(R.string.settings_cover_art_style_off),
@@ -2057,6 +2058,7 @@ private fun SettingsContent(
                             ),
                             selectedValue = uiState.dsRenderer,
                             onSelect = viewModel::setDsRenderer,
+                            helpText = stringResource(R.string.legacy_help_ds_renderer),
                             onResetToDefault = { viewModel.setDsRenderer(DsSettingsPolicy.DEFAULT_RENDERER) }
                         )
                         if (uiState.dsRenderer == 14) ChoiceSection(
@@ -2067,7 +2069,7 @@ private fun SettingsContent(
                             ),
                             selectedValue = upscaleMultiplierKey(uiState.dsUpscaleMultiplier),
                             onSelect = { viewModel.setDsUpscaleMultiplier(upscaleKeyToMultiplier(it)) },
-                            helpText = stringResource(R.string.settings_help_upscale),
+                            helpText = stringResource(R.string.legacy_help_ds_upscale),
                             onResetToDefault = {
                                 viewModel.setDsUpscaleMultiplier(DsSettingsPolicy.DEFAULT_UPSCALE_MULTIPLIER)
                             }
@@ -2204,6 +2206,7 @@ private fun SettingsContent(
                                 )
                                 ChoiceSection(
                                     title = stringResource(R.string.settings_camera_flip),
+                                    helpText = stringResource(R.string.legacy_help_camera_flip),
                                     options = listOf(
                                         CameraSettingsStore.FLIP_NONE to stringResource(R.string.settings_camera_flip_none),
                                         CameraSettingsStore.FLIP_HORIZONTAL to stringResource(R.string.settings_camera_flip_horizontal),
@@ -2711,6 +2714,7 @@ private fun CustomizationSettingsTab(
             SliderItem(
                 icon = Icons.Rounded.Visibility,
                 title = stringResource(R.string.settings_customization_background_dim),
+                helpText = stringResource(R.string.legacy_help_background_dim),
                 subtitle = "",
                 value = uiState.homeBackgroundDim.toFloat(),
                 range = 0f..85f,
@@ -2812,6 +2816,7 @@ private fun CustomizationSettingsTab(
             SliderItem(
                 icon = Icons.Rounded.Visibility,
                 title = stringResource(R.string.settings_customization_background_dim),
+                helpText = stringResource(R.string.legacy_help_background_dim),
                 subtitle = "",
                 value = uiState.emulationSideArtworkDim.toFloat(),
                 range = 0f..85f,
@@ -3785,6 +3790,7 @@ private fun ThemeSelector(
 
     ChoiceSection(
         title = stringResource(R.string.settings_theme),
+        helpText = stringResource(R.string.legacy_help_theme),
         options = options,
         selectedValue = when (selected) {
             ThemeMode.SYSTEM -> 0

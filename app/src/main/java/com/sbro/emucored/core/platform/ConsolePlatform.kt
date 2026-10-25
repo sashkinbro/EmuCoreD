@@ -14,13 +14,13 @@ enum class ConsolePlatform(
 ) {
     N3DS("3ds", CoreId.AZAHAR, 37, true, setOf(37, 137)),
     NDS("nds", CoreId.MELONDS, 20, true, setOf(20, 159)),
-    GAMECUBE("gamecube", CoreId.DOLPHIN, 21, false),
-    WII("wii", CoreId.DOLPHIN, 5, false),
-    GBA("gba", CoreId.MGBA, 24, false),
-    GB("gb", CoreId.SAMEBOY, 33, false),
-    GBC("gbc", CoreId.SAMEBOY, 22, false),
-    NES("nes", CoreId.NESTOPIA, 18, false, setOf(18, 99)),
-    SNES("snes", CoreId.BSNES, 19, false, setOf(19, 58));
+    GAMECUBE("gamecube", CoreId.DOLPHIN, 21, true),
+    WII("wii", CoreId.DOLPHIN, 5, true),
+    GBA("gba", CoreId.MGBA, 24, true),
+    GB("gb", CoreId.SAMEBOY, 33, true),
+    GBC("gbc", CoreId.SAMEBOY, 22, true),
+    NES("nes", CoreId.NESTOPIA, 18, true, setOf(18, 99)),
+    SNES("snes", CoreId.BSNES, 19, true, setOf(19, 58));
 
     companion object {
         fun fromId(id: String?): ConsolePlatform? = entries.firstOrNull { it.id == id }

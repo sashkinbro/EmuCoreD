@@ -98,16 +98,18 @@ fun buildOverlayCanvasLayout(
     safeBottomInset: Dp,
     previewMode: Boolean = false,
     stickToggleTarget: Int = AppPreferences.DEFAULT_STICK_TOGGLE_TARGET,
-    dsMode: Boolean = false
+    dsMode: Boolean = false,
+    consolePolicy: ConsoleOverlayPolicy = ConsoleOverlayPolicy.forPlatform(com.sbro.emucored.core.platform.ConsolePlatform.N3DS)
 ): OverlayCanvasLayout {
     fun pxToDp(value: Float): Dp = with(density) { value.toDp() }
 
     val isLandscape = canvasWidth >= canvasHeight
 
     fun layoutFor(id: String, defaultScale: Int = 100): OverlayControlLayout {
-        return controlLayouts[id]
+        val stored = controlLayouts[id]
             ?: AppPreferences.defaultOverlayControlLayouts(defaultScale)[id]
             ?: OverlayControlLayout(scale = defaultScale)
+        return if (consolePolicy.supportsControl(id)) stored else stored.copy(visible = false)
     }
 
     val leftStickLayout = layoutFor("left_stick", (stickScaleFactor * 100f).toInt())
@@ -616,18 +618,18 @@ fun buildOverlayCanvasLayout(
     )
 
     return OverlayCanvasLayout(
-        leftShoulders = if (dsMode) leftShoulders.filter { it.id == "l" } else leftShoulders,
-        rightShoulders = if (dsMode) rightShoulders.filter { it.id == "r" } else rightShoulders,
-        dpadButtons = dpadButtons.filter { if (dsMode) it.visible else previewMode || it.visible },
+        leftShoulders = leftShoulders.filter { consolePolicy.supportsControl(it.id) && (!dsMode || it.id == "l") },
+        rightShoulders = rightShoulders.filter { consolePolicy.supportsControl(it.id) && (!dsMode || it.id == "r") },
+        dpadButtons = dpadButtons.filter { consolePolicy.supportsControl(it.id) && if (dsMode) it.visible else previewMode || it.visible },
         dpadCluster = if (dsMode) null else dpadCluster.takeIf { previewMode || it.visible },
-        actionButtons = actionButtons,
+        actionButtons = actionButtons.filter { consolePolicy.supportsControl(it.id) },
         centerButtons = if (dsMode) {
             centerButtons.filter { it.id == "select" || it.id == "start" }
         } else {
-            centerButtons.filter { previewMode || it.visible }
+            centerButtons.filter { consolePolicy.supportsControl(it.id) && (previewMode || it.visible) }
         },
-        leftStick = if (dsMode) null else leftStick.takeIf { previewMode || it.visible },
-        rightStick = if (dsMode) null else rightStick.takeIf { previewMode || it.visible },
-        toggleDpad = if (dsMode) null else toggleDpad.takeIf { it.visible }
+        leftStick = if (dsMode || !consolePolicy.leftAnalog) null else leftStick.takeIf { previewMode || it.visible },
+        rightStick = if (dsMode || !consolePolicy.rightAnalog) null else rightStick.takeIf { previewMode || it.visible },
+        toggleDpad = if (dsMode || !consolePolicy.supportsControl("dpad_toggle")) null else toggleDpad.takeIf { it.visible }
     )
 }

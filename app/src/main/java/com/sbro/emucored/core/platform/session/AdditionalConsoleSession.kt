@@ -28,6 +28,9 @@ object AdditionalConsoleSession {
     val isRunning: Boolean get() = host.session?.isRunning == true
     val platform: ConsolePlatform? get() = host.session?.platform ?: request?.platform
     val session: CoreSessionHost.Session? get() = host.session
+    val activeWiiControllerProfile: String? get() =
+        (host.session?.engine as? com.sbro.emucored.core.dolphin.DolphinSessionEngine)?.activeWiiProfile
+    val activeIdentityPath: String? get() = request?.identityPath.takeIf { isActive }
 
     suspend fun start(launch: EngineLaunchRequest): Boolean = lifecycle.withLock {
         if (isActive) return@withLock false

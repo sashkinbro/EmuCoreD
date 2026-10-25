@@ -26,22 +26,28 @@ fun ConsoleCoreOptionsPanel(
         options.forEach { option ->
             val value = values[option.key]?.takeIf(option::accepts) ?: option.defaultValue
             val reset = { onReset?.invoke(option.key) ?: onChange(option.key, option.defaultValue) }
-            val help = if (option.restartRequired) stringResource(R.string.core_option_restart_required) else null
+            val restart = if (option.restartRequired) stringResource(R.string.core_option_restart_required) else ""
+            val defaultLabel = if (option.values.size > 20) coreOptionNumericValue(option.key, option.defaultValue)
+                else coreOptionValue(option.defaultValue, option.key)
+            val help = listOf(
+                stringResource(requireNotNull(coreOptionHelpResource(platform, option.key))),
+                stringResource(R.string.core_option_help_recommended_default, defaultLabel), restart
+            ).filter(String::isNotBlank).joinToString("\n\n")
             when {
                 option.values.toSet() == setOf("true", "false") || option.values.toSet() == setOf("ON", "OFF") ->
                     ToggleItem(
-                        icon = Icons.Rounded.Tune, title = coreOptionTitle(option), subtitle = help.orEmpty(),
+                        icon = Icons.Rounded.Tune, title = coreOptionTitle(option), subtitle = restart,
                         checked = value == "true" || value == "ON",
                         onCheckedChange = { onChange(option.key, if (option.values.contains("true")) it.toString() else if (it) "ON" else "OFF") },
-                        onResetToDefault = reset
+                        helpText = help, onResetToDefault = reset
                     )
                 option.values.size > 20 -> SliderItem(
-                    icon = Icons.Rounded.Tune, title = coreOptionTitle(option), subtitle = help.orEmpty(),
+                    icon = Icons.Rounded.Tune, title = coreOptionTitle(option), subtitle = restart,
                     value = option.values.indexOf(value).coerceAtLeast(0).toFloat(),
                     range = 0f..option.values.lastIndex.toFloat(), steps = option.values.size - 2,
                     onValueChange = { onChange(option.key, option.values[it.roundToInt().coerceIn(option.values.indices)]) },
                     valueLabel = { coreOptionNumericValue(option.key, option.values[it.roundToInt().coerceIn(option.values.indices)]) },
-                    onResetToDefault = reset
+                    helpText = help, onResetToDefault = reset
                 )
                 else -> CoreStringChoiceSection(
                     title = coreOptionTitle(option), options = option.values.map { it to coreOptionValue(it, option.key) },
@@ -162,6 +168,8 @@ private fun coreOptionValue(value: String, key: String): String = when {
 
 @Composable
 private fun coreOptionChoiceValue(value: String): String = when (value) {
+    "true", "ON" -> stringResource(R.string.settings_core_choice_enabled)
+    "false", "OFF" -> stringResource(R.string.settings_core_choice_disabled)
     "default" -> stringResource(R.string.dolphin_choice_default)
     "stretch" -> stringResource(R.string.dolphin_choice_stretch)
     "specialized" -> stringResource(R.string.dolphin_choice_specialized)

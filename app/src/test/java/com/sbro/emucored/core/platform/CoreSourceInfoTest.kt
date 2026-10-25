@@ -18,8 +18,6 @@ class CoreSourceInfoTest {
         assertEquals(listOf(ConsolePlatform.GB, ConsolePlatform.GBC), CoreSourceInfo.forCore(CoreId.SAMEBOY).platforms)
         assertTrue(CoreSourceInfo.forCore(CoreId.AZAHAR).isIntegrated)
         assertTrue(CoreSourceInfo.forCore(CoreId.MELONDS).isIntegrated)
-        assertFalse(CoreSourceInfo.forCore(CoreId.DOLPHIN).isIntegrated)
-        assertFalse(CoreSourceInfo.forCore(CoreId.MGBA).isIntegrated)
-        assertFalse(CoreSourceInfo.forCore(CoreId.SAMEBOY).isIntegrated)
+        assertTrue("Every packaged engine passed the nine-console frontend matrix", sources.all { it.isIntegrated })
     }
 }

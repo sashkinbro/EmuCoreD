@@ -145,7 +145,8 @@ fun VectorOverlayButton(
     visualStyle: TouchControlVisualStyle = TouchControlVisualStyle.CLASSIC,
     pressEffect: TouchControlPressEffect = TouchControlPressEffect.GROW,
     onClick: (() -> Unit)? = null,
-    onPressChange: ((Boolean) -> Unit)? = null
+    onPressChange: ((Boolean) -> Unit)? = null,
+    labelOverride: String? = null
 ) {
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
@@ -199,7 +200,8 @@ fun VectorOverlayButton(
         TouchControlVisualStyle.MINIMAL -> if (isFaceButton || isDirectionalButton) CircleShape else RoundedCornerShape(if (isShoulderButton) 8.dp else 6.dp)
     }
     val styleBrush = when (visualStyle) {
-        TouchControlVisualStyle.CLASSIC -> null
+        TouchControlVisualStyle.CLASSIC -> if (labelOverride == null) null else Brush.verticalGradient(
+            listOf(Color(0xCC3A414D), Color(0xDD11151D)))
         TouchControlVisualStyle.LEGACY -> Brush.verticalGradient(
             listOf(
                 Color(0xFF626A77).copy(alpha = if (isActivelyPressed) 0.78f else 0.88f),
@@ -227,7 +229,7 @@ fun VectorOverlayButton(
         )
     }
     val styleBorder = when (visualStyle) {
-        TouchControlVisualStyle.CLASSIC -> null
+        TouchControlVisualStyle.CLASSIC -> if (labelOverride == null) null else Color.White.copy(alpha = 0.35f)
         TouchControlVisualStyle.LEGACY -> Color.White.copy(alpha = if (isActivelyPressed) 0.48f else 0.34f)
         TouchControlVisualStyle.MODERN -> MaterialTheme.colorScheme.primary.copy(alpha = if (isActivelyPressed) 0.96f else 0.72f)
         TouchControlVisualStyle.ARCADE -> Color(0xFFFFE29A).copy(alpha = if (isActivelyPressed) 1f else 0.9f)
@@ -313,7 +315,7 @@ fun VectorOverlayButton(
             }
             else -> Unit
         }
-        if (visualStyle == TouchControlVisualStyle.CLASSIC) {
+        if (visualStyle == TouchControlVisualStyle.CLASSIC && labelOverride == null) {
             Image(
                 painter = painterResource(drawableRes),
                 contentDescription = null,
@@ -324,6 +326,7 @@ fun VectorOverlayButton(
             AlternativeControlGlyph(
                 drawableRes = drawableRes,
                 visualStyle = visualStyle,
+                labelOverride = labelOverride,
                 modifier = Modifier.fillMaxSize(if (isShoulderButton) 0.7f else 0.54f)
             )
         }
@@ -334,7 +337,8 @@ fun VectorOverlayButton(
 private fun AlternativeControlGlyph(
     @DrawableRes drawableRes: Int,
     visualStyle: TouchControlVisualStyle,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    labelOverride: String? = null
 ) {
     val baseColor = when (visualStyle) {
         TouchControlVisualStyle.LEGACY -> Color.White.copy(alpha = 0.92f)
@@ -342,7 +346,7 @@ private fun AlternativeControlGlyph(
         TouchControlVisualStyle.MINIMAL -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.88f)
         else -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.94f)
     }
-    val text = when (drawableRes) {
+    val text = labelOverride ?: when (drawableRes) {
         R.drawable.ic_controller_a_button -> "A"
         R.drawable.ic_controller_b_button -> "B"
         R.drawable.ic_controller_x_button -> "X"

@@ -30,6 +30,7 @@ class DolphinSessionEngine : CoreSessionEngine {
     @Volatile private var sessionLease: NativeSessionOwnership.Lease? = null
     @Volatile private var wii = false
     @Volatile private var profile = "nunchuk"
+    val activeWiiProfile: String? get() = profile.takeIf { ownsRuntime && wii }
     @Volatile private var surface: Surface? = null
     @Volatile private var width = 0
     @Volatile private var height = 0
@@ -172,7 +173,7 @@ class DolphinSessionEngine : CoreSessionEngine {
         setOwnedTouch(x, y, pressed)
     }
     private fun setOwnedTouch(x: Int, y: Int, pressed: Boolean): Boolean {
-        if (!wii || width <= 0 || height <= 0) return false
+        if (!wii || profile == "classic" || width <= 0 || height <= 0) return false
         DolphinNative.control(0, 29, (2.0 * x / width - 1.0).coerceIn(-1.0, 1.0))
         DolphinNative.control(0, 30, (1.0 - 2.0 * y / height).coerceIn(-1.0, 1.0))
         DolphinNative.control(0, 18, if (pressed) 1.0 else 0.0)
