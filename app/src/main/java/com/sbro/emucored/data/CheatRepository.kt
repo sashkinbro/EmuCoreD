@@ -127,8 +127,7 @@ class CheatRepository(private val context: Context) {
         }
         val oldEnabledSignatures = existingBlocks
                 .filter { old.contains(it.id) }
-                .map(::cheatBlockSignature)
-                .toSet()
+                .associate { it.id to cheatBlockSignature(it) }
         val importedBlocks = parseCheatBlocks(contents)
         if (importedBlocks.isEmpty()) return@synchronized 0
         val blocks = if (mergeWithExisting) {
@@ -142,7 +141,7 @@ class CheatRepository(private val context: Context) {
         val enabledIds = if (enableAllByDefault) {
             blocks.map { it.id }
         } else {
-            blocks.filter { cheatBlockSignature(it) in oldEnabledSignatures }.map { it.id }
+            blocks.filter { oldEnabledSignatures[it.id] == cheatBlockSignature(it) }.map { it.id }
         }
         state.put(normalizedGameKey, JSONArray(enabledIds))
         if (normalizedGameKey != gameKey) state.remove(gameKey)
@@ -156,7 +155,9 @@ class CheatRepository(private val context: Context) {
     ): List<CheatBlock> {
         val merged = linkedMapOf<String, CheatBlock>()
         (existing + imported).forEach { block ->
-            val key = block.format + "\u0000" + block.id
+            // Enabled state is keyed by ID too: a format change must replace
+            // the previous block rather than create two blocks sharing a toggle.
+            val key = block.id
             val previous = merged[key]
             merged[key] = if (previous == null) {
                 block
