@@ -9,6 +9,7 @@ import com.sbro.emucored.R
 import com.sbro.emucored.core.ProPurchaseManager
 import com.sbro.emucored.data.PlayerAccount
 import com.sbro.emucored.data.PlayerActivityDay
+import com.sbro.emucored.data.profilePlatform
 import com.sbro.emucored.data.PlayerGamePlayStat
 import com.sbro.emucored.data.PlayerLeaderboardEntry
 import com.sbro.emucored.data.PlayerProfile
@@ -523,7 +524,8 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
                 runCatching {
                     catalogRepository.findBestMatchId(
                         serial = game.serial,
-                        title = game.title
+                        title = game.title,
+                        platform = game.profilePlatform()
                     )
                 }.getOrNull()
             }

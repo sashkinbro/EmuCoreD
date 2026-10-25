@@ -3,6 +3,7 @@ package com.sbro.emucored.data.n3ds
 import android.content.Context
 import android.database.sqlite.SQLiteDatabase
 import android.util.Log
+import com.sbro.emucored.data.GamePlatform
 import java.io.File
 import java.io.FileOutputStream
 import java.text.Normalizer
@@ -12,16 +13,15 @@ class N3dsCatalogRepository(private val context: Context) {
 
     companion object {
         private const val TAG = "N3dsCatalogRepository"
-        // Keep the platform in the extracted filename so a cache from another
-        // platform cannot be mistaken for the bundled 3DS database.
-        private const val DB_NAME = "n3ds_games.db"
+        // New cache epoch extracts the all-console asset on upgrades; retain the legacy file.
+        internal const val DB_NAME = "nintendo_games_v2.db"
         private const val ASSET_PATH = "catalog/games.db"
 
         private val sharedCoverMatchCache =
             java.util.concurrent.ConcurrentHashMap<String, CatalogCover>()
         private val sharedCoverMatchMisses = java.util.concurrent.ConcurrentHashMap.newKeySet<String>()
 
-        @Volatile private var sharedFuzzyCandidates: List<FuzzyCandidate>? = null
+        @Volatile private var sharedFuzzyCandidates: Pair<String, List<FuzzyCandidate>>? = null
 
         /** One catalog instance per process: the database is read-only and shared. */
         @Volatile private var sharedInstance: N3dsCatalogRepository? = null
@@ -201,7 +201,7 @@ class N3dsCatalogRepository(private val context: Context) {
         return match
     }
 
-    fun findBestMatchId(serial: String?, title: String?): Long? {
+    fun findBestMatchId(serial: String?, title: String?, platform: GamePlatform? = null): Long? {
         if (!ensureDatabaseReady()) return null
         val candidateSerials = listOfNotNull(serial)
             .map { it.normalizeSerialForMatch() }
@@ -209,7 +209,7 @@ class N3dsCatalogRepository(private val context: Context) {
             .distinct()
 
         val db = getDatabase() ?: return null
-        findIdByDatabaseSerial(db, candidateSerials)?.let { id ->
+        findIdByDatabaseSerial(db, candidateSerials, platform)?.let { id ->
             Log.d(TAG, "Catalog match by database serial: $serial -> $id")
             return id
         }
@@ -218,11 +218,11 @@ class N3dsCatalogRepository(private val context: Context) {
             .map(::normalizeIdentityTitle)
             .filter { it.isNotBlank() }
             .distinct()
-        findExactTitleId(db, candidateTitles)?.let { id ->
+        findExactTitleId(db, candidateTitles, platform)?.let { id ->
             Log.d(TAG, "Catalog match by exact title: $title -> $id")
             return id
         }
-        findFuzzyTitleId(db, candidateTitles)?.let { id ->
+        findFuzzyTitleId(db, candidateTitles, platform)?.let { id ->
             Log.d(TAG, "Catalog match by fuzzy title: $title -> $id")
             return id
         }
@@ -231,7 +231,7 @@ class N3dsCatalogRepository(private val context: Context) {
         return null
     }
 
-    private fun findIdByDatabaseSerial(db: SQLiteDatabase, serials: List<String>): Long? {
+    private fun findIdByDatabaseSerial(db: SQLiteDatabase, serials: List<String>, platform: GamePlatform?): Long? {
         if (serials.isEmpty()) return null
         return runCatching {
             val placeholders = serials.joinToString(",") { "?" }
@@ -241,6 +241,7 @@ class N3dsCatalogRepository(private val context: Context) {
                 FROM game_serials
                 WHERE UPPER(REPLACE(REPLACE(REPLACE(REPLACE(serial, '-', ''), '_', ''), '.', ''), ' ', ''))
                     IN ($placeholders)
+                    AND igdb_id IN (SELECT igdb_id FROM games WHERE 1=1 ${catalogPlatformClause(platform)})
                 LIMIT 1
                 """.trimIndent(),
                 serials.toTypedArray()
@@ -248,10 +249,10 @@ class N3dsCatalogRepository(private val context: Context) {
         }.getOrNull()
     }
 
-    private fun findExactTitleId(db: SQLiteDatabase, titles: List<String>): Long? {
+    private fun findExactTitleId(db: SQLiteDatabase, titles: List<String>, platform: GamePlatform?): Long? {
         titles.forEach { title ->
             db.rawQuery(
-                "SELECT igdb_id FROM games WHERE normalized_name = ? LIMIT 1",
+                "SELECT igdb_id FROM games WHERE normalized_name = ? ${catalogPlatformClause(platform)} LIMIT 1",
                 arrayOf(title)
             ).use { cursor ->
                 if (cursor.moveToFirst()) return cursor.getLong(0)
@@ -260,14 +261,16 @@ class N3dsCatalogRepository(private val context: Context) {
         return null
     }
 
-    private fun findFuzzyTitleId(db: SQLiteDatabase, titles: List<String>): Long? {
+    private fun findFuzzyTitleId(db: SQLiteDatabase, titles: List<String>, platform: GamePlatform?): Long? {
         if (titles.isEmpty()) return null
         val candidateTokens = titles.map(::catalogMatchTokens).filter { it.isNotEmpty() }
         if (candidateTokens.isEmpty()) return null
         val candidates = fuzzyCandidates(db) ?: return null
         var bestId: Long? = null
         var bestScore = 0.0
+        val allowedPlatforms = catalogPlatformCodes(platform)
         for (candidate in candidates) {
+            if (allowedPlatforms != null && candidate.platform !in allowedPlatforms) continue
             for (tokens in candidateTokens) {
                 val score = tokenSimilarity(tokens, candidate.tokens)
                 if (score > bestScore) {
@@ -279,19 +282,19 @@ class N3dsCatalogRepository(private val context: Context) {
         return bestId?.takeIf { bestScore >= MIN_FUZZY_TITLE_SCORE }
     }
 
-    private data class FuzzyCandidate(val id: Long, val tokens: Set<String>)
+    private data class FuzzyCandidate(val id: Long, val tokens: Set<String>, val platform: String)
 
     /** All catalog titles are tokenised once per process, not per lookup. */
     private fun fuzzyCandidates(db: SQLiteDatabase): List<FuzzyCandidate>? {
-        sharedFuzzyCandidates?.let { return it }
+        sharedFuzzyCandidates?.takeIf { it.first == db.path }?.let { return it.second }
         return runCatching {
             val candidates = ArrayList<FuzzyCandidate>(2400)
-            db.rawQuery("SELECT igdb_id, normalized_name FROM games", null).use { cursor ->
+            db.rawQuery("SELECT igdb_id, normalized_name, platform FROM games", null).use { cursor ->
                 while (cursor.moveToNext()) {
-                    candidates += FuzzyCandidate(cursor.getLong(0), catalogMatchTokens(cursor.getString(1).orEmpty()))
+                    candidates += FuzzyCandidate(cursor.getLong(0), catalogMatchTokens(cursor.getString(1).orEmpty()), cursor.getString(2).orEmpty())
                 }
             }
-            candidates.also { sharedFuzzyCandidates = it }
+            candidates.also { sharedFuzzyCandidates = db.path to it }
         }.getOrNull()
     }
 
@@ -746,3 +749,14 @@ private fun android.database.Cursor.getIntOrNull(index: Int): Int? {
 private fun android.database.Cursor.getDoubleOrNull(index: Int): Double? {
     return if (isNull(index)) null else getDouble(index)
 }
+
+/** Existing single-platform catalog labels; DSi belongs to the DS product family. */
+internal fun catalogPlatformCodes(platform: GamePlatform?): Set<String>? = when (platform) {
+    null -> null
+    GamePlatform.N3DS -> setOf("3DS")
+    GamePlatform.NDS -> setOf("DS", "DSI")
+    else -> setOf(platform.name)
+}
+
+private fun catalogPlatformClause(platform: GamePlatform?): String = catalogPlatformCodes(platform)
+    ?.joinToString(prefix = " AND platform IN (", postfix = ")") { "'$it'" }.orEmpty()
