@@ -3879,6 +3879,10 @@ private fun CustomControlsQuickSelector(
     }
 }
 
+internal val LocalSettingsHorizontalPadding = androidx.compose.runtime.staticCompositionLocalOf {
+    ScreenHorizontalPadding
+}
+
 @Composable
 internal fun SettingsSection(
     title: String,
@@ -3886,6 +3890,7 @@ internal fun SettingsSection(
     content: @Composable ColumnScope.() -> Unit
 ) {
     val neon = LocalNeonTheme.current
+    val horizontalPadding = LocalSettingsHorizontalPadding.current
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
         Text(
             text = if (neon) title.uppercase() else title,
@@ -3894,13 +3899,13 @@ internal fun SettingsSection(
                 letterSpacing = if (neon) 1.2.sp else MaterialTheme.typography.titleLarge.letterSpacing
             ),
             color = if (neon) NeonYellow else MaterialTheme.colorScheme.onBackground,
-            modifier = Modifier.padding(horizontal = ScreenHorizontalPadding)
+            modifier = Modifier.padding(horizontal = horizontalPadding)
         )
         if (neon) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = ScreenHorizontalPadding)
+                    .padding(horizontal = horizontalPadding)
                     .height(1.dp)
                     .background(
                         Brush.horizontalGradient(
@@ -3915,7 +3920,7 @@ internal fun SettingsSection(
             Surface(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = ScreenHorizontalPadding),
+                    .padding(horizontal = horizontalPadding),
                 shape = neonShape(24.dp),
                 color = MaterialTheme.colorScheme.surface,
                 tonalElevation = 2.dp,
@@ -4375,7 +4380,7 @@ internal fun ToggleItem(
     Surface(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp)
+            .padding(horizontal = LocalSettingsHorizontalPadding.current)
             .then(
                 if (tvUiEnabled && helpText != null) {
                     Modifier
@@ -4489,7 +4494,7 @@ private fun ActionItem(
     Surface(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp)
+            .padding(horizontal = LocalSettingsHorizontalPadding.current)
             .then(
                 if (tvUiEnabled && helpText != null) {
                     Modifier
@@ -4611,7 +4616,7 @@ internal fun SliderItem(
     Surface(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp)
+            .padding(horizontal = LocalSettingsHorizontalPadding.current)
             .then(
                 if (tvUiEnabled && helpText != null) {
                     Modifier
@@ -5549,7 +5554,7 @@ internal fun CoreStringChoiceSection(
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Row(
             modifier = Modifier
-                .padding(horizontal = 16.dp)
+                .padding(horizontal = LocalSettingsHorizontalPadding.current)
                 .then(
                     if (tvUiEnabled && helpText != null) {
                         Modifier
@@ -5592,7 +5597,7 @@ internal fun CoreStringChoiceSection(
             modifier = Modifier
                 .fillMaxWidth()
                 .tvFocusGroup(),
-            contentPadding = PaddingValues(horizontal = 16.dp),
+            contentPadding = PaddingValues(horizontal = LocalSettingsHorizontalPadding.current),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             items(options) { (value, label) ->
@@ -5633,7 +5638,7 @@ private fun BitmaskChoiceSection(
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Row(
             modifier = Modifier
-                .padding(horizontal = 16.dp)
+                .padding(horizontal = LocalSettingsHorizontalPadding.current)
                 .then(
                     if (tvUiEnabled && helpText != null) {
                         Modifier
@@ -5676,7 +5681,7 @@ private fun BitmaskChoiceSection(
             modifier = Modifier
                 .fillMaxWidth()
                 .tvFocusGroup(),
-            contentPadding = PaddingValues(horizontal = 16.dp),
+            contentPadding = PaddingValues(horizontal = LocalSettingsHorizontalPadding.current),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             items(options) { (metric, label) ->

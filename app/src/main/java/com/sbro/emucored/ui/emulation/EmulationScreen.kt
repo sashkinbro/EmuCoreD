@@ -233,6 +233,7 @@ import com.sbro.emucored.ui.common.premiumFilterChipColors
 import com.sbro.emucored.ui.common.rememberDebouncedClick
 import com.sbro.emucored.ui.common.tvFocusGroup
 import com.sbro.emucored.ui.settings.ControlsEditorScreen
+import com.sbro.emucored.ui.settings.LocalSettingsHorizontalPadding
 import com.sbro.emucored.ui.settings.KeyboardMouseSettingsDialog
 import com.sbro.emucored.ui.settings.toControlsEditorState
 import com.sbro.emucored.data.forPlatform
@@ -4603,21 +4604,23 @@ private fun EmulationSidebarMenu(
                 }
     }
 
-    GameMenuLayoutHost(
-        style = if (isNds) GameMenuLayoutStyle.COMPACT else uiState.gameMenuLayoutStyle,
-        compactForNds = isNds,
-        modifier = modifier,
-        menuTabs = menuTabs,
-        selectedMenuTab = selectedMenuTab,
-        selectedTabScrollState = selectedTabScrollState,
-        railFocusRequesters = railFocusRequesters,
-        contentBottomPadding = drawerBottomPadding + animatedBottomInset,
-        rightInset = animatedRightInset,
-        sectionSpacing = sectionSpacing,
-        onSelectTab = { selectedMenuTabName = it.name },
-        onClose = onClose,
-        content = menuContent
-    )
+    CompositionLocalProvider(LocalSettingsHorizontalPadding provides 0.dp) {
+        GameMenuLayoutHost(
+            style = if (isNds) GameMenuLayoutStyle.COMPACT else uiState.gameMenuLayoutStyle,
+            compactForNds = isNds,
+            modifier = modifier,
+            menuTabs = menuTabs,
+            selectedMenuTab = selectedMenuTab,
+            selectedTabScrollState = selectedTabScrollState,
+            railFocusRequesters = railFocusRequesters,
+            contentBottomPadding = drawerBottomPadding + animatedBottomInset,
+            rightInset = animatedRightInset,
+            sectionSpacing = sectionSpacing,
+            onSelectTab = { selectedMenuTabName = it.name },
+            onClose = onClose,
+            content = menuContent
+        )
+    }
 }
 
 @Composable
