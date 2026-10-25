@@ -54,6 +54,22 @@ class CoverIdentityResolverTest {
         assertEquals("pokemon", CoverIndexRepository.normalizeTitle("Pok\u00e9mon\u2122"))
     }
 
+    @Test fun safeSuffixesMatchButSequelMarkersNeverFallBackToTheBaseGame() {
+        val index = JSONObject("""{
+            "games":{
+                "1":{"name":"Mortal Kombat"},
+                "2":{"name":"Mega Man 4"},
+                "3":{"name":"Planes"},
+                "4":{"name":"Mario & Luigi: Paper Jam"}
+            }
+        }""")
+        val resolver = CoverIdentityResolver(index, emptyMap(), GamePlatform.SNES)
+        assertNull(resolver.resolve(null, "Mortal Kombat II", GamePlatform.SNES))
+        assertEquals("2", resolver.resolve(null, "Mega Man IV", GamePlatform.SNES))
+        assertEquals("3", resolver.resolve(null, "Disney Planes", GamePlatform.SNES))
+        assertEquals("4", resolver.resolve(null, "Mario & Luigi Paper Jam Bros", GamePlatform.SNES))
+    }
+
     @Test fun schemaThreeRequiresUnambiguousScopedTitles() {
         val scoped = JSONObject("""{
           "platform":"nes","version":3,

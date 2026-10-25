@@ -901,7 +901,13 @@ class HomeViewModel(application: Application, private val savedStateHandle: Save
         val snapshot: List<GameItem>
         synchronized(this) {
             allGames = allGames.map { game ->
-                val selected = covers.displayCoverPath(game.serial, game.coverLookupTitle, game.coverArtPath, game.platform)
+                val selected = covers.displayCoverPath(
+                    game.serial,
+                    game.coverLookupTitle,
+                    game.coverArtPath,
+                    game.platform,
+                    game.coverLookupTitles.drop(1)
+                )
                 if (selected == game.coverArtPath) game else game.copy(coverArtPath = selected)
             }
             snapshot = allGames
@@ -996,6 +1002,10 @@ class HomeViewModel(application: Application, private val savedStateHandle: Save
                         game.serial, title = game.coverLookupTitle, platform = game.platform
                     )
                     when {
+                        coverRepository.isEmbeddedIconPath(game.coverArtPath) -> {
+                            removedStalePaths = true
+                            game.copy(coverArtPath = resolvedCoverPath)
+                        }
                         coverRepository.isMissingManagedCover(game.coverArtPath) ||
                             customGameCoverRepository.isMissingCustomCover(game.coverArtPath) -> {
                             removedStalePaths = true

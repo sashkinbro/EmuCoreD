@@ -13,9 +13,13 @@ class CoverIndexRepository(private val context: Context) {
     internal data class Asset(val path: String, val sha256: String)
 
     fun find(serial: String?, title: String?, platform: GamePlatform = GamePlatform.N3DS,
+             threeDimensional: Boolean = false, darkTheme: Boolean = false): Cover? =
+        find(serial, listOfNotNull(title), platform, threeDimensional, darkTheme)
+
+    fun find(serial: String?, titles: List<String?>, platform: GamePlatform = GamePlatform.N3DS,
              threeDimensional: Boolean = false, darkTheme: Boolean = false): Cover? {
         val loaded = load(platform) ?: return null
-        val id = loaded.identities.resolve(serial, title, platform) ?: return null
+        val id = titles.firstNotNullOfOrNull { loaded.identities.resolve(serial, it, platform) } ?: return null
         val game = loaded.index.optJSONObject("games")?.optJSONObject(id) ?: return null
         val asset = selectAsset(game, platform, threeDimensional, darkTheme, id) ?: return null
         val source = game.optString("source_url").takeIf { IGDB_SOURCE.matches(it) }.orEmpty()
@@ -24,6 +28,9 @@ class CoverIndexRepository(private val context: Context) {
 
     fun hasCover(serial: String?, title: String?, platform: GamePlatform = GamePlatform.N3DS): Boolean =
         find(serial, title, platform) != null
+
+    fun hasCover(serial: String?, titles: List<String?>, platform: GamePlatform = GamePlatform.N3DS): Boolean =
+        find(serial, titles, platform) != null
 
     private fun load(platform: GamePlatform): LoadedIndex? = synchronized(lock) {
         cached[platform] ?: runCatching {

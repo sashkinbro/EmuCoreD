@@ -79,4 +79,51 @@ class PlatformCoverCatalogTest {
             }
         }
     }
+
+    @Test fun everyUniqueCatalogTitleResolvesBackToItsOwnEntry() {
+        for (platform in GamePlatform.entries) {
+            val index = catalog(platform)
+            val games = index.getJSONObject("games")
+            val resolver = CoverIdentityResolver(index, emptyMap(), platform)
+            val idsByTitle = mutableMapOf<String, MutableList<String>>()
+            for (id in games.keys()) {
+                val name = games.getJSONObject(id).optString("name")
+                if (name.isBlank()) continue
+                idsByTitle.getOrPut(CoverIndexRepository.normalizeTitle(name)) { mutableListOf() }.add(id)
+            }
+            val candidateTable = index.optJSONObject("title_candidates")
+            for ((normalized, ids) in idsByTitle) {
+                val candidateCount = candidateTable?.optJSONArray(normalized)?.length() ?: 0
+                if (ids.size != 1 || candidateCount > 1) continue
+                val name = games.getJSONObject(ids.single()).getString("name")
+                assertEquals("$platform: $name", ids.single(), resolver.resolve(null, name, platform))
+            }
+        }
+    }
+
+    @Test fun truncatedHeadersAndFilenameSuffixesResolveToPublishedCovers() {
+        val idsByPlatform = mapOf(
+            GamePlatform.NDS to listOf(
+                "Super Mario 64 DS (USA).nds" to "22301",
+                "Simpsons Game, The (USA).nds" to "259329",
+                "Legend of Zelda, The - Phantom Hourglass (USA) (En,Fr,Es).nds" to "1037"
+            ),
+            GamePlatform.N3DS to listOf(
+                "Disney Planes" to "259323",
+                "Mario and Luigi Dream Team Bros.3ds" to "3365",
+                "Mario & Luigi Paper Jam Bros.3ds" to "11195",
+                "Madagascar 3" to "19648",
+                "Luigi's Mansion 2" to "2476"
+            ),
+            GamePlatform.SNES to listOf(
+                "Contra IV - The Alien Wars (USA) (Beta).sfc" to "6351"
+            )
+        )
+        for ((platform, cases) in idsByPlatform) {
+            val resolver = CoverIdentityResolver(catalog(platform), emptyMap(), platform)
+            for ((title, expected) in cases) {
+                assertEquals("$platform: $title", expected, resolver.resolve(null, title, platform))
+            }
+        }
+    }
 }

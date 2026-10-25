@@ -50,18 +50,36 @@ internal class CoverIdentityResolver(
         for (candidate in serialCandidates) {
             idFromTableValue(serials?.optString(candidate))?.takeIf { platform in platformMembership[it].orEmpty() }?.let { return it }
         }
-        val lookupTitle = title.orEmpty().let {
+        val originalTitle = title.orEmpty()
+        val withoutExtension = originalTitle.let {
             if (ConsoleGameFormats.isSupportedName(it)) it.substringBeforeLast('.') else it
         }
-        val normalizedTitle = normalizeTitle(lookupTitle.replace(ROM_TAGS, " "))
-        if (normalizedTitle in ambiguousTitles)
-            return resolveRegionCandidate(normalizedTitle, lookupTitle, platform)
-        if (normalizedTitle.isNotBlank()) {
+        // Catalog names may contain bracketed subtitles ("[Director's Cut]") or
+        // even a console suffix ("Phobos Dere.GB"), while filenames use the
+        // same brackets for region/status tags. Try literal and stripped forms.
+        val normalizedTitles = listOf(
+            originalTitle,
+            withoutExtension,
+            originalTitle.replace(ROM_TAGS, " "),
+            withoutExtension.replace(ROM_TAGS, " ")
+        ).map(::normalizeTitle).filter(String::isNotBlank).distinct()
+        for (rawNormalized in normalizedTitles) {
+            val normalizedTitle = if (platform == GamePlatform.SNES) {
+                TITLE_ALIASES[rawNormalized] ?: rawNormalized
+            } else {
+                rawNormalized
+            }
+            if (normalizedTitle.isBlank()) continue
+            if (normalizedTitle in ambiguousTitles) {
+                resolveRegionCandidate(normalizedTitle, originalTitle, platform)?.let { return it }
+                continue
+            }
             idFromTableValue(index.optJSONObject("titles")?.optString(normalizedTitle))
                 ?.takeIf { platform in platformMembership[it].orEmpty() }?.let { return it }
             exactTitles[platform]?.get(normalizedTitle)?.singleOrNull()?.let { return it }
+            findFuzzyGameId(normalizedTitle, platform)?.let { return it }
         }
-        return findFuzzyGameId(normalizedTitle, platform)
+        return null
     }
 
     private data class Candidate(val id: String, val title: String, val tokens: List<String>)
@@ -153,7 +171,33 @@ internal class CoverIdentityResolver(
                 tied = true
             }
         }
-        return bestId.takeUnless { tied }
+        if (bestId != null && !tied) return bestId
+
+        // Region/edition suffixes ("Bros.", "Disney") are common in filenames
+        // but absent from the catalog title. Accept a unique catalog title
+        // whose tokens are all present in the query, with at most two extras.
+        var subsetBest: String? = null
+        var subsetTied = false
+        for (candidate in shortlist) {
+            if (candidate.title in ambiguousTitles) continue
+            if (candidate.tokens.isEmpty()) continue
+            val remaining = queryTokens.toMutableList()
+            var containsAllCandidateTokens = true
+            for (token in candidate.tokens) {
+                if (!remaining.remove(token)) {
+                    containsAllCandidateTokens = false
+                    break
+                }
+            }
+            if (!containsAllCandidateTokens) continue
+            if (remaining.size !in 1..2 || remaining.any { it !in SAFE_EXTRA_TITLE_TOKENS }) continue
+            if (subsetBest == null) {
+                subsetBest = candidate.id
+            } else if (subsetBest != candidate.id) {
+                subsetTied = true
+            }
+        }
+        return subsetBest.takeUnless { subsetTied }
     }
 
     private fun tokenMatchScore(query: List<String>, game: List<String>): Int {
@@ -172,6 +216,7 @@ internal class CoverIdentityResolver(
     private fun titleTokensFromNormalized(value: String): List<String> =
         value
             .replace(TITLE_FILLER_WORDS, " ")
+            .replace(ROMAN_NUMERALS) { match -> ROMAN_NUMERAL_VALUES.getValue(match.value) }
             .replace(TRAILING_DS, " ")
             .replace(WHITESPACE, " ")
             .trim()
@@ -189,9 +234,23 @@ internal class CoverIdentityResolver(
         val ROM_TAGS = Regex("\\([^)]*\\)|\\[[^]]*]")
         val SERIAL_SEPARATORS = Regex("[-_.\\s]")
         val HEX_TITLE_ID = Regex("[0-9A-F]{16}")
-        val TITLE_FILLER_WORDS = Regex("\\b(the|a|an|game|nintendo|edition|version)\\b")
+        val TITLE_FILLER_WORDS = Regex("\\b(the|a|an|and|game|video|nintendo|edition|version)\\b")
         val TRAILING_DS = Regex("\\s+ds$")
         val WHITESPACE = Regex("\\s+")
+        val ROMAN_NUMERALS = Regex("\\b(viii|vii|vi|iv|iii|ii|ix)\\b")
+        val ROMAN_NUMERAL_VALUES = mapOf(
+            "ii" to "2", "iii" to "3", "iv" to "4", "vi" to "6", "vii" to "7", "viii" to "8", "ix" to "9"
+        )
+        /** Prefix/suffix words that may be absent from the catalog's canonical title. */
+        val SAFE_EXTRA_TITLE_TOKENS = setOf("disney", "bros")
+        // The SNES release is Contra III in the catalog; some dumps expose the
+        // Japanese/alternate "Contra IV" name instead.
+        val TITLE_ALIASES = mapOf(
+            "contra iv" to "contra iii the alien wars",
+            "contra iv the alien wars" to "contra iii the alien wars",
+            "contra 4" to "contra iii the alien wars",
+            "contra 4 the alien wars" to "contra iii the alien wars"
+        )
         val COVER_PATH = Regex(
             "covers/(?:3d/(?:dark/)?)?([0-9]+)\\.(?:jpg|jpeg|png|webp)",
             RegexOption.IGNORE_CASE

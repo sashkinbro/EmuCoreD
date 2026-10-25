@@ -62,6 +62,10 @@ class CoverArtRepository(context: Context) {
     fun isManagedCoverCachePath(path: String?): Boolean =
         CoverCachePolicy.isPathInside(path, coverCacheDirectory)
 
+    /** ROM-extracted SMDH icons are not box art; never present them as covers. */
+    fun isEmbeddedIconPath(path: String?): Boolean =
+        path?.contains("${File.separator}game-covers${File.separator}embedded-", ignoreCase = true) == true
+
     fun isCurrentCoverCachePath(path: String?): Boolean =
         CoverCachePolicy.isPathInside(path, cacheDirectory)
 
@@ -71,21 +75,25 @@ class CoverArtRepository(context: Context) {
     fun hasIndexedCover(
         serial: String?,
         title: String?,
-        platform: GamePlatform = GamePlatform.N3DS
-    ): Boolean = CoverIndexRepository(context).hasCover(serial, title, platform)
+        platform: GamePlatform = GamePlatform.N3DS,
+        titleFallbacks: List<String> = emptyList()
+    ): Boolean = CoverIndexRepository(context)
+        .hasCover(serial, listOfNotNull(title) + titleFallbacks, platform)
 
     /** Never flash an embedded icon or a previous style before the selected artwork loads. */
     fun displayCoverPath(
         serial: String?,
         title: String?,
         candidate: String?,
-        platform: GamePlatform = GamePlatform.N3DS
+        platform: GamePlatform = GamePlatform.N3DS,
+        titleFallbacks: List<String> = emptyList()
     ): String? {
-        if (candidate != null && !isManagedCoverCachePath(candidate)) return candidate
-        if (hasIndexedCover(serial, title, platform)) {
+        val usableCandidate = candidate?.takeUnless(::isEmbeddedIconPath)
+        if (usableCandidate != null && !isManagedCoverCachePath(usableCandidate)) return usableCandidate
+        if (hasIndexedCover(serial, title, platform, titleFallbacks)) {
             return findCachedCoverPath(serial, title = title, platform = platform)
         }
-        return candidate
+        return usableCandidate
     }
 
     fun findCachedCoverPath(
@@ -163,7 +171,8 @@ class CoverArtRepository(context: Context) {
         styleOverride: Int? = null,
         ignoreDisabled: Boolean = false,
         title: String? = null,
-        platform: GamePlatform = GamePlatform.N3DS
+        platform: GamePlatform = GamePlatform.N3DS,
+        titleFallbacks: List<String> = emptyList()
     ): String? {
         val style = resolveCoverArtStyle(styleOverride)
         if (!ignoreDisabled && style == AppPreferences.COVER_ART_STYLE_DISABLED) {
@@ -196,7 +205,7 @@ class CoverArtRepository(context: Context) {
             return flight.result
         }
         return try {
-            downloadCoverResolved(serial, coverKey, style, coverBaseUrl, title, platform).also {
+            downloadCoverResolved(serial, coverKey, style, coverBaseUrl, title, platform, titleFallbacks).also {
                 flight.result = it
             }
         } finally {
@@ -213,7 +222,8 @@ class CoverArtRepository(context: Context) {
         style: Int,
         coverBaseUrl: String?,
         title: String?,
-        platform: GamePlatform
+        platform: GamePlatform,
+        titleFallbacks: List<String>
     ): String? {
         val targetExtension = if (style == AppPreferences.COVER_ART_STYLE_3D) "webp" else "jpg"
 
@@ -249,16 +259,13 @@ class CoverArtRepository(context: Context) {
         } else {
             val cover = CoverIndexRepository(context).find(
                 originalSerial,
-                title,
+                listOfNotNull(title) + titleFallbacks,
                 platform,
                 style == AppPreferences.COVER_ART_STYLE_3D,
                 darkTheme
             )
             if (cover != null) {
                 result = downloadFromUrl(cover.url, coverFile, missFile, "IGDB catalog", cover.sha256)
-                if (result == null && style != AppPreferences.COVER_ART_STYLE_3D && cover.sourceUrl.isNotBlank()) {
-                    result = downloadFromUrl(cover.sourceUrl, coverFile, missFile, "IGDB hero image")
-                }
             }
         }
 
