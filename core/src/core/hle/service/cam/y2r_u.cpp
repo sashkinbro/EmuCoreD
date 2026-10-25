@@ -568,6 +568,16 @@ void Y2R_U::SetPackageParameter(Kernel::HLERequestContext& ctx) {
     IPC::RequestParser rp(ctx);
     auto params = rp.PopRaw<ConversionParameters>();
 
+    // The 0x002901C0 header declares seven normal parameter words, but only the
+    // first three carry the conversion parameters. Some titles (for example
+    // Pro Evolution Soccer 2013) include the remaining reserved words, so skip
+    // them instead of failing IPC header validation.
+    constexpr std::size_t consumed_words = 1 + (sizeof(ConversionParameters) + 3) / 4;
+    const std::size_t total_words = rp.TotalSize();
+    if (total_words > consumed_words) {
+        rp.Skip(static_cast<unsigned>(total_words - consumed_words), false);
+    }
+
     conversion.input_format = params.input_format;
     conversion.output_format = params.output_format;
     conversion.rotation = params.rotation;
