@@ -269,6 +269,7 @@ import com.sbro.emucored.ui.common.VectorOverlayButton
 import com.sbro.emucored.ui.common.appScreenTopPadding
 import com.sbro.emucored.ui.common.calculateSideArtworkPreviewLayout
 import com.sbro.emucored.ui.common.gamepadFocusableCard
+import com.sbro.emucored.ui.common.horizontalViewportBleed
 import com.sbro.emucored.ui.common.navigationBarsHorizontalPaddingValues
 import com.sbro.emucored.ui.common.premiumFilterChipColors
 import com.sbro.emucored.ui.common.rememberDebouncedClick
@@ -3883,6 +3884,15 @@ internal val LocalSettingsHorizontalPadding = androidx.compose.runtime.staticCom
     ScreenHorizontalPadding
 }
 
+/**
+ * Extra inset that horizontal option rows should bleed past their container.
+ * The in-game menu pads its content column instead of every child, so its
+ * scrolling rows must extend into that padding to reach the card edges.
+ */
+internal val LocalSettingsHorizontalScrollBleed = androidx.compose.runtime.staticCompositionLocalOf {
+    0.dp
+}
+
 @Composable
 internal fun SettingsSection(
     title: String,
@@ -5551,10 +5561,13 @@ internal fun CoreStringChoiceSection(
     val titleFocusRequester = remember { FocusRequester() }
     val helpFocusRequester = remember { FocusRequester() }
     val resetToast = stringResource(R.string.settings_reset_to_default_toast)
+    val horizontalPadding = LocalSettingsHorizontalPadding.current
+    val scrollBleed = LocalSettingsHorizontalScrollBleed.current
+    val scrollContentPadding = horizontalPadding + scrollBleed
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Row(
             modifier = Modifier
-                .padding(horizontal = LocalSettingsHorizontalPadding.current)
+                .padding(horizontal = horizontalPadding)
                 .then(
                     if (tvUiEnabled && helpText != null) {
                         Modifier
@@ -5596,8 +5609,9 @@ internal fun CoreStringChoiceSection(
         LazyRow(
             modifier = Modifier
                 .fillMaxWidth()
+                .horizontalViewportBleed(scrollBleed)
                 .tvFocusGroup(),
-            contentPadding = PaddingValues(horizontal = LocalSettingsHorizontalPadding.current),
+            contentPadding = PaddingValues(horizontal = scrollContentPadding),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             items(options) { (value, label) ->
@@ -5635,10 +5649,13 @@ private fun BitmaskChoiceSection(
     val titleFocusRequester = remember { FocusRequester() }
     val helpFocusRequester = remember { FocusRequester() }
     val resetToast = stringResource(R.string.settings_reset_to_default_toast)
+    val horizontalPadding = LocalSettingsHorizontalPadding.current
+    val scrollBleed = LocalSettingsHorizontalScrollBleed.current
+    val scrollContentPadding = horizontalPadding + scrollBleed
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Row(
             modifier = Modifier
-                .padding(horizontal = LocalSettingsHorizontalPadding.current)
+                .padding(horizontal = horizontalPadding)
                 .then(
                     if (tvUiEnabled && helpText != null) {
                         Modifier
@@ -5680,8 +5697,9 @@ private fun BitmaskChoiceSection(
         LazyRow(
             modifier = Modifier
                 .fillMaxWidth()
+                .horizontalViewportBleed(scrollBleed)
                 .tvFocusGroup(),
-            contentPadding = PaddingValues(horizontal = LocalSettingsHorizontalPadding.current),
+            contentPadding = PaddingValues(horizontal = scrollContentPadding),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             items(options) { (metric, label) ->

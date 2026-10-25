@@ -138,7 +138,6 @@ import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.pointer.pointerInteropFilter
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.layout.layout
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
@@ -229,11 +228,13 @@ import com.sbro.emucored.ui.common.VectorDpadCluster
 import com.sbro.emucored.ui.common.VectorOverlayButton
 import com.sbro.emucored.ui.common.buildOverlayCanvasLayout
 import com.sbro.emucored.ui.common.gamepadFocusableCard
+import com.sbro.emucored.ui.common.horizontalViewportBleed
 import com.sbro.emucored.ui.common.premiumFilterChipColors
 import com.sbro.emucored.ui.common.rememberDebouncedClick
 import com.sbro.emucored.ui.common.tvFocusGroup
 import com.sbro.emucored.ui.settings.ControlsEditorScreen
 import com.sbro.emucored.ui.settings.LocalSettingsHorizontalPadding
+import com.sbro.emucored.ui.settings.LocalSettingsHorizontalScrollBleed
 import com.sbro.emucored.ui.settings.KeyboardMouseSettingsDialog
 import com.sbro.emucored.ui.settings.toControlsEditorState
 import com.sbro.emucored.data.forPlatform
@@ -4604,23 +4605,21 @@ private fun EmulationSidebarMenu(
                 }
     }
 
-    CompositionLocalProvider(LocalSettingsHorizontalPadding provides 0.dp) {
-        GameMenuLayoutHost(
-            style = if (isNds) GameMenuLayoutStyle.COMPACT else uiState.gameMenuLayoutStyle,
-            compactForNds = isNds,
-            modifier = modifier,
-            menuTabs = menuTabs,
-            selectedMenuTab = selectedMenuTab,
-            selectedTabScrollState = selectedTabScrollState,
-            railFocusRequesters = railFocusRequesters,
-            contentBottomPadding = drawerBottomPadding + animatedBottomInset,
-            rightInset = animatedRightInset,
-            sectionSpacing = sectionSpacing,
-            onSelectTab = { selectedMenuTabName = it.name },
-            onClose = onClose,
-            content = menuContent
-        )
-    }
+    GameMenuLayoutHost(
+        style = if (isNds) GameMenuLayoutStyle.COMPACT else uiState.gameMenuLayoutStyle,
+        compactForNds = isNds,
+        modifier = modifier,
+        menuTabs = menuTabs,
+        selectedMenuTab = selectedMenuTab,
+        selectedTabScrollState = selectedTabScrollState,
+        railFocusRequesters = railFocusRequesters,
+        contentBottomPadding = drawerBottomPadding + animatedBottomInset,
+        rightInset = animatedRightInset,
+        sectionSpacing = sectionSpacing,
+        onSelectTab = { selectedMenuTabName = it.name },
+        onClose = onClose,
+        content = menuContent
+    )
 }
 
 @Composable
@@ -4843,15 +4842,20 @@ private fun GameMenuContentColumn(
     verticalPadding: Dp = 18.dp,
     content: @Composable ColumnScope.() -> Unit
 ) {
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .verticalScroll(scrollState)
-            .padding(horizontal = horizontalPadding, vertical = verticalPadding)
-            .padding(bottom = bottomPadding),
-        verticalArrangement = Arrangement.spacedBy(sectionSpacing),
-        content = content
-    )
+    CompositionLocalProvider(
+        LocalSettingsHorizontalPadding provides 0.dp,
+        LocalSettingsHorizontalScrollBleed provides horizontalPadding
+    ) {
+        Column(
+            modifier = modifier
+                .fillMaxSize()
+                .verticalScroll(scrollState)
+                .padding(horizontal = horizontalPadding, vertical = verticalPadding)
+                .padding(bottom = bottomPadding),
+            verticalArrangement = Arrangement.spacedBy(sectionSpacing),
+            content = content
+        )
+    }
 }
 
 @Composable
@@ -5475,6 +5479,8 @@ private fun LiveSelectionRow(
     val interactionSource = remember { MutableInteractionSource() }
     val context = LocalContext.current
     val resetToast = stringResource(R.string.settings_reset_to_default_toast)
+    val scrollBleed = LocalSettingsHorizontalScrollBleed.current
+    val scrollContentPadding = LocalSettingsHorizontalPadding.current + scrollBleed
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
         Row(
             modifier = Modifier
@@ -5510,8 +5516,8 @@ private fun LiveSelectionRow(
         LazyRow(
             modifier = Modifier
                 .fillMaxWidth()
-                .horizontalViewportBleed(18.dp),
-            contentPadding = PaddingValues(horizontal = 18.dp),
+                .horizontalViewportBleed(scrollBleed),
+            contentPadding = PaddingValues(horizontal = scrollContentPadding),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             items(options, key = { it.value }) { option ->
@@ -6146,6 +6152,8 @@ private fun LiveChipsSelectionRow(
     val interactionSource = remember { MutableInteractionSource() }
     val context = LocalContext.current
     val resetToast = stringResource(R.string.settings_reset_to_default_toast)
+    val scrollBleed = LocalSettingsHorizontalScrollBleed.current
+    val scrollContentPadding = LocalSettingsHorizontalPadding.current + scrollBleed
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
         Row(
             modifier = Modifier
@@ -6177,8 +6185,8 @@ private fun LiveChipsSelectionRow(
         LazyRow(
             modifier = Modifier
                 .fillMaxWidth()
-                .horizontalViewportBleed(18.dp),
-            contentPadding = PaddingValues(horizontal = 18.dp),
+                .horizontalViewportBleed(scrollBleed),
+            contentPadding = PaddingValues(horizontal = scrollContentPadding),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             items(options) { (value, label) ->
@@ -6206,6 +6214,8 @@ private fun LiveBitmaskChoiceRow(
     val interactionSource = remember { MutableInteractionSource() }
     val context = LocalContext.current
     val resetToast = stringResource(R.string.settings_reset_to_default_toast)
+    val scrollBleed = LocalSettingsHorizontalScrollBleed.current
+    val scrollContentPadding = LocalSettingsHorizontalPadding.current + scrollBleed
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
         Row(
             modifier = Modifier
@@ -6237,8 +6247,8 @@ private fun LiveBitmaskChoiceRow(
         LazyRow(
             modifier = Modifier
                 .fillMaxWidth()
-                .horizontalViewportBleed(18.dp),
-            contentPadding = PaddingValues(horizontal = 18.dp),
+                .horizontalViewportBleed(scrollBleed),
+            contentPadding = PaddingValues(horizontal = scrollContentPadding),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             items(options) { (metric, label) ->
@@ -6251,19 +6261,6 @@ private fun LiveBitmaskChoiceRow(
                 )
             }
         }
-    }
-}
-
-private fun Modifier.horizontalViewportBleed(inset: Dp): Modifier = layout { measurable, constraints ->
-    val insetPx = inset.roundToPx()
-    val expandedMaxWidth = if (constraints.hasBoundedWidth) {
-        constraints.maxWidth + (insetPx * 2)
-    } else {
-        constraints.maxWidth
-    }
-    val placeable = measurable.measure(constraints.copy(maxWidth = expandedMaxWidth))
-    layout(constraints.maxWidth, placeable.height) {
-        placeable.placeRelative(-insetPx, 0)
     }
 }
 
