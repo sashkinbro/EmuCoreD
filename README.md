@@ -4,7 +4,7 @@
 [![Join the EmuCoreD Discord](https://img.shields.io/badge/Discord-Join%20the%20server-5865F2?logo=discord&logoColor=white)](https://discord.com/invite/c5EBeNRpz2)
 [![Website](https://img.shields.io/badge/Website-emucored.web.app-1f6feb?logo=googlechrome&logoColor=white)](https://emucored.web.app/)
 
-EmuCoreD is a Nintendo 3DS and Nintendo DS library, launcher, and emulator frontend for Android. It pairs a purpose-built Compose interface with vendored [Azahar](https://github.com/azahar-emu/azahar) (3DS) and [melonDS](https://github.com/melonDS-emu/melonDS) (DS) cores that are built together with the app, so no separate core download is needed.
+EmuCoreD is a Nintendo library, launcher, and emulator frontend for Android. It supports nine console families — Nintendo 3DS, Nintendo DS, GameCube, Wii, Game Boy Advance, Game Boy, Game Boy Color, NES/Famicom, and SNES/Super Famicom — through bundled Azahar, melonDS, Dolphin, mGBA, SameBoy, Nestopia, and bsnes cores. The cores are built together with the app, so no separate core download is needed.
 
 Official website: [https://emucored.web.app/](https://emucored.web.app/)
 
@@ -14,42 +14,49 @@ The project is under active development. Use your own legally obtained games.
 
 ## Highlights
 
-- Azahar-based Nintendo 3DS and melonDS-based Nintendo DS emulation cores built together with the app for ARM64 devices
-- Vulkan, OpenGL ES, and software rendering with internal resolution controls
-- Game library with 3DS title and ID extraction, IGDB cover art, search, and per-game settings
-- Nintendo DS library support with cover art, touch controls, screen swapping, and save states
+- Nine supported console families with bundled emulation cores for ARM64 devices:
+  - Nintendo 3DS via Azahar
+  - Nintendo DS via melonDS
+  - GameCube and Wii via Dolphin
+  - Game Boy Advance via mGBA
+  - Game Boy and Game Boy Color via SameBoy
+  - NES/Famicom via Nestopia
+  - SNES/Super Famicom via bsnes
+- Vulkan, OpenGL ES, and software rendering where supported, with internal resolution controls
+- Unified game library with platform filters, metadata and title-ID extraction, IGDB cover art, search, and per-game settings
+- GameCube and Wii disc support, including ISO, RVZ, WIA, GCZ, CISO, WBFS, and related Dolphin formats
 - Home screen with shelves, recently played titles, and quick resume
 - Screen layout controls for the dual-screen 3DS and DS displays
-- In-game overlay with rendering, speed, and save state controls
-- Touch controls with a layout editor, screen-swap action, and physical gamepad support
-- Save states, SD card (sdmc) and NAND managers
+- In-game overlay with rendering, speed, and save-state controls
+- Touch controls with a per-console layout editor and physical gamepad support
+- Save states, plus 3DS SD card (sdmc) and NAND managers
 - Still-image camera emulation for the outer and inner 3DS cameras
-- Cheat and replacement texture catalogs for supported 3DS games
+- Cheat catalogs for 3DS and retro consoles, and replacement texture catalogs for 3DS, GameCube, and Wii
 - RetroAchievements and optional Discord integration
 - Localized interface in 18 languages for phones, tablets, and Android TV
 
 ## What This Repository Contains
 
-This repository contains the Android application, its Kotlin UI, the JNI frontend, the vendored Azahar and melonDS sources, and the Gradle modules that build both emulation cores for Android. No games, save data, or account credentials are included.
+This repository contains the Android application, its Kotlin UI, the JNI frontend, the vendored emulator sources, and the Gradle modules that build all supported cores for Android. No games, save data, or account credentials are included.
 
 ## Tech Stack
 
 - Kotlin + Jetpack Compose
 - Android DataStore and Room
 - JNI bridge to native C++ built with CMake and the Android NDK
-- Vendored Azahar (3DS) and melonDS (DS) cores built as native libraries and driven by the app's own frontend
+- Bundled Azahar (3DS), melonDS (DS), Dolphin (GameCube/Wii), mGBA (GBA), SameBoy (GB/GBC), Nestopia (NES), and bsnes (SNES) cores driven by the app's own frontend
 - Vulkan and OpenGL ES rendering paths with a shader chain runtime
 - RetroAchievements integration through rcheevos
 - Optional Discord Social SDK integration
 
 ## Current App Scope
 
-EmuCoreD version `0.1.0` currently targets Android with:
+EmuCoreD version `0.0.1` currently targets Android with:
 
 - `minSdk 26` (Android 8.0)
 - `targetSdk 37`
 - package id `com.sbro.emucored`
-- version `0.1.0`
+- `versionCode 19`
 - ARM64 devices only
 
 ## Building Locally
@@ -86,24 +93,42 @@ Discord support is built when a compatible Discord Social SDK directory is suppl
 - `app/src/main/res` Android resources and translations
 - `core/` Vendored Azahar 3DS sources
 - `core-android/` Gradle module that builds the Azahar 3DS core for Android
-- `coreDS/` Nintendo DS bridge, Vulkan/software renderers, and vendored melonDS sources
-- `coreGameCube/dolphin/` Pinned Dolphin source submodule for planned GameCube/Wii integration
-- `coreGBA/mgba/` Pinned mGBA source submodule for planned GBA integration
-- `coreGB/SameBoy/` Pinned SameBoy source submodule for planned GB/GBC integration
+- `coreDS/` Nintendo DS bridge, renderers, and vendored melonDS sources
+- `core-ds/` Gradle module that builds the Nintendo DS core for Android
+- `coreGameCube/dolphin/` Pinned Dolphin source for GameCube and Wii
+- `core-dolphin/` Gradle module that builds the Dolphin core for Android
+- `coreGBA/mgba/` Pinned mGBA source for Game Boy Advance
+- `core-gba/` Gradle module that builds the mGBA core for Android
+- `coreGB/SameBoy/` Pinned SameBoy source for Game Boy and Game Boy Color
+- `core-gb/` Gradle module that builds the SameBoy core for Android
+- `coreNES/nestopia/` Pinned Nestopia source for NES/Famicom
+- `core-nes/` Gradle module that builds the Nestopia core for Android
+- `coreSNES/bsnes/` Pinned bsnes source for SNES/Super Famicom
+- `core-snes/` Gradle module that builds the bsnes core for Android
+- `core-common/` Shared native and Kotlin core contracts
+- `core-tests/` Standalone Android engine checks
 - `IGDB/` Local catalog tooling (not part of the app build)
 
-New core sources are acquired but their Android adapters are not yet integrated. See [core integration status](CORE_INTEGRATION.md) and the [product implementation plan](docs/superpowers/plans/2026-10-23-multiplatform-product.md) for pins, checkout instructions and acceptance criteria. Only DS/3DS are currently launchable.
+All nine console families are integrated into the app and launchable. See [core integration status](CORE_INTEGRATION.md) for source pins and per-core notes.
 
 ## Supported Content
 
-CIA installers are extracted and decrypted on device, and the library reads the title, title ID, and icon from 3DS metadata. CCI, CXI, APP, 3DSX, ELF, and AXF content is supported depending on the bundled core. The bundled 3DS catalog supplies additional cover art.
+- **Nintendo 3DS:** 3DS, CCI, CXI, APP, CIA, Z3DS, ZCCI, ZCXI, ZCIA, 3DSX, Z3DSX, ELF, and AXF content. CIA installers are extracted and decrypted on device, and the library reads the title, title ID, and icon from 3DS metadata.
+- **Nintendo DS:** `.nds`, `.srl`, and `.dsi` images through the melonDS-based core, including DS save states, on-screen controls, screen swapping, and DS cover art. DSi catalog entries are listed for discovery; DSi-mode execution is not implemented yet and requires DSi BIOS/NAND files.
+- **GameCube:** GCM, ISO, RVZ, WIA, GCZ, CISO, and TGC images, plus DOL and ELF homebrew.
+- **Wii:** ISO, RVZ, WIA, GCZ, CISO, WBFS, and WAD images, plus DOL and ELF homebrew. Split ISO and WBFS sets are supported.
+- **Game Boy Advance:** `.gba` and `.agb`.
+- **Game Boy:** `.gb` and `.sgb`.
+- **Game Boy Color:** `.gbc` and `.cgb`.
+- **NES/Famicom:** `.nes`, `.unf`, `.unif`, and `.fds`.
+- **SNES/Super Famicom:** `.sfc`, `.smc`, `.swc`, and `.fig`.
 
-Nintendo DS ROMs (`.nds`) are supported through the melonDS-based core, including DS save states, on-screen controls, screen swapping, and DS cover art. DSi catalog entries are listed for discovery; DSi-mode execution is not implemented yet and requires DSi BIOS/NAND files. No games, save data, or account credentials are included here.
+Compatibility and performance vary by game, device, renderer, and driver stack. No games, save data, or account credentials are included here.
 
 ## Content Catalogs
 
-- [3DS cheats](https://github.com/sashkinbro/EmuCoreD-Cheat)
-- [3DS texture packs](https://github.com/sashkinbro/EmuCoreD-Textures)
+- [Cheat catalogs](https://github.com/sashkinbro/EmuCoreD-Cheat) for Nintendo 3DS and the supported retro consoles
+- [Texture packs](https://github.com/sashkinbro/EmuCoreD-Textures) for Nintendo 3DS, GameCube, and Wii
 
 The catalogs credit the original sources. Redistributable files are mirrored in their respective catalog releases; entries without redistribution permission link to their authors' downloads.
 
@@ -115,11 +140,11 @@ The catalogs credit the original sources. Redistributable files are mirrored in 
 
 ## Credits and license
 
-EmuCoreD builds on Azahar, which is based on Citra, and on melonDS for Nintendo DS emulation. The root [LICENSE.TXT](LICENSE.TXT) is an exact copy of Azahar's upstream license file (GPLv2 or later). The vendored cores and their dependencies retain their copyright and license notices in `core/` and `coreDS/`.
+EmuCoreD builds on Azahar, which is based on Citra, and on melonDS for Nintendo DS emulation. GameCube and Wii emulation use Dolphin; Game Boy Advance uses mGBA; Game Boy and Game Boy Color use SameBoy; NES/Famicom uses Nestopia; SNES/Super Famicom uses bsnes. The root [LICENSE.TXT](LICENSE.TXT) is an exact copy of Azahar's upstream license file (GPLv2 or later). The vendored cores and their dependencies retain their copyright and license notices in their respective source directories.
 
-Thanks to the Azahar, Citra, and melonDS contributors, and to the RetroAchievements team for rcheevos.
+Thanks to the Azahar, Citra, melonDS, Dolphin, mGBA, SameBoy, Nestopia, and bsnes contributors, and to the RetroAchievements team for rcheevos.
 
-EmuCoreD is independent of Nintendo, Azahar, Citra, melonDS, IGDB, Discord, and RetroAchievements. Nintendo 3DS and Nintendo DS are trademarks of Nintendo. Game artwork and game data belong to their respective owners.
+EmuCoreD is independent of Nintendo, Azahar, Citra, melonDS, Dolphin, mGBA, SameBoy, Nestopia, bsnes, IGDB, Discord, and RetroAchievements. Nintendo 3DS, Nintendo DS, GameCube, Wii, Game Boy Advance, Game Boy, Game Boy Color, NES, and SNES are trademarks of Nintendo. Game artwork and game data belong to their respective owners.
 
 ## Support
 
