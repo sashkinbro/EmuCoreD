@@ -4316,152 +4316,94 @@ private fun EmulationSidebarMenu(
                     }
 
                     EmulationMenuTab.Emulation -> {
-                        if (usesAdditionalCore) {
-                            ConsoleCoreOptionsPanel(uiState.gamePlatform.console, SettingsCategory.Emulation,
-                                uiState.perGameCoreOptions, onSetCoreOption, card = false)
-                            ConsoleCoreOptionsPanel(uiState.gamePlatform.console, SettingsCategory.Audio,
-                                uiState.perGameCoreOptions, onSetCoreOption, card = false)
-                        } else {
-
                         gameMenuSectionsForTab(GameMenuTabId.EMULATION, uiState.gameMenuSectionOrder)
                             .filterNot(uiState.hiddenGameMenuSections::contains)
                             .filter(capabilities::supportsGameMenuSection)
                             .forEach { section ->
                                 when (section) {
-                                    GameMenuSectionId.EMULATION_PERFORMANCE -> {
-                        SidebarSectionTitle(
-                            text = stringResource(R.string.settings_emulation_tab).uppercase(),
-                            color = sectionTitleColor,
-                            topPadding = sectionLabelTopPadding,
-                            horizontalInset = sectionLabelInset
-                        )
+                                    GameMenuSectionId.EMULATION_PERFORMANCE -> EmulationPerformanceSection(
+                                        uiState = uiState,
+                                        globalDefaults = globalDefaults,
+                                        supportsFrameLimit = capabilities.supportsAzaharOptions,
+                                        sectionTitleColor = sectionTitleColor,
+                                        sectionLabelTopPadding = sectionLabelTopPadding,
+                                        sectionLabelInset = sectionLabelInset,
+                                        onToggleFps = onToggleFps,
+                                        onSetFrameLimit = onSetFrameLimit,
+                                        onSetFpsOverlayMode = onSetFpsOverlayMode,
+                                        onSetFpsOverlayCorner = onSetFpsOverlayCorner,
+                                        onSetFpsOverlayScale = onSetFpsOverlayScale,
+                                        onSetFpsOverlayMetrics = onSetFpsOverlayMetrics
+                                    )
 
-                        SettingsToggle(
-                            title = stringResource(R.string.emulation_performance_stats),
-                            checked = uiState.showFps,
-                            onCheckedChange = { onToggleFps() },
-                            helpText = stringResource(R.string.settings_help_show_fps),
-                            onResetToDefault = {
-                                if (uiState.showFps != globalDefaults.showFps) {
-                                    onToggleFps()
-                                }
-                            }
-                        )
-
-                        if (capabilities.supportsAzaharOptions) {
-                            SettingsToggle(
-                                title = stringResource(R.string.settings_frame_limit),
-                                checked = uiState.frameLimitEnabled,
-                                onCheckedChange = { onSetFrameLimit() },
-                                helpText = stringResource(R.string.settings_frame_limit_desc),
-                                onResetToDefault = {
-                                    if (uiState.frameLimitEnabled != globalDefaults.frameLimitEnabled) {
-                                        onSetFrameLimit()
-                                    }
-                                }
-                            )
-                        }
-
-                        LiveSelectionRow(
-                            title = stringResource(R.string.settings_fps_overlay_mode),
-                            options = listOf(
-                                LiveSelectionOption(FPS_OVERLAY_MODE_SIMPLE, stringResource(R.string.settings_fps_overlay_mode_simple)),
-                                LiveSelectionOption(FPS_OVERLAY_MODE_DETAILED, stringResource(R.string.settings_fps_overlay_mode_detailed))
-                            ),
-                            currentValue = uiState.fpsOverlayMode,
-                            onValueChange = onSetFpsOverlayMode,
-                            helpText = stringResource(R.string.settings_help_fps_overlay_mode),
-                            onResetToDefault = { onSetFpsOverlayMode(globalDefaults.fpsOverlayMode) }
-                        )
-
-                        LiveSelectionRow(
-                            title = stringResource(R.string.settings_fps_overlay_position),
-                            options = fpsOverlayCornerLiveOptions(),
-                            currentValue = uiState.fpsOverlayCorner,
-                            onValueChange = onSetFpsOverlayCorner,
-                            helpText = stringResource(R.string.settings_help_fps_overlay_position),
-                            onResetToDefault = { onSetFpsOverlayCorner(globalDefaults.fpsOverlayCorner) }
-                        )
-
-                        LiveSliderRow(
-                            title = stringResource(R.string.settings_fps_overlay_scale),
-                            valueLabelResId = R.string.settings_fps_overlay_scale_value,
-                            valueLabelForValue = { scale -> "$scale%" },
-                            value = uiState.fpsOverlayScale.toFloat(),
-                            range = AppPreferences.MIN_FPS_OVERLAY_SCALE.toFloat()..AppPreferences.MAX_FPS_OVERLAY_SCALE.toFloat(),
-                            steps = 24,
-                            onValueChange = { onSetFpsOverlayScale(it.toInt()) },
-                            helpText = stringResource(R.string.settings_help_fps_overlay_scale),
-                            onResetToDefault = { onSetFpsOverlayScale(globalDefaults.fpsOverlayScale) }
-                        )
-
-                        if (uiState.fpsOverlayMode == FPS_OVERLAY_MODE_DETAILED) {
-                            LiveBitmaskChoiceRow(
-                                title = stringResource(R.string.settings_fps_overlay_metrics),
-                                options = fpsOverlayMetricLiveOptions(),
-                                selectedMask = uiState.fpsOverlayMetrics,
-                                onToggle = { metric -> onSetFpsOverlayMetrics(uiState.fpsOverlayMetrics xor metric) },
-                                helpText = stringResource(R.string.settings_help_fps_overlay_metrics),
-                                onResetToDefault = { onSetFpsOverlayMetrics(globalDefaults.fpsOverlayMetrics) }
-                            )
-                        }
-
+                                    GameMenuSectionId.EMULATION_CPU -> {
+                                        if (usesAdditionalCore) {
+                                            ConsoleCoreOptionsPanel(
+                                                uiState.gamePlatform.console,
+                                                SettingsCategory.Emulation,
+                                                uiState.perGameCoreOptions,
+                                                onSetCoreOption,
+                                                card = false
+                                            )
+                                        } else {
+                                            SidebarSectionTitle(
+                                                text = stringResource(R.string.settings_emulation_tab).uppercase(),
+                                                color = sectionTitleColor,
+                                                topPadding = sectionLabelTopPadding,
+                                                horizontalInset = sectionLabelInset
+                                            )
+                                            if (capabilities.supportsAzaharOptions) {
+                                                CoreOptionRows(
+                                                    options = AzaharCoreOptions.gameMenuEmulationOptions(),
+                                                    version = coreOptionsVersion,
+                                                    perGameOverrides = uiState.perGameCoreOptions,
+                                                    onValueChange = onCoreOptionChange
+                                                )
+                                            }
+                                        }
                                     }
 
-                                    GameMenuSectionId.EMULATION_CPU,
                                     GameMenuSectionId.EMULATION_AUDIO -> {
+                                        if (usesAdditionalCore) {
+                                            ConsoleCoreOptionsPanel(
+                                                uiState.gamePlatform.console,
+                                                SettingsCategory.Audio,
+                                                uiState.perGameCoreOptions,
+                                                onSetCoreOption,
+                                                card = false
+                                            )
+                                        } else {
+                                            SidebarSectionTitle(
+                                                text = stringResource(R.string.settings_audio_tab).uppercase(),
+                                                color = sectionTitleColor,
+                                                topPadding = sectionLabelTopPadding,
+                                                horizontalInset = sectionLabelInset
+                                            )
 
-                        if (section == GameMenuSectionId.EMULATION_CPU) {
-                            SidebarSectionTitle(
-                                text = stringResource(R.string.settings_emulation_tab).uppercase(),
-                                color = sectionTitleColor,
-                                topPadding = sectionLabelTopPadding,
-                                horizontalInset = sectionLabelInset
-                            )
-                            if (capabilities.supportsAzaharOptions) {
-                                CoreOptionRows(
-                                    options = AzaharCoreOptions.gameMenuEmulationOptions(),
-                                    version = coreOptionsVersion,
-                                    perGameOverrides = uiState.perGameCoreOptions,
-                                    onValueChange = onCoreOptionChange
-                                )
-                            }
-                        }
+                                            SettingsToggle(
+                                                title = stringResource(R.string.settings_audio_mute),
+                                                checked = uiState.audioMuted,
+                                                onCheckedChange = onSetAudioMuted,
+                                                helpText = stringResource(R.string.settings_help_audio_mute),
+                                                onResetToDefault = { onSetAudioMuted(globalDefaults.audioMuted) }
+                                            )
 
-                        if (section == GameMenuSectionId.EMULATION_AUDIO) {
-                        SidebarSectionTitle(
-                            text = stringResource(R.string.settings_audio_tab).uppercase(),
-                            color = sectionTitleColor,
-                            topPadding = sectionLabelTopPadding,
-                            horizontalInset = sectionLabelInset
-                        )
-
-                        SettingsToggle(
-                            title = stringResource(R.string.settings_audio_mute),
-                            checked = uiState.audioMuted,
-                            onCheckedChange = onSetAudioMuted,
-                            helpText = stringResource(R.string.settings_help_audio_mute),
-                            onResetToDefault = { onSetAudioMuted(globalDefaults.audioMuted) }
-                        )
-
-                        LiveSliderRow(
-                            title = stringResource(R.string.settings_audio_volume),
-                            valueLabelForValue = { "$it%" },
-                            value = uiState.audioVolume.toFloat(),
-                            range = AudioDefaults.VOLUME_MIN.toFloat()..AudioDefaults.VOLUME_MAX.toFloat(),
-                            steps = 0,
-                            onValueChange = { onSetAudioVolume(it.toInt()) },
-                            helpText = stringResource(R.string.settings_help_audio_volume),
-                            onResetToDefault = { onSetAudioVolume(globalDefaults.audioVolume) }
-                        )
-                        }
-
+                                            LiveSliderRow(
+                                                title = stringResource(R.string.settings_audio_volume),
+                                                valueLabelForValue = { "$it%" },
+                                                value = uiState.audioVolume.toFloat(),
+                                                range = AudioDefaults.VOLUME_MIN.toFloat()..AudioDefaults.VOLUME_MAX.toFloat(),
+                                                steps = 0,
+                                                onValueChange = { onSetAudioVolume(it.toInt()) },
+                                                helpText = stringResource(R.string.settings_help_audio_volume),
+                                                onResetToDefault = { onSetAudioVolume(globalDefaults.audioVolume) }
+                                            )
+                                        }
                                     }
 
                                     else -> Unit
                                 }
                             }
-                        }
                     }
 
                     EmulationMenuTab.Cheats -> {
@@ -6261,6 +6203,99 @@ private fun LiveBitmaskChoiceRow(
                 )
             }
         }
+    }
+}
+
+@Composable
+private fun EmulationPerformanceSection(
+    uiState: EmulationUiState,
+    globalDefaults: SettingsSnapshot,
+    supportsFrameLimit: Boolean,
+    sectionTitleColor: Color,
+    sectionLabelTopPadding: Dp,
+    sectionLabelInset: Dp,
+    onToggleFps: () -> Unit,
+    onSetFrameLimit: () -> Unit,
+    onSetFpsOverlayMode: (Int) -> Unit,
+    onSetFpsOverlayCorner: (Int) -> Unit,
+    onSetFpsOverlayScale: (Int) -> Unit,
+    onSetFpsOverlayMetrics: (Int) -> Unit
+) {
+    SidebarSectionTitle(
+        text = stringResource(R.string.settings_emulation_tab).uppercase(),
+        color = sectionTitleColor,
+        topPadding = sectionLabelTopPadding,
+        horizontalInset = sectionLabelInset
+    )
+
+    SettingsToggle(
+        title = stringResource(R.string.emulation_performance_stats),
+        checked = uiState.showFps,
+        onCheckedChange = { onToggleFps() },
+        helpText = stringResource(R.string.settings_help_show_fps),
+        onResetToDefault = {
+            if (uiState.showFps != globalDefaults.showFps) {
+                onToggleFps()
+            }
+        }
+    )
+
+    if (supportsFrameLimit) {
+        SettingsToggle(
+            title = stringResource(R.string.settings_frame_limit),
+            checked = uiState.frameLimitEnabled,
+            onCheckedChange = { onSetFrameLimit() },
+            helpText = stringResource(R.string.settings_frame_limit_desc),
+            onResetToDefault = {
+                if (uiState.frameLimitEnabled != globalDefaults.frameLimitEnabled) {
+                    onSetFrameLimit()
+                }
+            }
+        )
+    }
+
+    LiveSelectionRow(
+        title = stringResource(R.string.settings_fps_overlay_mode),
+        options = listOf(
+            LiveSelectionOption(FPS_OVERLAY_MODE_SIMPLE, stringResource(R.string.settings_fps_overlay_mode_simple)),
+            LiveSelectionOption(FPS_OVERLAY_MODE_DETAILED, stringResource(R.string.settings_fps_overlay_mode_detailed))
+        ),
+        currentValue = uiState.fpsOverlayMode,
+        onValueChange = onSetFpsOverlayMode,
+        helpText = stringResource(R.string.settings_help_fps_overlay_mode),
+        onResetToDefault = { onSetFpsOverlayMode(globalDefaults.fpsOverlayMode) }
+    )
+
+    LiveSelectionRow(
+        title = stringResource(R.string.settings_fps_overlay_position),
+        options = fpsOverlayCornerLiveOptions(),
+        currentValue = uiState.fpsOverlayCorner,
+        onValueChange = onSetFpsOverlayCorner,
+        helpText = stringResource(R.string.settings_help_fps_overlay_position),
+        onResetToDefault = { onSetFpsOverlayCorner(globalDefaults.fpsOverlayCorner) }
+    )
+
+    LiveSliderRow(
+        title = stringResource(R.string.settings_fps_overlay_scale),
+        valueLabelResId = R.string.settings_fps_overlay_scale_value,
+        valueLabelForValue = { scale -> "$scale%" },
+        value = uiState.fpsOverlayScale.toFloat(),
+        range = AppPreferences.MIN_FPS_OVERLAY_SCALE.toFloat()..AppPreferences.MAX_FPS_OVERLAY_SCALE.toFloat(),
+        steps = 24,
+        onValueChange = { onSetFpsOverlayScale(it.toInt()) },
+        helpText = stringResource(R.string.settings_help_fps_overlay_scale),
+        onResetToDefault = { onSetFpsOverlayScale(globalDefaults.fpsOverlayScale) }
+    )
+
+    if (uiState.fpsOverlayMode == FPS_OVERLAY_MODE_DETAILED) {
+        LiveBitmaskChoiceRow(
+            title = stringResource(R.string.settings_fps_overlay_metrics),
+            options = fpsOverlayMetricLiveOptions(),
+            selectedMask = uiState.fpsOverlayMetrics,
+            onToggle = { metric -> onSetFpsOverlayMetrics(uiState.fpsOverlayMetrics xor metric) },
+            helpText = stringResource(R.string.settings_help_fps_overlay_metrics),
+            onResetToDefault = { onSetFpsOverlayMetrics(globalDefaults.fpsOverlayMetrics) }
+        )
     }
 }
 

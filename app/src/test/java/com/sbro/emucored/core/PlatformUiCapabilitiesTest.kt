@@ -40,6 +40,7 @@ class PlatformUiCapabilitiesTest {
         val threeDs = PlatformUiCapabilities.forGame("/games/Game.3ds")
         for (platform in GamePlatform.entries) {
             assertTrue(platform.name, PlatformUiCapabilities.forGame(null, platform).supportsGameMenuTab(GameMenuTabId.CHEATS))
+            assertTrue(platform.name, PlatformUiCapabilities.forGame(null, platform).supportsGameMenuSection(GameMenuSectionId.EMULATION_PERFORMANCE))
         }
         assertTrue(threeDs.supportsGameMenuTab(GameMenuTabId.CHEATS))
         assertTrue(ds.supportsGameMenuTab(GameMenuTabId.SESSION))
