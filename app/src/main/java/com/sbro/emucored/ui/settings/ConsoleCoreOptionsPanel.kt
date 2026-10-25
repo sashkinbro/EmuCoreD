@@ -18,11 +18,12 @@ fun ConsoleCoreOptionsPanel(
     category: SettingsCategory,
     values: Map<String, String>,
     onChange: (key: String, value: String) -> Unit,
-    onReset: ((key: String) -> Unit)? = null
+    onReset: ((key: String) -> Unit)? = null,
+    card: Boolean = true
 ) {
     val options = CoreOptionSchema.options(platform).filter { it.category == category }
     if (options.isEmpty()) return
-    SettingsSection(title = consolePlatformLabel(platform)) {
+    SettingsSection(title = consolePlatformLabel(platform), card = card) {
         options.forEach { option ->
             val value = values[option.key]?.takeIf(option::accepts) ?: option.defaultValue
             val reset = { onReset?.invoke(option.key) ?: onChange(option.key, option.defaultValue) }

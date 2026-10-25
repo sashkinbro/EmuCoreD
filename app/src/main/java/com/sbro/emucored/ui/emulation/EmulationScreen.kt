@@ -4034,7 +4034,8 @@ private fun EmulationSidebarMenu(
 
                     EmulationMenuTab.Controls -> {
                         if (usesAdditionalCore) ConsoleCoreOptionsPanel(uiState.gamePlatform.console,
-                            SettingsCategory.Controls, uiState.perGameCoreOptions, onSetCoreOption)
+                            SettingsCategory.Controls, uiState.perGameCoreOptions, onSetCoreOption,
+                            card = false)
                         gameMenuSectionsForTab(GameMenuTabId.CONTROLS, uiState.gameMenuSectionOrder)
                             .filterNot(uiState.hiddenGameMenuSections::contains)
                             .forEach { section ->
@@ -4315,9 +4316,9 @@ private fun EmulationSidebarMenu(
                     EmulationMenuTab.Emulation -> {
                         if (usesAdditionalCore) {
                             ConsoleCoreOptionsPanel(uiState.gamePlatform.console, SettingsCategory.Emulation,
-                                uiState.perGameCoreOptions, onSetCoreOption)
+                                uiState.perGameCoreOptions, onSetCoreOption, card = false)
                             ConsoleCoreOptionsPanel(uiState.gamePlatform.console, SettingsCategory.Audio,
-                                uiState.perGameCoreOptions, onSetCoreOption)
+                                uiState.perGameCoreOptions, onSetCoreOption, card = false)
                         } else {
 
                         gameMenuSectionsForTab(GameMenuTabId.EMULATION, uiState.gameMenuSectionOrder)
@@ -4497,7 +4498,7 @@ private fun EmulationSidebarMenu(
                     EmulationMenuTab.Graphics -> {
                         if (usesAdditionalCore) {
                             ConsoleCoreOptionsPanel(uiState.gamePlatform.console, SettingsCategory.Graphics,
-                                uiState.perGameCoreOptions, onSetCoreOption)
+                                uiState.perGameCoreOptions, onSetCoreOption, card = false)
                         } else {
 
                         gameMenuSectionsForTab(GameMenuTabId.GRAPHICS, uiState.gameMenuSectionOrder)

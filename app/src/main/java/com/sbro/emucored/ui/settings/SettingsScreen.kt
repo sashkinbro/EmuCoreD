@@ -3882,6 +3882,7 @@ private fun CustomControlsQuickSelector(
 @Composable
 internal fun SettingsSection(
     title: String,
+    card: Boolean = true,
     content: @Composable ColumnScope.() -> Unit
 ) {
     val neon = LocalNeonTheme.current
@@ -3910,21 +3911,31 @@ internal fun SettingsSection(
                 Box(modifier = Modifier.fillMaxWidth())
             }
         }
-        Surface(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = ScreenHorizontalPadding),
-            shape = neonShape(24.dp),
-            color = MaterialTheme.colorScheme.surface,
-            tonalElevation = 2.dp,
-            border = if (neon) {
-                BorderStroke(1.dp, NeonYellow.copy(alpha = 0.14f))
-            } else {
-                null
+        if (card) {
+            Surface(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = ScreenHorizontalPadding),
+                shape = neonShape(24.dp),
+                color = MaterialTheme.colorScheme.surface,
+                tonalElevation = 2.dp,
+                border = if (neon) {
+                    BorderStroke(1.dp, NeonYellow.copy(alpha = 0.14f))
+                } else {
+                    null
+                }
+            ) {
+                Column(
+                    modifier = Modifier.padding(vertical = 16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                    content = content
+                )
             }
-        ) {
+        } else {
+            // The in-game menu already owns the single left-hand card. Do not
+            // add another card around a whole option group there; individual
+            // toggles and sliders keep their own rows.
             Column(
-                modifier = Modifier.padding(vertical = 16.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
                 content = content
             )
