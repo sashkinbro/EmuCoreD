@@ -227,6 +227,11 @@ internal fun CheatOnlineCatalogSection(
         selection.matchingPacks.isEmpty() && selection.otherVersionPacks.isEmpty() -> CheatOnlinePhase.EMPTY
         else -> CheatOnlinePhase.CONTENT
     }
+    var displayedPhase by rememberRetainedState(
+        "cheat_online_catalog.display_phase",
+        CheatOnlinePhase.LOADING
+    )
+    LaunchedEffect(phase) { displayedPhase = phase }
 
     Surface(
         modifier = Modifier.fillMaxWidth(),
@@ -247,7 +252,7 @@ internal fun CheatOnlineCatalogSection(
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             AnimatedContent(
-                targetState = phase,
+                targetState = displayedPhase,
                 transitionSpec = {
                     (fadeIn(tween(220)) + slideInVertically(tween(220)) { height -> height / 10 }) togetherWith
                         (fadeOut(tween(140)) + slideOutVertically(tween(140)) { height -> -height / 12 })

@@ -130,11 +130,16 @@ internal fun TypedCheatOnlineCatalogSection(
     var manualQuery by remember(game.platform) { mutableStateOf("") }
     var manualCount by remember(game.platform) { mutableIntStateOf(ManualPageSize) }
     var manualPacks by remember(game.platform) { mutableStateOf(emptyList<TypedCheatPack>()) }
-    var selection by remember(game.platform) {
-        mutableStateOf(TypedCheatSelection(emptyList(), emptyList()))
+    // Keep the last computed grouping per game so scrolling the card out of view
+    // and back does not replay the loading animation or recompute on the main thread.
+    var selectionCache by rememberRetainedState(
+        "typed_cheat_selection.cache",
+        emptyMap<String, TypedCheatSelection>()
+    )
+    var selection by remember(game.path) {
+        mutableStateOf(selectionCache[game.path] ?: TypedCheatSelection(emptyList(), emptyList()))
     }
-    var selectionGamePath by remember(game.platform) { mutableStateOf<String?>(null) }
-    var selecting by remember(game.platform) { mutableStateOf(false) }
+    var selecting by remember(game.path) { mutableStateOf(selectionCache[game.path] == null) }
 
     LaunchedEffect(game.platform, refresh) {
         val cached = cachedCatalogs[game.platform]
@@ -160,14 +165,12 @@ internal fun TypedCheatOnlineCatalogSection(
     val typedIdentity = identity?.typed
 
     LaunchedEffect(packs, typedIdentity, game.path, game.title) {
-        if (selectionGamePath != game.path) {
-            selection = TypedCheatSelection(emptyList(), emptyList())
-            selectionGamePath = game.path
-        }
-        selecting = true
-        selection = withContext(Dispatchers.Default) {
+        selecting = selectionCache[game.path] == null
+        val computed = withContext(Dispatchers.Default) {
             selectTypedCheatPacks(packs, typedIdentity, game.title)
         }
+        selection = computed
+        selectionCache = selectionCache + (game.path to computed)
         selecting = false
     }
 
@@ -225,6 +228,11 @@ internal fun TypedCheatOnlineCatalogSection(
             TypedCheatPhase.EMPTY
         else -> TypedCheatPhase.CONTENT
     }
+    var displayedPhase by rememberRetainedState(
+        "typed_cheat_catalog.display_phase",
+        TypedCheatPhase.LOADING
+    )
+    LaunchedEffect(phase) { displayedPhase = phase }
 
     Surface(
         modifier = Modifier.fillMaxWidth(),
@@ -272,7 +280,7 @@ internal fun TypedCheatOnlineCatalogSection(
                 )
             }
             AnimatedContent(
-                targetState = phase,
+                targetState = displayedPhase,
                 transitionSpec = {
                     (fadeIn(tween(220)) + slideInVertically(tween(220)) { height -> height / 10 }) togetherWith
                         (fadeOut(tween(140)) + slideOutVertically(tween(140)) { height -> -height / 12 })
