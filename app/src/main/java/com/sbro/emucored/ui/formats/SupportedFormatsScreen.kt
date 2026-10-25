@@ -72,13 +72,16 @@ fun SupportedFormatsScreen(
         ) {
             FormatsTopBar(topInset = topInset, onBackClick = onBackClick)
 
+            // The scrolling console tabs own their horizontal content padding;
+            // keeping them full-bleed lets the chips scroll to the screen edge.
+            ConsoleSelector(selected = selectedConsole, onSelected = { selectedConsole = it })
+
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = ScreenHorizontalPadding),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                ConsoleSelector(selected = selectedConsole, onSelected = { selectedConsole = it })
                 val requirement = when (selectedConsole) {
                     ConsolePlatform.N3DS -> R.string.formats_3ds_body
                     ConsolePlatform.NDS -> R.string.formats_ds_body

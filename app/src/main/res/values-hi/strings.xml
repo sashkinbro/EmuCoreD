@@ -1,11 +1,11 @@
 <resources>
     <string name="emulation_runtime_failure_title">एमुलेशन रोका गया</string>
     <string name="emulation_runtime_failure_description">रनटाइम को एक त्रुटि मिली और यह सुरक्षित रूप से जारी नहीं रख सकता। इस सत्र से बाहर निकलें और गेम फिर से शुरू करें। रेंडरर स्वचालित रूप से नहीं बदला गया।\n\nविवरण:\n</string>
-    <string name="onboarding_core_title">Nintendo DS/3DS के लिए बनाया गया</string>
-    <string name="onboarding_core_subtitle">Nintendo 3DS और Nintendo DS के लिए अंतर्निहित Azahar और melonDS कोर, ARM64 डायनैमिक रीकंपाइलेशन और Vulkan रेंडरिंग के साथ।</string>
-    <string name="onboarding_core_card_title">दो अंतर्निहित एमुलेशन कोर</string>
-    <string name="onboarding_core_card_cpu">Azahar (3DS) और melonDS (DS) सहज प्रदर्शन के लिए ARM64 डायनैमिक रीकंपाइलेशन का उपयोग करते हैं।</string>
-    <string name="onboarding_core_card_gpu">DS में Vulkan और सॉफ़्टवेयर रेंडरिंग उपलब्ध हैं; 3DS में OpenGL भी उपलब्ध है।</string>
+    <string name="onboarding_core_title">Nintendo ????? ?? ??? ????? ???</string>
+    <string name="onboarding_core_subtitle">?? ??????? Nintendo ????? ?? ??? ?????????? ???, ARM64 ???????? ??????????? ?? Vulkan ???????? ?? ????</string>
+    <string name="onboarding_core_card_title">?? ?????????? ??????? ???</string>
+    <string name="onboarding_core_card_cpu">?? ??????? Nintendo ????? ?? ???? ??? ?? ?? ??? ???????? ?? ??? ARM64 ???????? ??????????? ?? ????? ???? ???</string>
+    <string name="onboarding_core_card_gpu">Vulkan ?? OpenGL ???????? ???? ?????? ?? ???? ??? ???? ?????? ???? ???</string>
     <string name="onboarding_core_card_reference">किसी भुगतान स्तर की आवश्यकता नहीं है; कोर की हर सुविधा उपलब्ध है।</string>
     <string name="app_name">EmuCoreD</string>
 
@@ -326,9 +326,9 @@
     <string name="settings_fps_overlay_mode_detailed">आंकड़े (Statistics)</string>
 
     <string name="onboarding_page_1_title">EmuCoreD में आपका स्वागत है</string>
-    <string name="onboarding_page_1_subtitle">आपकी Nintendo DS/3DS लाइब्रेरी और लॉन्चर, तेज़ सेटअप, स्पष्ट नेविगेशन और हर स्क्रीन पर आराम के लिए डिज़ाइन की गई।</string>
+    <string name="onboarding_page_1_subtitle">???? Nintendo ????????? ?? ??????, ???? ?????, ?????? ???????? ?? ?? ??????? ?? ???? ?? ??? ??????? ?? ???</string>
     <string name="onboarding_page_2_title">शक्तिशाली एमुलेशन</string>
-    <string name="onboarding_page_2_subtitle">उन्नत ग्राफ़िक्स विकल्प, अनुकूलन योग्य नियंत्रण और प्रदर्शन सुधार के साथ अपने पसंदीदा Nintendo DS/3DS गेम खेलें।</string>
+    <string name="onboarding_page_2_subtitle">????? ?????????? ??????, ??????? ????? ???????? ?? ???????? ????? ?? ??? ???? ??????? Nintendo ??? ??????</string>
     <string name="onboarding_page_3_title">आपकी गेम्स लाइब्रेरी</string>
     <string name="onboarding_page_3_subtitle">सुंदर कवर, विस्तृत जानकारी और पसंदीदा तक तेज़ पहुँच के साथ अपनी निजी गेम लाइब्रेरी बनाएँ।</string>
     <string name="onboarding_page_4_title">खेलने के लिए तैयार</string>
@@ -340,7 +340,7 @@
     <string name="onboarding_profile_fast_title">तेज़ / असुरक्षित</string>
     <string name="onboarding_profile_fast_desc">कमज़ोर उपकरणों के लिए जिन्हें अतिरिक्त गति की आवश्यकता होती है। कुछ गेम्स में अधिक ग्लिच दिख सकते हैं या वे कम स्थिर हो सकते हैं।</string>
     <string name="onboarding_title">खेलने के लिए तैयार हो जाएं</string>
-    <string name="onboarding_subtitle">अपने Nintendo DS/3DS गेम फ़ोल्डर चुनें और फ़ाइल एक्सेस दें।</string>
+    <string name="onboarding_subtitle">???? Nintendo ??? ??????? ????? ?? ????? ?????? ????</string>
     <string name="onboarding_games_title">गेम्स फ़ोल्डर चुनें</string>
     <string name="onboarding_games_desc">वह फ़ोल्डर चुनें जिसमें आपके गेम्स हैं।</string>
     <string name="onboarding_status_required">आवश्यक</string>
@@ -2106,4 +2106,28 @@
         <string name="texture_manager_scope_global">3DS: सभी गेम पर लागू होता है, जब तक गेम प्रोफ़ाइल इसे बदल न दे।</string>
         <string name="texture_manager_scope_game">इस गेम की प्रोफ़ाइल पर लागू होता है।</string>
         <string name="game_settings_manager_save_failure">गेम की सेटिंग सहेजी नहीं जा सकीं। कृपया फिर से प्रयास करें।</string>
+    <string name="texture_manager_title">टेक्सचर मैनेजर</string>
+    <string name="texture_manager_import_zip">ZIP आयात करें</string>
+    <string name="texture_manager_import_success">%d टेक्सचर फ़ाइलें आयात की गईं।</string>
+    <string name="texture_manager_import_failed">टेक्सचर पैक आयात विफल रहा।</string>
+    <string name="texture_manager_delete_success">टेक्सचर पैक हटा दिया गया।</string>
+    <string name="texture_manager_delete_failed">टेक्सचर पैक हटाया नहीं जा सका।</string>
+    <string name="texture_manager_loading">टेक्सचर पैक्स लोड हो रहे हैं…</string>
+    <string name="texture_manager_options">रनटाइम विकल्प</string>
+    <string name="texture_manager_enable_replacements">रिप्लेसमेंट टेक्सचर लोड करें</string>
+    <string name="texture_manager_enable_replacements_desc">प्रत्येक गेम सीरियल फ़ोल्डर से PNG और DDS / KTX2 फ़ाइलों का उपयोग करें।</string>
+    <string name="texture_manager_pack_modified">%s को संशोधित किया गया</string>
+    <string name="texture_manager_empty_title">अभी तक कोई टेक्सचर पैक नहीं</string>
+    <string name="texture_manager_storage">टेक्सचर स्टोरेज</string>
+    <string name="texture_manager_installed_packs">स्थापित पैक्स</string>
+    <string name="texture_catalog_title">आपके गेम के लिए टेक्सचर पैक</string>
+    <string name="texture_catalog_description">संगत सामुदायिक टेक्सचर पैक देखने के लिए गेम चुनें।</string>
+    <string name="texture_catalog_no_packs">इस गेम के लिए अभी कोई सत्यापित टेक्सचर पैक उपलब्ध नहीं है।</string>
+    <string name="texture_catalog_install_success">टेक्सचर पैक इंस्टॉल हुआ। टेक्सचर प्रतिस्थापन चालू कर दिया गया है।</string>
+    <string name="texture_catalog_install_failed">टेक्सचर पैक सुरक्षित रूप से डाउनलोड या इंस्टॉल नहीं हो सका।</string>
+    <string name="texture_catalog_pack_meta">संस्करण %1$s • %2$s • %3$d फ़ाइलें</string>
+    <string name="texture_manager_summary_meta">%1$d ??? ? %2$d ??????? ? %3$s</string>
+    <string name="texture_manager_delete_confirm">%1$s ?? ??? ??? ??????????? ??????? ??????</string>
+    <string name="texture_manager_empty_body">Nintendo 3DS, GameCube ?? Wii ?? ??? ZIP ??????? ??? ???? ????? ??????? ??? ?? ??? ???? ????? ??????</string>
+    <string name="texture_manager_platform_note">Nintendo 3DS ?? ??????????? ??????? ??????? ???? GameCube ?? Wii ?? ??? ?? ??? ???????? ??? ????? ??? ????? ???? ????</string>
 </resources>

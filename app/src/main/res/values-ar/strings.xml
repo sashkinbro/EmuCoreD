@@ -1,11 +1,11 @@
 <resources>
     <string name="emulation_runtime_failure_title">تم إيقاف المحاكاة</string>
     <string name="emulation_runtime_failure_description">واجهت بيئة التشغيل خطأً ولا يمكنها المتابعة بأمان. اخرج من هذه الجلسة وابدأ اللعبة من جديد. لم يتم تغيير العارض تلقائيًا.\n\nالتفاصيل:\n</string>
-    <string name="onboarding_core_title">مصمم لـ Nintendo DS/3DS</string>
-    <string name="onboarding_core_subtitle">نواتا Azahar وmelonDS مدمجتان لمحاكاة Nintendo 3DS وNintendo DS، مع إعادة ترجمة ديناميكية ARM64 وعرض Vulkan.</string>
-    <string name="onboarding_core_card_title">نواتا محاكاة مدمجتان</string>
-    <string name="onboarding_core_card_cpu">تستخدم Azahar ‏(3DS) وmelonDS ‏(DS) إعادة الترجمة الديناميكية ARM64 لأداء سلس.</string>
-    <string name="onboarding_core_card_gpu">يدعم DS العرض عبر Vulkan والبرمجيات؛ ويوفر 3DS أيضًا OpenGL.</string>
+    <string name="onboarding_core_title">???? ?????? Nintendo</string>
+    <string name="onboarding_core_subtitle">??? ????? ??? ???? Nintendo ?????? ?? ????? ????? ????????? ARM64 ???? Vulkan.</string>
+    <string name="onboarding_core_card_title">???? ??? ?????? ?????</string>
+    <string name="onboarding_core_card_cpu">??? ???? Nintendo ????? ???? ????? ?????? ????? ??????? ??????????? ARM64 ????? ???.</string>
+    <string name="onboarding_core_card_gpu">????? ??? Vulkan ?OpenGL ??? ????? ??????.</string>
     <string name="onboarding_core_card_reference">لا حاجة إلى أي مستوى مدفوع؛ فجميع ميزات النواة متاحة.</string>
     <string name="app_name">EmuCoreD</string>
 
@@ -365,9 +365,9 @@
     <string name="settings_fps_overlay_mode_detailed">إحصائيات</string>
 
     <string name="onboarding_page_1_title">مرحبًا بك في EmuCoreD</string>
-    <string name="onboarding_page_1_subtitle">مكتبتك ومشغّل Nintendo DS/3DS، مصممان لإعداد سريع وتنقل واضح وتجربة مريحة على أي شاشة.</string>
+    <string name="onboarding_page_1_subtitle">?????? ?????? Nintendo? ?????? ?????? ???? ????? ???? ?????? ????? ??? ?? ????.</string>
     <string name="onboarding_page_2_title">محاكاة قوية</string>
-    <string name="onboarding_page_2_subtitle">استمتع بألعاب Nintendo DS/3DS المفضلة مع خيارات رسومية متقدمة وتحكم قابل للتخصيص وتحسينات أداء.</string>
+    <string name="onboarding_page_2_subtitle">?????? ?????? Nintendo ??????? ?? ?????? ?????? ?????? ????? ???? ??????? ???????? ????.</string>
     <string name="onboarding_page_3_title">مكتبة ألعابك</string>
     <string name="onboarding_page_3_subtitle">ابنِ مكتبتك الخاصة بأغلفة جميلة ومعلومات مفصلة ووصول سريع للمفضلة.</string>
     <string name="onboarding_page_4_title">جاهز للعب</string>
@@ -379,7 +379,7 @@
     <string name="onboarding_profile_fast_title">سريع / غير آمن</string>
     <string name="onboarding_profile_fast_desc">للأجهزة الأضعف التي تحتاج إلى سرعة إضافية. قد تظهر بعض الألعاب المزيد من الأخطاء أو تصبح أقل استقرارًا.</string>
     <string name="onboarding_title">استعد للعب</string>
-    <string name="onboarding_subtitle">اختر مجلدات ألعاب Nintendo DS/3DS وامنح الوصول للملفات.</string>
+    <string name="onboarding_subtitle">???? ?????? ????? Nintendo ????? ?????? ???????.</string>
     <string name="onboarding_games_title">اختر مجلد الألعاب</string>
     <string name="onboarding_games_desc">حدد المجلد الذي يحتوي على ألعابك.</string>
     <string name="onboarding_status_required">مطلوب</string>
@@ -2114,4 +2114,28 @@
         <string name="texture_manager_scope_global">3DS: ينطبق على جميع الألعاب ما لم يتجاوزه ملف إعدادات اللعبة.</string>
         <string name="texture_manager_scope_game">ينطبق على ملف إعدادات هذه اللعبة.</string>
         <string name="game_settings_manager_save_failure">تعذّر حفظ إعدادات اللعبة. يرجى المحاولة مرة أخرى.</string>
+    <string name="texture_manager_title">مدير الإكساءات</string>
+    <string name="texture_manager_import_zip">استيراد ملف ZIP</string>
+    <string name="texture_manager_import_success">تم استيراد %d ملف/ملفات إكساء.</string>
+    <string name="texture_manager_import_failed">فشل استيراد حزمة الإكساءات.</string>
+    <string name="texture_manager_delete_success">تم حذف حزمة الإكساءات.</string>
+    <string name="texture_manager_delete_failed">تعذر حذف حزمة الإكساءات.</string>
+    <string name="texture_manager_loading">جاري تحميل حزم الإكساءات…</string>
+    <string name="texture_manager_options">خيارات التشغيل</string>
+    <string name="texture_manager_enable_replacements">تحميل إكساءات الاستبدال</string>
+    <string name="texture_manager_enable_replacements_desc">استخدام ملفات PNG و DDS / KTX2 من مجلد كل رقم تسلسلي للعبة.</string>
+    <string name="texture_manager_pack_modified">تعديل %s</string>
+    <string name="texture_manager_empty_title">لا توجد حزم إكساءات بعد</string>
+    <string name="texture_manager_storage">تخزين الإكساءات</string>
+    <string name="texture_manager_installed_packs">الحزم المثبتة</string>
+    <string name="texture_catalog_title">حزم الأنسجة لألعابك</string>
+    <string name="texture_catalog_description">اختر لعبة لعرض حزم الأنسجة المتوافقة من المجتمع.</string>
+    <string name="texture_catalog_no_packs">لا توجد حزم أنسجة موثقة لهذه اللعبة حتى الآن.</string>
+    <string name="texture_catalog_install_success">تم تثبيت حزمة الأنسجة وتفعيل استبدال الأنسجة.</string>
+    <string name="texture_catalog_install_failed">تعذر تنزيل حزمة الأنسجة أو تثبيتها بأمان.</string>
+    <string name="texture_catalog_pack_meta">الإصدار %1$s • %2$s • %3$d ملف</string>
+    <string name="texture_manager_summary_meta">%1$d ??? ? %2$d ??????? ? %3$s</string>
+    <string name="texture_manager_delete_confirm">?? ???? ??? ???? ??????? ????????? ?? %1$s?</string>
+    <string name="texture_manager_empty_body">?????? ???? ??????? ZIP ?? Nintendo 3DS ?? GameCube ?? Wii. ????? ????? ??????? ???.</string>
+    <string name="texture_manager_platform_note">??????? ????????? ?? Nintendo 3DS ????. ??? GameCube ?Wii ??????? ??? ???? ?? ??????? ??????.</string>
 </resources>

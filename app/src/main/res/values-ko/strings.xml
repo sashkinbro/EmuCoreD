@@ -1,11 +1,11 @@
 <resources>
     <string name="emulation_runtime_failure_title">에뮬레이션이 중지되었습니다</string>
     <string name="emulation_runtime_failure_description">런타임에서 오류가 발생하여 안전하게 계속할 수 없습니다. 이 세션을 종료하고 게임을 다시 시작하세요. 렌더러는 자동으로 변경되지 않았습니다.\n\n세부정보:\n</string>
-    <string name="onboarding_core_title">Nintendo DS/3DS를 위해</string>
-    <string name="onboarding_core_subtitle">Nintendo 3DS용 Azahar와 Nintendo DS용 melonDS 코어가 내장되어 있으며 ARM64 동적 재컴파일과 Vulkan 렌더링을 지원합니다.</string>
-    <string name="onboarding_core_card_title">두 개의 에뮬레이션 코어 내장</string>
-    <string name="onboarding_core_card_cpu">Azahar(3DS)와 melonDS(DS)는 ARM64 동적 재컴파일로 부드러운 성능을 제공합니다.</string>
-    <string name="onboarding_core_card_gpu">DS는 Vulkan과 소프트웨어 렌더링을 지원하며, 3DS는 OpenGL도 제공합니다.</string>
+    <string name="onboarding_core_title">Nintendo ??? ??</string>
+    <string name="onboarding_core_subtitle">???? ?? Nintendo ??? ?? ??? ARM64 ?? ???? ? Vulkan ???? ?????.</string>
+    <string name="onboarding_core_card_title">9?? ????? ?? ??</string>
+    <string name="onboarding_core_card_cpu">???? ? Nintendo ??? ARM64 ?? ????? ???? ?? ??? ???? ?????.</string>
+    <string name="onboarding_core_card_gpu">Vulkan ? OpenGL ???? ??? ??? ? ??? ? ????.</string>
     <string name="onboarding_core_card_reference">유료 등급이 필요하지 않으며 모든 코어 기능을 사용할 수 있습니다.</string>
     <string name="app_name">EmuCoreD</string>
 
@@ -365,9 +365,9 @@
     <string name="settings_fps_overlay_mode_detailed">통계</string>
 
     <string name="onboarding_page_1_title">EmuCoreD에 오신 것을 환영합니다</string>
-    <string name="onboarding_page_1_subtitle">빠른 설정, 명확한 탐색, 모든 화면에서 편안한 사용을 위해 설계된 Nintendo DS/3DS 라이브러리와 런처입니다.</string>
+    <string name="onboarding_page_1_subtitle">?? ??, ??? ??, ?? ???? ??? ??? ?? ??? Nintendo ?????? ?????.</string>
     <string name="onboarding_page_2_title">강력한 에뮬레이션</string>
-    <string name="onboarding_page_2_subtitle">고급 그래픽 옵션과 사용자 지정 컨트롤, 성능 최적화로 좋아하는 Nintendo DS/3DS 게임을 즐기세요.</string>
+    <string name="onboarding_page_2_subtitle">?? ??? ??? ??? ?? ???, ?? ???? ???? Nintendo ??? ????.</string>
     <string name="onboarding_page_3_title">나만의 게임 라이브러리</string>
     <string name="onboarding_page_3_subtitle">멋진 커버와 자세한 정보, 즐겨찾기 빠른 접근으로 나만의 게임 라이브러리를 만드세요.</string>
     <string name="onboarding_page_4_title">플레이 준비 완료</string>
@@ -379,7 +379,7 @@
     <string name="onboarding_profile_fast_title">빠름 / 비안전 (Fast)</string>
     <string name="onboarding_profile_fast_desc">추가 속도가 필요한 약한 기기용입니다. 일부 게임에서는 더 많은 결함이 나타나거나 안정성이 떨어질 수 있습니다.</string>
     <string name="onboarding_title">플레이할 준비를 하세요</string>
-    <string name="onboarding_subtitle">Nintendo DS/3DS 게임 폴더를 선택하고 파일 접근을 허용하세요.</string>
+    <string name="onboarding_subtitle">Nintendo ?? ??? ???? ?? ??? ?????.</string>
     <string name="onboarding_games_title">게임 폴더 선택</string>
     <string name="onboarding_games_desc">게임이 포함된 폴더를 선택하세요.</string>
     <string name="onboarding_status_required">필요함</string>
@@ -2105,4 +2105,28 @@
         <string name="texture_manager_scope_global">3DS: 게임 프로필에서 재정의하지 않는 한 모든 게임에 적용됩니다.</string>
         <string name="texture_manager_scope_game">이 게임의 프로필에 적용됩니다.</string>
         <string name="game_settings_manager_save_failure">게임 설정을 저장하지 못했습니다. 다시 시도하세요.</string>
+    <string name="texture_manager_title">텍스처 관리자</string>
+    <string name="texture_manager_import_zip">ZIP 가져오기</string>
+    <string name="texture_manager_import_success">%d개의 텍스처 파일을 가져왔습니다.</string>
+    <string name="texture_manager_import_failed">텍스처 팩 가져오기에 실패했습니다.</string>
+    <string name="texture_manager_delete_success">텍스처 팩이 삭제되었습니다.</string>
+    <string name="texture_manager_delete_failed">텍스처 팩을 삭제할 수 없습니다.</string>
+    <string name="texture_manager_loading">텍스처 팩 로드 중…</string>
+    <string name="texture_manager_options">런타임 옵션</string>
+    <string name="texture_manager_enable_replacements">교체 텍스처 로드</string>
+    <string name="texture_manager_enable_replacements_desc">각 게임 시리얼 폴더에서 PNG 및 DDS / KTX2 파일을 사용합니다.</string>
+    <string name="texture_manager_pack_modified">수정됨: %s</string>
+    <string name="texture_manager_empty_title">아직 텍스처 팩이 없습니다</string>
+    <string name="texture_manager_storage">텍스처 저장소</string>
+    <string name="texture_manager_installed_packs">설치된 팩</string>
+    <string name="texture_catalog_title">게임용 텍스처 팩</string>
+    <string name="texture_catalog_description">게임을 선택하여 호환되는 커뮤니티 텍스처 팩을 확인하세요.</string>
+    <string name="texture_catalog_no_packs">이 게임에는 아직 검증된 텍스처 팩이 없습니다.</string>
+    <string name="texture_catalog_install_success">텍스처 팩을 설치하고 텍스처 교체를 활성화했습니다.</string>
+    <string name="texture_catalog_install_failed">텍스처 팩을 안전하게 다운로드하거나 설치하지 못했습니다.</string>
+    <string name="texture_catalog_pack_meta">버전 %1$s • %2$s • 파일 %3$d개</string>
+    <string name="texture_manager_summary_meta">%1$d? ? ? %2$d? ??? ? %3$s</string>
+    <string name="texture_manager_delete_confirm">%1$s? ?? ?? ???? ??????</string>
+    <string name="texture_manager_empty_body">Nintendo 3DS, GameCube ?? Wii? ZIP ??? ?? ?????. ??? ?? ??? ?????.</string>
+    <string name="texture_manager_platform_note">Nintendo 3DS ??? ??? ?? ?????. GameCube? Wii? ?? ???? ???? ??????.</string>
 </resources>

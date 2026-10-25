@@ -1,11 +1,11 @@
 <resources>
     <string name="emulation_runtime_failure_title">Emulasi dihentikan</string>
     <string name="emulation_runtime_failure_description">Runtime mengalami error dan tidak dapat melanjutkan dengan aman. Keluar dari sesi ini dan mulai ulang game. Renderer tidak diubah secara otomatis.\n\nDetail:\n</string>
-    <string name="onboarding_core_title">Dibuat untuk Nintendo DS/3DS</string>
-    <string name="onboarding_core_subtitle">Inti Azahar dan melonDS bawaan untuk Nintendo 3DS dan Nintendo DS, dengan rekompilasi dinamis ARM64 dan perenderan Vulkan.</string>
-    <string name="onboarding_core_card_title">Dua inti emulasi bawaan</string>
-    <string name="onboarding_core_card_cpu">Azahar (3DS) dan melonDS (DS) memakai rekompilasi dinamis ARM64 agar kinerja lancar.</string>
-    <string name="onboarding_core_card_gpu">DS mendukung Vulkan dan perenderan perangkat lunak; 3DS juga menyediakan OpenGL.</string>
+    <string name="onboarding_core_title">Dibuat untuk konsol Nintendo</string>
+    <string name="onboarding_core_subtitle">Inti bawaan untuk setiap konsol Nintendo yang didukung, dengan rekompilasi dinamis ARM64 dan perenderan Vulkan.</string>
+    <string name="onboarding_core_card_title">Sembilan inti emulasi bawaan</string>
+    <string name="onboarding_core_card_cpu">Setiap konsol Nintendo yang didukung memiliki inti khusus dengan rekompilasi dinamis ARM64 agar kinerja lancar.</string>
+    <string name="onboarding_core_card_gpu">Perenderan Vulkan dan OpenGL tersedia jika inti mendukungnya.</string>
     <string name="onboarding_core_card_reference">Tidak diperlukan tingkat pembelian; semua fitur core tersedia.</string>
     <string name="app_name">EmuCoreD</string>
 
@@ -441,9 +441,9 @@
 
     <!-- Onboarding -->
     <string name="onboarding_page_1_title">Selamat datang di EmuCoreD</string>
-    <string name="onboarding_page_1_subtitle">Pustaka dan peluncur Nintendo DS/3DS Anda, dirancang untuk penyiapan cepat, navigasi jelas, dan kenyamanan di semua layar.</string>
+    <string name="onboarding_page_1_subtitle">Pustaka dan peluncur Nintendo Anda, dirancang untuk penyiapan cepat, navigasi jelas, dan kenyamanan di semua layar.</string>
     <string name="onboarding_page_2_title">Emulasi Kuat</string>
-    <string name="onboarding_page_2_subtitle">Mainkan game Nintendo DS/3DS favorit dengan opsi grafis lanjutan, kontrol yang dapat disesuaikan, dan optimasi performa.</string>
+    <string name="onboarding_page_2_subtitle">Mainkan game Nintendo favorit dengan opsi grafis lanjutan, kontrol yang dapat disesuaikan, dan optimasi performa.</string>
     <string name="onboarding_page_3_title">Pustaka Game Anda</string>
     <string name="onboarding_page_3_subtitle">Bangun pustaka pribadi dengan sampul indah, informasi rinci, dan akses cepat ke favorit.</string>
     <string name="onboarding_page_4_title">Siap Bermain</string>
@@ -471,7 +471,7 @@
     <string name="settings_mediatek_notice_title">Kompatibilitas MediaTek</string>
     <string name="settings_mediatek_notice_message">Dukungan MediaTek masih bersifat eksperimental. Crash, artefak grafis, dan perilaku tidak stabil dapat terjadi sementara kami terus meningkatkan kompatibilitas dan performa.\n\nJika mengalami masalah grafis, coba OpenGL dengan ANGLE diaktifkan. Jika masalah berlanjut, gunakan perender Perangkat Lunak.</string>
     <string name="onboarding_title">Bersiaplah untuk bermain</string>
-    <string name="onboarding_subtitle">Pilih folder game Nintendo DS/3DS Anda dan berikan akses file.</string>
+    <string name="onboarding_subtitle">Pilih folder game Nintendo Anda dan berikan akses file.</string>
     <string name="onboarding_games_title">Pilih folder game</string>
     <string name="onboarding_games_desc">Pilih folder yang berisi game Anda.</string>
     <string name="onboarding_status_required">Wajib</string>
@@ -2120,4 +2120,28 @@
         <string name="texture_manager_scope_global">3DS: berlaku untuk semua game kecuali ditimpa oleh profil game.</string>
         <string name="texture_manager_scope_game">Berlaku untuk profil game ini.</string>
         <string name="game_settings_manager_save_failure">Pengaturan game tidak dapat disimpan. Silakan coba lagi.</string>
+    <string name="texture_manager_title">Pengelola Tekstur</string>
+    <string name="texture_manager_import_zip">Impor ZIP</string>
+    <string name="texture_manager_import_success">Telah mengimpor %d file tekstur.</string>
+    <string name="texture_manager_import_failed">Impor paket tekstur gagal.</string>
+    <string name="texture_manager_delete_success">Paket tekstur dihapus.</string>
+    <string name="texture_manager_delete_failed">Tidak dapat menghapus paket tekstur.</string>
+    <string name="texture_manager_loading">Memuat paket tekstur…</string>
+    <string name="texture_manager_options">Opsi Waktu Proses</string>
+    <string name="texture_manager_enable_replacements">Muat tekstur pengganti</string>
+    <string name="texture_manager_enable_replacements_desc">Gunakan file PNG dan DDS / KTX2 dari setiap folder serial game.</string>
+    <string name="texture_manager_pack_modified">Diubah %s</string>
+    <string name="texture_manager_empty_title">Belum ada paket tekstur</string>
+    <string name="texture_manager_storage">Penyimpanan Tekstur</string>
+    <string name="texture_manager_installed_packs">Paket Terinstal</string>
+    <string name="texture_catalog_title">Paket tekstur untuk game Anda</string>
+    <string name="texture_catalog_description">Pilih game untuk melihat paket tekstur komunitas yang kompatibel.</string>
+    <string name="texture_catalog_no_packs">Belum ada paket tekstur terverifikasi untuk game ini.</string>
+    <string name="texture_catalog_install_success">Paket tekstur terpasang. Penggantian tekstur telah diaktifkan.</string>
+    <string name="texture_catalog_install_failed">Paket tekstur tidak dapat diunduh atau dipasang dengan aman.</string>
+    <string name="texture_catalog_pack_meta">Versi %1$s • %2$s • %3$d file</string>
+    <string name="texture_manager_summary_meta">%1$d paket ? %2$d tekstur ? %3$s</string>
+    <string name="texture_manager_delete_confirm">Hapus semua tekstur pengganti untuk %1$s?</string>
+    <string name="texture_manager_empty_body">Impor paket tekstur ZIP untuk Nintendo 3DS, GameCube, atau Wii. Paket yang terpasang akan muncul di sini.</string>
+    <string name="texture_manager_platform_note">Tekstur pengganti Nintendo 3DS berlaku global. Untuk GameCube dan Wii, aktifkan per game di pengaturan game.</string>
 </resources>

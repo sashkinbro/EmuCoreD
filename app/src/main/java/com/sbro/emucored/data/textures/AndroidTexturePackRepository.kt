@@ -30,6 +30,20 @@ internal data class InstalledTexturePack(
     val files: List<String>
 )
 
+internal data class InstalledTexturePackInfo(
+    val target: TexturePackTarget,
+    val platform: GamePlatform?,
+    val gameTitle: String?,
+    val stats: TexturePackStats,
+    val enabled: Boolean
+)
+
+internal data class TexturePackSummary(
+    val packs: List<InstalledTexturePackInfo>,
+    val totalTextureCount: Int,
+    val totalSizeBytes: Long
+)
+
 internal class AndroidTexturePackRepository(context: Context) {
     private val context = context.applicationContext
     private val library = ContentLibraryRepository(this.context)
@@ -45,6 +59,90 @@ internal class AndroidTexturePackRepository(context: Context) {
             TexturePackIdentity.supports(it.platform)
         }
     }
+
+    suspend fun listPacks(): TexturePackSummary = withContext(Dispatchers.IO) {
+        val games = library.loadGames()
+        val n3dsGames = games.filter { it.platform == GamePlatform.N3DS }.associateBy {
+            normalizePackSerial(it.serial)
+        }
+        val packs = store.listInstalled().mapNotNull { target ->
+            val stats = runCatching { store.inspect(target) }.getOrNull() ?: return@mapNotNull null
+            if (stats.textureCount == 0) return@mapNotNull null
+            val game = if (target.platform == com.sbro.emucored.core.platform.ConsolePlatform.N3DS) {
+                n3dsGames[target.id]
+            } else {
+                null
+            }
+            InstalledTexturePackInfo(
+                target = target,
+                platform = if (target.platform == com.sbro.emucored.core.platform.ConsolePlatform.N3DS) {
+                    GamePlatform.N3DS
+                } else {
+                    null
+                },
+                gameTitle = game?.title,
+                stats = stats,
+                enabled = if (target.platform == com.sbro.emucored.core.platform.ConsolePlatform.N3DS) {
+                    preferences.textureReplacementsEnabled.first()
+                } else {
+                    false
+                }
+            )
+        }.sortedWith(
+            compareBy<InstalledTexturePackInfo>(
+                { (it.gameTitle ?: it.target.id).lowercase(java.util.Locale.ROOT) },
+                { it.target.id }
+            )
+        )
+        TexturePackSummary(
+            packs = packs,
+            totalTextureCount = packs.sumOf { it.stats.textureCount },
+            totalSizeBytes = packs.sumOf { it.stats.totalBytes }
+        )
+    }
+
+    suspend fun importAnyZip(uri: Uri): TexturePackStats = withContext(Dispatchers.IO) {
+        val archive = File.createTempFile("texture-import-", ".zip", context.cacheDir)
+        try {
+            val input = requireNotNull(context.contentResolver.openInputStream(uri))
+            input.use { source -> archive.outputStream().use { destination ->
+                val buffer = ByteArray(128 * 1024)
+                var bytes = 0L
+                while (true) {
+                    currentCoroutineContext().ensureActive()
+                    val read = source.read(buffer)
+                    if (read < 0) break
+                    bytes += read
+                    require(bytes <= limits.maxArchiveBytes)
+                    destination.write(buffer, 0, read)
+                }
+            } }
+            val target = requireNotNull(store.detectTarget(archive)) {
+                "Texture archive does not contain a supported game folder"
+            }
+            BackupSessionGate.whileStopped { store.install(target, archive) }.also {
+                if (target.platform == com.sbro.emucored.core.platform.ConsolePlatform.N3DS) {
+                    preferences.setTextureReplacementsEnabled(true)
+                }
+            }
+        } finally {
+            archive.delete()
+        }
+    }
+
+    suspend fun deletePack(target: TexturePackTarget) = withContext(Dispatchers.IO) {
+        BackupSessionGate.whileStopped { store.delete(target) }
+    }
+
+    fun storageRoots(): List<String> = store.storageRoots().map { it.absolutePath }
+
+    suspend fun setReplacementsEnabled(enabled: Boolean) {
+        preferences.setTextureReplacementsEnabled(enabled)
+    }
+
+    private fun normalizePackSerial(serial: String?): String =
+        serial.orEmpty().trim().uppercase(java.util.Locale.ROOT)
+            .replace(Regex("[^A-Z0-9]"), "")
 
     suspend fun resolve(game: GameItem): TexturePackTarget? = withContext(Dispatchers.IO) {
         val job = currentCoroutineContext()

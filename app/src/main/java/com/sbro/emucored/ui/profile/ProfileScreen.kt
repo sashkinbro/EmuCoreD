@@ -151,6 +151,7 @@ import com.sbro.emucored.ui.common.GameCoverArt
 import com.sbro.emucored.ui.common.gameCoverThumbnailSize
 import com.sbro.emucored.ui.common.gameCoverContentScale
 import com.sbro.emucored.ui.common.gameCoverShape
+import com.sbro.emucored.ui.common.horizontalViewportBleed
 import com.sbro.emucored.ui.common.ScreenTopBar
 import com.sbro.emucored.ui.common.appScreenTopPadding
 import com.sbro.emucored.ui.common.shimmer
@@ -2381,7 +2382,13 @@ private fun ProfileGamePlatformLabel(game: PlayerGamePlayStat) {
 
 @Composable
 private fun ProfilePlatformFilterRow(selected: ProfilePlatformFilter, onSelect: (ProfilePlatformFilter) -> Unit) {
-    LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+    LazyRow(
+        modifier = Modifier
+            .fillMaxWidth()
+            .horizontalViewportBleed(ScreenHorizontalPadding),
+        contentPadding = PaddingValues(horizontal = ScreenHorizontalPadding),
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
         items(ProfilePlatformFilter.entries, key = { it.name }) { filter ->
             FilterChip(
                 selected = selected == filter,

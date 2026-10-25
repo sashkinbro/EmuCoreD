@@ -26,7 +26,12 @@ internal data class TexturePackTarget(val platform: ConsolePlatform, val id: Str
 }
 internal data class TexturePackLimits(val maxEntries: Int = 100_000, val maxFileBytes: Long = 268_435_456,
     val maxTotalBytes: Long = 17_179_869_184, val maxArchiveBytes: Long = 17_179_869_184)
-internal data class TexturePackStats(val fileCount: Int = 0, val textureCount: Int = 0, val totalBytes: Long = 0)
+internal data class TexturePackStats(
+    val fileCount: Int = 0,
+    val textureCount: Int = 0,
+    val totalBytes: Long = 0,
+    val lastModifiedAt: Long = 0
+)
 
 /** Bounded ZIP installation at the native core's existing directory, with recoverable directory publication. */
 internal class TexturePackStore(private val filesDirectory: File, private val limits: TexturePackLimits = TexturePackLimits()) {
@@ -36,9 +41,64 @@ internal class TexturePackStore(private val filesDirectory: File, private val li
         require(it.canonicalPath.startsWith(filesDirectory.canonicalPath + File.separator))
     }
 
+    fun storageRoots(): List<File> = listOf(
+        File(filesDirectory, "azahar/load/textures"),
+        File(filesDirectory, "consoles/dolphin/Load/Textures")
+    )
+
     fun inspect(target: TexturePackTarget): TexturePackStats = synchronized(lock) {
         recover(target)
         stats(directory(target))
+    }
+
+    /**
+     * Lists installed pack directories from both core storage roots. Dolphin
+     * shares one texture folder between GameCube and Wii, so those packs carry
+     * the GameCube target identity for storage operations.
+     */
+    fun listInstalled(): List<TexturePackTarget> = synchronized(lock) {
+        buildList {
+            val n3dsRoot = File(filesDirectory, "azahar/load/textures")
+            n3dsRoot.listFiles()?.filter { it.isDirectory && it.name.matches(N3DS_ID) }?.forEach {
+                TexturePackTarget(ConsolePlatform.N3DS, it.name.uppercase(Locale.ROOT))
+                    .takeIf { target -> runCatching { recover(target) }.isSuccess }
+                    ?.let(::add)
+            }
+            val dolphinRoot = File(filesDirectory, "consoles/dolphin/Load/Textures")
+            dolphinRoot.listFiles()?.filter { it.isDirectory && it.name.matches(DOLPHIN_ID) }?.forEach {
+                TexturePackTarget(ConsolePlatform.GAMECUBE, it.name.uppercase(Locale.ROOT))
+                    .takeIf { target -> runCatching { recover(target) }.isSuccess }
+                    ?.let(::add)
+            }
+        }
+    }
+
+    fun detectTarget(archive: File): TexturePackTarget? {
+        require(archive.isFile && archive.length() in 1..limits.maxArchiveBytes)
+        return runCatching {
+            ZipFile(archive).use { zip ->
+                val entries = zip.entries()
+                while (entries.hasMoreElements()) {
+                    val relative = entries.nextElement().name.replace('\\', '/')
+                    val parts = relative.split('/').filter(String::isNotBlank)
+                    for (part in parts) {
+                        if (part.matches(N3DS_ID)) {
+                            return@use TexturePackTarget(
+                                ConsolePlatform.N3DS,
+                                part.uppercase(Locale.ROOT)
+                            )
+                        }
+                        if (part.matches(DOLPHIN_ID)) {
+                            return@use TexturePackTarget(
+                                ConsolePlatform.GAMECUBE,
+                                part.uppercase(Locale.ROOT)
+                            )
+                        }
+                    }
+                }
+                null
+            }
+        }.getOrNull()
     }
 
     fun install(target: TexturePackTarget, archive: File): TexturePackStats = synchronized(lock) {
@@ -211,14 +271,15 @@ internal class TexturePackStore(private val filesDirectory: File, private val li
 
     private fun stats(root: File): TexturePackStats {
         if (!root.isDirectory) return TexturePackStats()
-        var files = 0; var textures = 0; var bytes = 0L
+        var files = 0; var textures = 0; var bytes = 0L; var modified = root.lastModified()
         root.walkTopDown().filter { it.isFile }.forEach {
             require(it.canonicalPath.startsWith(root.canonicalPath + File.separator))
             require(++files <= limits.maxEntries)
             bytes += it.length(); require(bytes <= limits.maxTotalBytes)
+            modified = maxOf(modified, it.lastModified())
             if (isTexture(it)) textures++
         }
-        return TexturePackStats(files, textures, bytes)
+        return TexturePackStats(files, textures, bytes, modified)
     }
     private fun allowed(target: TexturePackTarget, file: File): Boolean = when (file.extension.lowercase(Locale.ROOT)) {
         "png", "dds" -> true
@@ -268,6 +329,8 @@ internal class TexturePackStore(private val filesDirectory: File, private val li
 
     companion object {
         private val lock = Any()
+        private val N3DS_ID = Regex("[0-9A-Fa-f]{16}")
+        private val DOLPHIN_ID = Regex("[A-Za-z0-9]{6}")
         private val PNG = byteArrayOf(137.toByte(), 80, 78, 71, 13, 10, 26, 10)
         private val KTX1 = byteArrayOf(171.toByte(),75,84,88,32,49,49,187.toByte(),13,10,26,10)
         private val KTX2 = byteArrayOf(171.toByte(),75,84,88,32,50,48,187.toByte(),13,10,26,10)

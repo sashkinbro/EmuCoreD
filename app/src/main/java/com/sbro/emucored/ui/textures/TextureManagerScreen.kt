@@ -4,19 +4,32 @@ import android.text.format.Formatter
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.Button
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.CloudDownload
+import androidx.compose.material.icons.rounded.DeleteOutline
+import androidx.compose.material.icons.rounded.FolderZip
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
@@ -27,159 +40,528 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
 import com.sbro.emucored.R
+import com.sbro.emucored.data.AppPreferences
 import com.sbro.emucored.data.GamePlatform
+import com.sbro.emucored.data.textures.AndroidTexturePackRepository
+import com.sbro.emucored.data.textures.InstalledTexturePackInfo
+import com.sbro.emucored.data.textures.TexturePackSummary
 import com.sbro.emucored.ui.common.AppAlertDialog
-import com.sbro.emucored.ui.common.LibraryGamePicker
 import com.sbro.emucored.ui.common.ScreenTopBar
 import com.sbro.emucored.ui.common.appScreenTopPadding
 import com.sbro.emucored.ui.common.navigationBarsHorizontalPaddingValues
 import com.sbro.emucored.ui.theme.ScreenHorizontalPadding
 import com.sbro.emucored.ui.theme.neon.neonButtonShape
+import com.sbro.emucored.ui.theme.neon.neonShape
+import java.text.DateFormat
+import java.util.Date
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
-/** The same manager handles global library entry and an explicitly selected game. */
+/** Texture packs are managed globally; the online catalog selects a compatible game. */
 @Composable
 fun TextureManagerScreen(onBackClick: () -> Unit, initialGamePath: String? = null) {
-    val model: TextureManagerViewModel = viewModel()
-    TextureManagerContent(model, onBackClick, initialGamePath)
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    val preferences = remember(context) { AppPreferences(context) }
+    val repository = remember(context) { AndroidTexturePackRepository(context) }
+    val replacementsEnabled by preferences.textureReplacementsEnabled.collectAsState(initial = true)
+    val topInset = appScreenTopPadding()
+    val bottomInset = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
+    val horizontalSystemBarPadding = navigationBarsHorizontalPaddingValues()
+
+    var summary by remember { mutableStateOf<TexturePackSummary?>(null) }
+    var loading by remember { mutableStateOf(true) }
+    var working by remember { mutableStateOf(false) }
+    var refreshGeneration by remember { mutableIntStateOf(0) }
+    var pendingDelete by remember { mutableStateOf<InstalledTexturePackInfo?>(null) }
+    val importSuccess = stringResource(R.string.texture_manager_import_success)
+    val importFailed = stringResource(R.string.texture_manager_import_failed)
+    val deleteSuccess = stringResource(R.string.texture_manager_delete_success)
+    val deleteFailed = stringResource(R.string.texture_manager_delete_failed)
+
+    fun refresh() {
+        val generation = refreshGeneration + 1
+        refreshGeneration = generation
+        scope.launch {
+            loading = true
+            val loaded = withContext(Dispatchers.IO) { runCatching { repository.listPacks() }.getOrNull() }
+            if (refreshGeneration != generation) return@launch
+            if (loaded != null) summary = loaded
+            loading = false
+        }
+    }
+
+    LaunchedEffect(Unit) { refresh() }
+
+    val importer = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        if (uri == null) return@rememberLauncherForActivityResult
+        scope.launch {
+            working = true
+            val result = withContext(Dispatchers.IO) {
+                runCatching { repository.importAnyZip(uri) }.getOrNull()
+            }
+            working = false
+            Toast.makeText(
+                context,
+                if (result != null) {
+                    importSuccess.format(result.textureCount)
+                } else {
+                    importFailed
+                },
+                Toast.LENGTH_LONG
+            ).show()
+            if (result != null) refresh()
+        }
+    }
+
+    Surface(
+        modifier = Modifier.fillMaxSize(),
+        color = MaterialTheme.colorScheme.background,
+        contentColor = MaterialTheme.colorScheme.onBackground
+    ) {
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontalSystemBarPadding),
+            contentPadding = PaddingValues(
+                start = ScreenHorizontalPadding,
+                end = ScreenHorizontalPadding,
+                bottom = 24.dp + bottomInset
+            ),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            item {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = topInset, bottom = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    ScreenTopBar(
+                        title = stringResource(R.string.texture_manager_title),
+                        onBackClick = onBackClick,
+                        modifier = Modifier.weight(1f)
+                    )
+                    if (working) {
+                        CircularProgressIndicator(modifier = Modifier.size(22.dp), strokeWidth = 2.dp)
+                    }
+                }
+            }
+            item {
+                FilledTonalButton(
+                    shape = neonButtonShape(),
+                    onClick = {
+                        importer.launch(
+                            arrayOf("application/zip", "application/x-zip-compressed", "application/octet-stream", "*/*")
+                        )
+                    },
+                    enabled = !working,
+                    colors = ButtonDefaults.filledTonalButtonColors(
+                        containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.18f),
+                        contentColor = MaterialTheme.colorScheme.primary
+                    )
+                ) {
+                    Icon(Icons.Rounded.CloudDownload, contentDescription = null)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(stringResource(R.string.texture_manager_import_zip))
+                }
+            }
+            item {
+                TextureOnlineCatalogSection(
+                    initialGamePath = initialGamePath,
+                    onInstalled = { refresh() }
+                )
+            }
+            item {
+                TextureOptionsPanel(
+                    replacementsEnabled = replacementsEnabled,
+                    enabled = !working,
+                    onReplacementsChanged = { enabled ->
+                        scope.launch { repository.setReplacementsEnabled(enabled) }
+                    }
+                )
+            }
+            if (loading && summary == null) {
+                item {
+                    LoadingPanel()
+                }
+            } else if (summary?.packs.orEmpty().isEmpty()) {
+                item {
+                    EmptyTexturePacksPanel(repository.storageRoots())
+                }
+            } else {
+                item {
+                    TexturePacksSectionHeader(summary = summary, isLoading = loading)
+                }
+                items(summary?.packs.orEmpty(), key = { "${it.target.platform}:${it.target.id}" }) { pack ->
+                    TexturePackCard(
+                        pack = pack,
+                        isWorking = working,
+                        onDelete = { pendingDelete = pack }
+                    )
+                }
+            }
+        }
+    }
+
+    pendingDelete?.let { pack ->
+        AppAlertDialog(
+            onDismissRequest = { pendingDelete = null },
+            title = { Text(stringResource(R.string.texture_manager_delete_title)) },
+            text = {
+                Text(
+                    stringResource(
+                        R.string.texture_manager_delete_confirm,
+                        pack.gameTitle ?: pack.target.id
+                    )
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        pendingDelete = null
+                        scope.launch {
+                            working = true
+                            val success = withContext(Dispatchers.IO) {
+                                runCatching { repository.deletePack(pack.target) }.isSuccess
+                            }
+                            working = false
+                            Toast.makeText(
+                                context,
+                                if (success) deleteSuccess else deleteFailed,
+                                Toast.LENGTH_SHORT
+                            ).show()
+                            refresh()
+                        }
+                    }
+                ) {
+                    Text(stringResource(R.string.delete))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { pendingDelete = null }) {
+                    Text(stringResource(R.string.cancel))
+                }
+            }
+        )
+    }
 }
 
 @Composable
-internal fun TextureManagerContent(model: TextureManagerViewModel, onBackClick: () -> Unit, initialGamePath: String?) {
-    val state by model.state.collectAsState()
-    val context = LocalContext.current
-    val uriHandler = LocalUriHandler.current
-    // Document pickers may recreate this screen; retain the exact requested game, not the current selection.
-    var importing by rememberSaveable { mutableStateOf<ArrayList<String>?>(null) }
-    var exporting by rememberSaveable { mutableStateOf<ArrayList<String>?>(null) }
-    var deleting by remember { mutableStateOf<TextureGameSelection?>(null) }
-    val importer = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
-        val selected = importing?.let(::restoreTextureSelection)
-        importing = null
-        if (uri != null && selected != null) model.importZip(uri, selected)
-    }
-    val exporter = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/zip")) { uri ->
-        val selected = exporting?.let(::restoreTextureSelection)
-        exporting = null
-        if (uri != null && selected != null) model.export(uri, selected)
-    }
-    LaunchedEffect(initialGamePath) { model.initialize(initialGamePath) }
-    LaunchedEffect(state.message) {
-        state.message?.let { Toast.makeText(context, context.getString(it), Toast.LENGTH_LONG).show(); model.consumeMessage() }
-    }
-    val selected = state.selection
-    val canChange = selected != null && !state.busy && !state.loading && !state.gameBusy
-    Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
-        LazyColumn(
-            modifier = Modifier.fillMaxSize().padding(navigationBarsHorizontalPaddingValues()),
-            contentPadding = PaddingValues(start = ScreenHorizontalPadding, end = ScreenHorizontalPadding, bottom = 32.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp)
+private fun TextureOptionsPanel(
+    replacementsEnabled: Boolean,
+    enabled: Boolean,
+    onReplacementsChanged: (Boolean) -> Unit
+) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = neonShape(20.dp),
+        tonalElevation = 1.dp,
+        shadowElevation = 3.dp,
+        color = MaterialTheme.colorScheme.surface,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.7f))
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            item {
-                ScreenTopBar(stringResource(R.string.shell_texture_manager), onBackClick,
-                    modifier = Modifier.padding(top = appScreenTopPadding()))
+            Text(
+                text = stringResource(R.string.texture_manager_options),
+                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = stringResource(R.string.texture_manager_enable_replacements),
+                        style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold),
+                        color = if (enabled) MaterialTheme.colorScheme.onSurface
+                        else MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Text(
+                        text = stringResource(R.string.texture_manager_enable_replacements_desc),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                Switch(
+                    checked = replacementsEnabled,
+                    enabled = enabled,
+                    onCheckedChange = onReplacementsChanged
+                )
             }
-            item { Text(stringResource(R.string.texture_manager_help), color = MaterialTheme.colorScheme.onSurfaceVariant) }
-            item {
-                LibraryGamePicker(state.games, state.selectedPath, { model.select(it.path) })
+            Text(
+                text = stringResource(R.string.texture_manager_platform_note),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+    }
+}
+
+@Composable
+private fun LoadingPanel() {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = neonShape(22.dp),
+        color = MaterialTheme.colorScheme.surface
+    ) {
+        Row(
+            modifier = Modifier.padding(18.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            CircularProgressIndicator(modifier = Modifier.size(22.dp), strokeWidth = 2.dp)
+            Text(
+                text = stringResource(R.string.texture_manager_loading),
+                style = MaterialTheme.typography.bodyMedium
+            )
+        }
+    }
+}
+
+@Composable
+private fun TexturePacksSectionHeader(summary: TexturePackSummary?, isLoading: Boolean) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(start = 4.dp, top = 2.dp, end = 4.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = stringResource(R.string.texture_manager_installed_packs),
+                style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold),
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            Text(
+                text = stringResource(
+                    R.string.texture_manager_summary_meta,
+                    summary?.packs?.size ?: 0,
+                    summary?.totalTextureCount ?: 0,
+                    formatBytes(summary?.totalSizeBytes ?: 0L)
+                ),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+        }
+        if (isLoading) {
+            CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
+        }
+    }
+}
+
+@Composable
+private fun TexturePackCard(
+    pack: InstalledTexturePackInfo,
+    isWorking: Boolean,
+    onDelete: () -> Unit
+) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = neonShape(20.dp),
+        tonalElevation = 1.dp,
+        shadowElevation = 3.dp,
+        color = MaterialTheme.colorScheme.surface,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.7f))
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(
+                    modifier = Modifier
+                        .size(54.dp)
+                        .background(
+                            color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.72f),
+                            shape = neonShape(16.dp)
+                        ),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Rounded.FolderZip,
+                        contentDescription = null,
+                        modifier = Modifier.size(24.dp),
+                        tint = MaterialTheme.colorScheme.onPrimaryContainer
+                    )
+                }
+                Spacer(modifier = Modifier.width(12.dp))
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = pack.gameTitle ?: pack.target.id,
+                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                        color = MaterialTheme.colorScheme.onSurface,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    Text(
+                        text = pack.target.id,
+                        style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.SemiBold),
+                        color = MaterialTheme.colorScheme.primary,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    Text(
+                        text = if (pack.platform == GamePlatform.N3DS) {
+                            stringResource(R.string.profile_platform_3ds)
+                        } else {
+                            "GameCube / Wii"
+                        },
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Text(
+                        text = stringResource(
+                            R.string.texture_manager_pack_modified,
+                            formatDate(pack.stats.lastModifiedAt)
+                        ),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
             }
-            if (state.gameBusy) item { Text(stringResource(R.string.texture_manager_stop), color = MaterialTheme.colorScheme.error) }
-            if (state.loading || state.busy) item { CircularProgressIndicator() }
-            if (state.identityFailed) item { Text(stringResource(R.string.texture_manager_identity_failed), color = MaterialTheme.colorScheme.error) }
-            if (selected != null) {
-                item {
-                    Text(selected.target.id, style = MaterialTheme.typography.titleMedium)
-                    Text(stringResource(if (selected.game.platform == GamePlatform.N3DS)
-                        R.string.texture_manager_scope_global else R.string.texture_manager_scope_game),
-                        style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(
+                text = stringResource(
+                    R.string.texture_manager_count,
+                    pack.stats.textureCount,
+                    formatBytes(pack.stats.totalBytes)
+                ),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            OutlinedButton(
+                shape = neonButtonShape(),
+                onClick = onDelete,
+                enabled = !isWorking,
+                colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error),
+                contentPadding = ButtonDefaults.ButtonWithIconContentPadding
+            ) {
+                Icon(Icons.Rounded.DeleteOutline, contentDescription = null, modifier = Modifier.size(18.dp))
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(stringResource(R.string.delete))
+            }
+        }
+    }
+}
+
+@Composable
+private fun EmptyTexturePacksPanel(storageRoots: List<String>) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = neonShape(22.dp),
+        tonalElevation = 1.dp,
+        shadowElevation = 3.dp,
+        color = MaterialTheme.colorScheme.surface,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.7f))
+    ) {
+        Column(
+            modifier = Modifier.padding(18.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Row(verticalAlignment = Alignment.Top) {
+                Box(
+                    modifier = Modifier
+                        .size(54.dp)
+                        .background(
+                            color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.72f),
+                            shape = neonShape(16.dp)
+                        ),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Rounded.FolderZip,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                        modifier = Modifier.size(24.dp)
+                    )
                 }
-                item {
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        Text(stringResource(R.string.texture_manager_enable), modifier = Modifier.weight(1f))
-                        Switch(checked = state.installed?.enabled ?: false, enabled = canChange && state.installed != null,
-                            onCheckedChange = { model.setEnabled(selected, it) })
-                    }
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .padding(start = 14.dp),
+                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    Text(
+                        text = stringResource(R.string.texture_manager_empty_title),
+                        style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.SemiBold),
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Text(
+                        text = stringResource(R.string.texture_manager_empty_body),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                 }
-                item {
-                    val installed = state.installed
-                    if (installed != null) Text(if (installed.stats.textureCount == 0) stringResource(R.string.texture_manager_empty)
-                        else stringResource(R.string.texture_manager_count, installed.stats.textureCount,
-                            Formatter.formatFileSize(context, installed.stats.totalBytes)))
-                }
-                item {
-                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Button(enabled = canChange, shape = neonButtonShape(), onClick = {
-                            importing = saveTextureSelection(selected)
-                            importer.launch(arrayOf("application/zip", "application/x-zip-compressed", "application/octet-stream"))
-                        }) { Text(stringResource(R.string.texture_manager_import)) }
-                        OutlinedButton(enabled = canChange && (state.installed?.stats?.textureCount ?: 0) > 0,
-                            shape = neonButtonShape(), onClick = {
-                                exporting = saveTextureSelection(selected)
-                                exporter.launch("${selected.target.id}-textures.zip")
-                            }) { Text(stringResource(R.string.texture_manager_export)) }
-                        OutlinedButton(enabled = canChange && (state.installed?.stats?.fileCount ?: 0) > 0,
-                            shape = neonButtonShape(), onClick = { deleting = selected }) {
-                            Text(stringResource(R.string.delete))
-                        }
-                    }
-                }
-                items(state.installed?.files.orEmpty(), key = { "installed:$it" }) { file ->
-                    Text(file, style = MaterialTheme.typography.bodySmall)
-                }
-                // The existing online catalog identifies only 3DS title IDs.
-                if (selected.game.platform == GamePlatform.N3DS) {
-                    item {
-                        OutlinedButton(enabled = canChange, shape = neonButtonShape(), onClick = model::loadOnline) {
-                            Text(stringResource(R.string.content_compatible_game_version_section))
-                        }
-                        if (state.onlineLoaded && state.online.isEmpty()) Text(stringResource(R.string.content_not_compatible))
-                    }
-                    items(state.online, key = { "online:${it.id}" }) { pack ->
-                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                            Text(pack.name, style = MaterialTheme.typography.titleMedium)
-                            Text(pack.description)
-                            Text(stringResource(R.string.content_authors, pack.authors.joinToString(", ")))
-                            Text(stringResource(R.string.settings_about_core_license, pack.license))
-                            Row {
-                                Button(enabled = canChange, shape = neonButtonShape(),
-                                    onClick = { model.installOnline(selected, pack) }) {
-                                    Text(stringResource(R.string.content_download_install))
-                                }
-                                Spacer(Modifier.width(8.dp))
-                                TextButton(onClick = { uriHandler.openUri(pack.sourceUrl) }) { Text(stringResource(R.string.content_source)) }
-                            }
-                        }
+            }
+            storageRoots.filter(String::isNotBlank).forEach { root ->
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = neonShape(14.dp),
+                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.28f)
+                ) {
+                    Column(
+                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
+                        verticalArrangement = Arrangement.spacedBy(3.dp)
+                    ) {
+                        Text(
+                            text = stringResource(R.string.texture_manager_storage),
+                            style = MaterialTheme.typography.labelLarge,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Text(
+                            text = root,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            maxLines = 3,
+                            overflow = TextOverflow.Ellipsis
+                        )
                     }
                 }
             }
         }
     }
-    deleting?.let { requested ->
-        AppAlertDialog(onDismissRequest = { deleting = null },
-            title = { Text(stringResource(R.string.texture_manager_delete_title)) },
-            text = { Text(stringResource(R.string.texture_manager_delete_body)) },
-            confirmButton = { TextButton(onClick = { deleting = null; model.delete(requested) }) { Text(stringResource(R.string.delete)) } },
-            dismissButton = { TextButton(onClick = { deleting = null }) { Text(stringResource(R.string.cancel)) } })
+}
+
+private fun formatBytes(bytes: Long): String {
+    if (bytes <= 0L) return "0 B"
+    val units = arrayOf("B", "KB", "MB", "GB")
+    var value = bytes.toDouble()
+    var unit = 0
+    while (value >= 1024.0 && unit < units.lastIndex) {
+        value /= 1024.0
+        unit++
+    }
+    return if (unit == 0) {
+        "$bytes ${units[unit]}"
+    } else {
+        String.format(java.util.Locale.US, "%.1f %s", value, units[unit])
     }
 }
 
-internal fun saveTextureSelection(selection: TextureGameSelection): ArrayList<String> = arrayListOf(
-    selection.game.path, selection.game.platform.name, selection.game.title, selection.target.id)
-
-internal fun restoreTextureSelection(values: List<String>): TextureGameSelection? = runCatching {
-    require(values.size == 4 && values[0].isNotBlank())
-    val platform = GamePlatform.valueOf(values[1])
-    require(com.sbro.emucored.data.textures.TexturePackIdentity.supports(platform))
-    val game = com.sbro.emucored.data.GameItem(values[2], values[0], "", 0, 0, platform = platform)
-    TextureGameSelection(game, com.sbro.emucored.data.textures.TexturePackTarget(platform.console, values[3]))
-}.getOrNull()
+private fun formatDate(timestamp: Long): String {
+    if (timestamp <= 0L) return "-"
+    return DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT).format(Date(timestamp))
+}

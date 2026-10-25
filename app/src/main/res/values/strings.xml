@@ -2,11 +2,11 @@
 <resources>
     <string name="emulation_runtime_failure_title">Emulation stopped</string>
     <string name="emulation_runtime_failure_description">The runtime encountered an error and cannot safely continue. Exit this session and start the game again. The renderer was not changed automatically.\n\nDetails:\n</string>
-    <string name="onboarding_core_title">Built for Nintendo DS/3DS</string>
-    <string name="onboarding_core_subtitle">Built-in Azahar and melonDS cores for Nintendo 3DS and Nintendo DS, with ARM64 dynamic recompilation and Vulkan rendering.</string>
-    <string name="onboarding_core_card_title">Two built-in emulation cores</string>
-    <string name="onboarding_core_card_cpu">Azahar (3DS) and melonDS (DS) use ARM64 dynamic recompilation for smooth performance.</string>
-    <string name="onboarding_core_card_gpu">DS supports Vulkan and software rendering; 3DS also offers OpenGL.</string>
+    <string name="onboarding_core_title">Built for Nintendo consoles</string>
+    <string name="onboarding_core_subtitle">Built-in cores for every supported Nintendo console, with ARM64 dynamic recompilation and Vulkan rendering.</string>
+    <string name="onboarding_core_card_title">Nine built-in emulation cores</string>
+    <string name="onboarding_core_card_cpu">Dedicated cores for every supported Nintendo console use ARM64 dynamic recompilation for smooth performance.</string>
+    <string name="onboarding_core_card_gpu">Vulkan and OpenGL rendering are available where the core supports them.</string>
     <string name="onboarding_core_card_reference">No purchase tier is required; every core feature is available.</string>
     <string name="app_name">EmuCoreD</string>
 
@@ -483,9 +483,9 @@
 
     <!-- Onboarding -->
     <string name="onboarding_page_1_title">Welcome to EmuCoreD</string>
-    <string name="onboarding_page_1_subtitle">Your Nintendo DS/3DS library and launcher, designed for quick setup, clear navigation, and a streamlined experience on any screen.</string>
+    <string name="onboarding_page_1_subtitle">Your Nintendo library and launcher, designed for quick setup, clear navigation, and a streamlined experience on any screen.</string>
     <string name="onboarding_page_2_title">Powerful Emulation</string>
-    <string name="onboarding_page_2_subtitle">Experience your favourite Nintendo DS/3DS games with advanced graphics options, customizable controls, and performance optimizations.</string>
+    <string name="onboarding_page_2_subtitle">Experience your favourite Nintendo games with advanced graphics options, customizable controls, and performance optimizations.</string>
     <string name="onboarding_page_3_title">Your Games Library</string>
     <string name="onboarding_page_3_subtitle">Build your personal game library with beautiful covers, detailed information, and quick access to your favorites.</string>
     <string name="onboarding_page_4_title">Ready to Play</string>
@@ -513,7 +513,7 @@
     <string name="settings_mediatek_notice_title">MediaTek compatibility</string>
     <string name="settings_mediatek_notice_message">MediaTek support is still experimental. Crashes, visual artifacts, and unstable behavior may occur while we continue improving compatibility and performance.\n\nIf you experience graphics issues, try OpenGL with ANGLE enabled. If the issues persist, use the Software renderer.</string>
     <string name="onboarding_title">Get ready to play</string>
-    <string name="onboarding_subtitle">Choose your Nintendo DS/3DS game folders and grant file access.</string>
+    <string name="onboarding_subtitle">Choose your Nintendo game folders and grant file access.</string>
     <string name="onboarding_games_title">Add game folders</string>
     <string name="onboarding_games_desc">Add one or more folders that contain your games.</string>
     <string name="onboarding_games_selected_count">%1$d folders selected. Tap to add another.</string>
@@ -2130,4 +2130,28 @@
         <string name="texture_manager_scope_global">3DS: applies to all games unless a game profile overrides it.</string>
         <string name="texture_manager_scope_game">Applies to this game’s profile.</string>
         <string name="game_settings_manager_save_failure">The game settings could not be saved. Please try again.</string>
+    <string name="texture_manager_title">Texture Manager</string>
+    <string name="texture_manager_import_zip">Import ZIP</string>
+    <string name="texture_manager_import_success">Imported %d texture files.</string>
+    <string name="texture_manager_import_failed">Texture pack import failed.</string>
+    <string name="texture_manager_delete_success">Texture pack deleted.</string>
+    <string name="texture_manager_delete_failed">Could not delete texture pack.</string>
+    <string name="texture_manager_loading">Loading texture packs…</string>
+    <string name="texture_manager_options">Runtime Options</string>
+    <string name="texture_manager_enable_replacements">Load replacement textures</string>
+    <string name="texture_manager_enable_replacements_desc">Use PNG and DDS / KTX2 files from each game serial folder.</string>
+    <string name="texture_manager_pack_modified">Modified %s</string>
+    <string name="texture_manager_empty_title">No texture packs yet</string>
+    <string name="texture_manager_storage">Texture Storage</string>
+    <string name="texture_manager_installed_packs">Installed Packs</string>
+    <string name="texture_catalog_title">Texture packs for your games</string>
+    <string name="texture_catalog_description">Choose a library game to see compatible community texture packs.</string>
+    <string name="texture_catalog_no_packs">No verified texture packs are available for this game yet.</string>
+    <string name="texture_catalog_install_success">Texture pack installed. Texture replacements were enabled.</string>
+    <string name="texture_catalog_install_failed">The texture pack could not be downloaded or installed safely.</string>
+    <string name="texture_catalog_pack_meta">Version %1$s • %2$s • %3$d files</string>
+    <string name="texture_manager_summary_meta">%1$d packs ? %2$d textures ? %3$s</string>
+    <string name="texture_manager_delete_confirm">Delete all replacement textures for %1$s?</string>
+    <string name="texture_manager_empty_body">Import a ZIP texture pack for Nintendo 3DS, GameCube or Wii. Installed packs appear here.</string>
+    <string name="texture_manager_platform_note">Nintendo 3DS replacements are global. GameCube and Wii replacements are enabled per game in the game settings.</string>
 </resources>
