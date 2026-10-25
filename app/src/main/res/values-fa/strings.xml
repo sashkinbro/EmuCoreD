@@ -2145,4 +2145,8 @@
     <string name="texture_manager_delete_confirm">همه بافت‌های جایگزین برای %1$s حذف شوند؟</string>
     <string name="texture_manager_empty_body">یک بسته ZIP بافت برای Nintendo 3DS، GameCube یا Wii وارد کنید. بسته‌های نصب‌شده اینجا نمایش داده می‌شوند.</string>
     <string name="texture_manager_platform_note">بافت‌های جایگزین Nintendo 3DS سراسری هستند. برای GameCube و Wii در تنظیمات هر بازی جداگانه فعال می‌شوند.</string>
+    <string name="cheat_manager_installed_packs">بسته‌های تقلب نصب‌شده</string>
+    <string name="cheat_manager_delete_pack_title">بسته تقلب حذف شود؟</string>
+    <string name="cheat_manager_delete_pack_confirm">«%1$s» از این بازی حذف شود؟ بسته‌های نصب‌شدهٔ دیگر باقی می‌مانند.</string>
+    <string name="cheat_manager_delete_pack_failed">حذف این بسته تقلب ممکن نشد.</string>
 </resources>

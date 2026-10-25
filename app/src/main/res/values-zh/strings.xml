@@ -2131,4 +2131,8 @@
     <string name="texture_manager_delete_confirm">要删除 %1$s 的所有替换纹理吗？</string>
     <string name="texture_manager_empty_body">为 Nintendo 3DS、GameCube 或 Wii 导入 ZIP 纹理包。已安装的包会显示在这里。</string>
     <string name="texture_manager_platform_note">Nintendo 3DS 的纹理替换是全局设置。GameCube 和 Wii 需在游戏设置中为每个游戏单独启用。</string>
+    <string name="cheat_manager_installed_packs">已安装的金手指包</string>
+    <string name="cheat_manager_delete_pack_title">删除金手指包？</string>
+    <string name="cheat_manager_delete_pack_confirm">要从本游戏移除“%1$s”吗？其他已安装的包将保留。</string>
+    <string name="cheat_manager_delete_pack_failed">无法删除此金手指包。</string>
 </resources>

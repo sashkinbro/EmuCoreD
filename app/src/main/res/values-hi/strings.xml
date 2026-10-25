@@ -2130,4 +2130,8 @@
     <string name="texture_manager_delete_confirm">%1$s के लिए सभी रिप्लेसमेंट टेक्सचर हटाएँ?</string>
     <string name="texture_manager_empty_body">Nintendo 3DS, GameCube या Wii के लिए ZIP टेक्सचर पैक आयात करें। इंस्टॉल किए गए पैक यहाँ दिखाई देंगे।</string>
     <string name="texture_manager_platform_note">Nintendo 3DS के रिप्लेसमेंट टेक्सचर वैश्विक हैं। GameCube और Wii के लिए ये गेम सेटिंग्स में प्रति गेम सक्षम होते हैं।</string>
+    <string name="cheat_manager_installed_packs">इंस्टॉल किए गए चीट पैक</string>
+    <string name="cheat_manager_delete_pack_title">चीट पैक हटाएँ?</string>
+    <string name="cheat_manager_delete_pack_confirm">इस गेम से “%1$s” हटाएँ? अन्य इंस्टॉल किए गए पैक रहेंगे।</string>
+    <string name="cheat_manager_delete_pack_failed">यह चीट पैक हटाया नहीं जा सका।</string>
 </resources>

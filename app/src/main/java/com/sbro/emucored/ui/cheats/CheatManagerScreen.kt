@@ -22,7 +22,9 @@ import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
@@ -33,6 +35,8 @@ import androidx.compose.material.icons.rounded.FolderOpen
 import androidx.compose.material.icons.rounded.Folder
 import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.AssistChip
+import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -77,6 +81,7 @@ import com.sbro.emucored.ui.common.AppAlertDialog
 import com.sbro.emucored.ui.common.LibraryGamePicker
 import com.sbro.emucored.ui.common.ScreenTopBar
 import com.sbro.emucored.ui.common.appScreenTopPadding
+import com.sbro.emucored.ui.common.horizontalViewportBleed
 import com.sbro.emucored.ui.common.navigationBarsHorizontalPaddingValues
 import com.sbro.emucored.ui.theme.ScreenHorizontalPadding
 import kotlinx.coroutines.Dispatchers
@@ -87,6 +92,33 @@ import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import com.sbro.emucored.ui.theme.neon.neonShape
 import com.sbro.emucored.ui.theme.neon.neonButtonShape
+import java.net.URLDecoder
+
+private data class InstalledCheatPack(
+    val id: String,
+    val title: String,
+    val blockCount: Int
+)
+
+private fun cheatPackDisplayTitle(id: String, blocks: List<CheatBlock>): String {
+    val hashedId = id.split('-').any { part ->
+        part.length >= 16 && part.all { it.isDigit() || it in 'a'..'f' }
+    }
+    if (hashedId) {
+        val fromSource = blocks.asSequence()
+            .mapNotNull { it.sourceUrl }
+            .mapNotNull { url ->
+                runCatching {
+                    URLDecoder.decode(url.substringAfterLast('/'), Charsets.UTF_8.name())
+                }.getOrNull()
+            }
+            .map { it.substringBeforeLast('.') }
+            .firstOrNull { it.isNotBlank() }
+        if (fromSource != null) return fromSource
+    }
+    return id.replace('-', ' ').replace('_', ' ')
+        .replaceFirstChar { it.uppercase() }
+}
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -119,6 +151,7 @@ internal fun CheatManagerContent(
     var resolvingIdentity by remember { mutableStateOf(false) }
     var pendingDelete by remember { mutableStateOf<CheatGameConfig?>(null) }
     var pendingDeletePath by remember { mutableStateOf<String?>(null) }
+    var pendingPackDelete by remember { mutableStateOf<InstalledCheatPack?>(null) }
     var selectedCheatCategory by remember { mutableStateOf<CheatCategory?>(null) }
     var cheatSearchVisible by remember { mutableStateOf(false) }
     var cheatSearchQuery by remember { mutableStateOf("") }
@@ -130,6 +163,7 @@ internal fun CheatManagerContent(
     val importSuccess = stringResource(R.string.cheat_manager_import_success)
     val importFailure = stringResource(R.string.cheat_manager_import_failed)
     val deleteSuccess = stringResource(R.string.cheat_manager_delete_success)
+    val deletePackFailure = stringResource(R.string.cheat_manager_delete_pack_failed)
 
     suspend fun loadConfig(game: GameItem?, selectedIdentity: SelectedGameIdentity?): CheatGameConfig? = withContext(Dispatchers.IO) {
         if (game != null && game.platform != GamePlatform.N3DS) return@withContext cheatRepository.typedGameConfig(game.platform,game.path)
@@ -210,6 +244,19 @@ internal fun CheatManagerContent(
     }
 
     val installedBlocks = config?.blocks.orEmpty()
+    val installedPacks = remember(installedBlocks) {
+        installedBlocks
+            .mapNotNull { block -> block.sourcePackId?.let { it to block } }
+            .groupBy({ it.first }, { it.second })
+            .map { (id, blocks) ->
+                InstalledCheatPack(
+                    id = id,
+                    title = cheatPackDisplayTitle(id, blocks),
+                    blockCount = blocks.size
+                )
+            }
+            .sortedBy { it.title.lowercase() }
+    }
     val categoryGroups = remember(installedBlocks) { groupCheatBlocks(installedBlocks) }
     val visibleInstalledBlocks = remember(installedBlocks, categoryGroups, selectedCheatCategory, cheatSearchQuery) {
         when {
@@ -463,6 +510,55 @@ internal fun CheatManagerContent(
                         }
                     }
                 }
+                if (installedPacks.isNotEmpty()) {
+                    item(key = "cheat-pack-list") {
+                        Column(
+                            modifier = Modifier
+                                .animateItem(
+                                    fadeInSpec = tween(220),
+                                    placementSpec = tween(220),
+                                    fadeOutSpec = tween(140)
+                                )
+                                .fillMaxWidth(),
+                            verticalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            Text(
+                                text = stringResource(R.string.cheat_manager_installed_packs),
+                                style = MaterialTheme.typography.labelLarge,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            LazyRow(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .horizontalViewportBleed(ScreenHorizontalPadding),
+                                contentPadding = PaddingValues(horizontal = ScreenHorizontalPadding),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                items(installedPacks, key = { "cheat-pack-${it.id}" }) { pack ->
+                                    AssistChip(
+                                        onClick = { pendingPackDelete = pack },
+                                        label = {
+                                            Text(
+                                                text = pack.title,
+                                                maxLines = 1,
+                                                overflow = TextOverflow.Ellipsis
+                                            )
+                                        },
+                                        trailingIcon = {
+                                            Icon(
+                                                imageVector = Icons.Rounded.Close,
+                                                contentDescription = stringResource(R.string.delete),
+                                                modifier = Modifier.size(16.dp)
+                                            )
+                                        },
+                                        shape = neonShape(12.dp),
+                                        modifier = Modifier.widthIn(max = 240.dp)
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
                 if (cheatSearchVisible) {
                     item(key = "cheat-search-field") {
                         OutlinedTextField(
@@ -620,6 +716,57 @@ internal fun CheatManagerContent(
                 }
             }
         }
+    }
+
+    pendingPackDelete?.let { pack ->
+        val current = config ?: return@let
+        AppAlertDialog(
+            onDismissRequest = { pendingPackDelete = null },
+            title = { Text(stringResource(R.string.cheat_manager_delete_pack_title)) },
+            text = {
+                Text(stringResource(R.string.cheat_manager_delete_pack_confirm, pack.title))
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        val game = selectedGame
+                        val resolvedIdentity = identity
+                        pendingPackDelete = null
+                        if (game == null) return@Button
+                        scope.launch {
+                            val deleted = withContext(Dispatchers.IO) {
+                                cheatRepository.deleteCheatPack(
+                                    gameKey = current.gameKey,
+                                    sourcePackId = pack.id,
+                                    serial = current.serial,
+                                    crc = current.crc
+                                )
+                            }
+                            if (deleted) {
+                                CheatRuntimeUpdates.notifyChanged(game.path)
+                                Toast.makeText(context, deleteSuccess, Toast.LENGTH_SHORT).show()
+                                val latest = loadConfig(game, resolvedIdentity)
+                                if (selectedPath == game.path) config = latest
+                            } else {
+                                Toast.makeText(
+                                    context,
+                                    deletePackFailure,
+                                    Toast.LENGTH_SHORT
+                                ).show()
+                            }
+                        }
+                    },
+                    shape = neonButtonShape()
+                ) {
+                    Text(stringResource(R.string.delete))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { pendingPackDelete = null }) {
+                    Text(stringResource(R.string.cancel))
+                }
+            }
+        )
     }
 
     pendingDelete?.let { current ->

@@ -2138,4 +2138,8 @@
     <string name="texture_manager_delete_confirm">هل تريد حذف جميع إكساءات الاستبدال لـ %1$s؟</string>
     <string name="texture_manager_empty_body">استورد حزمة إكساءات ZIP لـ Nintendo 3DS أو GameCube أو Wii. ستظهر الحزم المثبتة هنا.</string>
     <string name="texture_manager_platform_note">إكساءات الاستبدال في Nintendo 3DS عامة. أما GameCube وWii فتُفعّل لكل لعبة من إعدادات اللعبة.</string>
+    <string name="cheat_manager_installed_packs">حزم الغش المثبتة</string>
+    <string name="cheat_manager_delete_pack_title">حذف حزمة الغش؟</string>
+    <string name="cheat_manager_delete_pack_confirm">إزالة «%1$s» من هذه اللعبة؟ ستبقى الحزم الأخرى المثبتة.</string>
+    <string name="cheat_manager_delete_pack_failed">تعذر حذف حزمة الغش هذه.</string>
 </resources>

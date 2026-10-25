@@ -2132,4 +2132,8 @@
     <string name="texture_manager_delete_confirm">Alle Ersatztexturen für %1$s löschen?</string>
     <string name="texture_manager_empty_body">Importiere ein ZIP-Texturpaket für Nintendo 3DS, GameCube oder Wii. Installierte Pakete erscheinen hier.</string>
     <string name="texture_manager_platform_note">Ersatztexturen für Nintendo 3DS gelten global. Für GameCube und Wii werden sie pro Spiel in den Spieleinstellungen aktiviert.</string>
+    <string name="cheat_manager_installed_packs">Installierte Cheat-Pakete</string>
+    <string name="cheat_manager_delete_pack_title">Cheat-Paket löschen?</string>
+    <string name="cheat_manager_delete_pack_confirm">„%1$s“ aus diesem Spiel entfernen? Andere installierte Pakete bleiben erhalten.</string>
+    <string name="cheat_manager_delete_pack_failed">Dieses Cheat-Paket konnte nicht gelöscht werden.</string>
 </resources>

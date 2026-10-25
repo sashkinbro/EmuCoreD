@@ -2130,4 +2130,8 @@
     <string name="texture_manager_delete_confirm">%1$s için tüm değiştirme dokuları silinsin mi?</string>
     <string name="texture_manager_empty_body">Nintendo 3DS, GameCube veya Wii için ZIP doku paketi içe aktarın. Yüklenen paketler burada görünür.</string>
     <string name="texture_manager_platform_note">Nintendo 3DS doku değiştirme geneldir. GameCube ve Wii için oyun ayarlarından oyun başına etkinleştirilir.</string>
+    <string name="cheat_manager_installed_packs">Yüklü hile paketleri</string>
+    <string name="cheat_manager_delete_pack_title">Hile paketi silinsin mi?</string>
+    <string name="cheat_manager_delete_pack_confirm">“%1$s” bu oyundan kaldırılsın mı? Diğer yüklü paketler kalacak.</string>
+    <string name="cheat_manager_delete_pack_failed">Bu hile paketi silinemedi.</string>
 </resources>

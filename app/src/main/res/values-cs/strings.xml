@@ -2151,4 +2151,8 @@
     <string name="texture_manager_delete_confirm">Smazat všechny náhradní textury pro %1$s?</string>
     <string name="texture_manager_empty_body">Importujte ZIP balíček textur pro Nintendo 3DS, GameCube nebo Wii. Nainstalované balíčky se zobrazí zde.</string>
     <string name="texture_manager_platform_note">Náhradní textury pro Nintendo 3DS platí globálně. U GameCube a Wii se zapínají pro každou hru zvlášť v nastavení hry.</string>
+    <string name="cheat_manager_installed_packs">Nainstalované balíčky cheatů</string>
+    <string name="cheat_manager_delete_pack_title">Smazat balíček cheatů?</string>
+    <string name="cheat_manager_delete_pack_confirm">Odstranit „%1$s“ z této hry? Ostatní nainstalované balíčky zůstanou.</string>
+    <string name="cheat_manager_delete_pack_failed">Tento balíček cheatů se nepodařilo smazat.</string>
 </resources>

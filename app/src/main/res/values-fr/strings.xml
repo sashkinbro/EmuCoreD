@@ -2132,4 +2132,8 @@
     <string name="texture_manager_delete_confirm">Supprimer toutes les textures de remplacement pour %1$s ?</string>
     <string name="texture_manager_empty_body">Importez un pack de textures ZIP pour Nintendo 3DS, GameCube ou Wii. Les packs installés apparaîtront ici.</string>
     <string name="texture_manager_platform_note">Les textures de remplacement Nintendo 3DS sont globales. Pour GameCube et Wii, elles s’activent par jeu dans les paramètres du jeu.</string>
+    <string name="cheat_manager_installed_packs">Packs de codes installés</string>
+    <string name="cheat_manager_delete_pack_title">Supprimer le pack de codes ?</string>
+    <string name="cheat_manager_delete_pack_confirm">Retirer « %1$s » de ce jeu ? Les autres packs installés seront conservés.</string>
+    <string name="cheat_manager_delete_pack_failed">Impossible de supprimer ce pack de codes.</string>
 </resources>

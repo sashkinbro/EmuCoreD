@@ -274,6 +274,44 @@ class CheatRepository(private val context: Context) {
         activeCheatFileCandidates(normalizedSerial, normalizedCrc).forEach { if (it.exists()) it.delete() }
     }
 
+    /**
+     * Removes only the blocks that came from [sourcePackId]. A game can contain
+     * several imported catalog packs, so deleting one must never wipe the rest.
+     */
+    fun deleteCheatPack(
+        gameKey: String,
+        sourcePackId: String,
+        serial: String? = null,
+        crc: String? = null
+    ): Boolean = synchronized(CHEAT_IO_LOCK) {
+        if (sourcePackId.isBlank()) return@synchronized false
+        val source = resolveImportedFile(gameKey)
+        if (!source.isFile) return@synchronized false
+        val normalizedGameKey = source.nameWithoutExtension
+        val blocks = runCatching { parseCheatBlocks(source.readText()) }.getOrDefault(emptyList())
+        val removed = blocks.filter { it.sourcePackId == sourcePackId }
+        if (removed.isEmpty()) return@synchronized false
+        val remaining = blocks.filterNot { it.sourcePackId == sourcePackId }
+        if (remaining.isEmpty()) {
+            source.delete()
+            setEnabledBlocks(normalizedGameKey, emptySet())
+            recordedActiveCheatFiles(normalizedGameKey).forEach { if (it.exists()) it.delete() }
+            clearRecordedActiveCheatFiles(normalizedGameKey)
+            val normalizedCrc = crc?.trim()?.uppercase()?.takeIf { it.isNotBlank() }
+                ?: effectiveCrc(null, serial, normalizedGameKey)
+            val normalizedSerial = serial?.trim()?.uppercase()?.takeIf { it.isNotBlank() }
+            activeCheatFileCandidates(normalizedSerial, normalizedCrc)
+                .forEach { if (it.exists()) it.delete() }
+            return@synchronized true
+        }
+        writeTextAtomically(source, serializeImportedCheatBlocks(remaining))
+        val removedIds = removed.mapTo(HashSet()) { it.id }
+        val enabled = storedValues(loadEnabledIds(), normalizedGameKey, gameKey) - removedIds
+        setEnabledBlocks(normalizedGameKey, enabled)
+        syncActiveCheats(normalizedGameKey, serial, crc)
+        true
+    }
+
     fun exportJson(): JSONObject {
         return JSONObject().put("enabled", loadEnabledIds())
     }

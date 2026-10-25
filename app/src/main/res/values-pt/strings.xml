@@ -2132,4 +2132,8 @@
     <string name="texture_manager_delete_confirm">Eliminar todas as texturas de substituição de %1$s?</string>
     <string name="texture_manager_empty_body">Importe um pacote ZIP de texturas para Nintendo 3DS, GameCube ou Wii. Os pacotes instalados aparecerão aqui.</string>
     <string name="texture_manager_platform_note">As texturas de substituição do Nintendo 3DS são globais. No GameCube e Wii, são ativadas por jogo nas definições do jogo.</string>
+    <string name="cheat_manager_installed_packs">Pacotes de cheats instalados</string>
+    <string name="cheat_manager_delete_pack_title">Excluir pacote de cheats?</string>
+    <string name="cheat_manager_delete_pack_confirm">Remover “%1$s” deste jogo? Os outros pacotes instalados serão mantidos.</string>
+    <string name="cheat_manager_delete_pack_failed">Não foi possível excluir este pacote de cheats.</string>
 </resources>

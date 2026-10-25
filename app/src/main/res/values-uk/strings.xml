@@ -2135,4 +2135,8 @@
     <string name="texture_manager_delete_confirm">Видалити всі текстури для заміни гри %1$s?</string>
     <string name="texture_manager_empty_body">Імпортуйте ZIP-пак текстур для Nintendo 3DS, GameCube або Wii. Встановлені паки з’являться тут.</string>
     <string name="texture_manager_platform_note">Для Nintendo 3DS заміна текстур діє глобально. Для GameCube і Wii вона вмикається окремо для кожної гри в налаштуваннях.</string>
+    <string name="cheat_manager_installed_packs">Встановлені паки чітів</string>
+    <string name="cheat_manager_delete_pack_title">Видалити пак чітів?</string>
+    <string name="cheat_manager_delete_pack_confirm">Видалити «%1$s» з цієї гри? Інші встановлені паки залишаться.</string>
+    <string name="cheat_manager_delete_pack_failed">Не вдалося видалити цей пак чітів.</string>
 </resources>

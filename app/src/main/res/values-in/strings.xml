@@ -2144,4 +2144,8 @@
     <string name="texture_manager_delete_confirm">Hapus semua tekstur pengganti untuk %1$s?</string>
     <string name="texture_manager_empty_body">Impor paket tekstur ZIP untuk Nintendo 3DS, GameCube, atau Wii. Paket yang terpasang akan muncul di sini.</string>
     <string name="texture_manager_platform_note">Tekstur pengganti Nintendo 3DS berlaku global. Untuk GameCube dan Wii, aktifkan per game di pengaturan game.</string>
+    <string name="cheat_manager_installed_packs">Pak cheat terpasang</string>
+    <string name="cheat_manager_delete_pack_title">Hapus pak cheat?</string>
+    <string name="cheat_manager_delete_pack_confirm">Hapus “%1$s” dari game ini? Pak lain yang terpasang akan tetap ada.</string>
+    <string name="cheat_manager_delete_pack_failed">Pak cheat ini tidak dapat dihapus.</string>
 </resources>

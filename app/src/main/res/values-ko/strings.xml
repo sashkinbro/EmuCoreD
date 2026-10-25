@@ -2129,4 +2129,8 @@
     <string name="texture_manager_delete_confirm">%1$s의 모든 교체 텍스처를 삭제할까요?</string>
     <string name="texture_manager_empty_body">Nintendo 3DS, GameCube 또는 Wii용 ZIP 텍스처 팩을 가져오세요. 설치된 팩이 여기에 표시됩니다.</string>
     <string name="texture_manager_platform_note">Nintendo 3DS 텍스처 교체는 전역 설정입니다. GameCube와 Wii는 게임 설정에서 게임별로 활성화합니다.</string>
+    <string name="cheat_manager_installed_packs">설치된 치트 팩</string>
+    <string name="cheat_manager_delete_pack_title">치트 팩을 삭제할까요?</string>
+    <string name="cheat_manager_delete_pack_confirm">이 게임에서 “%1$s”을(를) 제거할까요? 다른 설치된 팩은 유지됩니다.</string>
+    <string name="cheat_manager_delete_pack_failed">이 치트 팩을 삭제하지 못했습니다.</string>
 </resources>

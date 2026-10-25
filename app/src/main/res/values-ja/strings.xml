@@ -2129,4 +2129,8 @@
     <string name="texture_manager_delete_confirm">%1$s のすべてのリプレイスメントテクスチャを削除しますか？</string>
     <string name="texture_manager_empty_body">Nintendo 3DS、GameCube、Wii 用の ZIP テクスチャパックをインポートしてください。インストール済みのパックがここに表示されます。</string>
     <string name="texture_manager_platform_note">Nintendo 3DS のテクスチャ置換は全体設定です。GameCube と Wii はゲーム設定でゲームごとに有効にします。</string>
+    <string name="cheat_manager_installed_packs">インストール済みチートパック</string>
+    <string name="cheat_manager_delete_pack_title">チートパックを削除しますか？</string>
+    <string name="cheat_manager_delete_pack_confirm">このゲームから「%1$s」を削除しますか？他のインストール済みパックは残ります。</string>
+    <string name="cheat_manager_delete_pack_failed">このチートパックを削除できませんでした。</string>
 </resources>

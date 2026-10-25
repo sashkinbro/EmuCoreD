@@ -2154,4 +2154,8 @@
     <string name="texture_manager_delete_confirm">Delete all replacement textures for %1$s?</string>
     <string name="texture_manager_empty_body">Import a ZIP texture pack for Nintendo 3DS, GameCube or Wii. Installed packs appear here.</string>
     <string name="texture_manager_platform_note">Nintendo 3DS replacements are global. GameCube and Wii replacements are enabled per game in the game settings.</string>
+    <string name="cheat_manager_installed_packs">Installed cheat packs</string>
+    <string name="cheat_manager_delete_pack_title">Delete cheat pack?</string>
+    <string name="cheat_manager_delete_pack_confirm">Remove “%1$s” from this game? Other installed packs will stay.</string>
+    <string name="cheat_manager_delete_pack_failed">Could not delete this cheat pack.</string>
 </resources>
