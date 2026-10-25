@@ -146,6 +146,7 @@ import com.sbro.emucored.ui.common.tvFocusGroup
 import com.sbro.emucored.ui.common.navigationBarsHorizontalPaddingValues
 import com.sbro.emucored.core.platform.CoreOptionPreferences
 import com.sbro.emucored.core.platform.CoreOptionSchema
+import com.sbro.emucored.core.platform.CoreOptionDefinition
 import com.sbro.emucored.core.platform.ConsolePlatform
 import com.sbro.emucored.core.platform.SettingsCategory
 import com.sbro.emucored.ui.theme.ScreenHorizontalPadding
@@ -1010,9 +1011,13 @@ private fun GameSettingsTabContent(
         modifier = Modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        if (usesTypedOptions) ConsoleCoreOptionsPanel(
-            platform = console, category = typedCategory, values = values,
-            onChange = { key, value -> onDraftChange(draft.copy(coreOptions = draft.coreOptions + (key to value))) },
+        if (usesTypedOptions) TypedCoreOptionsSection(
+            platform = console,
+            category = typedCategory,
+            values = values,
+            onValueChange = { key, value ->
+                onDraftChange(draft.copy(coreOptions = draft.coreOptions + (key to value)))
+            },
             onReset = { key -> onDraftChange(draft.copy(coreOptions = draft.coreOptions - key)) }
         )
         when (selectedTab) {
@@ -1468,6 +1473,96 @@ private fun GameSettingsTabContent(
                 )
             }
         }
+    }
+}
+
+@Composable
+private fun TypedCoreOptionsSection(
+    platform: ConsolePlatform,
+    category: SettingsCategory,
+    values: Map<String, String>,
+    onValueChange: (String, String) -> Unit,
+    onReset: (String) -> Unit
+) {
+    val options = remember(platform, category) {
+        CoreOptionSchema.options(platform).filter { it.category == category }
+    }
+    if (options.isEmpty()) return
+    EditorSection(title = consolePlatformLabel(platform)) {
+        options.forEach { option ->
+            TypedCoreOptionRow(
+                platform = platform,
+                option = option,
+                value = values[option.key]?.takeIf(option::accepts) ?: option.defaultValue,
+                onValueChange = onValueChange,
+                onReset = onReset
+            )
+        }
+    }
+}
+
+@Composable
+private fun TypedCoreOptionRow(
+    platform: ConsolePlatform,
+    option: CoreOptionDefinition,
+    value: String,
+    onValueChange: (String, String) -> Unit,
+    onReset: (String) -> Unit
+) {
+    val title = coreOptionTitle(option)
+    val help = coreOptionHelpText(platform, option)
+    val reset = { onReset(option.key) }
+    val isToggle = option.values.toSet() == setOf("true", "false") ||
+        option.values.toSet() == setOf("ON", "OFF")
+    when {
+        isToggle -> ToggleRow(
+            title = title,
+            checked = value == "true" || value == "ON",
+            onCheckedChange = { enabled ->
+                onValueChange(
+                    option.key,
+                    if (option.values.contains("true")) enabled.toString() else if (enabled) "ON" else "OFF"
+                )
+            },
+            helpText = help,
+            onResetToDefault = reset
+        )
+        option.values.size > 20 -> {
+            val selectedIndex = option.values.indexOf(value).coerceAtLeast(0)
+            SliderRow(
+                title = title,
+                value = selectedIndex.toFloat(),
+                valueLabel = coreOptionNumericValue(option.key, value),
+                range = 0f..option.values.lastIndex.toFloat(),
+                steps = option.values.size - 2,
+                valueLabelForValue = { sliderValue ->
+                    coreOptionNumericValue(
+                        option.key,
+                        option.values[sliderValue.roundToInt().coerceIn(option.values.indices)]
+                    )
+                },
+                onValueChange = { sliderValue ->
+                    onValueChange(
+                        option.key,
+                        option.values[sliderValue.roundToInt().coerceIn(option.values.indices)]
+                    )
+                },
+                helpText = help,
+                onResetToDefault = reset
+            )
+        }
+        else -> SelectionRow(
+            title = title,
+            options = option.values.mapIndexed { index, choice ->
+                index to coreOptionValue(choice, option.key)
+            },
+            selectedValue = option.values.indexOf(value).coerceAtLeast(0),
+            onSelected = { index ->
+                option.values.getOrNull(index)?.let { onValueChange(option.key, it) }
+            },
+            helpText = help,
+            onResetToDefault = reset
+        )
     }
 }
 

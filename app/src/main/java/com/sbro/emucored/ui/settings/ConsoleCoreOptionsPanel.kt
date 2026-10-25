@@ -27,23 +27,17 @@ fun ConsoleCoreOptionsPanel(
         options.forEach { option ->
             val value = values[option.key]?.takeIf(option::accepts) ?: option.defaultValue
             val reset = { onReset?.invoke(option.key) ?: onChange(option.key, option.defaultValue) }
-            val restart = if (option.restartRequired) stringResource(R.string.core_option_restart_required) else ""
-            val defaultLabel = if (option.values.size > 20) coreOptionNumericValue(option.key, option.defaultValue)
-                else coreOptionValue(option.defaultValue, option.key)
-            val help = listOf(
-                stringResource(requireNotNull(coreOptionHelpResource(platform, option.key))),
-                stringResource(R.string.core_option_help_recommended_default, defaultLabel), restart
-            ).filter(String::isNotBlank).joinToString("\n\n")
+            val help = coreOptionHelpText(platform, option)
             when {
                 option.values.toSet() == setOf("true", "false") || option.values.toSet() == setOf("ON", "OFF") ->
                     ToggleItem(
-                        icon = Icons.Rounded.Tune, title = coreOptionTitle(option), subtitle = restart,
+                        icon = Icons.Rounded.Tune, title = coreOptionTitle(option), subtitle = coreOptionRestartLabel(option),
                         checked = value == "true" || value == "ON",
                         onCheckedChange = { onChange(option.key, if (option.values.contains("true")) it.toString() else if (it) "ON" else "OFF") },
                         helpText = help, onResetToDefault = reset
                     )
                 option.values.size > 20 -> SliderItem(
-                    icon = Icons.Rounded.Tune, title = coreOptionTitle(option), subtitle = restart,
+                    icon = Icons.Rounded.Tune, title = coreOptionTitle(option), subtitle = coreOptionRestartLabel(option),
                     value = option.values.indexOf(value).coerceAtLeast(0).toFloat(),
                     range = 0f..option.values.lastIndex.toFloat(), steps = option.values.size - 2,
                     onValueChange = { onChange(option.key, option.values[it.roundToInt().coerceIn(option.values.indices)]) },
@@ -60,7 +54,25 @@ fun ConsoleCoreOptionsPanel(
     }
 }
 
-private fun coreOptionNumericValue(key: String, value: String): String = when {
+@Composable
+internal fun coreOptionRestartLabel(option: CoreOptionDefinition): String =
+    if (option.restartRequired) stringResource(R.string.core_option_restart_required) else ""
+
+@Composable
+internal fun coreOptionHelpText(platform: ConsolePlatform, option: CoreOptionDefinition): String {
+    val defaultLabel = if (option.values.size > 20) {
+        coreOptionNumericValue(option.key, option.defaultValue)
+    } else {
+        coreOptionValue(option.defaultValue, option.key)
+    }
+    return listOf(
+        stringResource(requireNotNull(coreOptionHelpResource(platform, option.key))),
+        stringResource(R.string.core_option_help_recommended_default, defaultLabel),
+        coreOptionRestartLabel(option)
+    ).filter(String::isNotBlank).joinToString("\n\n")
+}
+
+internal fun coreOptionNumericValue(key: String, value: String): String = when {
     key == "volume" || key == "interference_volume" || key == "cpu_clock" || key.endsWith("overclock") -> "$value%"
     key == "speed" -> "${value}×"
     else -> value
@@ -158,7 +170,7 @@ internal fun coreOptionTitle(option: CoreOptionDefinition): String = stringResou
 })
 
 @Composable
-private fun coreOptionValue(value: String, key: String): String = when {
+internal fun coreOptionValue(value: String, key: String): String = when {
     key == "resolution" -> "${value}×"
     key == "msaa" && value != "1" -> "${value}× MSAA"
     key == "msaa" -> stringResource(R.string.settings_core_choice_disabled)
