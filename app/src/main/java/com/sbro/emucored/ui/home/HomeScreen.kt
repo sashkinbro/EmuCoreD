@@ -536,12 +536,6 @@ fun HomeScreen(
             ) { shelfMode ->
                 if (shelfMode) {
                     Column(Modifier.fillMaxSize()) {
-                    LibraryPlatformTabs(
-                        available = uiState.availablePlatforms,
-                        selected = uiState.platformFilter,
-                        onSelected = viewModel::updatePlatformFilter,
-                        horizontalContentPadding = horizontalInset
-                    )
                     HomeShelfMode(
                         games = uiState.games,
                         recentGames = uiState.recentGames,
