@@ -52,4 +52,5 @@ interface CoreSessionEngine {
     suspend fun applyOption(key: String, value: String): Boolean
     suspend fun replaceCheats(codes: List<CoreCheatCode>): Boolean = codes.isEmpty()
     fun frameCount(): Long
+    fun performanceSnapshot(nowMillis: Long): CorePerformanceSnapshot? = null
 }

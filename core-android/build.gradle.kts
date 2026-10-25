@@ -39,7 +39,6 @@ android {
                     // audio itself, so the frontend no longer pumps PCM.
                     "-DENABLE_CUBEB=ON",
                     "-DENABLE_OPENAL=OFF",
-                    "-DENABLE_CUBEB=OFF",
                     "-DENABLE_LIBUSB=OFF",
                     "-DENABLE_DISCORD_RPC=OFF",
                     "-DENABLE_NATIVE_OPTIMIZATION=OFF",

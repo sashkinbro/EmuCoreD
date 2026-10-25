@@ -146,10 +146,11 @@ fun ActionSelector(
     testTagPrefix: String? = null,
     onSelect: (String?) -> Unit,
     actionSupported: (String) -> Boolean = { true },
-    labelOverride: (String) -> String? = { null }
+    labelOverride: (String) -> String? = { null },
+    includeExtendedActions: Boolean = false
 ) {
     val actions = CustomTouchControl.ALLOWED_ACTION_IDS
-        .filterNot { it in CreatorExcludedActionIds }
+        .filterNot { !includeExtendedActions && it in CreatorExcludedActionIds }
         .filterNot { it == excludedActionId }
         .filter(actionSupported)
     FlowRow(

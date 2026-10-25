@@ -41,6 +41,7 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.stringResource
@@ -48,6 +49,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.DialogWindowProvider
 import com.sbro.emucored.R
+import com.sbro.emucored.core.platform.ConsolePlatform
+import com.sbro.emucored.ui.common.ConsoleOverlayPolicy
 import com.sbro.emucored.core.GamepadManager
 import com.sbro.emucored.core.KeyboardMouseBindings
 import com.sbro.emucored.core.KeyboardMouseManager
@@ -67,7 +70,7 @@ internal enum class KeyboardMouseMappingSource {
 }
 
 @Composable
-fun GlobalKeyboardMouseSettingsSection(showTitle: Boolean = true) {
+fun GlobalKeyboardMouseSettingsSection(showTitle: Boolean = true, consolePolicy: ConsoleOverlayPolicy = ConsoleOverlayPolicy.forPlatform(ConsolePlatform.N3DS)) {
     val context = LocalContext.current
     val preferences = remember(context) { AppPreferences(context.applicationContext) }
     val scope = rememberCoroutineScope()
@@ -81,7 +84,8 @@ fun GlobalKeyboardMouseSettingsSection(showTitle: Boolean = true) {
         },
         connection = connection,
         showTitle = showTitle,
-        contextNote = stringResource(R.string.settings_keyboard_mouse_global_note)
+        contextNote = stringResource(R.string.settings_keyboard_mouse_global_note),
+        consolePolicy = consolePolicy
     )
 }
 
@@ -90,7 +94,8 @@ fun KeyboardMouseSettingsDialog(
     settings: KeyboardMouseSettings,
     onSettingsChange: (KeyboardMouseSettings) -> Unit,
     onDismiss: () -> Unit,
-    onUseGlobal: (() -> Unit)? = null
+    onUseGlobal: (() -> Unit)? = null,
+    consolePolicy: ConsoleOverlayPolicy = ConsoleOverlayPolicy.forPlatform(ConsolePlatform.N3DS)
 ) {
     val connection by KeyboardMouseManager.connection.collectAsState()
     SettingsStyledDialog(
@@ -106,7 +111,8 @@ fun KeyboardMouseSettingsDialog(
             connection = connection,
             showTitle = false,
             contextNote = stringResource(R.string.settings_keyboard_mouse_game_desc),
-            onUseGlobal = onUseGlobal
+            onUseGlobal = onUseGlobal,
+            consolePolicy = consolePolicy
         )
         TextButton(onClick = onDismiss, modifier = Modifier.fillMaxWidth()) {
             Text(stringResource(R.string.close))
@@ -121,8 +127,10 @@ private fun KeyboardMouseSettingsContent(
     connection: KeyboardMouseManager.ConnectionState,
     showTitle: Boolean,
     contextNote: String,
-    onUseGlobal: (() -> Unit)? = null
+    onUseGlobal: (() -> Unit)? = null,
+    consolePolicy: ConsoleOverlayPolicy = ConsoleOverlayPolicy.forPlatform(ConsolePlatform.N3DS)
 ) {
+    val policy = remember(consolePolicy) { KeyboardMouseConsolePolicy(consolePolicy) }
     var mappingSource by remember { mutableStateOf<KeyboardMouseMappingSource?>(null) }
 
     val content: @Composable () -> Unit = {
@@ -208,13 +216,13 @@ private fun KeyboardMouseSettingsContent(
                     AppPreferences.MOUSE_WHEEL_LEFT_STICK to stringResource(R.string.settings_mouse_wheel_left_stick),
                     AppPreferences.MOUSE_WHEEL_RIGHT_STICK to stringResource(R.string.settings_mouse_wheel_right_stick),
                     AppPreferences.MOUSE_WHEEL_SHOULDERS to stringResource(R.string.settings_mouse_wheel_shoulders)
-                ),
-                selectedValue = settings.mouseWheelMode,
+                ).filter { policy.supportsWheel(it.first) },
+                selectedValue = settings.mouseWheelMode.takeIf(policy::supportsWheel) ?: AppPreferences.MOUSE_WHEEL_OFF,
                 onSelect = { mode ->
                     onSettingsChange(settings.copy(mouseWheelMode = mode))
                 }
             )
-            if (settings.mouseWheelMode != AppPreferences.MOUSE_WHEEL_OFF) {
+            if (settings.mouseWheelMode != AppPreferences.MOUSE_WHEEL_OFF && policy.supportsWheel(settings.mouseWheelMode)) {
                 KeyboardMouseSliderItem(
                     title = stringResource(R.string.settings_mouse_wheel_pulse),
                     value = settings.mouseWheelPulseMs,
@@ -232,14 +240,14 @@ private fun KeyboardMouseSettingsContent(
                     AppPreferences.MOUSE_AIM_OFF to stringResource(R.string.settings_mouse_aim_off),
                     AppPreferences.MOUSE_AIM_RIGHT_STICK to stringResource(R.string.settings_mouse_aim_right_stick),
                     AppPreferences.MOUSE_AIM_LEFT_STICK to stringResource(R.string.settings_mouse_aim_left_stick)
-                ),
-                selectedValue = settings.mouseAimMode,
+                ).filter { policy.supportsAim(it.first) },
+                selectedValue = settings.mouseAimMode.takeIf(policy::supportsAim) ?: AppPreferences.MOUSE_AIM_OFF,
                 onSelect = { mode ->
                     onSettingsChange(settings.copy(mouseAimMode = mode))
                 },
                 helpText = stringResource(R.string.settings_mouse_aim_mode_desc)
             )
-            if (settings.mouseAimMode != KeyboardMouseBindings.MOUSE_AIM_OFF) {
+            if (settings.mouseAimMode != KeyboardMouseBindings.MOUSE_AIM_OFF && policy.supportsAim(settings.mouseAimMode)) {
                 KeyboardMouseSliderItem(
                     title = stringResource(R.string.settings_mouse_sensitivity),
                     value = settings.mouseSensitivity,
@@ -343,7 +351,8 @@ private fun KeyboardMouseSettingsContent(
             settings = settings,
             onSettingsChange = onSettingsChange,
             initialSource = source,
-            onDismiss = { mappingSource = null }
+            onDismiss = { mappingSource = null },
+            consolePolicy = consolePolicy
         )
     }
 }
@@ -353,10 +362,14 @@ internal fun KeyboardMouseMappingDialog(
     settings: KeyboardMouseSettings,
     onSettingsChange: (KeyboardMouseSettings) -> Unit,
     initialSource: KeyboardMouseMappingSource,
-    onDismiss: () -> Unit
+    onDismiss: () -> Unit,
+    consolePolicy: ConsoleOverlayPolicy = ConsoleOverlayPolicy.forPlatform(ConsolePlatform.N3DS)
 ) {
     val capture by KeyboardMouseManager.bindingCapture.collectAsState()
-    val actions = remember { GamepadManager.keyboardMouseMappableActions() }
+    val actions = remember(consolePolicy) {
+        val policy = KeyboardMouseConsolePolicy(consolePolicy)
+        GamepadManager.keyboardMouseMappableActions().filter { policy.supportsAction(it.id) }
+    }
     DisposableEffect(Unit) {
         onDispose { KeyboardMouseManager.cancelBindingCapture() }
     }
@@ -475,7 +488,8 @@ internal fun KeyboardMouseMappingDialog(
                     else -> KeyboardMouseBindings.keyboardKeyLabel(resolved)
                 }
                 KeyboardMouseBindingRow(
-                    title = gamepadActionLabel(action.id),
+                    title = consolePolicy.buttonLabel(action.id) ?: gamepadActionLabel(action.id),
+                    modifier = Modifier.testTag("keyboard_mouse_action_${action.id}"),
                     value = value,
                     autoLabel = if (!hasCustom && resolved != null) {
                         stringResource(R.string.settings_gamepad_mapping_auto_format)
@@ -630,10 +644,11 @@ private fun KeyboardMouseBindingRow(
     icon: androidx.compose.ui.graphics.vector.ImageVector,
     valueColor: Color? = null,
     onBindClick: () -> Unit,
-    onClearClick: (() -> Unit)?
+    onClearClick: (() -> Unit)?,
+    modifier: Modifier = Modifier
 ) {
     Surface(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp),
         shape = neonChipShape(),

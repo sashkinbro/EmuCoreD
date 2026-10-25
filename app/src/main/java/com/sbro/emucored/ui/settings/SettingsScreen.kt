@@ -308,7 +308,7 @@ fun SettingsScreen(
     onOpenMemoryCardManager: (() -> Unit)? = null,
     onOpenControlsLayoutEditor: ((ConsolePlatform) -> Unit)? = null,
     onOpenThemeManager: (() -> Unit)? = null,
-    onOpenTouchControlCreator: (() -> Unit)? = null,
+    onOpenTouchControlCreator: ((ConsolePlatform) -> Unit)? = null,
     viewModel: SettingsViewModel = viewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -634,7 +634,7 @@ fun SettingsScreen(
                 onOpenMemoryCardManager = onOpenMemoryCardManager,
                 onOpenControlsLayoutEditor = onOpenControlsLayoutEditor?.let { open -> { open(selectedPlatform) } },
                 onOpenThemeManager = onOpenThemeManager,
-                onOpenTouchControlCreator = onOpenTouchControlCreator,
+                onOpenTouchControlCreator = onOpenTouchControlCreator?.let { open -> { open(selectedPlatform) } },
                 viewModel = viewModel,
                 topInset = 0.dp,
                 modifier = Modifier
@@ -1137,9 +1137,14 @@ private fun SettingsContent(
     val supportsAzaharOptions = CoreCapabilities.forPlatform(platform).supportsAzaharOptions
     val coreOptionsRevision by viewModel.coreOptionsRevision.collectAsState()
     val consoleCoreOptions = remember(platform, coreOptionsRevision) { viewModel.coreOptions(platform) }
-    val gamepadActions = remember(platform) {
-        val capabilities = CoreCapabilities.forPlatform(platform)
-        GamepadManager.mappableButtonActions().filter { capabilities.supportsMappedAction(it.id) }
+    val gamepadConsolePolicy = remember(platform, consoleCoreOptions["wii_profile"]) {
+        com.sbro.emucored.ui.common.ConsoleOverlayPolicy.forPlatform(platform,
+            consoleCoreOptions["wii_profile"] ?: "nunchuk")
+    }
+    val gamepadActions = remember(gamepadConsolePolicy) {
+        val policy = KeyboardMouseConsolePolicy(gamepadConsolePolicy)
+        // Start with every bindable input; the selected console/attachment decides visibility.
+        GamepadManager.keyboardMouseMappableActions().filter { policy.supportsAction(it.id) }
     }
     val gamepadDeviceAssignments by GamepadManager.gamepadDeviceAssignmentsState.collectAsState()
     val ignoredGamepadDevices by GamepadManager.ignoredGamepadDevicesState.collectAsState()
@@ -1901,7 +1906,7 @@ private fun SettingsContent(
                             )
                             val isCustomBinding = selectedBindings.containsKey(action.id)
                             GamepadBindingRow(
-                                title = gamepadActionLabel(action.id),
+                                title = gamepadConsolePolicy.buttonLabel(action.id) ?: gamepadActionLabel(action.id),
                                 value = assignedKeyCode?.let(GamepadManager::keyCodeLabel)
                                     ?: stringResource(R.string.settings_not_set),
                                 autoLabel = if (isCustomBinding || action.defaultKeyCodes.isEmpty()) null else {
@@ -1922,9 +1927,10 @@ private fun SettingsContent(
                             onClick = { viewModel.resetGamepadBindingsForPad(selectedGamepadPadIndex) }
                         )
                     }
+                    GlobalKeyboardMouseSettingsSection(consolePolicy =
+                        com.sbro.emucored.ui.common.ConsoleOverlayPolicy.forPlatform(platform,
+                            consoleCoreOptions["wii_profile"] ?: "nunchuk"))
                     if (supportsAzaharOptions) {
-                        GlobalKeyboardMouseSettingsSection()
-
                         SettingsSection(title = stringResource(R.string.settings_core_input)) {
                             var coreControlsVersion by remember { mutableIntStateOf(0) }
                             CoreOptionSettingsRows(

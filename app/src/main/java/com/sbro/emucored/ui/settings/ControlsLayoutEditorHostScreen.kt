@@ -24,6 +24,10 @@ import com.sbro.emucored.core.platform.ConsolePlatform
 import com.sbro.emucored.core.platform.CoreOptionPreferences
 import com.sbro.emucored.ui.common.ConsoleOverlayPolicy
 import com.sbro.emucored.data.AppPreferences
+import com.sbro.emucored.data.ConsoleControlsScope
+import com.sbro.emucored.data.ConsoleControlsProfile
+import com.sbro.emucored.data.ConsoleControlsDefaults
+import com.sbro.emucored.data.forConsoleControls
 import com.sbro.emucored.data.CustomTouchControlLibrary
 import com.sbro.emucored.data.GamePlatform
 import com.sbro.emucored.data.OverlayControlLayout
@@ -56,6 +60,17 @@ fun ControlsLayoutEditorHostScreen(
     val scope = rememberCoroutineScope()
     val saveMutex = remember { Mutex() }
     val normalizedGamePath = gamePath?.takeIf { it.isNotBlank() }
+    val platform = ConsolePlatform.fromId(platformId)
+        ?: normalizedGamePath?.let { PlatformUiCapabilities.forGame(it).platform.console }
+        ?: ConsolePlatform.N3DS
+    val effectiveWiiProfile = remember(context, normalizedGamePath, platform) {
+        CoreOptionPreferences(context).effectiveOptions(platform, normalizedGamePath)["wii_profile"] ?: "nunchuk"
+    }
+    val activeWiiProfile = normalizedGamePath?.takeIf {
+        it == com.sbro.emucored.core.platform.session.AdditionalConsoleSession.activeIdentityPath
+    }?.let { com.sbro.emucored.core.platform.session.AdditionalConsoleSession.activeWiiControllerProfile }
+    val consolePolicy = ConsoleOverlayPolicy.forPlatform(platform, activeWiiProfile ?: effectiveWiiProfile)
+    val controlsScope = ConsoleControlsScope(platform, consolePolicy.wiiProfile)
     val unknownGameTitle = stringResource(R.string.save_manager_unknown_game)
     val resolvedGameTitle = remember(normalizedGamePath, gameTitle, unknownGameTitle) {
         gameTitle?.takeIf { it.isNotBlank() }
@@ -64,9 +79,9 @@ fun ControlsLayoutEditorHostScreen(
             }
             ?: unknownGameTitle
     }
-    var editorState by remember(normalizedGamePath) { mutableStateOf<ControlsEditorState?>(null) }
-    var hasGameOverride by remember(normalizedGamePath) { mutableStateOf(false) }
-    var persistedCustomControls by remember(normalizedGamePath) {
+    var editorState by remember(normalizedGamePath, controlsScope.key) { mutableStateOf<ControlsEditorState?>(null) }
+    var hasGameOverride by remember(normalizedGamePath, controlsScope.key) { mutableStateOf(false) }
+    var persistedCustomControls by remember(normalizedGamePath, controlsScope.key) {
         mutableStateOf<CustomTouchControlLibrary?>(null)
     }
     var isFinishing by remember { mutableStateOf(false) }
@@ -74,8 +89,7 @@ fun ControlsLayoutEditorHostScreen(
     val saveFailureMessage = stringResource(R.string.controls_editor_save_failed)
 
     suspend fun loadState(): Pair<ControlsEditorState, Boolean> {
-        preferences.migrateOverlayLayoutIfNeeded()
-        val globalLayout = preferences.overlayLayoutSnapshot.first()
+        val globalLayout = preferences.overlayLayoutSnapshot.first().forConsoleControls(controlsScope)
         val settings = preferences.settingsSnapshot.first()
         val stickToggleTarget = preferences.stickToggleTarget.first()
         val perGame = normalizedGamePath?.let { path ->
@@ -83,7 +97,7 @@ fun ControlsLayoutEditorHostScreen(
         }
         val layout = perGame?.touchControlsLayout ?: globalLayout.toTouchControlsLayoutProfile()
         val customControls = perGame?.customTouchControls
-            ?: preferences.customTouchControls.first()
+            ?: globalLayout.customTouchControls
         return layout.toControlsEditorState(
             visualStyle = perGame?.touchControlVisualStyle ?: settings.touchControlVisualStyle,
             pressEffect = perGame?.touchControlPressEffect ?: settings.touchControlPressEffect,
@@ -97,11 +111,8 @@ fun ControlsLayoutEditorHostScreen(
         val layout = state.toTouchControlsLayoutProfile()
         val customControls = state.customControls.sanitized()
         if (normalizedGamePath == null) {
-            preferences.saveTouchControlsLayout(layout)
-            if (customControls != persistedCustomControls) {
-                preferences.setCustomTouchControls(customControls)
-                persistedCustomControls = customControls
-            }
+            preferences.saveConsoleControls(controlsScope, ConsoleControlsProfile(layout, customControls))
+            persistedCustomControls = customControls
         } else {
             withContext(Dispatchers.IO) {
                 val existing = repository.get(normalizedGamePath)
@@ -119,6 +130,7 @@ fun ControlsLayoutEditorHostScreen(
                             gameSerial = gameSerial,
                             library = customControls
                         )
+                        .copy(gamePlatform = GamePlatform.valueOf(platform.name))
                 )
             }
             persistedCustomControls = customControls
@@ -141,7 +153,7 @@ fun ControlsLayoutEditorHostScreen(
         state: ControlsEditorState,
         controlId: String
     ): OverlayControlLayout {
-        val defaults = AppPreferences.defaultOverlayControlLayouts(state.stickScale)
+        val defaults = ConsoleControlsDefaults.layout(controlsScope).controlLayouts
         return state.controlLayouts[controlId]
             ?: defaults[controlId]
             ?: OverlayControlLayout(scale = if (controlId.contains("stick")) state.stickScale else 100)
@@ -168,7 +180,7 @@ fun ControlsLayoutEditorHostScreen(
         }
     }
 
-    LaunchedEffect(normalizedGamePath) {
+    LaunchedEffect(normalizedGamePath, controlsScope.key) {
         val loaded = runCatching { loadState() }.getOrElse {
             val settings = runCatching { preferences.settingsSnapshot.first() }
                 .getOrDefault(SettingsSnapshot())
@@ -203,16 +215,6 @@ fun ControlsLayoutEditorHostScreen(
         stringResource(R.string.controls_editor_game_inherited, resolvedGameTitle)
     }
 
-    val platform = ConsolePlatform.fromId(platformId)
-        ?: normalizedGamePath?.let { PlatformUiCapabilities.forGame(it).platform.console }
-        ?: ConsolePlatform.N3DS
-    val effectiveWiiProfile = remember(context, normalizedGamePath, platform) {
-        CoreOptionPreferences(context).effectiveOptions(platform, normalizedGamePath)["wii_profile"] ?: "nunchuk"
-    }
-    val activeWiiProfile = normalizedGamePath?.takeIf {
-        it == com.sbro.emucored.core.platform.session.AdditionalConsoleSession.activeIdentityPath
-    }?.let { com.sbro.emucored.core.platform.session.AdditionalConsoleSession.activeWiiControllerProfile }
-    val consolePolicy = ConsoleOverlayPolicy.forPlatform(platform, activeWiiProfile ?: effectiveWiiProfile)
     val dsMode = platform == ConsolePlatform.NDS
     ControlsEditorScreen(
         state = state,
@@ -291,7 +293,7 @@ fun ControlsLayoutEditorHostScreen(
                 val reset = runCatching {
                     saveMutex.withLock {
                         if (normalizedGamePath == null) {
-                            preferences.resetControlsLayout()
+                            preferences.resetConsoleControls(controlsScope)
                         } else {
                             withContext(Dispatchers.IO) {
                                 repository.get(normalizedGamePath)?.let { existing ->

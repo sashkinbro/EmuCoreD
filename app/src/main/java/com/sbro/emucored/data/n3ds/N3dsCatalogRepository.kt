@@ -13,8 +13,9 @@ class N3dsCatalogRepository(private val context: Context) {
 
     companion object {
         private const val TAG = "N3dsCatalogRepository"
-        // New cache epoch extracts the all-console asset on upgrades; retain the legacy file.
-        internal const val DB_NAME = "nintendo_games_v2.db"
+        // Bumped whenever the bundled all-console catalog asset changes so an
+        // installed app replaces its previous extracted database.
+        internal const val DB_NAME = "nintendo_games_v3.db"
         private const val ASSET_PATH = "catalog/games.db"
 
         private val sharedCoverMatchCache =

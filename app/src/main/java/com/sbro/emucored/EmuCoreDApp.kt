@@ -9,6 +9,7 @@ import com.sbro.emucored.core.BackupSessionGate
 import com.sbro.emucored.core.CrashLogger
 import com.sbro.emucored.core.DeviceGpuInfoProvider
 import com.sbro.emucored.core.EmulatorBridge
+import com.sbro.emucored.core.dolphin.DolphinServices
 import com.sbro.emucored.data.AppPreferences
 import com.sbro.emucored.data.drive.DriveBackupArchive
 import com.sbro.emucored.data.drive.DriveBackupException
@@ -59,6 +60,7 @@ class EmuCoreDApp : Application() {
         }
         AppIconManager.applyProIcon(this, AppPreferences(this).getProUnlockedSync())
         DriveBackupWork.resumePending(this)
+        DolphinServices.initialize(this)
         EmulatorBridge.initializeOnce(this)
         DiscordIntegration.initialize(this)
     }

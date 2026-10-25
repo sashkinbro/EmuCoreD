@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // EmuCoreD host for the unmodified, pinned Dolphin engine. No upstream UI/JNI.
 #include <jni.h>
+#include <android/log.h>
 #include "../../core-common/typed_cheats.h"
 #include <android/native_window_jni.h>
 #include <algorithm>
@@ -38,6 +39,7 @@
 #include "Core/DolphinAnalytics.h"
 #include "Core/Host.h"
 #include "Core/HW/GCPad.h"
+#include "Core/HW/VideoInterface.h"
 #include "Core/HW/Wiimote.h"
 #include "Core/HW/WiimoteEmu/WiimoteEmu.h"
 #include "Core/HW/WiimoteEmu/Extension/Extension.h"
@@ -49,6 +51,7 @@
 #include "InputCommon/ControllerInterface/Touch/InputOverrider.h"
 #include "UICommon/UICommon.h"
 #include "VideoCommon/Present.h"
+#include "VideoCommon/PerformanceMetrics.h"
 #include "VideoCommon/AsyncRequests.h"
 #include "VideoCommon/VideoBackendBase.h"
 #include "VideoCommon/VideoConfig.h"
@@ -69,6 +72,10 @@ struct Runtime {
   std::deque<std::function<void()>> commands;
   std::atomic<bool> stop{false}, active{false}, paused{false};
   std::atomic<long long> frames{0};
+  std::atomic<long long> unique_frames{0};
+  std::atomic<double> target_refresh{0};
+  std::atomic<unsigned> output_width{0}, output_height{0};
+  std::atomic<int> backend{0};
   int start_result = -1;
   ANativeWindow* surface = nullptr;
   std::vector<ANativeWindow*> retained_windows;
@@ -361,6 +368,11 @@ void HostRun(std::string path, std::string user, std::string sys, bool wii, bool
   runtime.profile = 1;
   runtime.user_paused = paused;
   runtime.frames = 0;
+  runtime.unique_frames = 0;
+  runtime.target_refresh = 0;
+  runtime.output_width = 0;
+  runtime.output_height = 0;
+  runtime.backend = 0;
   runtime.alert = false;
   static std::once_flag sys_once;
   std::call_once(sys_once, [&] { File::SetSysDirectory(sys + "/"); });
@@ -407,7 +419,15 @@ void HostRun(std::string path, std::string user, std::string sys, bool wii, bool
     runtime.paused = state == Core::State::Paused;
     runtime.changed.notify_all();
   });
-  auto frame_hook = GetVideoEvents().after_present_event.Register([](PresentInfo& info) { runtime.frames = info.present_count + 1; });
+  auto frame_hook = GetVideoEvents().after_present_event.Register([](PresentInfo& info) {
+    runtime.frames = info.present_count + 1;
+    runtime.unique_frames = info.frame_count;
+    runtime.output_width = info.frame_buffer_width;
+    runtime.output_height = info.frame_buffer_height;
+  });
+  auto refresh_hook = GetVideoEvents().vi_end_field_event.Register([] {
+    runtime.target_refresh = Core::System::GetInstance().GetVideoInterface().GetTargetRefreshRate();
+  });
   SConfig::GetInstance().bBootToPause = paused;
   auto boot = BootFromImage(path);
   bool booted = false, unsupported_hardware_option = false;
@@ -439,6 +459,10 @@ void HostRun(std::string path, std::string user, std::string sys, bool wii, bool
   }
   booted = booted && Core::IsRunning(system) && !runtime.stop;
   runtime.active = booted;
+  if (booted && g_video_backend) {
+    const auto name = g_video_backend->GetConfigName();
+    runtime.backend = name == "Vulkan" ? 1 : name == "OGL" ? 2 : 0;
+  }
   StartResult(booted ? 0 : (runtime.stop ? 5 : unsupported_hardware_option ? 6 : 3));
   while (runtime.active && Core::IsRunning(system) && !runtime.stop) {
     DrainCommands();
@@ -449,11 +473,23 @@ void HostRun(std::string path, std::string user, std::string sys, bool wii, bool
   runtime.active = false;
   // Fulfill accepted synchronous commands before ending their host worker.
   DrainCommands();
+#if EMUCORED_DIAGNOSTICS
+  __android_log_print(ANDROID_LOG_INFO, "DolphinRuntime", "HostRun stop: Core::Stop begin");
+#endif
   if (Core::IsRunningOrStarting(system)) Core::Stop(system);
+#if EMUCORED_DIAGNOSTICS
+  __android_log_print(ANDROID_LOG_INFO, "DolphinRuntime", "HostRun stop: Core::Shutdown begin");
+#endif
   Core::Shutdown(system);
-  frame_hook.reset(); state_hook.reset();
+#if EMUCORED_DIAGNOSTICS
+  __android_log_print(ANDROID_LOG_INFO, "DolphinRuntime", "HostRun stop: UICommon::Shutdown begin");
+#endif
+  refresh_hook.reset(); frame_hook.reset(); state_hook.reset();
   UICommon::ShutdownControllers();
   UICommon::Shutdown();
+#if EMUCORED_DIAGNOSTICS
+  __android_log_print(ANDROID_LOG_INFO, "DolphinRuntime", "HostRun stop: complete");
+#endif
   runtime.initialized = false;
   runtime.paused = false;
   runtime.changed.notify_all();
@@ -513,9 +549,15 @@ JNIEXPORT jint JNICALL JNI_METHOD(start)(JNIEnv* env, jobject, jstring path, jst
 }
 JNIEXPORT void JNICALL JNI_METHOD(requestStop)(JNIEnv*, jobject) { runtime.stop = true; runtime.changed.notify_all(); }
 JNIEXPORT void JNICALL JNI_METHOD(stop)(JNIEnv*, jobject) {
+#if EMUCORED_DIAGNOSTICS
+  __android_log_print(ANDROID_LOG_INFO, "DolphinRuntime", "stop: request");
+#endif
   runtime.stop = true; runtime.changed.notify_all();
   std::lock_guard api_lock(runtime.api_mutex);
   if (runtime.host.joinable()) runtime.host.join();
+#if EMUCORED_DIAGNOSTICS
+  __android_log_print(ANDROID_LOG_INFO, "DolphinRuntime", "stop: joined");
+#endif
   std::lock_guard lock(runtime.mutex);
   runtime.commands.clear();
   for (auto* window : runtime.retained_windows) ANativeWindow_release(window);
@@ -602,6 +644,17 @@ JNIEXPORT jobjectArray JNICALL JNI_METHOD(optionCapabilities)(JNIEnv* env, jobje
   return result;
 }
 JNIEXPORT jlong JNICALL JNI_METHOD(frames)(JNIEnv*, jobject) { return runtime.frames; }
+// Atomic presentation/VI observations and upstream's thread-safe emulated-clock speed.
+JNIEXPORT jdoubleArray JNICALL JNI_METHOD(performance)(JNIEnv* env, jobject) {
+  if (!runtime.active || runtime.paused) return nullptr;
+  const jdouble values[] = {static_cast<double>(runtime.unique_frames.load()),
+      runtime.target_refresh.load(), Core::System::GetInstance().GetPerfMetrics().GetSpeed() * 100.0,
+      static_cast<double>(runtime.output_width.load()), static_cast<double>(runtime.output_height.load()),
+      static_cast<double>(runtime.backend.load())};
+  auto result = env->NewDoubleArray(6);
+  if (result) env->SetDoubleArrayRegion(result, 0, 6, values);
+  return result;
+}
 JNIEXPORT jboolean JNICALL JNI_METHOD(cheats)(JNIEnv* env,jobject,jobjectArray formats,jobjectArray codes) {
   std::vector<TypedCheatInput> inputs;if(!typedCheatInputs(env,formats,codes,inputs))return false;
   std::vector<ActionReplay::ARCode> ar;std::vector<Gecko::GeckoCode> gecko;

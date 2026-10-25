@@ -20,6 +20,19 @@ class TexturePackStoreTest {
         } }
     }
 
+    @Test fun explicitZipDirectoryEntriesInNativeWrapperAreAccepted() {
+        val root = Files.createTempDirectory("texture-explicit-directories").toFile()
+        try {
+            val target = TexturePackTarget(ConsolePlatform.N3DS, "0004000001234500")
+            val archive = zip(root, "load/" to byteArrayOf(), "load/textures/" to byteArrayOf(),
+                "load/textures/${target.id}/" to byteArrayOf(),
+                "load/textures/${target.id}/original.png" to png)
+            val store = TexturePackStore(root)
+            assertEquals(1, store.install(target, archive).textureCount)
+            assertArrayEquals(png, File(store.directory(target), "original.png").readBytes())
+        } finally { root.deleteRecursively() }
+    }
+
     @Test fun interruptedReplacementRestoresThePreviousPackAndCompletedReplacementKeepsTheNewOne() {
         val root = Files.createTempDirectory("texture-recovery").toFile()
         try {

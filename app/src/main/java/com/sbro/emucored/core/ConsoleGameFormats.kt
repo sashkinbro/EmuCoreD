@@ -15,7 +15,7 @@ object ConsoleGameFormats {
             setOf("3dsx", "z3dsx", "elf", "axf")
         )
         ConsolePlatform.NDS -> Profile(NdsGameFormats.extensions)
-        ConsolePlatform.GAMECUBE -> Profile(setOf("gcm", "iso", "rvz", "wia", "gcz", "ciso"), setOf("dol", "elf"))
+        ConsolePlatform.GAMECUBE -> Profile(setOf("gcm", "iso", "rvz", "wia", "gcz", "ciso", "tgc"), setOf("dol", "elf"))
         ConsolePlatform.WII -> Profile(setOf("iso", "rvz", "wia", "gcz", "ciso", "wbfs", "wad"), setOf("dol", "elf"))
         ConsolePlatform.GBA -> Profile(setOf("gba", "agb"))
         ConsolePlatform.GB -> Profile(setOf("gb", "sgb"))
@@ -31,9 +31,11 @@ object ConsoleGameFormats {
         }
     }
 
-    fun candidatesForFileName(name: String): Set<ConsolePlatform> = byExtension[
-        name.substringAfterLast('/').substringAfterLast('\\').substringAfterLast('.', "").lowercase(Locale.ROOT)
-    ].orEmpty()
+    fun candidatesForFileName(name: String): Set<ConsolePlatform> {
+        val fileName = name.substringAfterLast('/').substringAfterLast('\\')
+        if (ConsoleImageParts.isSecondary(fileName)) return emptySet()
+        return byExtension[fileName.substringAfterLast('.', "").lowercase(Locale.ROOT)].orEmpty()
+    }
 
     fun isSupportedName(name: String): Boolean = candidatesForFileName(name).isNotEmpty()
 }

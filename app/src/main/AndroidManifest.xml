@@ -113,6 +113,62 @@
                 <data android:scheme="file" android:pathPattern=".*\\.ZCCI" />
                 <data android:scheme="file" android:pathPattern=".*\\.zcxi" />
                 <data android:scheme="file" android:pathPattern=".*\\.ZCXI" />
+                <data android:scheme="file" android:pathPattern=".*\\.nds" />
+                <data android:scheme="file" android:pathPattern=".*\\.NDS" />
+                <data android:scheme="file" android:pathPattern=".*\\.srl" />
+                <data android:scheme="file" android:pathPattern=".*\\.SRL" />
+                <data android:scheme="file" android:pathPattern=".*\\.dsi" />
+                <data android:scheme="file" android:pathPattern=".*\\.DSI" />
+                <data android:scheme="file" android:pathPattern=".*\\.gba" />
+                <data android:scheme="file" android:pathPattern=".*\\.GBA" />
+                <data android:scheme="file" android:pathPattern=".*\\.agb" />
+                <data android:scheme="file" android:pathPattern=".*\\.AGB" />
+                <data android:scheme="file" android:pathPattern=".*\\.gb" />
+                <data android:scheme="file" android:pathPattern=".*\\.GB" />
+                <data android:scheme="file" android:pathPattern=".*\\.sgb" />
+                <data android:scheme="file" android:pathPattern=".*\\.SGB" />
+                <data android:scheme="file" android:pathPattern=".*\\.gbc" />
+                <data android:scheme="file" android:pathPattern=".*\\.GBC" />
+                <data android:scheme="file" android:pathPattern=".*\\.cgb" />
+                <data android:scheme="file" android:pathPattern=".*\\.CGB" />
+                <data android:scheme="file" android:pathPattern=".*\\.nes" />
+                <data android:scheme="file" android:pathPattern=".*\\.NES" />
+                <data android:scheme="file" android:pathPattern=".*\\.unf" />
+                <data android:scheme="file" android:pathPattern=".*\\.UNF" />
+                <data android:scheme="file" android:pathPattern=".*\\.unif" />
+                <data android:scheme="file" android:pathPattern=".*\\.UNIF" />
+                <data android:scheme="file" android:pathPattern=".*\\.fds" />
+                <data android:scheme="file" android:pathPattern=".*\\.FDS" />
+                <data android:scheme="file" android:pathPattern=".*\\.sfc" />
+                <data android:scheme="file" android:pathPattern=".*\\.SFC" />
+                <data android:scheme="file" android:pathPattern=".*\\.smc" />
+                <data android:scheme="file" android:pathPattern=".*\\.SMC" />
+                <data android:scheme="file" android:pathPattern=".*\\.swc" />
+                <data android:scheme="file" android:pathPattern=".*\\.SWC" />
+                <data android:scheme="file" android:pathPattern=".*\\.fig" />
+                <data android:scheme="file" android:pathPattern=".*\\.FIG" />
+                <data android:scheme="file" android:pathPattern=".*\\.gcm" />
+                <data android:scheme="file" android:pathPattern=".*\\.GCM" />
+                <data android:scheme="file" android:pathPattern=".*\\.iso" />
+                <data android:scheme="file" android:pathPattern=".*\\.ISO" />
+                <data android:scheme="file" android:pathPattern=".*\\.rvz" />
+                <data android:scheme="file" android:pathPattern=".*\\.RVZ" />
+                <data android:scheme="file" android:pathPattern=".*\\.wia" />
+                <data android:scheme="file" android:pathPattern=".*\\.WIA" />
+                <data android:scheme="file" android:pathPattern=".*\\.gcz" />
+                <data android:scheme="file" android:pathPattern=".*\\.GCZ" />
+                <data android:scheme="file" android:pathPattern=".*\\.ciso" />
+                <data android:scheme="file" android:pathPattern=".*\\.CISO" />
+                <data android:scheme="file" android:pathPattern=".*\\.tgc" />
+                <data android:scheme="file" android:pathPattern=".*\\.TGC" />
+                <data android:scheme="file" android:pathPattern=".*\\.wbfs" />
+                <data android:scheme="file" android:pathPattern=".*\\.WBFS" />
+                <data android:scheme="file" android:pathPattern=".*\\.wad" />
+                <data android:scheme="file" android:pathPattern=".*\\.WAD" />
+                <data android:scheme="file" android:pathPattern=".*\\.dol" />
+                <data android:scheme="file" android:pathPattern=".*\\.DOL" />
+                <data android:scheme="file" android:pathPattern=".*\\.part0\\.iso" />
+                <data android:scheme="file" android:pathPattern=".*\\.PART0\\.ISO" />
             </intent-filter>
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />

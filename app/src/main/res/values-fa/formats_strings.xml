@@ -1,8 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<resources>
-    <string name="formats_images_body">از تصویرهای بازی استخراج‌شده استفاده کنید. پیش از وارد کردن، بایگانی‌های ZIP و7z را استخراج کنید.</string>
-    <string name="formats_3ds_body">بسته‌های CIA وZCIA پیش از اجرا نصب می‌شوند. بازی‌های رمزگذاری‌شده به کلیدهای سیستم خودتان نیاز دارند.</string>
-    <string name="formats_ds_body">کارتریج‌های DS و بهبودیافته برای DSi در حالت DS اجرا می‌شوند. بازی‌های اختصاصی DSi به محیط اجرای DSi نیاز دارند.</string>
-    <string name="formats_fds_body">بازی‌های FDS به BIOS با نام disksys.rom و اندازهٔ 8 KiB در پوشهٔ میان‌افزار نیاز دارند.</string>
-    <string name="formats_executables_body">فایل‌های اجرایی DOL وELF ممکن است پیش از اجرا به انتخاب کنسول مربوط نیاز داشته باشند.</string>
-</resources>

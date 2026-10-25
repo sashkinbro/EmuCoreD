@@ -1,6 +1,7 @@
 package com.sbro.emucored.core.platform.session
 
 import java.util.concurrent.Executors
+import java.util.concurrent.locks.LockSupport
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExecutorCoroutineDispatcher
@@ -56,14 +57,34 @@ internal class OwnedCoreThread(
             isRunning = true
             frameJob = owner.launch {
                 try {
+                    var nextFrameAt = System.nanoTime()
                     while (isActive && !stopping) {
-                        if (isPaused) { delay(5); continue }
-                        val began = System.nanoTime()
+                        if (isPaused) {
+                            delay(5)
+                            nextFrameAt = System.nanoTime()
+                            continue
+                        }
                         if (!runFrame()) break
                         frames++
                         val rate = frameRate().takeIf { it.isFinite() && it > 0 } ?: 60.0
-                        val remaining = (1_000_000_000.0 / (rate * speed)).toLong() - (System.nanoTime() - began)
-                        if (remaining > 0) delay((remaining + 999_999L) / 1_000_000L)
+                        val period = (1_000_000_000.0 / (rate * speed)).toLong().coerceAtLeast(1L)
+                        nextFrameAt += period
+                        val now = System.nanoTime()
+                        if (now - nextFrameAt > period * 4) nextFrameAt = now
+                        // delay() is millisecond-granular and rounds up, which
+                        // capped 59.73 Hz cores at ~93%. Sleep most of the
+                        // frame cooperatively (so pause/stop commands run), then
+                        // park/spin only the final ~2 ms against an absolute
+                        // deadline. This keeps 100% speed without stalling the
+                        // owned command lane.
+                        val remaining = nextFrameAt - System.nanoTime()
+                        val sleepMs = remaining / 1_000_000L - 2L
+                        if (sleepMs > 0L) delay(sleepMs)
+                        while (nextFrameAt > System.nanoTime() && isActive && !stopping) {
+                            val wait = nextFrameAt - System.nanoTime()
+                            if (wait <= 0L) break
+                            LockSupport.parkNanos(wait)
+                        }
                     }
                 } finally {
                     closeOwned()

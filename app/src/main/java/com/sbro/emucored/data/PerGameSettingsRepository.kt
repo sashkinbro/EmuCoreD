@@ -1,6 +1,8 @@
 package com.sbro.emucored.data
 
 import android.content.Context
+import android.util.AtomicFile
+import java.util.concurrent.ConcurrentHashMap
 import com.sbro.emucored.core.AudioDefaults
 import com.sbro.emucored.core.EmulatorBridge
 import com.sbro.emucored.core.EmulatorStorage
@@ -104,50 +106,46 @@ data class TouchControlsLayoutProfile(
 
 class PerGameSettingsRepository(context: Context) {
     private val file = File(EmulatorStorage.appStateDir(context), "per-game-settings.json")
+    private val fileLock = locks.computeIfAbsent(file.canonicalPath) { Any() }
+    private val atomicFile = AtomicFile(file)
 
-    fun get(gameKey: String): PerGameSettings? = loadAll().firstOrNull { it.gameKey == gameKey }
+    fun get(gameKey: String): PerGameSettings? = synchronized(fileLock) { loadAll().firstOrNull { it.gameKey == gameKey } }
+    fun getAll(): List<PerGameSettings> = synchronized(fileLock) { loadAll() }
 
-    fun getAll(): List<PerGameSettings> = loadAll()
-
-    fun save(settings: PerGameSettings) {
-        val items = loadAll()
-            .filterNot { it.gameKey == settings.gameKey } +
+    fun save(settings: PerGameSettings) = synchronized(fileLock) {
+        val items = loadAll().filterNot { it.gameKey == settings.gameKey } +
             settings.copy(updatedAt = System.currentTimeMillis())
         writeAll(items.sortedBy { it.gameTitle.lowercase() })
     }
 
-    fun delete(gameKey: String) {
+    fun delete(gameKey: String) = synchronized(fileLock) {
         writeAll(loadAll().filterNot { it.gameKey == gameKey })
     }
+    fun deleteAll() = synchronized(fileLock) { writeAll(emptyList()) }
 
-    fun deleteAll() {
-        writeAll(emptyList())
+    fun exportJson(): JSONObject = synchronized(fileLock) {
+        JSONObject().put("profiles", JSONArray().apply { loadAll().forEach { put(it.toJson()) } })
     }
 
-    fun exportJson(): JSONObject {
-        return JSONObject().put(
-            "profiles",
-            JSONArray().apply {
-                loadAll().forEach { put(it.toJson()) }
-            }
-        )
-    }
-
-    fun importJson(json: JSONObject) {
-        val profiles = json.optJSONArray("profiles") ?: JSONArray()
+    fun importJson(json: JSONObject) = synchronized(fileLock) {
+        val profiles = requireNotNull(json.optJSONArray("profiles")) { "Not a game profiles backup" }
+        val seen = HashSet<String>()
         val items = buildList {
             for (index in 0 until profiles.length()) {
-                val item = profiles.optJSONObject(index) ?: continue
-                add(item.toPerGameSettings())
+                val item = requireNotNull(profiles.optJSONObject(index)) { "Invalid profile record" }
+                val profile = item.toPerGameSettings()
+                require(profile.gameKey.isNotBlank() && seen.add(profile.gameKey)) { "Invalid or duplicate game identity" }
+                add(profile)
             }
         }
         writeAll(items.sortedBy { it.gameTitle.lowercase() })
     }
 
+    // Every call is inside the path lock, including AtomicFile backup recovery on reads.
     private fun loadAll(): List<PerGameSettings> {
-        if (!file.exists()) return emptyList()
+        if (!file.exists() && !File(file.path + ".bak").exists()) return emptyList()
         return runCatching {
-            val root = JSONObject(file.readText())
+            val root = atomicFile.openRead().bufferedReader(Charsets.UTF_8).use { JSONObject(it.readText()) }
             val profiles = root.optJSONArray("profiles") ?: JSONArray()
             buildList {
                 for (index in 0 until profiles.length()) {
@@ -159,15 +157,20 @@ class PerGameSettingsRepository(context: Context) {
     }
 
     private fun writeAll(items: List<PerGameSettings>) {
-        file.parentFile?.mkdirs()
-        file.writeText(
-            JSONObject().put(
-                "profiles",
-                JSONArray().apply {
-                    items.forEach { put(it.toJson()) }
-                }
-            ).toString(2)
-        )
+        check(file.parentFile?.let { it.isDirectory || it.mkdirs() } == true)
+        val contents = JSONObject().put("profiles", JSONArray().apply { items.forEach { put(it.toJson()) } }).toString(2)
+        val output = atomicFile.startWrite()
+        try {
+            output.write(contents.toByteArray(Charsets.UTF_8))
+            atomicFile.finishWrite(output)
+        } catch (failure: Throwable) {
+            atomicFile.failWrite(output)
+            throw failure
+        }
+    }
+
+    companion object {
+        private val locks = ConcurrentHashMap<String, Any>()
     }
 }
 
@@ -365,7 +368,7 @@ internal fun PerGameSettings.toJson(): JSONObject {
     }
 }
 
-private fun TouchControlsLayoutProfile.toJson(): JSONObject {
+internal fun TouchControlsLayoutProfile.toJson(): JSONObject {
     return JSONObject().apply {
         put("dpadOffset", dpadOffset.toJson())
         put("lstickOffset", lstickOffset.toJson())
@@ -382,7 +385,7 @@ private fun TouchControlsLayoutProfile.toJson(): JSONObject {
     }
 }
 
-private fun JSONObject.toTouchControlsLayoutProfile(): TouchControlsLayoutProfile {
+internal fun JSONObject.toTouchControlsLayoutProfile(): TouchControlsLayoutProfile {
     val stickScale = optInt("stickScale", AppPreferences.OVERLAY_CONTROL_SCALE_DEFAULT)
         .coerceIn(AppPreferences.OVERLAY_CONTROL_SCALE_MIN, AppPreferences.OVERLAY_CONTROL_SCALE_MAX)
     val layouts = optJSONObject("controlLayouts")

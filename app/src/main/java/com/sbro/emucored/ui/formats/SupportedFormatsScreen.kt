@@ -99,6 +99,13 @@ fun SupportedFormatsScreen(
                         formats = profile.executables.map { it.uppercase(java.util.Locale.ROOT) }
                     )
                 }
+                if (selectedConsole == ConsolePlatform.GAMECUBE || selectedConsole == ConsolePlatform.WII) {
+                    Text(
+                        text = stringResource(R.string.formats_disc_parts_body),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
                 if (requirement != R.string.formats_images_body) {
                     Text(
                         text = stringResource(R.string.formats_images_body),

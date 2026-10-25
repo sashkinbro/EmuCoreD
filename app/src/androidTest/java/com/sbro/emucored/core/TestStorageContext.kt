@@ -9,11 +9,23 @@ import androidx.test.platform.app.InstrumentationRegistry
 import java.io.Closeable
 import java.io.File
 import java.util.UUID
+import androidx.datastore.preferences.core.PreferenceDataStoreFactory
+import com.sbro.emucored.data.AppPreferencesDataStoreOwner
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancelAndJoin
+import kotlinx.coroutines.runBlocking
 
 /** Isolated real storage owned by the target UID used by the instrumentation process. */
 internal class TestStorageContext :
     ContextWrapper(InstrumentationRegistry.getInstrumentation().targetContext.applicationContext),
-    Closeable {
+    Closeable, AppPreferencesDataStoreOwner {
+    private val storeJob = SupervisorJob()
+    override val appPreferencesDataStore by lazy {
+        PreferenceDataStoreFactory.create(scope = CoroutineScope(storeJob + Dispatchers.IO),
+            produceFile = { File(testFiles, "datastore/settings.preferences_pb") })
+    }
     private val token = "instrumentation_${UUID.randomUUID()}"
     private val root = File(baseContext.cacheDir, token).apply {
         check(mkdirs() && isDirectory) { "Cannot create isolated test directory: $this" }
@@ -37,6 +49,7 @@ internal class TestStorageContext :
     }
 
     override fun close() {
+        runBlocking { storeJob.cancelAndJoin() }
         preferenceNames.forEach { check(baseContext.deleteSharedPreferences(it)) }
         check(root.canonicalFile.parentFile == baseContext.cacheDir.canonicalFile)
         check(root.name == token)

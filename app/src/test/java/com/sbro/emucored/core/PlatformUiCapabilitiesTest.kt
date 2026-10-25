@@ -35,17 +35,19 @@ class PlatformUiCapabilitiesTest {
         assertTrue(PlatformUiCapabilities.forGame(null).supportsAzaharOptions)
     }
 
-    @Test fun dsDoesNotOfferAzaharCheatsWhileSupportedSessionTabsRemainAvailable() {
+    @Test fun allNineCoresExposeTheirImplementedTypedCheatsAndDsStillHidesAzaharAudioCpu() {
         val ds = PlatformUiCapabilities.forGame("content://provider/document/Game%2Ends")
         val threeDs = PlatformUiCapabilities.forGame("/games/Game.3ds")
-        assertFalse(ds.supportsGameMenuTab(GameMenuTabId.CHEATS))
+        for (platform in GamePlatform.entries) {
+            assertTrue(platform.name, PlatformUiCapabilities.forGame(null, platform).supportsGameMenuTab(GameMenuTabId.CHEATS))
+        }
         assertTrue(threeDs.supportsGameMenuTab(GameMenuTabId.CHEATS))
         assertTrue(ds.supportsGameMenuTab(GameMenuTabId.SESSION))
         assertTrue(ds.supportsGameMenuTab(GameMenuTabId.CONTROLS))
         assertTrue(ds.supportsGameMenuTab(GameMenuTabId.GRAPHICS))
         assertFalse(ds.supportsGameMenuSection(GameMenuSectionId.EMULATION_CPU))
         assertFalse(ds.supportsGameMenuSection(GameMenuSectionId.EMULATION_AUDIO))
-        assertFalse(ds.supportsGameMenuSection(GameMenuSectionId.EMULATION_CHEATS))
+        assertTrue(ds.supportsGameMenuSection(GameMenuSectionId.EMULATION_CHEATS))
         assertTrue(ds.supportsGameMenuSection(GameMenuSectionId.SAVE_STATES))
         assertTrue(threeDs.supportsGameMenuSection(GameMenuSectionId.EMULATION_CPU))
     }

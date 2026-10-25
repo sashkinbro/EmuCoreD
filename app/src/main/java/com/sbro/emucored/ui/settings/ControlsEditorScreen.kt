@@ -90,6 +90,8 @@ import androidx.compose.ui.window.DialogProperties
 import androidx.compose.ui.zIndex
 import com.sbro.emucored.R
 import com.sbro.emucored.data.AppPreferences
+import com.sbro.emucored.data.ConsoleControlsScope
+import com.sbro.emucored.data.ConsoleControlsDefaults
 import com.sbro.emucored.data.CustomTouchControl
 import com.sbro.emucored.data.CustomTouchControlContent
 import com.sbro.emucored.data.CustomTouchControlLibrary
@@ -436,7 +438,9 @@ fun ControlsEditorScreen(
     var snapToGrid by rememberSaveable { mutableStateOf(false) }
     var deleteCustomCandidate by remember { mutableStateOf<CustomTouchControl?>(null) }
     val dsControlsHeight = 260.dp * (state.overlayScale / 100f).coerceIn(0.8f, 1.4f)
-    val defaultLayouts = remember(state.stickScale) { AppPreferences.defaultOverlayControlLayouts(state.stickScale) }
+    val defaultLayouts = remember(state.stickScale, consolePolicy) {
+        ConsoleControlsDefaults.layout(ConsoleControlsScope(consolePolicy.platform, consolePolicy.wiiProfile)).controlLayouts
+    }
     val selectedLayout = selectedControlId?.let { id ->
         editorControlLayouts[id] ?: defaultLayouts[id] ?: OverlayControlLayout()
     }
@@ -1426,6 +1430,7 @@ private fun ComboActionDialog(
                         ActionSelector(
                             actionSupported = consolePolicy::supportsAction,
                             labelOverride = consolePolicy::buttonLabel,
+                            includeExtendedActions = true,
                             selectedActionId = actionId,
                             testTagPrefix = "controls_editor_combo_primary",
                             onSelect = { selected ->
@@ -1450,6 +1455,7 @@ private fun ComboActionDialog(
                     ActionSelector(
                         actionSupported = consolePolicy::supportsAction,
                         labelOverride = consolePolicy::buttonLabel,
+                            includeExtendedActions = true,
                         selectedActionId = secondaryActionId,
                         excludedActionId = actionId,
                         allowNone = true,

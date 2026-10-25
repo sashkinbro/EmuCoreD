@@ -1,8 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<resources>
-    <string name="formats_images_body">Используйте распакованные образы игр. Перед импортом распакуйте архивы ZIP и 7z.</string>
-    <string name="formats_3ds_body">Пакеты CIA и ZCIA устанавливаются перед запуском. Для зашифрованных игр нужны ваши системные ключи.</string>
-    <string name="formats_ds_body">Картриджи DS и игры с расширениями DSi запускаются в режиме DS. Играм только для DSi нужна среда DSi.</string>
-    <string name="formats_fds_body">Для игр FDS нужен BIOS disksys.rom размером 8 КиБ в папке прошивок.</string>
-    <string name="formats_executables_body">Перед запуском исполняемых файлов DOL и ELF может потребоваться выбрать консоль.</string>
-</resources>

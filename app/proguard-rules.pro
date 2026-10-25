@@ -1,8 +1,8 @@
 # EmuCoreD R8 rules.
 #
-# This Compose/Kotlin frontend uses Azahar's Android bridge (libemucore_core.so),
-# melonDS through EmuCoreD's DS bridge (libemucored_ds.so), and the frontend
-# shader bridge (libemucore_shaders.so). Runtime name lookups need explicit keeps:
+# Seven engines serve nine consoles: Azahar, melonDS, Dolphin, mGBA, SameBoy,
+# Nestopia and bsnes, alongside the frontend shader bridge. Runtime name
+# lookups need explicit keeps, including the native performance snapshot APIs:
 # JNI entry points, classes resolved by the Discord partner SDK,
 # and kotlinx.serialization serializers used for persisted JSON and
 # typed Navigation Compose routes. Everything else is shrunk normally.

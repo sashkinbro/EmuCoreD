@@ -2,6 +2,8 @@
 // SPDX-License-Identifier: LicenseRef-EmuCoreD-Proprietary
 package com.sbro.emucored.core
 
+import kotlinx.coroutines.ensureActive
+import kotlinx.coroutines.currentCoroutineContext
 import android.content.Context
 import android.graphics.Bitmap
 import android.os.SystemClock
@@ -234,7 +236,9 @@ object EmulatorBridge {
         }
         val context = getContext() ?: return false
         val identity = saveStateIdentityPath ?: path
-        val platform = platformOverride ?: ConsoleGameDiscovery.identify(context, path) ?: return false
+        val probeContext = currentCoroutineContext()
+        val platform = platformOverride ?: ConsoleGameDiscovery.identify(context, path,
+            checkActive = { probeContext.ensureActive() }) ?: return false
         GamePlatform.remember(identity, platform)
         if (platform != GamePlatform.N3DS && platform != GamePlatform.NDS) {
             awaitPendingShutdown()
@@ -244,8 +248,15 @@ object EmulatorBridge {
             val userDirectory = if (platform.console.core == com.sbro.emucored.core.platform.CoreId.DOLPHIN)
                 File(root, "dolphin") else root
             return BackupSessionGate.start(active = { AdditionalConsoleSession.isActive }) {
-                AdditionalConsoleSession.start(EngineLaunchRequest(context, platform.console, path, identity,
-                    userDirectory, CoreOptionPreferences(context).effectiveOptions(platform.console, identity)))
+                AdditionalConsoleSession.start(EngineLaunchRequest(
+                    context,
+                    platform.console,
+                    path,
+                    identity,
+                    userDirectory,
+                    CoreOptionPreferences(context).effectiveOptions(platform.console, identity),
+                    sourceDisplayName = DocumentPathResolver.getDisplayName(context, path)
+                ))
             }
         }
         if (platform == GamePlatform.NDS) {

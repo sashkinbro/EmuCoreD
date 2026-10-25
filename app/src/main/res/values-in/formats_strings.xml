@@ -1,8 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<resources>
-    <string name="formats_images_body">Gunakan citra gim yang telah diekstrak. Ekstrak arsip ZIP dan 7z sebelum mengimpor.</string>
-    <string name="formats_3ds_body">Paket CIA dan ZCIA dipasang sebelum dijalankan. Gim terenkripsi memerlukan kunci sistem milik Anda sendiri.</string>
-    <string name="formats_ds_body">Kartrid DS dan yang ditingkatkan untuk DSi berjalan dalam mode DS. Gim khusus DSi memerlukan lingkungan DSi.</string>
-    <string name="formats_fds_body">Gim FDS memerlukan BIOS disksys.rom berukuran 8 KiB di folder firmware.</string>
-    <string name="formats_executables_body">Berkas eksekusi DOL dan ELF mungkin memerlukan pemilihan konsol sebelum dijalankan.</string>
-</resources>

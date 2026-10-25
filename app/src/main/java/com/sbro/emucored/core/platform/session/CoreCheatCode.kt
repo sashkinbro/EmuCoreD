@@ -16,6 +16,7 @@ object CoreCheatFormats {
         CoreId.NESTOPIA to setOf("nes-game-genie", "nes-raw-address-value"),
         CoreId.BSNES to setOf("snes-game-genie", "snes-pro-action-replay", "snes-raw-address-value")
     )
+    fun supportsCore(core: CoreId): Boolean = formats[core]?.isNotEmpty() == true
     fun supports(core: CoreId, format: String): Boolean = format in formats[core].orEmpty()
     fun accepts(core: CoreId, cheat: CoreCheatCode): Boolean {
         if (!supports(core, cheat.format) || cheat.code.length !in 1..65_536) return false

@@ -1,8 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<resources>
-    <string name="formats_images_body">Používejte rozbalené obrazy her. Archivy ZIP a 7z před importem rozbalte.</string>
-    <string name="formats_3ds_body">Balíčky CIA a ZCIA se před spuštěním nainstalují. Šifrované hry vyžadují vaše vlastní systémové klíče.</string>
-    <string name="formats_ds_body">Kazety DS a s vylepšeními DSi běží v režimu DS. Hry pouze pro DSi vyžadují prostředí DSi.</string>
-    <string name="formats_fds_body">Hry FDS vyžadují BIOS disksys.rom o velikosti 8 KiB ve složce firmwaru.</string>
-    <string name="formats_executables_body">Spustitelné soubory DOL a ELF mohou před spuštěním vyžadovat výběr konzole.</string>
-</resources>

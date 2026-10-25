@@ -1,8 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<resources>
-    <string name="formats_images_body">Use extracted game images. Extract ZIP and 7z archives before importing.</string>
-    <string name="formats_3ds_body">CIA and ZCIA packages are installed before launch. Encrypted games require your own system keys.</string>
-    <string name="formats_ds_body">DS and DSi-enhanced cartridges run in DS mode. DSi-only games require a DSi runtime.</string>
-    <string name="formats_fds_body">FDS games require an 8 KiB disksys.rom BIOS in the firmware folder.</string>
-    <string name="formats_executables_body">DOL and ELF executables may require choosing their console before launch.</string>
-</resources>

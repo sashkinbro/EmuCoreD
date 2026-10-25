@@ -49,6 +49,10 @@ object DsSession {
     private var launchIdentityPath: String? = null
     private var appliedCheats:List<com.sbro.emucored.core.platform.session.CoreCheatCode> = emptyList()
 
+    /** Prefetches a SAF DS image while the previous core is shutting down. */
+    fun prepareRom(context: Context, path: String): File? =
+        materializeRom(context.applicationContext, path)
+
     @Synchronized
     fun start(
         context: Context,
@@ -75,7 +79,6 @@ object DsSession {
             trace(appContext, "materialize failed")
             return false
         }
-        trace(appContext, "materialized ${romFile.absolutePath}")
         val saveDir = File(appContext.filesDir, "ds/saves").apply { mkdirs() }
         val userDir = File(appContext.filesDir, "ds").apply { mkdirs() }
         val saveName = romFile.nameWithoutExtension

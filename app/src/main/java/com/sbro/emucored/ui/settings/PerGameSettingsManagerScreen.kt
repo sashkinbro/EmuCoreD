@@ -118,6 +118,7 @@ import com.sbro.emucored.R
 import com.sbro.emucored.data.AppPreferences
 import com.sbro.emucored.data.DisplayCrop
 import com.sbro.emucored.data.GameLibraryCacheRepository
+import com.sbro.emucored.data.textures.TexturePackIdentity
 import com.sbro.emucored.data.GameItem
 import com.sbro.emucored.data.GameRepository
 import com.sbro.emucored.data.KeyboardMouseSettings
@@ -184,7 +185,8 @@ private const val SHADER_PRESET_USE_GLOBAL = "__emucored_use_global_shader__"
 fun PerGameSettingsManagerScreen(
     initialGamePath: String? = null,
     onOpenControlsLayoutEditor: (GameItem) -> Unit,
-    onBackClick: () -> Unit
+    onBackClick: () -> Unit,
+    onOpenTextureManager: ((GameItem) -> Unit)? = null
 ) {
     val context = LocalContext.current
     val repository = remember(context) { PerGameSettingsRepository(context) }
@@ -211,7 +213,7 @@ fun PerGameSettingsManagerScreen(
     var libraryGames by remember { mutableStateOf(emptyList<GameItem>()) }
     var selectedGamePath by rememberSaveable { mutableStateOf(initialGamePath) }
     var selectedTab by rememberSaveable { mutableStateOf(GameSettingsManagerTab.Core) }
-    var isOpeningControlsEditor by remember { mutableStateOf(false) }
+    var isOpeningGameTool by remember { mutableStateOf(false) }
     var showTopBarMenu by remember { mutableStateOf(false) }
     val pendingDeleteProfile = remember { mutableStateOf<PerGameSettings?>(null) }
     val showResetAllDialog = remember { mutableStateOf(false) }
@@ -238,10 +240,11 @@ fun PerGameSettingsManagerScreen(
     suspend fun persistDraft(draft: PerGameSettings): List<PerGameSettings> {
         return profileMutationMutex.withLock {
             withContext(Dispatchers.IO) {
-                val currentLayout = repository.get(draft.gameKey)?.touchControlsLayout
+                val currentProfile = repository.get(draft.gameKey)
                 repository.save(
                     draft.copy(
-                        touchControlsLayout = currentLayout,
+                        touchControlsLayout = currentProfile?.touchControlsLayout,
+                        customTouchControls = currentProfile?.customTouchControls,
                         providedKeys = null
                     )
                 )
@@ -270,7 +273,7 @@ fun PerGameSettingsManagerScreen(
     DisposableEffect(lifecycleOwner, repository) {
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_RESUME) {
-                isOpeningControlsEditor = false
+                isOpeningGameTool = false
                 refreshProfiles()
             }
         }
@@ -633,20 +636,38 @@ fun PerGameSettingsManagerScreen(
                             }
                         },
                         onOpenControlsLayoutEditor = {
-                            if (isOpeningControlsEditor) return@GameSettingsManagerEditorPanel
-                            isOpeningControlsEditor = true
+                            if (isOpeningGameTool) return@GameSettingsManagerEditorPanel
+                            isOpeningGameTool = true
                             scope.launch {
                                 val savedProfiles = runCatching { persistDraft(draft) }.getOrNull()
                                 if (savedProfiles != null) {
                                     profiles = savedProfiles
                                     onOpenControlsLayoutEditor(game)
                                 } else {
-                                    isOpeningControlsEditor = false
+                                    isOpeningGameTool = false
                                     toast(controlsLayoutSaveFailure)
                                 }
                             }
                         },
-                        onDraftChange = { draft = it }
+                        onDraftChange = { draft = it },
+                        onOpenTextureManager = if (onOpenTextureManager != null && TexturePackIdentity.supports(game.platform)) {
+                            {
+                                if (!isOpeningGameTool) {
+                                    isOpeningGameTool = true
+                                    scope.launch {
+                                        try {
+                                            profiles = persistDraft(draft)
+                                            onOpenTextureManager(game)
+                                        } catch (cancelled: kotlinx.coroutines.CancellationException) {
+                                            throw cancelled
+                                        } catch (_: Exception) {
+                                            isOpeningGameTool = false
+                                            toast(context.getString(R.string.game_settings_manager_save_failure))
+                                        }
+                                    }
+                                }
+                            }
+                        } else null
                     )
                 }
             }
@@ -895,7 +916,8 @@ private fun GameSettingsManagerEditorPanel(
     shaderPresets: List<RetroArchShaderPreset>,
     onRemoveShaderPresets: suspend (Set<String>) -> Boolean,
     onOpenControlsLayoutEditor: () -> Unit,
-    onDraftChange: (PerGameSettings) -> Unit
+    onDraftChange: (PerGameSettings) -> Unit,
+    onOpenTextureManager: (() -> Unit)? = null
 ) {
     Column(
         modifier = Modifier.fillMaxWidth(),
@@ -921,6 +943,14 @@ private fun GameSettingsManagerEditorPanel(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
+        }
+        if (selectedTab == GameSettingsManagerTab.Core && onOpenTextureManager != null) {
+            ManagerActionButton(
+                modifier = Modifier.fillMaxWidth(),
+                icon = Icons.Rounded.FolderOpen,
+                title = stringResource(R.string.shell_texture_manager),
+                onClick = onOpenTextureManager
+            )
         }
         if (selectedTab == GameSettingsManagerTab.Controls) {
             ManagerActionButton(
@@ -1426,6 +1456,10 @@ private fun GameSettingsTabContent(
                     }
                 }
                 PerGameKeyboardMouseSettingsSection(
+                    consolePolicy = com.sbro.emucored.ui.common.ConsoleOverlayPolicy.forPlatform(console,
+                        com.sbro.emucored.core.platform.session.AdditionalConsoleSession.activeWiiControllerProfile.takeIf {
+                            com.sbro.emucored.core.platform.session.AdditionalConsoleSession.activeIdentityPath == draft.gameKey
+                        } ?: values["wii_profile"] ?: "nunchuk"),
                     override = draft.keyboardMouse,
                     globalSettings = globalKeyboardMouseSettings,
                     onOverrideChange = { keyboardMouse ->
@@ -1719,9 +1753,11 @@ private fun SliderRow(
 private fun PerGameKeyboardMouseSettingsSection(
     override: KeyboardMouseSettings?,
     globalSettings: KeyboardMouseSettings,
-    onOverrideChange: (KeyboardMouseSettings?) -> Unit
+    onOverrideChange: (KeyboardMouseSettings?) -> Unit,
+    consolePolicy: com.sbro.emucored.ui.common.ConsoleOverlayPolicy
 ) {
     val settings = override ?: globalSettings
+    val policy = remember(consolePolicy) { KeyboardMouseConsolePolicy(consolePolicy) }
     val connection by KeyboardMouseManager.connection.collectAsState()
     var mappingSource by remember { mutableStateOf<KeyboardMouseMappingSource?>(null) }
 
@@ -1793,11 +1829,11 @@ private fun PerGameKeyboardMouseSettingsSection(
                     AppPreferences.MOUSE_WHEEL_LEFT_STICK to stringResource(R.string.settings_mouse_wheel_left_stick),
                     AppPreferences.MOUSE_WHEEL_RIGHT_STICK to stringResource(R.string.settings_mouse_wheel_right_stick),
                     AppPreferences.MOUSE_WHEEL_SHOULDERS to stringResource(R.string.settings_mouse_wheel_shoulders)
-                ),
-                selectedValue = settings.mouseWheelMode,
+                ).filter { policy.supportsWheel(it.first) },
+                selectedValue = settings.mouseWheelMode.takeIf(policy::supportsWheel) ?: AppPreferences.MOUSE_WHEEL_OFF,
                 onSelected = { onOverrideChange(settings.copy(mouseWheelMode = it)) }
             )
-            if (settings.mouseWheelMode != AppPreferences.MOUSE_WHEEL_OFF) {
+            if (settings.mouseWheelMode != AppPreferences.MOUSE_WHEEL_OFF && policy.supportsWheel(settings.mouseWheelMode)) {
                 SliderRow(
                     title = stringResource(R.string.settings_mouse_wheel_pulse),
                     helpText = stringResource(R.string.legacy_help_mouse_wheel_pulse),
@@ -1817,12 +1853,12 @@ private fun PerGameKeyboardMouseSettingsSection(
                     AppPreferences.MOUSE_AIM_OFF to stringResource(R.string.settings_mouse_aim_off),
                     AppPreferences.MOUSE_AIM_RIGHT_STICK to stringResource(R.string.settings_mouse_aim_right_stick),
                     AppPreferences.MOUSE_AIM_LEFT_STICK to stringResource(R.string.settings_mouse_aim_left_stick)
-                ),
-                selectedValue = settings.mouseAimMode,
+                ).filter { policy.supportsAim(it.first) },
+                selectedValue = settings.mouseAimMode.takeIf(policy::supportsAim) ?: AppPreferences.MOUSE_AIM_OFF,
                 onSelected = { onOverrideChange(settings.copy(mouseAimMode = it)) },
                 helpText = stringResource(R.string.settings_mouse_aim_mode_desc)
             )
-            if (settings.mouseAimMode != KeyboardMouseBindings.MOUSE_AIM_OFF) {
+            if (settings.mouseAimMode != KeyboardMouseBindings.MOUSE_AIM_OFF && policy.supportsAim(settings.mouseAimMode)) {
                 SliderRow(
                     title = stringResource(R.string.settings_mouse_sensitivity),
                     helpText = stringResource(R.string.legacy_help_mouse_sensitivity),
@@ -1935,7 +1971,8 @@ private fun PerGameKeyboardMouseSettingsSection(
             settings = settings,
             onSettingsChange = onOverrideChange,
             initialSource = source,
-            onDismiss = { mappingSource = null }
+            onDismiss = { mappingSource = null },
+            consolePolicy = consolePolicy
         )
     }
 }

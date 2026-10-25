@@ -64,13 +64,16 @@ class CoreOptionHelpTest {
 
     private fun helpResources(locale: String): Map<String, String> {
         val app = if (File("src/main/res").isDirectory) File(".") else File("app")
-        val file = File(app, "src/main/res/$locale/core_option_help.xml")
+        val file = File(app, "src/main/res/$locale/strings.xml")
         assertTrue("Missing translated core help: $locale", file.isFile)
         val document = DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(file)
         val strings = document.getElementsByTagName("string")
-        return (0 until strings.length).associate { index ->
+        val help = (0 until strings.length).mapNotNull { index ->
             val node = strings.item(index)
-            node.attributes.getNamedItem("name").nodeValue to node.textContent
-        }.also { assertEquals("Duplicate help IDs", strings.length, it.size) }
+            val name = node.attributes.getNamedItem("name")?.nodeValue ?: return@mapNotNull null
+            if (!name.startsWith("core_option_help_")) return@mapNotNull null
+            name to node.textContent
+        }
+        return help.toMap().also { assertEquals("Duplicate help IDs", help.size, it.size) }
     }
 }

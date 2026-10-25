@@ -1,8 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<resources>
-    <string name="formats_images_body">Çıkarılmış oyun görüntülerini kullanın. İçe aktarmadan önce ZIP ve 7z arşivlerini çıkarın.</string>
-    <string name="formats_3ds_body">CIA ve ZCIA paketleri başlatılmadan önce kurulur. Şifreli oyunlar kendi sistem anahtarlarınızı gerektirir.</string>
-    <string name="formats_ds_body">DS ve DSi geliştirmeli kartuşlar DS modunda çalışır. Yalnızca DSi oyunları bir DSi çalışma ortamı gerektirir.</string>
-    <string name="formats_fds_body">FDS oyunları, bellenim klasöründe 8 KiB boyutunda disksys.rom BIOS dosyası gerektirir.</string>
-    <string name="formats_executables_body">DOL ve ELF yürütülebilir dosyaları başlatılmadan önce konsol seçimi gerektirebilir.</string>
-</resources>

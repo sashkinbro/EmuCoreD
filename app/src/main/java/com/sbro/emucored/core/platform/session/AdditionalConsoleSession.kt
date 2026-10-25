@@ -4,7 +4,9 @@ package com.sbro.emucored.core.platform.session
 import android.view.Surface
 import com.sbro.emucored.core.platform.ConsolePlatform
 import com.sbro.emucored.core.ConsoleImageAccess
+import com.sbro.emucored.core.ConsoleImageParts
 import com.sbro.emucored.core.CoreRuntime
+import com.sbro.emucored.core.platform.CoreId
 import org.json.JSONObject
 import java.io.File
 import kotlinx.coroutines.Dispatchers
@@ -31,6 +33,8 @@ object AdditionalConsoleSession {
     val activeWiiControllerProfile: String? get() =
         (host.session?.engine as? com.sbro.emucored.core.dolphin.DolphinSessionEngine)?.activeWiiProfile
     val activeIdentityPath: String? get() = request?.identityPath.takeIf { isActive }
+    fun performanceMetricsSnapshot(): CorePerformanceSnapshot? =
+        host.session?.performanceSnapshot(android.os.SystemClock.elapsedRealtime())
 
     suspend fun start(launch: EngineLaunchRequest): Boolean = lifecycle.withLock {
         if (isActive) return@withLock false
@@ -38,11 +42,24 @@ object AdditionalConsoleSession {
         request = launch
         pad.reset()
         try {
-            val prepared = ConsoleImageAccess.prepare(launch.context, launch.launchPath) ?: run {
-                releaseImage(); return@withLock false
+            val nativeContent = launch.platform.core == CoreId.DOLPHIN &&
+                launch.launchPath.startsWith("content://") &&
+                !ConsoleImageParts.isMultipart(launch.sourceDisplayName)
+            if (nativeContent) {
+                // Dolphin owns SAF access through its Android file layer. Keeping
+                // the document URI preserves the grant and avoids a multi-GB copy.
+                image = null
+            } else {
+                val prepared = ConsoleImageAccess.prepare(
+                    launch.context,
+                    launch.launchPath,
+                    materializeContent = launch.platform.core != CoreId.DOLPHIN
+                ) ?: run {
+                    releaseImage(); return@withLock false
+                }
+                image = prepared
+                request = launch.copy(launchPath = prepared.path, sourceDisplayName = prepared.displayName)
             }
-            image = prepared
-            request = launch.copy(launchPath = prepared.path, sourceDisplayName = prepared.displayName)
             val started = host.start(request!!) == EngineStartResult.Started
             if (started) {
                 host.session?.let { guest -> pad.replay(guest::setButton) }

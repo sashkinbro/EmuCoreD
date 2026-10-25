@@ -170,7 +170,9 @@ data class OverlayLayoutSnapshot(
     val invertLeftStickHorizontal: Boolean = false,
     val invertRightStickHorizontal: Boolean = false,
     val stickSurfaceMode: Boolean = false,
-    val controlLayouts: Map<String, OverlayControlLayout> = AppPreferences.defaultOverlayControlLayouts()
+    val controlLayouts: Map<String, OverlayControlLayout> = AppPreferences.defaultOverlayControlLayouts(),
+    val customTouchControls: CustomTouchControlLibrary = CustomTouchControlLibrary.Empty,
+    val consoleProfiles: Map<String, ConsoleControlsProfile> = emptyMap()
 )
 
 data class OverlayControlLayout(
@@ -619,6 +621,7 @@ class AppPreferences(private val context: Context) {
         private val STICK_SURFACE_MODE = booleanPreferencesKey("stick_surface_mode")
         private val STICK_TOGGLE_TARGET = intPreferencesKey("stick_toggle_target")
         private val CONTROL_LAYOUTS = stringPreferencesKey("control_layouts")
+        private val CONSOLE_CONTROLS_PROFILES = stringPreferencesKey("console_controls_profiles")
         private val OVERLAY_LAYOUT_VERSION = intPreferencesKey("overlay_layout_version")
     }
     private fun readThemeMode(prefs: Preferences): ThemeMode {
@@ -1602,7 +1605,9 @@ class AppPreferences(private val context: Context) {
                 invertLeftStickHorizontal = prefs[INVERT_LEFT_STICK_HORIZONTAL] ?: false,
                 invertRightStickHorizontal = prefs[INVERT_RIGHT_STICK_HORIZONTAL] ?: false,
                 stickSurfaceMode = prefs[STICK_SURFACE_MODE] ?: false,
-                controlLayouts = decodeControlLayouts(prefs[CONTROL_LAYOUTS])
+                controlLayouts = decodeControlLayouts(prefs[CONTROL_LAYOUTS]),
+                customTouchControls = CustomTouchControlLibrary.decode(prefs[CUSTOM_TOUCH_CONTROLS_JSON]),
+                consoleProfiles = ConsoleControlsProfiles.decode(prefs[CONSOLE_CONTROLS_PROFILES])
             )
         }
         .distinctUntilChanged()
@@ -2977,6 +2982,18 @@ class AppPreferences(private val context: Context) {
         }
     }
 
+    suspend fun saveConsoleControls(scope: ConsoleControlsScope, profile: ConsoleControlsProfile) {
+        context.dataStore.edit { prefs ->
+            val profiles = ConsoleControlsProfiles.decode(prefs[CONSOLE_CONTROLS_PROFILES])
+            prefs[CONSOLE_CONTROLS_PROFILES] = ConsoleControlsProfiles.encode(profiles + (scope.key to profile))
+        }
+    }
+
+    suspend fun resetConsoleControls(scope: ConsoleControlsScope) {
+        // Keep an explicit factory profile so this scope does not re-inherit an old custom layout.
+        saveConsoleControls(scope, ConsoleControlsProfile(ConsoleControlsDefaults.layout(scope)))
+    }
+
     suspend fun setControlsLayout(
         dpadX: Float, dpadY: Float,
         lstickX: Float, lstickY: Float,
@@ -3338,6 +3355,8 @@ class AppPreferences(private val context: Context) {
             put("invertRightStickHorizontal", prefs[INVERT_RIGHT_STICK_HORIZONTAL] ?: false)
             put("stickSurfaceMode", prefs[STICK_SURFACE_MODE] ?: false)
             put("controlLayouts", prefs[CONTROL_LAYOUTS])
+            put("consoleControlsProfiles", ConsoleControlsProfiles.encode(
+                ConsoleControlsProfiles.decode(prefs[CONSOLE_CONTROLS_PROFILES])))
         }
     }
 
@@ -3671,6 +3690,10 @@ class AppPreferences(private val context: Context) {
             prefs[INVERT_RIGHT_STICK_HORIZONTAL] = json.optBoolean("invertRightStickHorizontal", false)
             prefs[STICK_SURFACE_MODE] = json.optBoolean("stickSurfaceMode", false)
             json.optString("controlLayouts").takeIf { it.isNotBlank() }?.let { prefs[CONTROL_LAYOUTS] = it } ?: prefs.remove(CONTROL_LAYOUTS)
+            if (json.has("consoleControlsProfiles")) {
+                prefs[CONSOLE_CONTROLS_PROFILES] = ConsoleControlsProfiles.encode(
+                    ConsoleControlsProfiles.decode(json.optString("consoleControlsProfiles")))
+            } else prefs.remove(CONSOLE_CONTROLS_PROFILES)
             migrateGlobalStickSurfaceMode(prefs)
         }
     }

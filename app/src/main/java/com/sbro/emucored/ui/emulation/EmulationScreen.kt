@@ -236,6 +236,8 @@ import com.sbro.emucored.ui.settings.ControlsEditorScreen
 import com.sbro.emucored.ui.settings.KeyboardMouseSettingsDialog
 import com.sbro.emucored.ui.settings.toControlsEditorState
 import com.sbro.emucored.data.forPlatform
+import com.sbro.emucored.data.ConsoleControlsScope
+import com.sbro.emucored.data.forConsoleControls
 import com.sbro.emucored.ui.common.ConsoleOverlayPolicy
 import com.sbro.emucored.core.PlatformUiCapabilities
 import com.sbro.emucored.core.AzaharCoreOptions
@@ -980,7 +982,7 @@ fun EmulationScreen(
         onDispose {
             SoftwareKeyboard.cancelPending()
             GamepadManager.setEmulationInputEnabled(false)
-            viewModel.stopEmulation()
+            viewModel.stopEmulationIfCurrent(gamePath)
         }
     }
 
@@ -1714,7 +1716,8 @@ fun EmulationScreen(
                     gamepadConnected = gamepadConnected,
                     currentGamePath = gamePath,
                     globalDefaults = globalDefaults.forPlatform(PlatformUiCapabilities.forGame(gamePath).platform),
-                    overlayDefaults = overlayDefaults,
+                    overlayDefaults = overlayDefaults.forConsoleControls(
+                        ConsoleControlsScope(overlayPolicy.platform, overlayPolicy.wiiProfile)),
                     onClose = toggleMenuClick,
                     onSwapScreens = viewModel::toggleScreenSwap,
                     onPauseToggle = togglePauseClick,
@@ -2069,6 +2072,7 @@ fun EmulationScreen(
 
     if (showKeyboardMouseSettingsDialog) {
         KeyboardMouseSettingsDialog(
+            consolePolicy = overlayPolicy,
             settings = keyboardMouseOverride ?: globalKeyboardMouseSettings,
             onSettingsChange = viewModel::setKeyboardMouseSettings,
             onUseGlobal = if (keyboardMouseOverride != null) {
@@ -2393,10 +2397,20 @@ private fun OnScreenControls(
                         TouchButtonPressAction(touchButtonActionOwner(consolePolicy.inputAlias(spec.id)), it)
                     }
                 )
+                // Console-specific glyphs (Z, 1, 2, +, −, C) keep the exact same
+                // outline artwork as every other overlay button; only the label
+                // changes. Never fall back to a different text-button skin.
+                val label = consolePolicy.buttonLabel(spec.id)
+                val drawable = when {
+                    label == null -> spec.drawableRes
+                    spec.id in setOf("a", "b", "x", "y", "home") ->
+                        R.drawable.ic_controller_blank_face_button
+                    else -> R.drawable.ic_controller_blank_shoulder_button
+                }
                 TouchButtonSpec(
                     id = spec.id,
-                    drawableRes = spec.drawableRes,
-                    labelOverride = consolePolicy.buttonLabel(spec.id),
+                    drawableRes = drawable,
+                    labelOverride = label,
                     width = spec.width,
                     height = spec.height,
                     x = spec.x,

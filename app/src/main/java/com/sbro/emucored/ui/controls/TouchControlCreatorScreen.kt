@@ -69,6 +69,7 @@ import com.sbro.emucored.data.CustomTouchControlContent
 import com.sbro.emucored.data.CustomTouchControlLibrary
 import com.sbro.emucored.data.CustomTouchControlPressMode
 import com.sbro.emucored.data.CustomTouchControlShape
+import com.sbro.emucored.ui.common.ConsoleOverlayPolicy
 import com.sbro.emucored.ui.common.ActionSelector
 import com.sbro.emucored.ui.common.CustomControlVisual
 import com.sbro.emucored.ui.common.ScreenTopBar
@@ -171,7 +172,8 @@ fun TouchControlCreatorScreen(
     isProUnlocked: Boolean,
     onPurchasePro: () -> Unit,
     onSave: (CustomTouchControlLibrary) -> Unit,
-    onBackClick: () -> Unit
+    onBackClick: () -> Unit,
+    consolePolicy: ConsoleOverlayPolicy? = null
 ) {
     val initial = remember(initialLibrary) { initialLibrary.sanitized() }
     val previewControlName = stringResource(R.string.touch_control_creator_default_name, 1)
@@ -529,6 +531,10 @@ fun TouchControlCreatorScreen(
                 )
                 ActionSelector(
                     selectedActionId = draft.actionId,
+                    testTagPrefix = "touch_control_creator_action",
+                    actionSupported = { consolePolicy?.supportsAction(it) ?: true },
+                    labelOverride = { consolePolicy?.buttonLabel(it) },
+                    includeExtendedActions = consolePolicy != null,
                     onSelect = { action ->
                         action?.let { selectedAction ->
                             updateDraft {
@@ -537,7 +543,7 @@ fun TouchControlCreatorScreen(
                                     secondaryActionId = it.secondaryActionId?.takeUnless { secondary ->
                                         secondary == selectedAction
                                     },
-                                    label = CustomTouchControl.defaultLabelFor(selectedAction),
+                                    label = consolePolicy?.buttonLabel(selectedAction) ?: CustomTouchControl.defaultLabelFor(selectedAction),
                                     updatedAtMillis = System.currentTimeMillis()
                                 )
                             }

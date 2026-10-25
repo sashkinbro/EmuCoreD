@@ -65,7 +65,6 @@ data class ConsoleOverlayPolicy private constructor(
         platform == ConsolePlatform.WII && wiiProfile != "classic" && id == "y" -> "2"
         platform == ConsolePlatform.WII && wiiProfile == "nunchuk" && id == "l" -> "C"
         platform == ConsolePlatform.WII && wiiProfile == "nunchuk" && id == "r" -> "Z"
-        platform !in setOf(ConsolePlatform.NDS, ConsolePlatform.N3DS) && id in setOf("l", "r", "zl", "zr") -> id.uppercase(java.util.Locale.ROOT)
         else -> null
     }
 

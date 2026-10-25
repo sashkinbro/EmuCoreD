@@ -106,6 +106,8 @@ class CoreSessionHost(private val factory: CoreEngineFactory = AndroidCoreEngine
             ownsGuest && ready && engine.setTouch(x, y, pressed)
         fun setSpeed(multiplier: Float): Boolean = ownsGuest && ready && engine.setSpeed(multiplier)
         fun frameCount(): Long = if (ownsGuest && ready) engine.frameCount() else 0L
+        fun performanceSnapshot(nowMillis: Long): CorePerformanceSnapshot? =
+            if (ownsGuest && ready) engine.performanceSnapshot(nowMillis) else null
         fun requestStop() {
             if (!ownsGuest) return
             closing = true

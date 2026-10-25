@@ -21,7 +21,7 @@ class PlatformUiCapabilities private constructor(val platform: GamePlatform) {
     val supportsAudioOptions: Boolean get() = platform != GamePlatform.NDS
 
     fun supportsGameMenuTab(tab: GameMenuTabId): Boolean =
-        tab != GameMenuTabId.CHEATS || supportsAzaharOptions
+        tab != GameMenuTabId.CHEATS || com.sbro.emucored.core.platform.session.CoreCheatFormats.supportsCore(platform.console.core)
 
     fun supportsGameMenuSection(section: GameMenuSectionId): Boolean =
         supportsGameMenuTab(section.tab) && when (section) {

@@ -10,7 +10,7 @@
     <string name="app_name">EmuCoreD</string>
 
     <string name="shell_library">遊戲庫</string>
-    <string name="shell_catalog_search">搜索 DS/DSi/3DS</string>
+    <string name="shell_catalog_search">搜尋遊戲</string>
     <string name="shell_supported_formats">支援的格式</string>
 
     <string name="home_empty_title">找不到遊戲</string>
@@ -246,7 +246,7 @@
     <string name="no">否</string>
     <string name="back">返回</string>
 
-    <string name="catalog_search_title">DS/DSi/3DS 目录</string>
+    <string name="catalog_search_title">搜尋遊戲</string>
     <string name="catalog_filters_title">過濾器</string>
     <string name="catalog_filter_genre">類型</string>
     <string name="catalog_filter_year">年份</string>
@@ -1843,4 +1843,267 @@
     <string name="settings_shader_presets_remove_title">移除所选预设？</string>
     <string name="settings_shader_presets_remove_body">已选预设：%1$d。是否从列表中移除？</string>
     <string name="settings_shader_presets_remove_failed">无法移除所选预设。</string>
+
+    <!-- Consolidated core, format, cheat and manager strings -->
+        <string name="cheat_catalog_browse_all">浏览此主机的所有金手指</string>
+        <string name="cheat_catalog_manual_attach">关联到所选游戏</string>
+        <string name="cheat_catalog_manual_warning">尚未验证此包与游戏是否匹配。启用代码前，请检查地区、修订版本和格式。</string>
+        <string name="cheat_format_unsupported">所选核心不支持此金手指格式。</string>
+        <string name="core_option_help_recommended_default">建议起始值：%1$s。</string>
+        <string name="core_option_help_video_filter" formatted="false">决定最终画面的放大方式：最近邻保留清晰的像素边缘，双线性过滤会混合相邻像素。双线性可能使文字和像素画变柔和，但不会增加游戏细节。想保留清晰像素时选最近邻，喜欢柔和画面时选双线性。</string>
+        <string name="core_option_help_audio_enabled" formatted="false">开启或关闭游戏声音。静音不会提高模拟时钟频率，也不保证游戏运行更快。通常保持开启，需要无声游玩时再关闭。</string>
+        <string name="core_option_help_aspect_ratio_frame" formatted="false">设置画面的显示比例：自动采用核心提供的比例，像素模式使用正方形原始像素，其他选项则强制指定宽高比。强制使用 4:3 或 16:9 可能拉伸人物，并不会显示更多场景。先选自动；想保留未经校正的像素比例时选像素模式。</string>
+        <string name="core_option_help_aspect_ratio_dolphin" formatted="false">选择自动检测游戏宽高比、强制 4:3 或 16:9、铺满显示区域，或保留原始画面比例。强制比例可能造成变形，本身不会扩大 3D 视野。先用自动，仅在游戏或屏幕确有需要时更改。</string>
+        <string name="core_option_help_graphics_backend" formatted="false">选择 Dolphin 使用 Vulkan 还是 OpenGL 渲染。驱动兼容性、着色器编译卡顿和 GPU 负载随游戏与设备而异，没有一种后端在所有情况下都最快。先用 Vulkan；遇到画面错误或帧间隔不稳定时，再比较 OpenGL。</string>
+        <string name="core_option_help_resolution" formatted="false">提高画面输出前的内部 3D 渲染分辨率。较高倍数让几何边缘更清晰，但增加 GPU 运算和内存占用，原始纹理并不会获得新的细节。先用 1x，只有游戏仍能全速运行时才逐步提高。</string>
+        <string name="core_option_help_widescreen_hack" formatted="false">扩大原本为较窄屏幕设计的游戏的 3D 投影视野。游戏仍按原始视野处理场景，因此边缘物体可能消失，界面或特效也可能错位。先保持关闭，确认这款游戏在启用后显示正确再使用。</string>
+        <string name="core_option_help_msaa" formatted="false">对每个渲染像素进行多次采样，平滑多边形边缘。采样数越高，GPU 带宽和内存消耗越大，部分后端也可能不支持。先用 1x，即关闭 MSAA；只有锯齿明显且速度稳定时才提高。</string>
+        <string name="core_option_help_anisotropy" formatted="false">提高斜视表面的纹理清晰度，例如道路和地面。较高过滤级别增加 GPU 负载，强制过滤也可能改变原本的纹理外观。先保留默认值；斜面纹理模糊时再尝试更高的级别。</string>
+        <string name="core_option_help_texture_filtering" formatted="false">保留游戏指定的纹理过滤方式，或强制使用最近邻、双线性过滤。最近邻使纹理像素更清晰，双线性会混合像素，可能模糊界面或改变特效。为兼容性先保留默认值，确认实际效果符合喜好后再强制过滤。</string>
+        <string name="core_option_help_shader_compilation" formatted="false">选择专用着色器、混合或仅使用通用着色器，或在编译期间跳过绘制。专用模式遇到新特效时可能卡顿；通用着色器更消耗 GPU；跳过绘制会使物体暂时缺失。先用专用模式，编译卡顿时试混合模式；需要完整画面时避免跳过绘制。</string>
+        <string name="core_option_help_shader_cache" formatted="false">保存编译好的着色器，供后续启动复用。会占用存储空间并减少重复编译，但新特效或驱动变化仍可能触发编译。通常保持开启，仅在排查着色器缓存相关的画面问题时关闭。</string>
+        <string name="core_option_help_wait_for_shaders" formatted="false">进入游戏前等待缓存着色器编译完成。可能减少刚开始游玩时的卡顿，但会延长启动加载，也无法消除所有新着色器的编译暂停。如果更在意开局流畅度而非最短启动时间，可以开启。</string>
+        <string name="core_option_help_vsync" formatted="false">使画面呈现与屏幕刷新同步。可以减少画面撕裂，但游戏跟不上时可能增加延迟或导致帧间隔不均。出现明显撕裂时尝试开启；如果操作响应或流畅度变差，就关闭。</string>
+        <string name="core_option_help_backend_multithreading" formatted="false">将受支持的图形后端工作放到额外线程执行。可能缓解 CPU 瓶颈，但会增加线程同步开销，效果也取决于驱动。通常保持开启；排查驱动崩溃或图形不稳定时再关闭。</string>
+        <string name="core_option_help_skip_efb_access" formatted="false">跳过 CPU 对嵌入式帧缓冲区 EFB 的读写。可避免高成本的 GPU 同步，但可能破坏物体选取、碰撞、可见性判断或其他游戏逻辑。先用默认值兼顾速度；如果游戏需要这些帧缓冲区访问，请关闭此选项。</string>
+        <string name="core_option_help_efb_texture_only" formatted="false">仅以 GPU 纹理保存 EFB 副本，不再同时写入模拟内存。通常能减少回读开销，但部分游戏的特效或逻辑需要内存中的副本。先保持开启，出现特效缺失或已知游戏兼容性要求时再关闭。</string>
+        <string name="core_option_help_xfb_texture_only" formatted="false">将外部帧缓冲区副本保留在 GPU，不把像素复制到模拟内存。可减少数据传输，但会影响需要读取或修改这些内存图像的游戏。先保持开启；视频缺失或帧缓冲区特效错误时关闭。</string>
+        <string name="core_option_help_defer_efb_copies" formatted="false">延迟向模拟内存写入帧缓冲区副本，直到实际需要时再处理。可能减少等待，但依赖某些游戏无法接受的时序假设。先保持开启；帧缓冲区特效或游戏逻辑错误时关闭。</string>
+        <string name="core_option_help_immediate_xfb" formatted="false">立即呈现外部帧缓冲区副本，而非等待正常扫描输出。可能降低延迟，但也会暴露中间画面或引起闪烁，并跳过重复呈现。先保持关闭，确认该游戏在立即呈现时显示正确后再启用。</string>
+        <string name="core_option_help_skip_duplicate_xfbs" formatted="false">避免反复呈现完全相同的外部帧缓冲区副本。能减少低于屏幕刷新率的游戏的显示开销，但可能让帧间隔不够均匀。先保持开启以节省资源；如果重复显示帧反而更流畅，再关闭。</string>
+        <string name="core_option_help_scaled_efb_copy" formatted="false">按所选内部渲染分辨率生成 EFB 副本。使用这些副本的特效可能更清晰，但内存占用增加，部分游戏也要求原生尺寸的副本。先保持开启；提高分辨率后特效出错时关闭。</string>
+        <string name="core_option_help_ignore_format_changes" formatted="false">忽略 EFB 像素格式的变化。能省去格式转换，但可能导致特效颜色或精度不正确。先保留默认值；如果游戏需要准确处理格式变化，就关闭此选项。</string>
+        <string name="core_option_help_texture_cache_accuracy" formatted="false">决定复用缓存纹理前，检查纹理数据变化的严格程度。安全模式检查更多数据，CPU 开销更大；快速模式可能漏掉更新，出现旧纹理或闪烁。先用平衡模式，纹理更新错误时改用安全模式。</string>
+        <string name="core_option_help_gpu_texture_decoding" formatted="false">将受支持的主机纹理解码从 CPU 转交给 GPU。可能缓解 CPU 瓶颈，但会增加 GPU 压力，且需要渲染后端支持。先保持关闭，在同一场景比较效果后再决定是否启用。</string>
+        <string name="core_option_help_fast_depth" formatted="false">用较快的近似方法计算深度。可以减少图形运算，但依赖精确深度的表面或特效可能位置错误。通常保持开启；出现深度相关的画面错误时关闭。</string>
+        <string name="core_option_help_disable_bbox" formatted="false">关闭 GPU 包围盒功能的模拟。可减少 GPU 工作，但依赖包围盒结果的游戏可能丢失特效或出现逻辑错误。普通游戏先保留默认值；遇到需要此功能的游戏时，关闭这个禁用选项。</string>
+        <string name="core_option_help_vertex_rounding" formatted="false">提高内部分辨率后，将 2D 顶点和视口尺寸取整到像素。可以修复精灵错位或接缝，但会改变定位，在原生分辨率下无效。仅在提高分辨率后出现明显的 2D 对齐问题时开启。</string>
+        <string name="core_option_help_disable_fog" formatted="false">移除游戏场景中的雾。远处物体更容易看清，但会改变原有氛围，并可能暴露原本隐藏的场景边界。想保留原貌时保持关闭，仅按个人视觉偏好开启。</string>
+        <string name="core_option_help_disable_copy_filter" formatted="false">移除主机原本用于柔化最终画面的复制过滤器。画面可能更清晰，但锯齿会更明显，也可能失去原有的模糊效果。喜欢清晰画面时开启；要保留原始过滤效果时关闭。</string>
+        <string name="core_option_help_force_true_color" formatted="false">使用更高的颜色精度替代原有的低精度渲染。可减少色带，但会改变抖色及依赖原始颜色精度的特效。想要平滑渐变时保持开启；特效需要原始颜色处理时关闭。</string>
+        <string name="core_option_help_per_pixel_lighting" formatted="false">对受支持的光照逐像素计算，而非使用原本的逐顶点结果。光照可能更平滑，但 GPU 负载增加，画面也会与原机不同。先保持关闭，仅在喜欢其效果且 GPU 性能有余量时启用。</string>
+        <string name="core_option_help_hires_textures" formatted="false">加载已安装的当前游戏高清纹理替换包。可改善纹理细节，但占用存储和内存，增加加载时间；错误的纹理包也会显示错误图案。只在安装了兼容的纹理包后开启。</string>
+        <string name="core_option_help_cache_hires_textures" formatted="false">预先把替换纹理加载到内存，而非首次使用时才读取。可能减少游戏中的加载卡顿，但会增加内存占用并延长启动。内存较少的设备先保持关闭；确认纹理包能在内存中留有余量时再开启。</string>
+        <string name="core_option_help_save_texture_cache" formatted="false">在即时存档中包含帧缓冲区纹理数据。有助于读档后恢复缺失或放大的特效，但会增加存档体积和读写时间。通常保持开启，除非较小存档比准确恢复画面更重要。</string>
+        <string name="core_option_help_cpu_backend" formatted="false">选择模拟 CPU 使用 ARM64 JIT、缓存解释器还是普通解释器。解释器便于诊断，但通常慢得多，可能无法全速运行游戏。平时使用 JIT，仅为排查具体兼容性问题尝试解释器。</string>
+        <string name="core_option_help_dual_core" formatted="false">把模拟 CPU 和 GPU 的工作分配到不同的设备线程。可能提高吞吐量，但线程同步差异会影响部分游戏。正常游玩先保持开启；遇到特定游戏不稳定或时序问题时关闭。</string>
+        <string name="core_option_help_mmu" formatted="false">更完整地模拟 CPU 虚拟内存地址转换。部分游戏需要它才能正常工作，其他游戏则没有画质收益，还可能更慢。除非游戏需要 MMU 支持，否则保持关闭。</string>
+        <string name="core_option_help_accurate_cpu_cache" formatted="false">更准确地模拟 CPU 缓存行为。可修复依赖缓存细节的游戏，但增加 CPU 开销，并不改善普通画质。先保持关闭，仅在能解决已知兼容性问题时开启。</string>
+        <string name="core_option_help_fprf" formatted="false">模拟部分 CPU 指令使用的浮点结果标志。可能修复游戏计算，但处理这些标志会增加工作量。除非游戏明确需要准确的结果标志，否则保持关闭。</string>
+        <string name="core_option_help_accurate_nans" formatted="false">更准确地模拟 CPU 浮点 NaN 行为。针对特殊游戏计算而非画面清晰度，可能增加运算开销。除非游戏需要这项浮点兼容性修复，否则保持关闭。</string>
+        <string name="core_option_help_accurate_fmadds" formatted="false">更准确地模拟浮点融合乘加的计算结果。可解决计算差异，但可能增加 CPU 耗时，不会直接提高分辨率。先保持关闭，仅在准确计算能修复游戏错误时开启。</string>
+        <string name="core_option_help_fastmem" formatted="false">让模拟 CPU 使用更快的设备内存访问路径。可降低 CPU 开销；关闭后可能便于排查内存访问兼容性问题。通常保持开启，只有确认它导致问题时才关闭。</string>
+        <string name="core_option_help_fast_disc" formatted="false">取消正常的光盘读取时序限制。可能缩短加载，但依赖原始读盘时序的游戏可能出错。为兼容性先保持关闭，测试过游戏的加载过渡后再启用。</string>
+        <string name="core_option_help_cpu_clock" formatted="false">改变模拟 CPU 相对于原机的时钟频率。提高可能缓解原游戏的掉速，但增加设备 CPU 负载；降低则可能改变时序或减慢游戏逻辑。先用 100%，只为经过验证的特定游戏需求调整。</string>
+        <string name="core_option_help_dsp_hle" formatted="false">使用高层模拟处理主机音频处理器，而非低层 DSP 模拟。HLE 通常更省资源；LLE 可能修复特殊音频问题，但需要更多处理时间。除非游戏需要低层音频模拟，否则保持 HLE 开启。</string>
+        <string name="core_option_help_dsp_jit" formatted="false">低层 DSP 模拟使用重编译器而非解释器。主要在 DSP HLE 关闭时起作用，解释器可能慢得多。除非正在排查 LLE 音频问题，否则保持 DSP JIT 开启。</string>
+        <string name="core_option_help_dsp_thread" formatted="false">在独立线程中执行低层 DSP 工作。可能改善 CPU 负载分配，但同步变化也可能造成声音或时序问题，对 DSP HLE 没有同样的收益。先保持关闭，只在使用 LLE 时测试。</string>
+        <string name="core_option_help_audio_backend" formatted="false">选择 Cubeb 或 OpenSL ES 向 Android 输出声音。设备支持、延迟及音频缓冲不足时的表现可能不同，但不会改变游戏音乐本身。先用 Cubeb；没有声音或反复爆音时尝试 OpenSL ES。</string>
+        <string name="core_option_help_volume" formatted="false">调整输出前的游戏音量。降低会使声音更轻，不会拖慢游戏；过高则可能使本来就很响的混音不适。先保留默认值，再按耳机或扬声器的需要降低。</string>
+        <string name="core_option_help_audio_buffer_size" formatted="false">设置目标音频缓冲时长，单位为毫秒。较大缓冲可吸收短暂的调度延迟，但增加声音延迟；较小缓冲响应更快，却可能爆音。先用 80 毫秒，仅在仍能听到缓冲不足造成的中断时提高。</string>
+        <string name="core_option_help_audio_preserve_pitch" formatted="false">模拟速度偏离正常值时，尽量保持音调稳定。时间拉伸可能增加计算开销、延迟或声音瑕疵，速度变化较大时尤其明显。如果不喜欢音乐音调随速度变化，可以开启并在所用速度下比较效果。</string>
+        <string name="core_option_help_audio_fill_gaps" formatted="false">填补短暂的音频输出间隙，而非保持静音。可以减轻短暂掉速带来的听感变化，但不能恢复缺失的游戏速度，停顿时也可能改变声音。通常保持开启；比较声音时序或瑕疵时再关闭。</string>
+        <string name="core_option_help_speed" formatted="false">设置相对于正常游玩的目标模拟速度。更快需要更多设备性能，并改变游戏节奏和声音；较慢则有意放慢游戏。正常游玩用 1.0，只在需要快进或慢动作时更改。</string>
+        <string name="core_option_help_gc_language" formatted="false">选择模拟 GameCube 向游戏报告的语言。只能使用游戏内置的语言，部分版本会忽略此设置。请选择支持的首选语言；如果游戏有自己的语言选项，可使用游戏菜单设置。</string>
+        <string name="core_option_help_wii_profile" formatted="false">选择模拟 Wii 遥控器、连接双节棍的 Wii 遥控器，或经典控制器。决定游戏接收到哪些按键和摇杆；不支持的控制器可能无法使用。请选择游戏要求的类型，而非试图同时启用所有扩展配件。</string>
+        <string name="core_option_help_wii_speaker" formatted="false">开启模拟 Wii 遥控器扬声器功能。游戏可用它播放额外提示音，关闭后这些声音可能缺失，混音也不完整。通常保持开启，仅在遥控器扬声器声音导致问题时关闭。</string>
+        <string name="core_option_help_frameskip" formatted="false">在显示的帧之间跳过指定数量的渲染帧。能减少低性能设备的渲染负担，但动作会更不流畅，也不会提高游戏逻辑的准确性。先用零，仅在否则无法维持速度时增加。</string>
+        <string name="core_option_help_idle_optimization" formatted="false">决定 mGBA 是检测、移除模拟 CPU 空闲循环，还是保持原样。省去空闲运算可能提速，但强制移除会影响时序特殊的游戏。先用检测，排查时序或兼容性问题时再选忽略。</string>
+        <string name="core_option_help_allow_opposing_directions" formatted="false">允许同时向游戏发送相反方向，例如左和右。原始控制器通常无法产生这种组合，部分游戏会出现不可预期的反应。除非特定自制程序或输入测试需要，否则保持关闭。</string>
+        <string name="core_option_help_highpass_filter" formatted="false">选择 Game Boy 音频高通滤波器：准确模拟硬件、仅去除直流偏移，或不使用过滤。会改变低频和瞬态声音，关闭过滤还可能引入直流偏移。正常游玩选准确模式，只为特定听感偏好比较其他模式。</string>
+        <string name="core_option_help_interference_volume" formatted="false">按所选强度加入模拟 Game Boy 硬件干扰噪声。值越高，背景硬件噪声越明显，并非提高音乐保真度。想要干净声音时用零；喜欢原机质感时可稍微提高。</string>
+        <string name="core_option_help_palette" formatted="false">选择 Game Boy 游戏的单色显示色调，包括 DMG、灰色、Pocket 和 Light 风格。只改变颜色，不会加入 Game Boy Color 图形，也不会提速。请选择最易辨认或最接近所喜欢原机屏幕的调色板。</string>
+        <string name="core_option_help_color_correction" formatted="false">调整 Game Boy Color 色彩曲线，近似原始屏幕的响应。颜色可能比直接输出 RGB 更柔和，但关闭后可能夸大为掌机屏幕设计的颜色。想接近原机时保持开启，喜欢未经校正的色彩时关闭。</string>
+        <string name="core_option_help_unlimited_sprites" formatted="false">移除 NES 每条扫描线的精灵数量限制。可能减少原机式精灵闪烁，但会显示游戏故意隐藏的精灵或改变特效。为原始行为先保持关闭，检查过大量精灵的场景后再开启。</string>
+        <string name="core_option_help_bsnes_ppu_fast" formatted="false">使用更快的 SNES 图像处理实现，而非更精确的路径。可减少模拟开销并支持 HD Mode 7，但部分对时序敏感的特效可能不同。先保持开启；遇到需要精确 PPU 的图形问题时关闭。</string>
+        <string name="core_option_help_bsnes_dsp_fast" formatted="false">使用更快的 SNES 音频 DSP 实现。可减少 CPU 工作，但对时序敏感的声音可能与精确实现不同。先保持开启；游戏出现可复现的声音错误时关闭。</string>
+        <string name="core_option_help_bsnes_entropy" formatted="false">控制启动时内存和寄存器初始值的随机化程度。低接近普通 SNES 启动；高用于暴露依赖未初始化内存的问题；无则使用某些旧自制程序需要的固定值。游戏先选低，仅在开发或处理已知启动兼容性问题时更改。</string>
+        <string name="core_option_help_bsnes_blur_emulation" formatted="false">模拟 SNES 图像的水平混合，包括受支持的伪透明效果。混合可使这些效果正确显示，但会柔化像素边缘。想保留清晰像素时关闭，游戏依赖混合透明效果时开启。</string>
+        <string name="core_option_help_bsnes_ppu_no_sprite_limit" formatted="false">移除快速 PPU 中的 SNES 精灵数量限制。可减少精灵闪烁或消失，但会暴露物体，或改变依赖硬件限制的效果。为原始画面先保持关闭，检查过物体密集的场景后再开启。</string>
+        <string name="core_option_help_bsnes_ppu_show_overscan" formatted="false">显示通常隐藏在 SNES 过扫描区域的画面行。能看到更多边缘内容，但部分游戏会在这里放空行或杂乱图像。常规裁切显示保持关闭，需要额外画面行时开启。</string>
+        <string name="core_option_help_bsnes_hotfixes" formatted="false">应用核心提供的特定游戏错误修复，这些错误也存在于原版游戏中。可改善可玩性，但有意改变未经修改的硬件行为。想忠实保留原貌时关闭，需要受支持的游戏修复时开启。</string>
+        <string name="core_option_help_bsnes_mode7_scale" formatted="false">提高快速 PPU 中 Mode 7 背景的渲染分辨率。道路和旋转平面可更清晰，但较高倍数增加 CPU 与内存开销，并不会放大每个精灵。先用 1x，仅在仍能全速运行时提高。</string>
+        <string name="core_option_help_bsnes_cpu_overclock" formatted="false">改变模拟 SNES 主 CPU 相对于原机的速度。提高可缓解原游戏掉速，但增加设备运算负担，也可能破坏时序。先用 100%，只在测试过不同场景的游戏中调整。</string>
+        <string name="core_option_help_bsnes_sa1_overclock" formatted="false">改变带 SA-1 芯片的卡带中模拟协处理器的频率。提高可能缓解这些游戏的掉速，但增加 CPU 负载并改变时序；其他卡带不会受益。先用 100%，只对测试过的 SA-1 游戏提高。</string>
+        <string name="core_option_help_bsnes_sfx_overclock" formatted="false">改变带 Super FX 芯片的卡带中模拟协处理器的频率。提高可能使受支持的 3D 场景更流畅，但增加 CPU 工作，也可能改变时序或游戏速度。先用 100%，只在 Super FX 游戏中谨慎提高。</string>
+        <string name="core_option_help_bsnes_cpu_fastmath" formatted="false">让 SNES CPU 的乘除结果无需原有延迟即可使用。可支持某些旧 ROM 修改版，但改变的是硬件时序，并非通用提速功能。除非特定修改版需要立即获得运算结果，否则保持关闭。</string>
+        <string name="core_option_help_bsnes_ppu_deinterlace" formatted="false">改变快速 PPU 呈现 SNES 隔行画面的方式。可减少隔行闪烁，但会改变交替场的外观，并可能柔化或改变细节。先保持开启，喜欢原始隔行显示时再关闭。</string>
+        <string name="core_option_help_bsnes_ppu_no_vram_blocking" formatted="false">允许在真实 SNES 硬件会阻止访问的时段读写显存。一些旧 ROM 修改版需要这种不精确行为，而且可能降低快速 PPU 的性能。除非已知不兼容的修改版要求不受限的 VRAM 访问，否则保持关闭。</string>
+        <string name="core_option_help_bsnes_mode7_perspective" formatted="false">对快速 PPU 的高分辨率 Mode 7 背景进行透视校正。可使倾斜平面更连贯，但会改变原有采样，只影响受支持的 Mode 7 场景。使用 HD Mode 7 时先保持开启，场景显示不正确时关闭。</string>
+        <string name="core_option_help_bsnes_mode7_supersample" formatted="false">为高分辨率 Mode 7 背景增加采样。可减少闪烁，但增加 CPU 开销，并非适用于所有 SNES 图形的通用抗锯齿。先保持关闭，只有 Mode 7 闪烁明显且速度稳定时才开启。</string>
+        <string name="core_option_help_bsnes_mode7_mosaic" formatted="false">游戏使用马赛克时，将 HD Mode 7 输出降回原始比例。可保留刻意设计的块状过渡；关闭后，高倍数下的效果会改变。通常保持开启，只有更喜欢修改后的高清马赛克效果时才关闭。</string>
+        <string name="core_option_help_bsnes_dsp_cubic" formatted="false">SNES DSP 播放受支持的采样时使用三次插值。相较原始高斯插值会改变采样音乐的音色，并不是准确性升级。想保留原始声音时关闭，喜欢另一种音色时开启。</string>
+        <string name="core_option_help_bsnes_dsp_echo_shadow" formatted="false">为 SNES DSP 回声缓冲区使用独立的影子内存。可支持错误使用回声 RAM 的旧 ROM 修改版，但会改变音频写入与普通内存的交互。除非特定修改版需要这种兼容行为，否则保持关闭。</string>
+        <string name="core_option_help_bsnes_coprocessor_delayed_sync" formatted="false">推迟与受支持的 SNES 卡带协处理器同步，直到确实需要时再执行。可减少 CPU 开销，但放宽时序协调，可能影响特殊的协处理器行为。先保持开启，出现可复现的协处理器兼容性问题时关闭。</string>
+        <string name="core_option_help_bsnes_coprocessor_prefer_hle" formatted="false">可用时优先采用卡带协处理器的高层模拟。能减少 CPU 工作，但精确度较低；关闭后，在有所需固件时使用低层模拟。通常保持开启，仅为已知兼容性问题尝试低层模拟。</string>
+        <string name="core_option_help_bsnes_run_ahead_frames" formatted="false">通过额外模拟并回滚状态，减少屏幕上可见的输入延迟。帧数越多，CPU 运算量大幅增加，可能导致掉速或状态相关的不兼容。先保持关闭，仅在性能余量充足时尝试一帧。</string>
+        <string name="core_option_help_bsnes_video_filter" formatted="false">模拟不同的 SNES 模拟视频连接，从射频、复合视频到更清晰的 S-Video 与 RGB。会增加颜色混合、图像瑕疵或处理开销，而非增加游戏原有细节。想要干净像素时选无，也可按喜好选择连接风格。</string>
+        <string name="core_option_cpu_backend">CPU 引擎</string>
+        <string name="core_option_dual_core">双核模拟</string>
+        <string name="core_option_dsp_hle">DSP HLE</string>
+        <string name="core_option_speed">模拟速度</string>
+        <string name="core_option_wii_profile">Wii 控制器</string>
+        <string name="core_option_video_filter">图像过滤</string>
+        <string name="core_option_color_correction">色彩校正</string>
+        <string name="core_option_unlimited_sprites">移除精灵数量限制</string>
+        <string name="core_option_ppu_fast">快速 PPU</string>
+        <string name="core_option_dsp_fast">快速 DSP</string>
+        <string name="core_option_entropy">内存随机初始化</string>
+        <string name="core_option_blur">模拟模糊</string>
+        <string name="core_option_overscan">显示过扫描区域</string>
+        <string name="core_option_hotfixes">游戏兼容性修复</string>
+        <string name="core_option_mode7_scale">HD Mode 7 缩放</string>
+        <string name="core_option_sa1_clock">SA-1 时钟频率</string>
+        <string name="core_option_sfx_clock">SuperFX 时钟频率</string>
+        <string name="core_option_fast_math">快速 CPU 运算</string>
+        <string name="core_option_deinterlace">去隔行</string>
+        <string name="core_option_no_vram_blocking">移除 VRAM 阻塞</string>
+        <string name="core_option_mode7_perspective">Mode 7 透视校正</string>
+        <string name="core_option_mode7_supersample">Mode 7 超级采样</string>
+        <string name="core_option_mode7_mosaic">Mode 7 马赛克</string>
+        <string name="core_option_dsp_cubic">DSP 三次插值</string>
+        <string name="core_option_dsp_echo_shadow">DSP 回声影子内存</string>
+        <string name="core_option_delayed_sync">延迟协处理器同步</string>
+        <string name="core_option_prefer_hle">优先使用协处理器 HLE</string>
+        <string name="core_option_run_ahead">提前运行帧数</string>
+        <string name="core_option_video_signal">视频信号滤镜</string>
+        <string name="core_option_restart_required">重启游戏后生效。</string>
+        <string name="core_option_interpreter">解释器</string>
+        <string name="core_option_nearest">最近邻</string>
+        <string name="core_option_linear">双线性</string>
+        <string name="core_option_low">低</string>
+        <string name="core_option_high">高</string>
+        <string name="core_option_frameskip">跳帧</string>
+        <string name="core_option_idle_optimization">空闲循环优化</string>
+        <string name="core_option_allow_opposing_directions">允许相反方向同时输入</string>
+        <string name="core_option_palette">Game Boy 调色板</string>
+        <string name="core_option_highpass_filter">音频高通滤波器</string>
+        <string name="core_option_interference_volume">音频干扰音量</string>
+        <string name="core_option_detect">检测</string>
+        <string name="core_option_remove">移除</string>
+        <string name="core_option_ignore">忽略</string>
+        <string name="core_option_hardware">忠于原硬件</string>
+        <string name="core_option_greyscale">灰度</string>
+        <string name="dolphin_option_widescreen_hack">宽屏修正</string>
+        <string name="dolphin_option_msaa">抗锯齿</string>
+        <string name="dolphin_option_anisotropy">各向异性过滤</string>
+        <string name="dolphin_option_texture_filtering">纹理过滤</string>
+        <string name="dolphin_option_shader_compilation">着色器编译</string>
+        <string name="dolphin_option_shader_cache">@string/settings_core_label_use_disk_shader_cache</string>
+        <string name="dolphin_option_wait_for_shaders">在开始前编译着色器</string>
+        <string name="dolphin_option_vsync">垂直同步</string>
+        <string name="dolphin_option_backend_multithreading">后端多线程</string>
+        <string name="dolphin_option_skip_efb_access">跳过 CPU 对 EFB 访问</string>
+        <string name="dolphin_option_efb_texture_only">仅存储 EFB 副本为纹理</string>
+        <string name="dolphin_option_xfb_texture_only">仅存储 XFB 副本为纹理</string>
+        <string name="dolphin_option_defer_efb_copies">推迟 EFB 副本到内存</string>
+        <string name="dolphin_option_immediate_xfb">立即呈现 XFB</string>
+        <string name="dolphin_option_skip_duplicate_xfbs">跳过重复帧</string>
+        <string name="dolphin_option_scaled_efb_copy">缩放 EFB 副本</string>
+        <string name="dolphin_option_ignore_format_changes">忽略格式变化</string>
+        <string name="dolphin_option_texture_cache_accuracy">纹理缓存精度</string>
+        <string name="dolphin_option_gpu_texture_decoding">GPU 纹理解码</string>
+        <string name="dolphin_option_fast_depth">快速深度计算</string>
+        <string name="dolphin_option_disable_bbox">禁用边界框</string>
+        <string name="dolphin_option_vertex_rounding">顶点取整</string>
+        <string name="dolphin_option_disable_fog">禁用雾</string>
+        <string name="dolphin_option_disable_copy_filter">禁用副本过滤</string>
+        <string name="dolphin_option_force_true_color">强制 24 位色</string>
+        <string name="dolphin_option_per_pixel_lighting">逐像素光照</string>
+        <string name="dolphin_option_hires_textures">加载自定义纹理</string>
+        <string name="dolphin_option_cache_hires_textures">预读取自定义纹理</string>
+        <string name="dolphin_option_save_texture_cache">保存纹理缓存到状态</string>
+        <string name="dolphin_option_mmu">启用 MMU</string>
+        <string name="dolphin_option_accurate_cpu_cache">使用回写缓存 (慢速)</string>
+        <string name="dolphin_option_fprf">FPRF</string>
+        <string name="dolphin_option_accurate_nans">精确 NaN</string>
+        <string name="dolphin_option_accurate_fmadds">精确融合乘加</string>
+        <string name="dolphin_option_fastmem">Fastmem</string>
+        <string name="dolphin_option_fast_disc">加速光盘数据传输</string>
+        <string name="dolphin_option_cpu_clock">@string/settings_core_label_cpu_clock_percentage</string>
+        <string name="dolphin_option_dsp_jit">LLE 重编译器（较慢）</string>
+        <string name="dolphin_option_dsp_thread">在独立线程运行 DSP LLE</string>
+        <string name="dolphin_option_audio_backend">音频后端</string>
+        <string name="dolphin_option_audio_buffer_size">音频缓冲区大小：</string>
+        <string name="dolphin_option_audio_preserve_pitch">保持音频音调</string>
+        <string name="dolphin_option_audio_fill_gaps">填充音频间隔</string>
+        <string name="dolphin_option_gc_language">语言</string>
+        <string name="dolphin_option_wii_speaker">启用扬声器数据</string>
+        <string name="dolphin_choice_default">默认</string>
+        <string name="dolphin_choice_stretch">拉伸到窗口大小</string>
+        <string name="dolphin_choice_specialized">特化（默认）</string>
+        <string name="dolphin_choice_hybrid">混合超着色器</string>
+        <string name="dolphin_choice_exclusive">独用超着色器</string>
+        <string name="dolphin_choice_skip">跳过绘制</string>
+        <string name="dolphin_choice_safe">安全</string>
+        <string name="dolphin_choice_balanced">均衡</string>
+        <string name="dolphin_choice_fast">快速</string>
+        <string name="dolphin_choice_cached_interpreter">缓存解释器（较慢）</string>
+        <string name="dolphin_choice_english">英语</string>
+        <string name="dolphin_choice_german">德语</string>
+        <string name="dolphin_choice_french">法语</string>
+        <string name="dolphin_choice_spanish">西班牙语</string>
+        <string name="dolphin_choice_italian">意大利语</string>
+        <string name="dolphin_choice_dutch">荷兰语</string>
+        <string name="formats_images_body">请使用已解压的游戏镜像。导入前请先解压 ZIP 和 7z 压缩包。</string>
+        <string name="formats_3ds_body">CIA 和 ZCIA 安装包会在启动前安装。加密游戏需要您自己的系统密钥。</string>
+        <string name="formats_ds_body">DS 和支持 DSi 增强功能的卡带以 DS 模式运行。DSi 专用游戏需要 DSi 运行环境。</string>
+        <string name="formats_fds_body">FDS 游戏需要在固件文件夹中提供大小为 8 KiB 的 disksys.rom BIOS。</string>
+        <string name="formats_executables_body">可执行映像通过文件头识别，且必须与对应主机兼容。</string>
+        <string name="formats_disc_parts_body">对于分卷WBFS或ISO映像，请将所有分卷保存在同一文件夹中，并授予文件夹访问权限。打开WBFS或.part0.iso文件；后续分卷不是独立游戏。</string>
+        <string name="legacy_help_ds_renderer">选择 DS 的渲染方式。默认的 Vulkan 支持提高内部分辨率；软件渲染（Software）固定使用原生 1x，可能解决部分图形或驱动问题。DS 的 2D 渲染仍可能很依赖 CPU，因此 Vulkan 并非在每款游戏中都更快。先用 Vulkan，遇到具体兼容性问题时，再用软件渲染比较同一场景。</string>
+        <string name="legacy_help_ds_upscale">在 Vulkan 下提高 DS 3D 图形的内部分辨率。较高倍数让轮廓更清晰，但增加 GPU 负载、内存占用和发热；原生 2D 图像几乎不会增加细节。软件渲染固定使用原生 1x。先用默认 2x，游戏变慢时降至 1x，速度稳定后再提高。</string>
+        <string name="legacy_help_cover_style">选择平面封面、3D 包装盒封面，或不显示封面。改变的是游戏库外观以及图片下载和缓存用量，不影响游戏画面或模拟速度。按喜好选择；不想加载封面、希望减少图片存储时，可以关闭。</string>
+        <string name="legacy_help_camera_flip">将替代 3DS 摄像头的所选图片水平、垂直或双向翻转，再传给游戏。用于修正方向，不会改善摄像头质量或游戏速度。先选无，只有图片在游戏中方向不正确时才翻转。</string>
+        <string name="legacy_help_background_dim">调暗所选背景，让文字和控件保持清晰可读。百分比越高，背景图像越不明显；不会改变游戏亮度或渲染质量。逐步提高到菜单文字易于阅读，想看清更多背景时再降低。</string>
+        <string name="legacy_help_theme">选择应用界面的配色和外观。系统主题跟随设备的浅色或深色设置，其他主题保留各自外观，不改变游戏图形。先用系统或深色主题，再按舒适度和对比度选择其他主题。</string>
+        <string name="legacy_help_keyboard_target">把映射的键盘按键发送到所选玩家端口。改变的是由哪个玩家接收输入，不影响键盘灵敏度或游戏速度。单人游戏选玩家 1，只在控制额外玩家时选择其他受支持的端口。</string>
+        <string name="legacy_help_mouse_target">把映射的鼠标按键和瞄准输入发送到所选玩家端口。当前主机或游戏不支持的端口可能收不到输入。单人游戏选玩家 1，仅在多人游戏时选择其他受支持的端口。</string>
+        <string name="legacy_help_mouse_wheel">把滚轮转动转换为所选模拟按键或摇杆方向的短暂输入。改变的是滚轮映射，不是游戏镜头灵敏度。不需要滚轮快捷操作时保持关闭；启用时选择当前主机与游戏实际使用的控件。</string>
+        <string name="legacy_help_mouse_wheel_pulse">设置一次滚轮刻度产生的模拟按键按住多久。时间较长更容易被游戏识别，但可能重复动作或按住过久。先用默认值；滚动输入被漏掉时增加，每个刻度造成过多移动时减少。</string>
+        <string name="legacy_help_mouse_sensitivity">调整鼠标移动转换成模拟摇杆输入的强度。较高值使较小的鼠标位移就能产生较强输入，但更难精确瞄准，不会提高游戏帧率。先用 100%，再按游戏和鼠标调整。</string>
+        <string name="legacy_help_mouse_vertical_sensitivity">调整鼠标垂直瞄准相对于正常强度的倍率。较高值让上下观察需要更少位移，但可能降低精度。先用 100%；如果垂直移动相对水平过快，就降低。</string>
+        <string name="legacy_help_mouse_smoothing">过滤鼠标瞄准的小幅变化，减少抖动。较高值可使移动更稳定，但增加响应延迟，让快速转向不够直接。先用较低值，仅提高到足以消除干扰性抖动。</string>
+        <string name="legacy_help_mouse_deadzone">在鼠标瞄准转换为模拟摇杆输入前忽略细小移动。较大的死区可抑制漂移或噪声，但也会丢失细微修正。先用默认值，只在希望视角静止却仍发生移动时提高。</string>
+        <string name="legacy_help_screen_swap">交换主机两个屏幕的显示位置。DS 的触摸输入会跟随触摸屏移到新位置；交换不改变游戏状态，也不会提高性能。先保留正常顺序，仅在另一种位置更容易看清或触摸时交换。</string>
+        <string name="legacy_help_second_screen_width">设置停靠的第二屏幕面板占用多少横向空间。面板越宽越容易看清，但留给主屏幕的空间越小。改变的是布局，不是内部分辨率。先保留默认值，仅在需要时加宽。</string>
+        <string name="legacy_help_3ds_cpu_clock_percentage">改变模拟 3DS CPU 相对于原机的时钟频率。较高值可能缓解游戏内 CPU 掉速，但增加设备 CPU 工作；较低值可能减轻设备负担，却导致游戏变慢或时序问题。通常保留 100%，只为经过验证的特定游戏需求更改。</string>
+        <string name="legacy_help_3ds_is_new_3ds">模拟 New 3DS 而非原始机型，包括更多 CPU 资源和内存。部分游戏要求 New 3DS，改变机型可能影响兼容性与负载。除非特定游戏需要原始机型，否则保持 New 3DS 开启。更改后重启游戏。</string>
+        <string name="legacy_help_3ds_region_value">设置模拟 3DS 向游戏报告的地区。可能影响兼容性、可用语言和地区行为，不会直接提速。先用自动以匹配游戏，只有游戏确有需要时才手动指定地区。</string>
+        <string name="legacy_help_3ds_language">设置向游戏报告的 3DS 系统语言。游戏可能据此选择文字或配音，但只能使用游戏内置的语言。选择受支持的首选语言；游戏忽略系统语言时使用其自身设置。不会改变应用语言或性能。</string>
+        <string name="legacy_help_3ds_apply_region_free_patch">绕过 3DS 地区检查，使其他地区的游戏能够启动。可能改善地区兼容性，但不会翻译游戏或提高速度。游戏正常启动时保持关闭，只有地区不匹配阻止启动时才开启。</string>
+        <string name="legacy_help_3ds_enable_audio_stretching">模拟无法维持实时速度时调整音频时长，减少断音和爆音。可能轻微改变声音，但不会让游戏本身变快。通常保持开启以获得更连贯的声音；排查声音问题或更喜欢原始时序时再关闭。</string>
+        <string name="legacy_help_3ds_enable_realtime_audio">根据测得的模拟速度而非仅按游戏内时钟调整音频调度。可能改变速度波动时的音频行为，改善部分时序问题。通常保持关闭，只有在同一游戏中比较后确认声音更好时才开启。</string>
+        <string name="legacy_help_3ds_volume">设置 Android 系统音量生效前的模拟音频电平。降低会使游戏音量更小，不改变游戏速度或声音精度。先用 100%，平时使用设备音量调节；需要平衡过响的游戏与其他音频时，再降低此值。</string>
+        <string name="legacy_help_3ds_input_type">选择 3DS 麦克风输入：自动选择可用输入后端，无会发送静音，静态噪声会发送生成的噪声。影响的是需要听取声音的游戏，不是扬声器音量或性能。先用自动；吹气操作可试噪声，不需要麦克风时选无。</string>
+        <string name="legacy_help_3ds_graphics_api">选择 3DS 硬件图形后端：Vulkan 或 OpenGL。性能和画面正确性取决于 GPU 驱动与游戏。先用 Vulkan；某款游戏图形错误或渲染不稳定时，尝试 OpenGL。切换后重启游戏。</string>
+        <string name="legacy_help_3ds_shaders_accurate_mul">在硬件着色器中使用更准确的乘法，以正确重现部分 3DS 特效。可能修复图形，但有一定性能代价，而且只在硬件着色器开启时生效。先保持关闭，仅在能修复当前游戏的可见错误时开启。</string>
+        <string name="legacy_help_3ds_use_disk_shader_cache">把编译好的着色器数据保存到磁盘供后续运行复用。可减少重复编译暂停，但占用存储空间，也不能消除所有首次出现特效时的卡顿。通常保持开启，仅在排查着色器缓存问题时关闭。</string>
+        <string name="legacy_help_3ds_use_vsync">让画面呈现与屏幕同步，减少可见的撕裂。可能影响帧间隔和输入延迟，不会提高模拟速度。通常保持开启以稳定呈现，仅在比较具体延迟或帧节奏问题时尝试关闭。</string>
+        <string name="legacy_help_3ds_use_skip_duplicate_frames">跳过呈现画面未改变的帧。静态场景中可能减少图形工作与耗电，游戏本身仍继续运行。通常保持关闭，确认在当前游戏中能省电且没有明显帧节奏问题后再开启。</string>
+        <string name="legacy_help_3ds_resolution_factor">提高 3DS 图形的内部分辨率。较高值使 3D 边缘更清晰，但增加 GPU 负载、内存占用和发热，并非所有 2D 素材都会增加细节。性能允许时先用 2x，追求最低开销时选原生，仅在游戏仍流畅时提高。</string>
+        <string name="legacy_help_3ds_texture_filter">对游戏纹理应用放大过滤。可能平滑或改变像素画外观，并增加处理开销，最合适的过滤器取决于游戏。先选无以保留原始纹理和最佳性能，想改变外观时再逐一比较。</string>
+        <string name="legacy_help_3ds_layout_option">选择两个 3DS 屏幕的排列与相对大小。较大的主屏幕更易辨认，但较小或隐藏的触摸屏可能不便操作。改变的是显示布局而非内部渲染分辨率。先让两个屏幕都可见，再按游戏选择合适布局。</string>
+        <string name="legacy_help_3ds_swap_screen">交换所选布局中两个 3DS 屏幕的角色，包括哪个屏幕较大或单独显示。改变显示和触摸屏位置，不影响游戏速度。先保留正常顺序，只有突出另一屏幕更方便游玩时才交换。</string>
+        <string name="legacy_help_3ds_aspect_ratio">改变 3DS 图像的显示形状。较宽或拉伸的比例能填满更多屏幕，但可能使圆形、文字和人物变形，也不会增加原始图像细节。先用正常宽高比，只有更喜欢拉伸效果时才更改。</string>
+        <string name="legacy_help_3ds_use_virtual_sd">为模拟 3DS 提供保存在模拟器数据文件夹中的 SD 卡。游戏与自制软件可用它保存额外数据，关闭后这些内容可能无法访问。除非正在排查 SD 卡问题，否则保持开启，并在修改存储设置前备份数据。</string>
+        <string name="legacy_help_3ds_motion_device">选择模拟 3DS 运动输入的来源：应用提供的模拟输入，或外部 CemuHook UDP 服务器。选择没有输入的来源会让体感控制无响应，不会加快游戏。通常用模拟，仅在配置好可用服务器后才选 UDP。</string>
+        <string name="legacy_help_3ds_touch_device">选择 3DS 触摸输入来自模拟窗口还是外部 CemuHook UDP 服务器。未配置输入源就选择 UDP，可能使正常触摸控制失效。在设备上游玩时用模拟窗口，只有有意使用外部输入时才选 UDP。</string>
+        <string name="legacy_help_3ds_udp_pad_index">选择 CemuHook UDP 服务器的四个控制器槽位之一作为输入来源。槽位不匹配可能使远程输入无响应，不改变本地控制器分配或性能。先选手柄 1，只为匹配服务器所用槽位更改。</string>
+        <string name="save_manager_list_failed">无法加载即时存档，请重试。</string>
+        <string name="texture_manager_help">导入适用于3DS、GameCube或Wii的ZIP纹理包。导入会替换所选游戏已安装的纹理包。</string>
+        <string name="texture_manager_import">导入纹理包</string>
+        <string name="texture_manager_export">导出纹理包</string>
+        <string name="texture_manager_enable">使用替换纹理</string>
+        <string name="texture_manager_empty">尚未安装纹理包。</string>
+        <string name="texture_manager_identity_failed">无法读取此游戏经过验证的纹理ID。</string>
+        <string name="texture_manager_done">纹理包已更新。</string>
+        <string name="texture_manager_failed">无法处理此纹理包。</string>
+        <string name="texture_manager_stop">更改纹理包前请关闭正在运行的游戏。</string>
+        <string name="texture_manager_delete_title">删除纹理包？</string>
+        <string name="texture_manager_delete_body">移除此游戏已安装的替换纹理？</string>
+        <string name="texture_manager_count">%1$d个纹理 • %2$s</string>
+        <string name="texture_manager_scope_global">3DS：适用于所有游戏，除非游戏配置覆盖此设置。</string>
+        <string name="texture_manager_scope_game">适用于此游戏的配置。</string>
+        <string name="game_settings_manager_save_failure">无法保存游戏设置。请重试。</string>
 </resources>

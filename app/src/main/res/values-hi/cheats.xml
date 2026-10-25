@@ -1,7 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<resources>
-    <string name="cheat_catalog_browse_all">इस कंसोल के सभी चीट देखें</string>
-    <string name="cheat_catalog_manual_attach">चुने गए गेम से जोड़ें</string>
-    <string name="cheat_catalog_manual_warning">इस पैक का गेम से मिलान सत्यापित नहीं है। कोड चालू करने से पहले क्षेत्र, संशोधन और प्रारूप जाँचें।</string>
-    <string name="cheat_format_unsupported">चुना गया कोर इस चीट प्रारूप का समर्थन नहीं करता।</string>
-</resources>

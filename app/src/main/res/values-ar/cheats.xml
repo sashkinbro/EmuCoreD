@@ -1,7 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<resources>
-    <string name="cheat_catalog_browse_all">تصفح جميع الغش لهذه المنصة</string>
-    <string name="cheat_catalog_manual_attach">ربط باللعبة المحددة</string>
-    <string name="cheat_catalog_manual_warning">لم يتم التحقق من تطابق هذه الحزمة مع اللعبة. تحقق من المنطقة والمراجعة والتنسيق قبل تفعيل الرموز.</string>
-    <string name="cheat_format_unsupported">النواة المحددة لا تدعم تنسيق الغش هذا.</string>
-</resources>

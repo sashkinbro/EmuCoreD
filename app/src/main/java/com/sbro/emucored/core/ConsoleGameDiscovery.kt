@@ -9,17 +9,27 @@ import java.io.File
 
 /** Disc identities come from the real volume parser, including compressed RVZ/WIA images. */
 object ConsoleGameDiscovery {
-    fun identify(context: Context, path: String, displayName: String = DocumentPathResolver.getDisplayName(context, path)): GamePlatform? {
+    fun identify(
+        context: Context, path: String,
+        displayName: String = DocumentPathResolver.getDisplayName(context, path),
+        siblingDocuments: List<Pair<String, String>>? = null,
+        checkActive: () -> Unit = {}
+    ): GamePlatform? {
+        checkActive()
         val candidates = ConsoleGameFormats.candidatesForFileName(displayName)
         val hasDolphinCandidate = candidates.any { it.core == com.sbro.emucored.core.platform.CoreId.DOLPHIN }
-        val detected = if (hasDolphinCandidate) probeDisc(context, path) else null
+        val detected = if (hasDolphinCandidate) probeDisc(context, path, displayName, siblingDocuments, checkActive) else null
         val platform = when {
             detected != null -> GamePlatform.valueOf(detected.name)
             displayName.substringAfterLast('.').equals("elf", true) ->
                 if (isArmElf(context, path)) GamePlatform.N3DS else null
-            hasDolphinCandidate -> null
+            // Keep unambiguous Dolphin extensions (for example .gcm or .wad)
+            // discoverable even if the native volume probe cannot open the
+            // image; .iso and .rvz remain ambiguous and still require a probe.
+            hasDolphinCandidate -> candidates.singleOrNull()?.let { GamePlatform.valueOf(it.name) }
             else -> GamePlatform.fromFileName(displayName)
         }
+        checkActive()
         if (platform != null) GamePlatform.remember(path, platform)
         return platform
     }
@@ -44,18 +54,26 @@ object ConsoleGameDiscovery {
         } == true
     }.getOrDefault(false)
 
-    private fun probeDisc(context: Context, path: String): com.sbro.emucored.core.platform.ConsolePlatform? {
-        val local = if (path.startsWith("file://")) path.toUri().path.orEmpty() else path.removePrefix("!")
-        if (!local.startsWith("content://") && File(local).let { it.isFile && it.canRead() })
-            return runCatching { DolphinSessionEngine.probePlatform(local) }.getOrNull()
-        val uri = if (path.startsWith("content://")) path.toUri()
-            else DocumentPathResolver.findAccessibleTreeUriForRawPath(context, local) ?: return null
-        // The descriptor stays alive throughout native parsing. No multi-GB cache copy
-        // is needed just to discover a console during a library scan.
+    private fun probeDisc(
+        context: Context,
+        path: String,
+        displayName: String,
+        siblings: List<Pair<String, String>>?,
+        checkActive: () -> Unit
+    ): com.sbro.emucored.core.platform.ConsolePlatform? {
         return runCatching {
-            context.contentResolver.openFileDescriptor(uri, "r")?.use {
-                DolphinSessionEngine.probePlatform("/proc/self/fd/${it.fd}")
+            // Dolphin can open a single SAF document directly through the app's
+            // ContentResolver. Only split images need the named sibling stage.
+            if (!ConsoleImageParts.isMultipart(displayName)) {
+                checkActive()
+                return@runCatching DolphinSessionEngine.probePlatform(path)
             }
-        }.getOrNull()
+            // The probe needs the same sibling namespace and ownership as boot:
+            // a bare FD loses WBFS and .part0.iso companion names.
+            ConsoleImageAccess.prepareForProbe(context, path, siblings, checkActive)?.use {
+                checkActive()
+                DolphinSessionEngine.probePlatform(it.path)
+            }
+        }.getOrElse { if (it is kotlinx.coroutines.CancellationException) throw it; null }
     }
 }

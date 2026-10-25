@@ -10,7 +10,7 @@
     <string name="app_name">EmuCoreD</string>
 
     <string name="shell_library">Biblioteca</string>
-    <string name="shell_catalog_search">Buscar en DS/DSi/3DS</string>
+    <string name="shell_catalog_search">Buscar juegos</string>
     <string name="shell_supported_formats">Formatos compatibles</string>
 
     <string name="home_empty_title">No se encontraron juegos</string>
@@ -246,7 +246,7 @@
     <string name="no">No</string>
     <string name="back">Atrás</string>
 
-    <string name="catalog_search_title">Catálogo DS/DSi/3DS</string>
+    <string name="catalog_search_title">Buscar juegos</string>
     <string name="catalog_filters_title">Filtros</string>
     <string name="catalog_filter_genre">Género</string>
     <string name="catalog_filter_year">Año</string>
@@ -1844,4 +1844,267 @@
     <string name="settings_shader_presets_remove_title">¿Quitar los preajustes seleccionados?</string>
     <string name="settings_shader_presets_remove_body">Preajustes seleccionados: %1$d. ¿Quitarlos de la lista?</string>
     <string name="settings_shader_presets_remove_failed">No se pudieron quitar los preajustes seleccionados.</string>
+
+    <!-- Consolidated core, format, cheat and manager strings -->
+        <string name="cheat_catalog_browse_all">Explorar todos los trucos de esta consola</string>
+        <string name="cheat_catalog_manual_attach">Asociar al juego seleccionado</string>
+        <string name="cheat_catalog_manual_warning">No se ha verificado que este paquete corresponda al juego. Comprueba la región, revisión y formato antes de activar códigos.</string>
+        <string name="cheat_format_unsupported">El núcleo seleccionado no admite este formato de trucos.</string>
+        <string name="core_option_help_recommended_default" formatted="false">Valor inicial recomendado: %1$s.</string>
+        <string name="core_option_help_video_filter" formatted="false">Controla cómo se amplía la imagen final: vecino más cercano conserva bordes nítidos y lineal mezcla píxeles vecinos. El lineal puede suavizar textos y gráficos sin añadir detalles. Usa vecino más cercano para píxeles definidos o lineal para una imagen más suave.</string>
+        <string name="core_option_help_audio_enabled" formatted="false">Activa o desactiva el sonido del juego. Silenciar no aumenta el reloj emulado ni garantiza más velocidad. Mantén el sonido activo normalmente y desactívalo para jugar en silencio.</string>
+        <string name="core_option_help_aspect_ratio_frame" formatted="false">Define la forma de la imagen: auto usa la proporción del núcleo, píxel mantiene píxeles cuadrados y las demás opciones fuerzan una relación. Forzar 4:3 o 16:9 puede deformar personajes sin revelar más escenario. Empieza con auto y usa píxel para proporciones sin corregir.</string>
+        <string name="core_option_help_aspect_ratio_dolphin" formatted="false">Elige detección automática, 4:3 o 16:9 forzados, estiramiento completo o proporciones originales. Forzar una relación puede deformar la imagen y no amplía por sí solo la cámara 3D. Usa auto primero y cambia solo según las necesidades del juego o pantalla.</string>
+        <string name="core_option_help_graphics_backend" formatted="false">Selecciona Vulkan u OpenGL para los gráficos de Dolphin. Compatibilidad del controlador, tirones de shaders y carga GPU varían según juego y dispositivo; ninguno es siempre más rápido. Empieza con Vulkan y compara OpenGL si hay errores gráficos o cadencia irregular.</string>
+        <string name="core_option_help_resolution" formatted="false">Multiplica la resolución interna 3D antes de mostrar la imagen. Valores altos afinan la geometría pero aumentan trabajo GPU y memoria, sin añadir detalle a las texturas originales. Empieza en 1x y aumenta solo manteniendo plena velocidad.</string>
+        <string name="core_option_help_widescreen_hack" formatted="false">Amplía la proyección 3D de juegos diseñados para pantallas más estrechas. Pueden desaparecer objetos en los bordes o desalinearse interfaz y efectos porque el juego espera su vista original. Déjalo desactivado salvo que hayas comprobado este juego con el ajuste.</string>
+        <string name="core_option_help_msaa" formatted="false">Suaviza bordes de polígonos tomando varias muestras por píxel. Más muestras consumen ancho de banda GPU y memoria y pueden no estar disponibles en el motor. Empieza en 1x sin MSAA y aumenta solo con bordes molestos y velocidad estable.</string>
+        <string name="core_option_help_anisotropy" formatted="false">Mejora la claridad de texturas vistas en ángulo, como carreteras y suelos. Niveles altos aumentan trabajo GPU y el filtrado forzado puede modificar la apariencia prevista. Mantén el valor inicial y aumenta si las texturas oblicuas se ven borrosas.</string>
+        <string name="core_option_help_texture_filtering" formatted="false">Conserva el filtrado del juego o fuerza vecino más cercano o lineal. El primero define los téxeles, mientras el lineal los mezcla y puede difuminar la interfaz o cambiar efectos. Usa el predeterminado para compatibilidad y comprueba cualquier filtro forzado dentro del juego.</string>
+        <string name="core_option_help_shader_compilation" formatted="false">Elige shaders especializados, ubershaders híbridos o exclusivos, u omitir dibujos durante la compilación. Los especializados pueden dar tirones, los ubershaders exigen más GPU y omitir puede ocultar objetos. Empieza con especializados, prueba híbridos para tirones y evita omitir si importa la imagen completa.</string>
+        <string name="core_option_help_shader_cache" formatted="false">Guarda shaders compilados entre ejecuciones. Ocupa almacenamiento y reduce compilaciones repetidas, pero nuevos efectos o controladores pueden requerir más compilación. Déjalo activo salvo al diagnosticar problemas gráficos relacionados con la caché.</string>
+        <string name="core_option_help_wait_for_shaders" formatted="false">Espera a compilar los shaders almacenados antes de empezar a jugar. Reduce algunos tirones iniciales pero alarga la carga y no elimina todas las pausas por shaders nuevos. Actívalo si prefieres inicios fluidos a un arranque más corto.</string>
+        <string name="core_option_help_vsync" formatted="false">Sincroniza los fotogramas mostrados con la actualización de pantalla. Reduce cortes de imagen pero puede añadir latencia o irregularidad si el juego no mantiene el ritmo. Pruébalo para cortes visibles y desactívalo si empeora respuesta o cadencia.</string>
+        <string name="core_option_help_backend_multithreading" formatted="false">Mueve trabajo gráfico compatible del motor a otro hilo. Puede reducir cuellos de botella CPU pero añade sincronización y depende del controlador. Déjalo activo normalmente y desactívalo para investigar fallos de controlador o inestabilidad gráfica.</string>
+        <string name="core_option_help_skip_efb_access" formatted="false">Omite lecturas o escrituras CPU del búfer de imagen integrado usadas por ciertos efectos. Evita sincronización GPU costosa pero puede romper selección, colisiones, visibilidad o lógica. Conserva el valor inicial y desactívalo si el juego necesita esos accesos.</string>
+        <string name="core_option_help_efb_texture_only" formatted="false">Mantiene copias del búfer integrado como texturas GPU en vez de escribirlas también en RAM emulada. Suele evitar lecturas de retorno costosas, pero algunos juegos necesitan copias RAM para efectos o lógica. Empieza activado y desactívalo ante efectos ausentes o requisitos conocidos.</string>
+        <string name="core_option_help_xfb_texture_only" formatted="false">Mantiene copias del búfer externo en GPU sin copiar sus píxeles a RAM emulada. Reduce transferencias pero puede romper juegos que leen o modifican esas imágenes en RAM. Empieza activado y desactívalo si falta vídeo o hay efectos incorrectos.</string>
+        <string name="core_option_help_defer_efb_copies" formatted="false">Retrasa las copias del búfer a RAM hasta que se necesiten. Reduce bloqueos pero presupone tiempos que algunos juegos no toleran. Déjalo activo primero y desactívalo si los efectos o la lógica son incorrectos.</string>
+        <string name="core_option_help_immediate_xfb" formatted="false">Presenta inmediatamente las copias del búfer externo en lugar de esperar al barrido normal. Puede reducir latencia pero mostrar imágenes intermedias o parpadeos y también omite presentaciones duplicadas. Déjalo desactivado hasta comprobar que el juego se muestra bien.</string>
+        <string name="core_option_help_skip_duplicate_xfbs" formatted="false">Evita presentar repetidamente copias idénticas del búfer externo. Reduce trabajo en juegos por debajo de la frecuencia de pantalla pero puede empeorar la regularidad. Mantén activo para eficiencia y desactiva si repetir fotogramas resulta más fluido.</string>
+        <string name="core_option_help_scaled_efb_copy" formatted="false">Crea copias del búfer integrado a la resolución interna elegida. Sus efectos pueden verse más definidos pero requieren más memoria y algunos juegos esperan tamaño nativo. Mantén activo y desactiva si un efecto falla al aumentar resolución.</string>
+        <string name="core_option_help_ignore_format_changes" formatted="false">Ignora cambios del formato de píxel del búfer integrado. Evita conversiones pero puede producir colores o precisión incorrectos en efectos. Conserva el valor inicial y desactiva si el juego necesita cambios de formato exactos.</string>
+        <string name="core_option_help_texture_cache_accuracy" formatted="false">Determina cuánto se comprueban los cambios de textura antes de reutilizar la caché. Seguro revisa más datos con mayor coste CPU, rápido puede omitir cambios y mostrar texturas antiguas o parpadeantes. Empieza equilibrado y usa seguro si no se actualizan correctamente.</string>
+        <string name="core_option_help_gpu_texture_decoding" formatted="false">Pasa la decodificación de texturas compatibles de CPU a GPU. Puede aliviar un límite CPU pero aumenta a veces la carga GPU y requiere soporte del motor. Déjalo apagado al principio y compara la misma escena antes de mantenerlo activo.</string>
+        <string name="core_option_help_fast_depth" formatted="false">Usa una aproximación más rápida de los cálculos de profundidad. Reduce trabajo gráfico pero puede colocar mal superficies o efectos que necesitan precisión. Mantén activo normalmente y desactiva si aparecen errores de profundidad.</string>
+        <string name="core_option_help_disable_bbox" formatted="false">Desactiva la emulación de la función GPU de cuadro delimitador. Reduce trabajo GPU pero los juegos que usan sus resultados pueden perder efectos o fallar. Conserva el valor inicial y apaga esta opción para juegos que necesitan esa función.</string>
+        <string name="core_option_help_vertex_rounding" formatted="false">Redondea vértices 2D y tamaños de vista a píxeles enteros al aumentar resolución interna. Puede corregir uniones o sprites desalineados pero cambia posiciones y no afecta a resolución nativa. Activa solo para problemas 2D visibles tras aumentar resolución.</string>
+        <string name="core_option_help_disable_fog" formatted="false">Elimina la niebla de las escenas. Los objetos lejanos se ven mejor pero cambian la atmósfera y límites ocultos del escenario. Déjalo apagado para el aspecto original y actívalo solo por preferencia visual.</string>
+        <string name="core_option_help_disable_copy_filter" formatted="false">Elimina el filtro de copia de la consola que suaviza la imagen final. Puede verse más nítida pero con más bordes dentados o sin desenfoques intencionados. Mantén esta opción activa para nitidez o desactívala para conservar el filtro original.</string>
+        <string name="core_option_help_force_true_color" formatted="false">Usa mayor precisión de color que el renderizado original. Reduce bandas de color pero cambia tramado y efectos dependientes de la precisión de la consola. Mantén activo para degradados limpios y desactiva si un efecto exige colores originales.</string>
+        <string name="core_option_help_per_pixel_lighting" formatted="false">Calcula iluminación compatible por píxel en vez del resultado original por vértice. Puede verse más suave pero aumenta trabajo GPU y cambia el aspecto de la consola. Déjalo apagado salvo que prefieras el efecto y tengas margen GPU.</string>
+        <string name="core_option_help_hires_textures" formatted="false">Carga texturas de alta resolución instaladas para este juego. Mejoran detalles pero usan almacenamiento, memoria y carga; paquetes incorrectos muestran gráficos equivocados. Activa únicamente después de instalar un paquete compatible.</string>
+        <string name="core_option_help_cache_hires_textures" formatted="false">Precarga texturas de reemplazo en memoria en vez de cargarlas al primer uso. Reduce tirones de carga pero aumenta memoria y tiempo de inicio. Déjalo apagado con poca memoria y actívalo solo para paquetes que quepan holgadamente.</string>
+        <string name="core_option_help_save_texture_cache" formatted="false">Incluye datos de texturas del búfer de imagen en estados guardados. Ayuda a restaurar efectos ausentes o ampliados pero aumenta tamaño y tiempos de guardado o carga. Mantén activo salvo que estados pequeños importen más que la restauración visual exacta.</string>
+        <string name="core_option_help_cpu_backend" formatted="false">Elige JIT ARM64, intérprete con caché o intérprete simple para la CPU emulada. Los intérpretes ayudan al diagnóstico pero suelen ser mucho más lentos y pueden impedir plena velocidad. Usa JIT normalmente e intérprete solo para una investigación concreta de compatibilidad.</string>
+        <string name="core_option_help_dual_core" formatted="false">Ejecuta CPU y GPU emuladas en hilos separados del sistema. Puede mejorar rendimiento pero introduce diferencias de sincronización intolerables para algunos juegos. Mantén activo normalmente y desactiva para inestabilidad o problemas temporales específicos.</string>
+        <string name="core_option_help_mmu" formatted="false">Emula más completamente la traducción de memoria virtual de CPU. Algunos juegos la necesitan, otros no mejoran visualmente y pueden ir más lentos. Déjalo apagado salvo que el juego requiera MMU.</string>
+        <string name="core_option_help_accurate_cpu_cache" formatted="false">Emula con más precisión la caché CPU. Puede corregir juegos dependientes de sus detalles pero añade carga sin mejorar la calidad gráfica habitual. Déjalo apagado salvo que solucione una incompatibilidad conocida.</string>
+        <string name="core_option_help_fprf" formatted="false">Emula indicadores de resultado flotante usados por ciertas instrucciones CPU. Puede corregir cálculos pero añade trabajo cuando esos indicadores se necesitan. Déjalo apagado salvo que el juego requiera indicadores exactos.</string>
+        <string name="core_option_help_accurate_nans" formatted="false">Conserva un comportamiento NaN más preciso en la CPU emulada. Afecta cálculos inusuales, no la nitidez, y puede aumentar el coste de ejecución. Déjalo apagado salvo que el juego necesite esta corrección flotante.</string>
+        <string name="core_option_help_accurate_fmadds" formatted="false">Emula con mayor precisión las operaciones fusionadas de multiplicación y suma flotante. Puede corregir diferencias de cálculo pero cuesta CPU y no aumenta directamente la resolución. Déjalo apagado salvo que corrija un comportamiento incorrecto del juego.</string>
+        <string name="core_option_help_fastmem" formatted="false">Usa accesos más rápidos a memoria del sistema para la CPU emulada. Reduce carga CPU pero apagar puede ayudar a diagnosticar una incompatibilidad de acceso. Mantén activo salvo que la investigación lo identifique como causa del problema.</string>
+        <string name="core_option_help_fast_disc" formatted="false">Elimina los límites de tiempo normales de lectura de disco. Las cargas pueden acortarse pero los juegos dependientes de tiempos originales pueden fallar. Déjalo apagado para compatibilidad y comprueba las transiciones de carga antes de activarlo.</string>
+        <string name="core_option_help_cpu_clock" formatted="false">Cambia el reloj de CPU emulada respecto a la consola original. Aumentarlo reduce algunos ralentizamientos originales pero carga la CPU anfitriona; reducirlo puede cambiar tiempos o lógica. Empieza al 100 por ciento y ajusta solo para una necesidad probada del juego.</string>
+        <string name="core_option_help_dsp_hle" formatted="false">Usa emulación de alto nivel para el procesador de audio en vez de bajo nivel. HLE suele ser más ligero, LLE puede ayudar con sonidos inusuales pero requiere más procesamiento. Mantén HLE activo salvo que el juego requiera audio de bajo nivel.</string>
+        <string name="core_option_help_dsp_jit" formatted="false">Usa recompilación para DSP de bajo nivel en vez de interpretación. Importa sobre todo con DSP HLE apagado, ya que el intérprete puede ser mucho más lento. Mantén DSP JIT activo salvo al diagnosticar un problema de audio LLE.</string>
+        <string name="core_option_help_dsp_thread" formatted="false">Ejecuta el DSP de bajo nivel en un hilo separado. Puede repartir carga CPU pero cambiar sincronización y causar problemas de sonido o tiempos, sin beneficiar igual a DSP HLE. Déjalo apagado inicialmente y pruébalo solo usando LLE.</string>
+        <string name="core_option_help_audio_backend" formatted="false">Selecciona Cubeb u OpenSL ES para la salida de sonido Android. Soporte, latencia e interrupciones cambian por dispositivo sin alterar la música en sí. Empieza con Cubeb y prueba OpenSL ES si falta sonido o crepita repetidamente.</string>
+        <string name="core_option_help_volume" formatted="false">Ajusta el nivel de audio antes de la salida. Valores bajos reducen volumen sin ralentizar el juego; los altos pueden hacer molesta una mezcla ya fuerte. Empieza por el predeterminado y reduce según auriculares o altavoces.</string>
+        <string name="core_option_help_audio_buffer_size" formatted="false">Fija la duración objetivo del búfer de audio en milisegundos. Un búfer grande absorbe retrasos pero aumenta latencia; uno pequeño responde antes pero puede crepitar. Empieza en 80 ms y aumenta solo si siguen oyéndose vacíos.</string>
+        <string name="core_option_help_audio_preserve_pitch" formatted="false">Estabiliza el tono cuando cambia la velocidad de emulación. Estirar el tiempo puede añadir procesamiento, latencia o artefactos, sobre todo con grandes cambios. Activa si molesta el cambio musical y compara a la velocidad elegida.</string>
+        <string name="core_option_help_audio_fill_gaps" formatted="false">Rellena huecos breves de sonido en vez de dejarlos silenciosos. Reduce molestias de pequeñas caídas pero no recupera velocidad perdida y puede alterar el sonido durante un bloqueo. Mantén activo normalmente y desactiva para comparar tiempos o artefactos de audio.</string>
+        <string name="core_option_help_speed" formatted="false">Establece la velocidad objetivo respecto al juego normal. Acelerar exige más rendimiento y cambia ritmo y sonido; velocidades inferiores ralentizan deliberadamente. Usa 1,0 normalmente y cambia solo para cámara rápida o lenta deseada.</string>
+        <string name="core_option_help_gc_language" formatted="false">Selecciona el idioma comunicado por la GameCube emulada. Solo hay idiomas incluidos en el juego y algunas ediciones ignoran la preferencia. Elige tu idioma compatible preferido o usa la selección propia del juego.</string>
+        <string name="core_option_help_wii_profile" formatted="false">Selecciona mando Wii, mando con Nunchuk o mando clásico. Cambia botones y palancas recibidos por el juego y los controladores incompatibles pueden no funcionar. Elige el tipo indicado por el juego en vez de todas las extensiones.</string>
+        <string name="core_option_help_wii_speaker" formatted="false">Activa el altavoz del mando Wii emulado. Los juegos pueden usarlo para señales adicionales que al apagarlo desaparecen de la mezcla. Mantén activo salvo que ese audio cause problemas en el juego.</string>
+        <string name="core_option_help_frameskip" formatted="false">Omite el número elegido de fotogramas renderizados entre los mostrados. Reduce trabajo gráfico en dispositivos lentos pero empeora fluidez y no aumenta precisión de la lógica. Mantén cero y aumenta solo si el juego no mantiene velocidad de otro modo.</string>
+        <string name="core_option_help_idle_optimization" formatted="false">Controla si mGBA detecta, elimina o conserva bucles inactivos de la CPU emulada. Evitar trabajo inactivo acelera pero la eliminación forzada puede alterar tiempos inusuales. Usa detectar primero e ignorar al investigar problemas temporales o de compatibilidad.</string>
+        <string name="core_option_help_allow_opposing_directions" formatted="false">Permite direcciones opuestas simultáneas, como izquierda y derecha. Los controles originales suelen impedirlo y algunos juegos reaccionan imprevisiblemente. Déjalo apagado salvo programas caseros o pruebas de entrada que lo requieran.</string>
+        <string name="core_option_help_highpass_filter" formatted="false">Selecciona el filtro pasaaltos Game Boy: hardware preciso, solo eliminación de componente continua o ninguno. Cambia graves y transitorios y apagar el filtro puede introducir componente continua. Usa preciso normalmente y compara otros modos para una preferencia sonora concreta.</string>
+        <string name="core_option_help_interference_volume" formatted="false">Añade ruido de interferencia del hardware Game Boy al nivel elegido. Valores altos hacen más audible el ruido de fondo sin mejorar fidelidad musical. Mantén cero para sonido limpio o aumenta un poco para el carácter original del hardware.</string>
+        <string name="core_option_help_palette" formatted="false">Elige tonos monocromos Game Boy, incluidos DMG, gris, Pocket y Light. Solo cambia colores, sin añadir gráficos Game Boy Color ni velocidad. Escoge la paleta más legible o parecida a tu pantalla original preferida.</string>
+        <string name="core_option_help_color_correction" formatted="false">Ajusta las curvas de color Game Boy Color para aproximar la pantalla original. Los colores pueden ser menos vivos que RGB puro, pero sin corrección se exageran colores diseñados para la portátil. Mantén activo para aspecto de consola o desactiva para la paleta pura.</string>
+        <string name="core_option_help_unlimited_sprites" formatted="false">Elimina el límite NES de sprites por línea. Reduce parpadeo de hardware pero puede revelar sprites ocultos adrede o alterar efectos. Déjalo apagado para comportamiento original y comprueba escenas cargadas antes de activarlo.</string>
+        <string name="core_option_help_bsnes_ppu_fast" formatted="false">Usa el procesamiento de imagen SNES rápido en vez del más preciso. Reduce trabajo y permite HD Mode 7 pero algunos efectos sensibles al tiempo pueden cambiar. Mantén activo inicialmente y desactiva para errores que requieran PPU precisa.</string>
+        <string name="core_option_help_bsnes_dsp_fast" formatted="false">Usa la implementación rápida del DSP de audio SNES. Puede reducir trabajo CPU pero diferir del camino preciso en audio sensible a tiempos. Empieza activado y desactiva ante errores de sonido reproducibles.</string>
+        <string name="core_option_help_bsnes_entropy" formatted="false">Controla aleatoriedad de memoria y registros al inicio. Baja se parece al arranque SNES normal, alta prueba supuestos de memoria sin inicializar y ninguna usa constantes esperadas por ciertos programas caseros antiguos. Usa baja para jugar y cambia solo para desarrollo o incompatibilidades de inicio conocidas.</string>
+        <string name="core_option_help_bsnes_blur_emulation" formatted="false">Emula la mezcla horizontal de imagen SNES, incluida pseudotransparencia compatible. Puede corregir esos efectos pero suaviza bordes de píxel. Déjalo apagado para nitidez o actívalo en juegos que necesiten esa transparencia mezclada.</string>
+        <string name="core_option_help_bsnes_ppu_no_sprite_limit" formatted="false">Elimina límites de sprites SNES en la PPU rápida. Reduce parpadeos o desapariciones pero puede mostrar objetos o alterar efectos basados en límites de hardware. Déjalo apagado para gráficos originales y revisa escenas cargadas antes de activarlo.</string>
+        <string name="core_option_help_bsnes_ppu_show_overscan" formatted="false">Incluye líneas normalmente ocultas por el sobrebarrido SNES. Muestra más borde pero algunos juegos colocan líneas vacías o basura gráfica allí. Déjalo apagado para el recorte habitual y actívalo si necesitas esas líneas.</string>
+        <string name="core_option_help_bsnes_hotfixes" formatted="false">Aplica correcciones del núcleo a errores presentes en los juegos originales. Pueden mejorar jugabilidad pero cambian deliberadamente el comportamiento frente al hardware sin modificar. Déjalo apagado para fidelidad o actívalo para las correcciones compatibles.</string>
+        <string name="core_option_help_bsnes_mode7_scale" formatted="false">Aumenta resolución de fondos Mode 7 en la PPU rápida. Carreteras y planos giratorios se ven más definidos pero crecen CPU y memoria sin ampliar todos los sprites. Empieza en 1x y aumenta solo manteniendo plena velocidad.</string>
+        <string name="core_option_help_bsnes_cpu_overclock" formatted="false">Cambia la velocidad de la CPU principal SNES emulada. Valores altos reducen ralentizamientos originales pero exigen más procesamiento y pueden romper tiempos. Empieza al 100 por ciento y ajusta solo para juegos comprobados en escenas diferentes.</string>
+        <string name="core_option_help_bsnes_sa1_overclock" formatted="false">Cambia el reloj del coprocesador SA-1 en cartuchos que lo contienen. Valores altos pueden reducir caídas pero aumentan CPU y alteran tiempos; otros cartuchos no ganan nada. Empieza al 100 por ciento y aumenta solo en juegos SA-1 probados.</string>
+        <string name="core_option_help_bsnes_sfx_overclock" formatted="false">Cambia el reloj del coprocesador Super FX de los cartuchos correspondientes. Valores altos suavizan ciertas escenas 3D pero aumentan CPU y pueden cambiar tiempos o velocidad. Empieza al 100 por ciento y aumenta con cautela solo para juegos Super FX.</string>
+        <string name="core_option_help_bsnes_cpu_fastmath" formatted="false">Entrega resultados de multiplicación y división SNES sin su retraso original. Ayuda a ciertos hacks ROM antiguos pero cambia tiempos de hardware sin ser una mejora general de rendimiento. Déjalo apagado salvo que un hack concreto necesite resultados inmediatos.</string>
+        <string name="core_option_help_bsnes_ppu_deinterlace" formatted="false">Cambia cómo la PPU rápida presenta imágenes SNES entrelazadas. Reduce parpadeo de entrelazado pero cambia campos alternos y puede suavizar o alterar detalles finos. Mantén activo inicialmente y desactiva si prefieres entrelazado original.</string>
+        <string name="core_option_help_bsnes_ppu_no_vram_blocking" formatted="false">Permite acceder a memoria de vídeo cuando el SNES real lo bloquearía. Algunos hacks ROM antiguos requieren esta inexactitud que además puede ralentizar la PPU rápida. Déjalo apagado salvo hacks incompatibles conocidos que necesiten acceso VRAM libre.</string>
+        <string name="core_option_help_bsnes_mode7_perspective" formatted="false">Corrige perspectiva de fondos Mode 7 de alta resolución en PPU rápida. Los planos inclinados resultan más coherentes pero cambia el muestreo original y solo afecta escenas compatibles. Mantén activo con HD Mode 7 y desactiva si una escena se ve mal.</string>
+        <string name="core_option_help_bsnes_mode7_supersample" formatted="false">Añade muestreo al renderizar fondos Mode 7 de alta resolución. Reduce destellos pero aumenta CPU y no es antialiasing general para todos los gráficos SNES. Déjalo apagado al principio y activa solo con destellos visibles y velocidad estable.</string>
+        <string name="core_option_help_bsnes_mode7_mosaic" formatted="false">Reduce HD Mode 7 a escala original cuando el juego aplica mosaico. Conserva transiciones deliberadamente cuadriculadas; apagar cambia esos efectos con escalas mayores. Mantén activo salvo preferencia deliberada por mosaico de alta resolución alterado.</string>
+        <string name="core_option_help_bsnes_dsp_cubic" formatted="false">Usa interpolación cúbica para muestras DSP SNES compatibles. Cambia el timbre respecto a la interpolación gaussiana original y no mejora precisión. Déjalo apagado para audio original o actívalo por preferencia sonora.</string>
+        <string name="core_option_help_bsnes_dsp_echo_shadow" formatted="false">Usa memoria paralela separada para el búfer de eco DSP SNES. Admite hacks ROM antiguos que usan mal la RAM de eco pero cambia la relación entre escrituras audio y memoria normal. Déjalo apagado salvo hacks concretos que necesiten ese comportamiento.</string>
+        <string name="core_option_help_bsnes_coprocessor_delayed_sync" formatted="false">Retrasa sincronización con coprocesadores SNES compatibles hasta que sea necesaria. Reduce carga CPU pero relaja coordinación temporal y puede afectar comportamientos inusuales. Mantén activo primero y desactiva ante incompatibilidades reproducibles del coprocesador.</string>
+        <string name="core_option_help_bsnes_coprocessor_prefer_hle" formatted="false">Prefiere emulación de alto nivel de coprocesadores cuando existe. Reduce CPU pero es menos precisa; apagar usa bajo nivel si está disponible el firmware necesario. Mantén activo normalmente y prueba bajo nivel para incompatibilidades conocidas.</string>
+        <string name="core_option_help_bsnes_run_ahead_frames" formatted="false">Simula fotogramas extra restaurando estados para reducir el retraso de entrada visible. Más fotogramas exigen mucha más CPU y pueden causar caídas o incompatibilidades de estado. Déjalo apagado inicialmente y prueba uno solo si el dispositivo tiene suficiente margen.</string>
+        <string name="core_option_help_bsnes_video_filter" formatted="false">Simula conexiones de vídeo analógico SNES desde RF y compuesto hasta S-Video y RGB. Los filtros añaden mezcla de color, artefactos o procesamiento en vez de detalles originales. Elige ninguno para píxeles limpios o el estilo de conexión con el efecto visual preferido.</string>
+        <string name="core_option_cpu_backend">Motor de CPU</string>
+        <string name="core_option_dual_core">Emulación de doble núcleo</string>
+        <string name="core_option_dsp_hle">DSP HLE</string>
+        <string name="core_option_speed">Velocidad de emulación</string>
+        <string name="core_option_wii_profile">Mando de Wii</string>
+        <string name="core_option_video_filter">Filtrado de imagen</string>
+        <string name="core_option_color_correction">Corrección de color</string>
+        <string name="core_option_unlimited_sprites">Quitar el límite de sprites</string>
+        <string name="core_option_ppu_fast">PPU rápida</string>
+        <string name="core_option_dsp_fast">DSP rápido</string>
+        <string name="core_option_entropy">Inicialización aleatoria de memoria</string>
+        <string name="core_option_blur">Emular desenfoque</string>
+        <string name="core_option_overscan">Mostrar sobreexploración</string>
+        <string name="core_option_hotfixes">Correcciones de compatibilidad</string>
+        <string name="core_option_mode7_scale">Escala HD Mode 7</string>
+        <string name="core_option_sa1_clock">Frecuencia de SA-1</string>
+        <string name="core_option_sfx_clock">Frecuencia de SuperFX</string>
+        <string name="core_option_fast_math">Aritmética rápida de CPU</string>
+        <string name="core_option_deinterlace">Desentrelazado</string>
+        <string name="core_option_no_vram_blocking">Quitar el bloqueo de VRAM</string>
+        <string name="core_option_mode7_perspective">Corrección de perspectiva Mode 7</string>
+        <string name="core_option_mode7_supersample">Supermuestreo Mode 7</string>
+        <string name="core_option_mode7_mosaic">Mosaico Mode 7</string>
+        <string name="core_option_dsp_cubic">Interpolación cúbica DSP</string>
+        <string name="core_option_dsp_echo_shadow">RAM de sombra del eco DSP</string>
+        <string name="core_option_delayed_sync">Sincronización diferida de coprocesadores</string>
+        <string name="core_option_prefer_hle">Preferir HLE de coprocesadores</string>
+        <string name="core_option_run_ahead">Fotogramas anticipados</string>
+        <string name="core_option_video_signal">Filtro de señal de vídeo</string>
+        <string name="core_option_restart_required">Se aplica al reiniciar el juego.</string>
+        <string name="core_option_interpreter">Intérprete</string>
+        <string name="core_option_nearest">Vecino más cercano</string>
+        <string name="core_option_linear">Bilineal</string>
+        <string name="core_option_low">Bajo</string>
+        <string name="core_option_high">Alto</string>
+        <string name="core_option_frameskip">Salto de fotogramas</string>
+        <string name="core_option_idle_optimization">Optimización de bucles de espera</string>
+        <string name="core_option_allow_opposing_directions">Permitir direcciones opuestas</string>
+        <string name="core_option_palette">Paleta de Game Boy</string>
+        <string name="core_option_highpass_filter">Filtro de audio de paso alto</string>
+        <string name="core_option_interference_volume">Volumen de interferencias de audio</string>
+        <string name="core_option_detect">Detectar</string>
+        <string name="core_option_remove">Eliminar</string>
+        <string name="core_option_ignore">Ignorar</string>
+        <string name="core_option_hardware">Fiel al hardware</string>
+        <string name="core_option_greyscale">Escala de grises</string>
+        <string name="dolphin_option_widescreen_hack">Arreglo para pantallas panorámicas</string>
+        <string name="dolphin_option_msaa">Suavizado de bordes</string>
+        <string name="dolphin_option_anisotropy">Filtrado anisotrópico</string>
+        <string name="dolphin_option_texture_filtering">Filtrado de texturas</string>
+        <string name="dolphin_option_shader_compilation">Compilación de sombreadores</string>
+        <string name="dolphin_option_shader_cache">@string/settings_core_label_use_disk_shader_cache</string>
+        <string name="dolphin_option_wait_for_shaders">Compilar sombreadores antes de jugar</string>
+        <string name="dolphin_option_vsync">Sincronización vertical</string>
+        <string name="dolphin_option_backend_multithreading">Motor multihilo</string>
+        <string name="dolphin_option_skip_efb_access">Omitir el acceso al EFB desde la CPU</string>
+        <string name="dolphin_option_efb_texture_only">Almacenar copias del EFB como de solo lectura</string>
+        <string name="dolphin_option_xfb_texture_only">Almacenar copias de XFB como de solo lectura</string>
+        <string name="dolphin_option_defer_efb_copies">Retrasar copias del EFB a la RAM</string>
+        <string name="dolphin_option_immediate_xfb">Mostrar directamente el contenido del XFB</string>
+        <string name="dolphin_option_skip_duplicate_xfbs">Omitir la presentación de fotogramas duplicados</string>
+        <string name="dolphin_option_scaled_efb_copy">Copia del EFB a escala</string>
+        <string name="dolphin_option_ignore_format_changes">Ignorar cambios de formato</string>
+        <string name="dolphin_option_texture_cache_accuracy">Precisión de la caché de texturas</string>
+        <string name="dolphin_option_gpu_texture_decoding">Decodificar texturas en GPU</string>
+        <string name="dolphin_option_fast_depth">Cálculo de profundidad rápido</string>
+        <string name="dolphin_option_disable_bbox">Desactivar delimitado rectangular</string>
+        <string name="dolphin_option_vertex_rounding">Redondeo de vértices</string>
+        <string name="dolphin_option_disable_fog">Desactivar niebla</string>
+        <string name="dolphin_option_disable_copy_filter">Desactivar filtrado de copia</string>
+        <string name="dolphin_option_force_true_color">Forzar color de 24 bits</string>
+        <string name="dolphin_option_per_pixel_lighting">Iluminación por píxel</string>
+        <string name="dolphin_option_hires_textures">Cargar texturas personalizadas</string>
+        <string name="dolphin_option_cache_hires_textures">Precargar texturas personalizadas</string>
+        <string name="dolphin_option_save_texture_cache">Guardar caché de texturas en estado</string>
+        <string name="dolphin_option_mmu">Activar MMU</string>
+        <string name="dolphin_option_accurate_cpu_cache">Emular caché de escritura diferida (lento)</string>
+        <string name="dolphin_option_fprf">FPRF</string>
+        <string name="dolphin_option_accurate_nans">NaN precisos</string>
+        <string name="dolphin_option_accurate_fmadds">Multiplicación y suma fusionadas precisas</string>
+        <string name="dolphin_option_fastmem">Fastmem</string>
+        <string name="dolphin_option_fast_disc">Acelerar transferencia del disco</string>
+        <string name="dolphin_option_cpu_clock">@string/settings_core_label_cpu_clock_percentage</string>
+        <string name="dolphin_option_dsp_jit">Recompilador LLE (lento)</string>
+        <string name="dolphin_option_dsp_thread">DSP LLE en un hilo separado</string>
+        <string name="dolphin_option_audio_backend">Motor de audio</string>
+        <string name="dolphin_option_audio_buffer_size">Tamaño del búfer de audio:</string>
+        <string name="dolphin_option_audio_preserve_pitch">Mantener tono del audio</string>
+        <string name="dolphin_option_audio_fill_gaps">Llenar vacíos de audio</string>
+        <string name="dolphin_option_gc_language">Idioma</string>
+        <string name="dolphin_option_wii_speaker">Activar envío de datos al altavoz</string>
+        <string name="dolphin_choice_default">defecto</string>
+        <string name="dolphin_choice_stretch">Estirar a la ventana</string>
+        <string name="dolphin_choice_specialized">Especializados (predeterminado)</string>
+        <string name="dolphin_choice_hybrid">Ubershaders híbridos</string>
+        <string name="dolphin_choice_exclusive">Ubershaders exclusivos</string>
+        <string name="dolphin_choice_skip">Omitir dibujado</string>
+        <string name="dolphin_choice_safe">Segura</string>
+        <string name="dolphin_choice_balanced">Equilibrada</string>
+        <string name="dolphin_choice_fast">Rápida</string>
+        <string name="dolphin_choice_cached_interpreter">Intérprete con caché (lento)</string>
+        <string name="dolphin_choice_english">Inglés</string>
+        <string name="dolphin_choice_german">Alemán</string>
+        <string name="dolphin_choice_french">Francés</string>
+        <string name="dolphin_choice_spanish">Español</string>
+        <string name="dolphin_choice_italian">Italiano</string>
+        <string name="dolphin_choice_dutch">Holandés</string>
+        <string name="formats_images_body">Usa imágenes de juegos descomprimidas. Extrae los archivos ZIP y 7z antes de importarlos.</string>
+        <string name="formats_3ds_body">Los paquetes CIA y ZCIA se instalan antes de iniciarse. Los juegos cifrados requieren tus propias claves del sistema.</string>
+        <string name="formats_ds_body">Los cartuchos DS y mejorados para DSi funcionan en modo DS. Los juegos exclusivos de DSi requieren un entorno DSi.</string>
+        <string name="formats_fds_body">Los juegos FDS requieren una BIOS disksys.rom de 8 KiB en la carpeta de firmware.</string>
+        <string name="formats_executables_body">Las imágenes ejecutables se identifican por sus cabeceras y deben corresponder a la consola.</string>
+        <string name="formats_disc_parts_body">Guarda todas las partes de las imágenes WBFS o ISO divididas en una misma carpeta y concede acceso a ella. Abre el archivo WBFS o .part0.iso; las partes posteriores no son juegos independientes.</string>
+        <string name="legacy_help_ds_renderer" formatted="false">Elige el renderizador DS. Vulkan es el predeterminado y admite mayor resolución interna; Software usa 1x nativo y puede resolver problemas gráficos o de controladores. El dibujo 2D DS puede seguir cargando mucho la CPU, así que Vulkan no es siempre más rápido. Empieza con Vulkan y compara Software en la misma escena para un problema concreto.</string>
+        <string name="legacy_help_ds_upscale" formatted="false">Aumenta la resolución interna de gráficos 3D DS con Vulkan. Valores altos afinan bordes pero aumentan carga GPU, memoria y calor, sin mucho detalle adicional para arte 2D nativo. Software siempre usa 1x nativo. Empieza en el predeterminado 2x, baja a 1x si ralentiza y aumenta solo con rendimiento estable.</string>
+        <string name="legacy_help_cover_style" formatted="false">Elige portadas planas, cajas 3D o ninguna portada en la biblioteca. Cambia apariencia, descargas y caché de imágenes, no gráficos ni velocidad de juegos. Usa tu estilo preferido o desactiva portadas para evitar su carga y reducir almacenamiento.</string>
+        <string name="legacy_help_camera_flip" formatted="false">Refleja horizontalmente, verticalmente o en ambos sentidos la imagen de cámara de reemplazo antes del juego 3DS. Corrige orientación, no calidad de cámara ni velocidad. Empieza con Ninguno y refleja solo si la imagen aparece invertida.</string>
+        <string name="legacy_help_background_dim" formatted="false">Oscurece el fondo elegido para mantener legibles textos y controles. Porcentajes altos ocultan más imagen sin cambiar brillo del juego ni calidad de renderizado. Aumenta hasta leer fácilmente el menú y reduce para mostrar más fondo.</string>
+        <string name="legacy_help_theme" formatted="false">Elige colores y apariencia de la aplicación. Sistema sigue el modo claro u oscuro del dispositivo, los demás conservan su aspecto sin cambiar gráficos del juego. Empieza con Sistema u Oscuro y elige según comodidad o contraste.</string>
+        <string name="legacy_help_keyboard_target" formatted="false">Dirige las teclas asignadas al puerto de jugador elegido. Cambia quién recibe la entrada, no sensibilidad del teclado ni velocidad. Usa Jugador 1 en solitario y otro puerto compatible solo para un jugador adicional.</string>
+        <string name="legacy_help_mouse_target" formatted="false">Dirige botones y apuntado del ratón al puerto de jugador elegido. Un puerto incompatible puede no recibir entrada en esa consola o juego. Usa Jugador 1 en solitario y otro puerto compatible solo para multijugador.</string>
+        <string name="legacy_help_mouse_wheel" formatted="false">Convierte la rueda del ratón en pulsos de los botones o direcciones de palanca seleccionados. Cambia la asignación de la rueda, no sensibilidad de cámara. Déjalo apagado salvo que necesites un atajo y elige controles realmente usados por consola y juego.</string>
+        <string name="legacy_help_mouse_wheel_pulse" formatted="false">Define cuánto permanece pulsada cada entrada producida por un paso de rueda. Un pulso largo se detecta mejor pero puede repetir o prolongar demasiado acciones. Empieza por el predeterminado, aumenta si se pierden pasos y reduce si cada paso mueve demasiado.</string>
+        <string name="legacy_help_mouse_sensitivity" formatted="false">Escala el movimiento del ratón enviado a la palanca emulada. Valores altos dan entradas fuertes con menos movimiento pero dificultan precisión y no aumentan fotogramas. Empieza al 100% y ajusta a juego y ratón.</string>
+        <string name="legacy_help_mouse_vertical_sensitivity" formatted="false">Escala la fuerza del apuntado vertical del ratón. Valores altos requieren menos movimiento para mirar arriba o abajo pero pueden reducir precisión. Empieza al 100% y baja si el movimiento vertical resulta demasiado rápido frente al horizontal.</string>
+        <string name="legacy_help_mouse_smoothing" formatted="false">Filtra pequeñas variaciones del apuntado para reducir temblores. Valores altos estabilizan pero añaden retraso y hacen menos directos los giros rápidos. Empieza bajo y aumenta solo hasta eliminar temblores molestos.</string>
+        <string name="legacy_help_mouse_deadzone" formatted="false">Ignora movimientos pequeños del ratón antes de convertirlos en entrada de palanca. Una zona muerta mayor elimina deriva o ruido pero pierde ajustes finos. Empieza por el predeterminado y aumenta solo si la vista se mueve involuntariamente.</string>
+        <string name="legacy_help_screen_swap" formatted="false">Intercambia la posición mostrada de las dos pantallas. En DS, la entrada táctil sigue a su pantalla y no cambian estado del juego ni rendimiento. Conserva el orden normal salvo que la otra posición resulte más visible o accesible.</string>
+        <string name="legacy_help_second_screen_width" formatted="false">Define el espacio horizontal del panel acoplado de la segunda pantalla. Más anchura facilita su lectura pero quita espacio a la principal sin cambiar resolución interna. Empieza por el predeterminado y amplía solo lo necesario.</string>
+        <string name="legacy_help_3ds_cpu_clock_percentage" formatted="false">Cambia el reloj CPU 3DS emulado respecto a la consola real. Un valor alto reduce caídas de CPU invitada pero exige más CPU anfitriona; uno bajo alivia al sistema pero puede ralentizar juego o alterar tiempos. Mantén 100% normalmente y cambia solo por motivos específicos probados.</string>
+        <string name="legacy_help_3ds_is_new_3ds" formatted="false">Selecciona New 3DS con CPU y memoria adicionales en vez del modelo original. Algunos juegos lo requieren y cambiar modelo afecta compatibilidad y carga. Mantén New 3DS activo salvo necesidad del original y reinicia el juego tras cambiar.</string>
+        <string name="legacy_help_3ds_region_value" formatted="false">Define la región comunicada por el 3DS emulado. Afecta compatibilidad, idiomas y comportamiento regional sin mejorar directamente rendimiento. Usa Auto para coincidir con el juego y selecciona manualmente solo cuando haga falta.</string>
+        <string name="legacy_help_3ds_language" formatted="false">Define el idioma de sistema 3DS comunicado a los juegos. Pueden elegir texto o voces entre idiomas incluidos, sin cambiar idioma de la aplicación ni rendimiento. Elige tu idioma compatible o usa los ajustes propios del juego si ignora el sistema.</string>
+        <string name="legacy_help_3ds_apply_region_free_patch" formatted="false">Omite la comprobación regional 3DS para iniciar títulos de otra región. Ayuda a compatibilidad regional pero no traduce ni acelera el juego. Déjalo desactivado si arranca normalmente y activa solo si la región impide iniciarlo.</string>
+        <string name="legacy_help_3ds_enable_audio_stretching" formatted="false">Adapta la duración del audio cuando la emulación no mantiene tiempo real, reduciendo huecos y crujidos. Puede alterar ligeramente el sonido pero no acelera el juego. Mantén activo para audio fluido y desactiva solo para diagnóstico o tiempos originales.</string>
+        <string name="legacy_help_3ds_enable_realtime_audio" formatted="false">Ajusta la planificación de audio a la velocidad medida de emulación en vez del reloj invitado solamente. Puede cambiar sonido con velocidad fluctuante y ayudar a ciertos problemas temporales. Déjalo apagado normalmente y activa solo si comparar el mismo juego confirma mejor audio.</string>
+        <string name="legacy_help_3ds_volume" formatted="false">Define el nivel de audio emulado antes del volumen Android. Valores bajos reducen sonido sin cambiar velocidad ni precisión de audio. Empieza al 100%, usa el volumen del dispositivo normalmente y baja aquí para equilibrar un juego fuerte.</string>
+        <string name="legacy_help_3ds_input_type" formatted="false">Selecciona micrófono 3DS: Auto usa una fuente disponible, Ninguno envía silencio y Ruido estático genera ruido. Afecta juegos que escuchan sonidos, no volumen de altavoces ni rendimiento. Empieza con Auto, usa ruido para soplar o Ninguno si no deseas entrada.</string>
+        <string name="legacy_help_3ds_graphics_api" formatted="false">Elige Vulkan u OpenGL como motor gráfico hardware 3DS. Rendimiento y corrección dependen del controlador GPU y juego. Empieza con Vulkan, prueba OpenGL ante fallos o inestabilidad y reinicia tras cambiar.</string>
+        <string name="legacy_help_3ds_shaders_accurate_mul" formatted="false">Usa multiplicación más precisa en shaders hardware para ciertos efectos 3DS. Puede corregir gráficos con coste de rendimiento y solo funciona con shaders hardware. Déjalo apagado salvo que corrija errores visibles en el juego actual.</string>
+        <string name="legacy_help_3ds_use_disk_shader_cache" formatted="false">Guarda shaders compilados en disco para futuras ejecuciones. Reduce pausas repetidas de compilación pero ocupa almacenamiento y no elimina todos los primeros tirones. Mantén activo normalmente y desactiva solo al diagnosticar la caché.</string>
+        <string name="legacy_help_3ds_use_vsync" formatted="false">Sincroniza presentación y pantalla para reducir cortes visibles. Puede cambiar cadencia y latencia de entrada sin aumentar velocidad de emulación. Mantén activo para presentación estable y compara desactivarlo solo para problemas específicos de latencia o cadencia.</string>
+        <string name="legacy_help_3ds_use_skip_duplicate_frames" formatted="false">Omite presentar fotogramas cuya imagen no ha cambiado. Reduce trabajo gráfico y consumo en escenas estáticas mientras el juego sigue ejecutándose. Déjalo apagado normalmente y activa si ahorra energía sin irregularidad visible.</string>
+        <string name="legacy_help_3ds_resolution_factor" formatted="false">Aumenta la resolución interna de gráficos 3DS. Valores altos afinan bordes 3D pero aumentan GPU, memoria y calor sin añadir detalle a todo elemento 2D. Empieza en 2x si es posible o Nativa para menor coste y aumenta solo manteniendo fluidez.</string>
+        <string name="legacy_help_3ds_texture_filter" formatted="false">Aplica filtrado de ampliación a texturas del juego. Puede suavizar o remodelar arte pixelado y añade procesamiento; el mejor aspecto depende del juego. Empieza con Ninguno para texturas originales y máximo rendimiento y compara filtros según tus preferencias.</string>
+        <string name="legacy_help_3ds_layout_option" formatted="false">Elige disposición y tamaños relativos de pantallas 3DS. Una principal grande mejora lectura pero una táctil pequeña u oculta es menos práctica, sin cambiar resolución interna. Empieza con ambas visibles y elige según el juego.</string>
+        <string name="legacy_help_3ds_swap_screen" formatted="false">Intercambia funciones de pantallas 3DS en la disposición, incluida cuál es grande o aparece sola. Cambia presentación y ubicación táctil, no velocidad. Conserva el orden normal salvo mejor jugabilidad destacando la otra pantalla.</string>
+        <string name="legacy_help_3ds_aspect_ratio" formatted="false">Cambia la forma de la imagen 3DS. Una forma ancha o estirada llena más pantalla pero deforma círculos, texto y personajes sin añadir detalles nativos. Empieza con proporción normal y estira solo si prefieres el resultado.</string>
+        <string name="legacy_help_3ds_use_virtual_sd" formatted="false">Proporciona al 3DS emulado una tarjeta SD en la carpeta de datos. Juegos y programas caseros pueden usarla para datos adicionales que al desactivarla dejan de estar disponibles. Mantén activa salvo diagnóstico SD y respalda datos antes de cambiar almacenamiento.</string>
+        <string name="legacy_help_3ds_motion_device" formatted="false">Selecciona origen de movimiento 3DS: emulación de la aplicación o servidor CemuHook UDP externo. Una fuente sin datos deja sin respuesta los controles y no aumenta velocidad. Usa Emulado normalmente y UDP solo tras configurar un servidor funcional.</string>
+        <string name="legacy_help_3ds_touch_device" formatted="false">Elige entrada táctil 3DS de la ventana de emulación o servidor CemuHook UDP externo. UDP sin fuente configurada puede impedir el control táctil normal. Usa Ventana de emulación en el dispositivo y UDP solo para entrada externa deliberada.</string>
+        <string name="legacy_help_3ds_udp_pad_index" formatted="false">Selecciona uno de cuatro puestos de mando del servidor CemuHook UDP. Un puesto incorrecto puede impedir entrada remota sin cambiar asignación local ni rendimiento. Empieza con Mando 1 y cambia solo para coincidir con el puesto del servidor.</string>
+        <string name="save_manager_list_failed">No se pudieron cargar los estados guardados. Inténtalo de nuevo.</string>
+        <string name="texture_manager_help">Importa un paquete de texturas ZIP para 3DS, GameCube o Wii. La importación sustituye el paquete instalado del juego seleccionado.</string>
+        <string name="texture_manager_import">Importar paquete de texturas</string>
+        <string name="texture_manager_export">Exportar paquete de texturas</string>
+        <string name="texture_manager_enable">Usar texturas de reemplazo</string>
+        <string name="texture_manager_empty">No hay paquetes de texturas instalados.</string>
+        <string name="texture_manager_identity_failed">No se pudo leer el ID de texturas verificado de este juego.</string>
+        <string name="texture_manager_done">Paquete de texturas actualizado.</string>
+        <string name="texture_manager_failed">No se pudo procesar este paquete de texturas.</string>
+        <string name="texture_manager_stop">Cierra el juego en ejecución antes de cambiar los paquetes de texturas.</string>
+        <string name="texture_manager_delete_title">¿Eliminar el paquete de texturas?</string>
+        <string name="texture_manager_delete_body">¿Eliminar las texturas de reemplazo instaladas de este juego?</string>
+        <string name="texture_manager_count">%1$d texturas • %2$s</string>
+        <string name="texture_manager_scope_global">3DS: se aplica a todos los juegos salvo que el perfil del juego lo anule.</string>
+        <string name="texture_manager_scope_game">Se aplica al perfil de este juego.</string>
+        <string name="game_settings_manager_save_failure">No se pudieron guardar los ajustes del juego. Inténtalo de nuevo.</string>
 </resources>

@@ -12,6 +12,8 @@ import com.sbro.emucored.core.platform.session.EngineButton
 import com.sbro.emucored.core.platform.session.EngineLaunchRequest
 import com.sbro.emucored.core.platform.session.EngineStartResult
 import com.sbro.emucored.core.platform.session.NativeSessionOwnership
+import com.sbro.emucored.core.platform.session.CorePerformanceSampler
+import com.sbro.emucored.core.platform.session.CorePerformanceSnapshot
 import java.io.File
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.CancellationException
@@ -25,6 +27,15 @@ class DolphinSessionEngine : CoreSessionEngine {
     data class GameIdentity(val platform:ConsolePlatform,val gameId:String,val revision:Int?,val titleId:String?)
     override val coreId = CoreId.DOLPHIN
     private val lifecycle = Mutex()
+    private val performance = CorePerformanceSampler()
+    private val performanceLock = Any()
+    private var publishedPerformance: CorePerformanceSnapshot? = null
+    private var publishedPerformanceAt = Long.MIN_VALUE
+    private fun resetPerformance() = synchronized(performanceLock) {
+        performance.reset()
+        publishedPerformance = null
+        publishedPerformanceAt = Long.MIN_VALUE
+    }
     @Volatile private var ownsRuntime = false
     @Volatile private var starting = false
     @Volatile private var sessionLease: NativeSessionOwnership.Lease? = null
@@ -48,6 +59,7 @@ class DolphinSessionEngine : CoreSessionEngine {
     }
 
     override suspend fun start(request: EngineLaunchRequest): EngineStartResult {
+        resetPerformance()
         var attemptedLease: NativeSessionOwnership.Lease? = null
         try {
             return startOwned(request) { attemptedLease = it }
@@ -64,7 +76,8 @@ class DolphinSessionEngine : CoreSessionEngine {
             if (request.platform != ConsolePlatform.GAMECUBE && request.platform != ConsolePlatform.WII)
                 return@withLock EngineStartResult.Failed("dolphin_platform_unsupported")
             if (!DolphinNative.available) return@withLock EngineStartResult.Failed("dolphin_native_unavailable")
-            if (!File(request.launchPath).isFile) return@withLock EngineStartResult.Failed("dolphin_file_unreadable")
+            if (!DolphinServices.isReadableGamePath(request.launchPath))
+                return@withLock EngineStartResult.Failed("dolphin_file_unreadable")
             val lease = ownership.claim() ?: return@withLock EngineStartResult.Failed("dolphin_session_busy")
             claimed(lease)
             sessionLease = lease
@@ -108,9 +121,10 @@ class DolphinSessionEngine : CoreSessionEngine {
             }
         }
     }
-    override suspend fun pause() { ownedIo(false) { DolphinNative.pause(true) } }
-    override suspend fun resume() { ownedIo(false) { DolphinNative.pause(false) } }
+    override suspend fun pause() { resetPerformance(); ownedIo(false) { DolphinNative.pause(true) } }
+    override suspend fun resume() { resetPerformance(); ownedIo(false) { DolphinNative.pause(false) } }
     override fun requestStop() {
+        resetPerformance()
         ownership.call(sessionLease, Unit) { if (ownsRuntime || starting) DolphinNative.requestStop() }
     }
     override suspend fun stop() {
@@ -191,6 +205,22 @@ class DolphinSessionEngine : CoreSessionEngine {
         DolphinNative.option(key, value)
     }
     override fun frameCount(): Long = owned(0L) { DolphinNative.frames() }
+    override fun performanceSnapshot(nowMillis: Long): CorePerformanceSnapshot? = synchronized(performanceLock) { owned(null) {
+        val values = DolphinNative.performance()
+        if (values == null || values.size != 6) { resetPerformance(); null } else {
+            val sampled = performance.sample(nowMillis, values[0].toLong(), values[1], true, false)
+            if (sampled == null) { publishedPerformance = null; null }
+            else if (publishedPerformance != null && nowMillis >= publishedPerformanceAt && nowMillis - publishedPerformanceAt < 500)
+                publishedPerformance
+            else sampled.copy(
+                // A 30 FPS game can still run at 100% emulated speed on a 60 Hz VI.
+                speedPercent = values[2].takeIf { it.isFinite() && it >= 0 },
+                width = values[3].toInt().takeIf { it > 0 },
+                height = values[4].toInt().takeIf { it > 0 },
+                backend = when (values[5].toInt()) { 1 -> "Vulkan"; 2 -> "OpenGL"; else -> null }
+            ).also { publishedPerformance = it; publishedPerformanceAt = nowMillis }
+        }
+    } }
     override suspend fun replaceCheats(codes:List<CoreCheatCode>):Boolean {
         if(codes.size>4096 || codes.any{!CoreCheatFormats.accepts(coreId,it)})return false
         return ownedIo(false){DolphinNative.cheats(codes.map{it.format}.toTypedArray(),codes.map{it.code}.toTypedArray())}

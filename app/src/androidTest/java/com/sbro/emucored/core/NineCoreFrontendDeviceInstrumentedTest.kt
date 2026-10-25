@@ -120,7 +120,25 @@ class NineCoreFrontendDeviceInstrumentedTest {
                 val secondTour = listOf(GamePlatform.GAMECUBE, GamePlatform.WII, GamePlatform.SNES,
                     GamePlatform.GBC, GamePlatform.GB, GamePlatform.NES, GamePlatform.GBA,
                     GamePlatform.NDS, GamePlatform.N3DS)
-                (firstTour + secondTour).forEachIndexed { step, platform ->
+                val tour = if (args.getString("nineCoreAllTransitions") == "true") {
+                    // Eulerian circuit: every ordered pair, including same-console
+                    // reopen, occurs exactly once in 82 boots instead of 162.
+                    val remaining = GamePlatform.entries.associateWith { GamePlatform.entries.toMutableList() }
+                    val stack = mutableListOf(firstTour.first())
+                    val circuit = mutableListOf<GamePlatform>()
+                    while (stack.isNotEmpty()) {
+                        val edges = remaining.getValue(stack.last())
+                        if (edges.isEmpty()) circuit += stack.removeAt(stack.lastIndex)
+                        else stack += edges.removeAt(edges.lastIndex)
+                    }
+                    circuit.reverse()
+                    val expected = GamePlatform.entries.flatMap { a -> GamePlatform.entries.map { b -> a to b } }.toSet()
+                    assertEquals("Transition tour must cover every ordered platform pair", expected,
+                        circuit.zipWithNext().toSet())
+                    assertEquals(expected.size + 1, circuit.size)
+                    circuit
+                } else firstTour + secondTour
+                tour.forEachIndexed { step, platform ->
                     val game = games.getValue(platform)
                     phase = "step${step + 1}/$platform"
                     assertEquals(diagnostic("App process restarted"), pid, Process.myPid())
@@ -169,6 +187,15 @@ class NineCoreFrontendDeviceInstrumentedTest {
                     }
                     assertOwnership(platform)
                     awaitProgress(platform)
+                    if (newHandle != null) measured("actual-engine-statistics", 10_000) {
+                        var snapshot = AdditionalConsoleSession.performanceMetricsSnapshot()
+                        while (snapshot?.fps?.let { it.isFinite() && it > 0 } != true) {
+                            delay(100)
+                            snapshot = AdditionalConsoleSession.performanceMetricsSnapshot()
+                        }
+                        assertTrue(diagnostic("Engine has no actual native target rate"), snapshot.targetFps?.let { it > 0 } == true)
+                        assertTrue(diagnostic("Engine speed is unavailable"), snapshot.speedPercent?.isFinite() == true)
+                    }
                     assertVisible(view, handler)
                     EmulatorBridge.setPadButton(0, 97, 255, true)
                     EmulatorBridge.setPadButton(0, 97, 255, false)
@@ -200,6 +227,15 @@ class NineCoreFrontendDeviceInstrumentedTest {
                     states[platform] = stateFile
                     measured("resume", 30_000) { EmulatorBridge.resume() }
                     awaitProgress(platform)
+                    if (newHandle != null) measured("actual-engine-statistics", 10_000) {
+                        var snapshot = AdditionalConsoleSession.performanceMetricsSnapshot()
+                        while (snapshot?.fps?.let { it.isFinite() && it > 0 } != true) {
+                            delay(100)
+                            snapshot = AdditionalConsoleSession.performanceMetricsSnapshot()
+                        }
+                        assertTrue(diagnostic("Engine has no actual native target rate"), snapshot.targetFps?.let { it > 0 } == true)
+                        assertTrue(diagnostic("Engine speed is unavailable"), snapshot.speedPercent?.isFinite() == true)
+                    }
                     assertVisible(view, handler)
                     newHandle?.let(oldHandles::add)
                     EmulatorBridge.resetKeyStatus()
@@ -282,6 +318,7 @@ class NineCoreFrontendDeviceInstrumentedTest {
         assertFalse(diagnostic("Bridge retained a VM"), EmulatorBridge.isVmActive())
         assertFalse(diagnostic("Additional engine retained ownership"), AdditionalConsoleSession.isActive)
         assertNull(diagnostic("Additional session survived stop"), AdditionalConsoleSession.session)
+        assertNull(diagnostic("Retired engine statistics survived stop"), AdditionalConsoleSession.performanceMetricsSnapshot())
         assertNull(diagnostic("Additional state identity survived stop"), AdditionalConsoleSession.stateFile(SLOT))
         assertFalse(diagnostic("DS retained ownership"), DsSession.isActive)
         assertFalse(diagnostic("DS native worker survived stop"), EmuCoreDsNative.nativeIsRunning())

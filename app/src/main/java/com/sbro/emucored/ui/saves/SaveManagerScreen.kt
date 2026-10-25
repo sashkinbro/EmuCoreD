@@ -26,7 +26,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.CloudDownload
 import androidx.compose.material.icons.rounded.DeleteOutline
@@ -46,6 +45,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -56,6 +56,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -68,18 +69,17 @@ import com.sbro.emucored.data.SaveStateImportFormat
 import com.sbro.emucored.data.SaveStateImportPreview
 import com.sbro.emucored.data.SaveStateRepository
 import com.sbro.emucored.ui.common.GameCoverArt
-import com.sbro.emucored.ui.common.cachedImageAspectRatio
-import com.sbro.emucored.ui.common.preloadGameCoverArt
 import com.sbro.emucored.ui.common.ScreenTopBar
 import com.sbro.emucored.ui.common.appScreenTopPadding
 import com.sbro.emucored.ui.common.navigationBarsHorizontalPaddingValues
-import com.sbro.emucored.ui.common.shimmer
 import com.sbro.emucored.ui.theme.ScreenHorizontalPadding
 import com.sbro.emucored.ui.theme.neon.LocalNeonTheme
 import com.sbro.emucored.ui.theme.neon.NeonSystemBanner
 import com.sbro.emucored.ui.theme.neon.neonButtonShape
 import com.sbro.emucored.ui.theme.neon.neonShape
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.text.DateFormat
@@ -109,12 +109,17 @@ fun SaveManagerScreen(
     val deleteSuccessMessage = stringResource(R.string.save_manager_delete_success)
     val deleteFailureMessage = stringResource(R.string.save_manager_delete_failed)
 
-    var entries by remember(gamePath, gameTitle, gameSerial) { mutableStateOf<List<SaveStateEntryInfo>>(emptyList()) }
-    var previewPaths by remember(gamePath, gameTitle, gameSerial) { mutableStateOf<Map<String, SaveStatePreview>>(emptyMap()) }
-    var isWorking by remember { mutableStateOf(false) }
-    var isPreparingEntries by remember(gamePath, gameTitle, gameSerial) { mutableStateOf(true) }
-    val pendingDelete = remember { mutableStateOf<SaveStateEntryInfo?>(null) }
-    var importPreview by remember { mutableStateOf<SaveStateImportPreview?>(null) }
+    var snapshot by remember(context, gamePath, gameTitle, gameSerial) {
+        mutableStateOf(takePreparedSaveManager(context, gamePath, gameTitle, gameSerial))
+    }
+    val entries = snapshot?.entries.orEmpty()
+    val previewPaths = snapshot?.previews.orEmpty()
+    var isWorking by remember(gamePath, gameTitle, gameSerial) { mutableStateOf(false) }
+    val isPreparingEntries = snapshot == null
+    var preparationFailed by remember(gamePath, gameTitle, gameSerial) { mutableStateOf(false) }
+    var refreshJob by remember(gamePath, gameTitle, gameSerial) { mutableStateOf<Job?>(null) }
+    val pendingDelete = remember(gamePath, gameTitle, gameSerial) { mutableStateOf<SaveStateEntryInfo?>(null) }
+    var importPreview by remember(gamePath, gameTitle, gameSerial) { mutableStateOf<SaveStateImportPreview?>(null) }
     var refreshGeneration by remember(gamePath, gameTitle, gameSerial) { mutableIntStateOf(0) }
 
     val isFiltered = !gamePath.isNullOrBlank()
@@ -128,45 +133,31 @@ fun SaveManagerScreen(
     }
 
     fun refresh() {
+        invalidatePreparedSaveManagers()
+        refreshJob?.cancel()
         val generation = refreshGeneration + 1
         refreshGeneration = generation
-        scope.launch {
+        refreshJob = scope.launch {
             isWorking = true
-            isPreparingEntries = true
-            entries = emptyList()
-            previewPaths = emptyMap()
-            val prepared = withContext(Dispatchers.IO) {
-                val listedEntries = repository.listEntries(
-                    filterGamePath = gamePath,
-                    filterGameTitle = gameTitle,
-                    filterGameSerial = gameSerial
-                )
-                val resolvedEntries = if (gamePath.isNullOrBlank() && listedEntries.isNotEmpty()) {
-                    runCatching { repository.enrichGlobalEntries(listedEntries) }.getOrDefault(listedEntries)
-                } else {
-                    listedEntries
-                }
-                val previews = resolvedEntries.mapNotNull { entry ->
-                    val imagePath = runCatching { repository.getPreviewImagePath(entry) }
-                        .getOrNull()
-                    if (imagePath.isNullOrBlank() || !preloadGameCoverArt(context.applicationContext, imagePath)) {
-                        return@mapNotNull null
-                    }
-                    val aspectRatio = cachedImageAspectRatio(imagePath) ?: return@mapNotNull null
-                    entry.absolutePath to SaveStatePreview(imagePath, aspectRatio)
-                }.toMap()
-                resolvedEntries to previews
+            snapshot = null
+            preparationFailed = false
+            try {
+                val prepared = loadSaveManagerSnapshot(context.applicationContext, gamePath, gameTitle, gameSerial)
+                if (refreshGeneration == generation) snapshot = prepared
+            } catch (cancelled: CancellationException) { throw cancelled }
+            catch (_: Exception) {
+                if (refreshGeneration == generation) preparationFailed = true
+            } finally {
+                if (refreshGeneration == generation) isWorking = false
             }
-            if (refreshGeneration != generation) return@launch
-            entries = prepared.first
-            previewPaths = prepared.second
-            isPreparingEntries = false
-            isWorking = false
         }
     }
 
     LaunchedEffect(gamePath, gameTitle, gameSerial) {
-        refresh()
+        if (snapshot == null) refresh()
+    }
+    DisposableEffect(gamePath, gameTitle, gameSerial) {
+        onDispose { refreshJob?.cancel() }
     }
 
     val backupLauncher = rememberLauncherForActivityResult(
@@ -202,7 +193,7 @@ fun SaveManagerScreen(
                         gameSerial = gameSerial
                     )
                 }
-            }.getOrNull()
+            }.onFailure { if (it is CancellationException) throw it }.getOrNull()
             isWorking = false
             if (preview == null) {
                 Toast.makeText(context, restoreFailureMessage, Toast.LENGTH_SHORT).show()
@@ -313,13 +304,17 @@ fun SaveManagerScreen(
         ) {
             if (isPreparingEntries) {
                 item {
-                    SaveManagerHeaderSkeleton(topInset = topInset)
+                    SaveManagerHeader(topInset, screenSubtitle, !preparationFailed, onBackClick)
                 }
                 item {
-                    SaveManagerActionsSkeleton()
-                }
-                items(3) {
-                    SaveEntrySkeletonCard()
+                    if (preparationFailed) {
+                        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                            Text(stringResource(R.string.save_manager_list_failed), color = MaterialTheme.colorScheme.error)
+                            OutlinedButton(onClick = ::refresh) { Text(stringResource(R.string.tv_storage_picker_install_retry)) }
+                        }
+                    } else Box(Modifier.fillMaxWidth().padding(24.dp).testTag("save-manager-loading"), contentAlignment = Alignment.Center) {
+                        CircularProgressIndicator()
+                    }
                 }
             } else {
                 item {
@@ -545,97 +540,6 @@ private fun SaveManagerHeader(
 }
 
 @Composable
-private fun SaveManagerHeaderSkeleton(topInset: androidx.compose.ui.unit.Dp) {
-    Column(
-        modifier = Modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = topInset, bottom = 4.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            SkeletonBlock(
-                modifier = Modifier
-                    .size(48.dp)
-            )
-            Column(
-                modifier = Modifier
-                    .weight(1f)
-                    .padding(start = 8.dp, end = 8.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                SkeletonBlock(
-                    modifier = Modifier
-                        .fillMaxWidth(0.56f)
-                        .height(32.dp)
-                )
-                SkeletonBlock(
-                    modifier = Modifier
-                        .fillMaxWidth(0.72f)
-                        .height(18.dp)
-                )
-            }
-            SkeletonBlock(
-                modifier = Modifier
-                    .size(22.dp)
-            )
-        }
-
-        Surface(
-            shape = neonShape(22.dp),
-            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.26f)
-        ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 14.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                SkeletonBlock(
-                    modifier = Modifier.size(18.dp)
-                )
-                Column(
-                    modifier = Modifier.padding(start = 12.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    SkeletonBlock(
-                        modifier = Modifier
-                            .width(180.dp)
-                            .height(22.dp)
-                    )
-                    SkeletonBlock(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(16.dp)
-                    )
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun SaveManagerActionsSkeleton() {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(10.dp)
-    ) {
-        SkeletonBlock(
-            modifier = Modifier
-                .weight(0.86f)
-                .height(52.dp)
-        )
-        SkeletonBlock(
-            modifier = Modifier
-                .weight(1.14f)
-                .height(52.dp)
-        )
-    }
-}
-
-@Composable
 private fun SaveEntryCard(
     entry: SaveStateEntryInfo,
     preview: SaveStatePreview?,
@@ -644,7 +548,7 @@ private fun SaveEntryCard(
     onDeleteClick: () -> Unit
 ) {
     Surface(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier.fillMaxWidth().testTag("save-entry-${entry.absolutePath}"),
         shape = neonShape(20.dp),
         tonalElevation = 1.dp,
         shadowElevation = 3.dp,
@@ -812,113 +716,6 @@ private fun SaveEntryCard(
             }
         }
     }
-}
-
-private data class SaveStatePreview(
-    val path: String,
-    val aspectRatio: Float
-)
-
-@Composable
-private fun SaveEntrySkeletonCard() {
-    Surface(
-        modifier = Modifier.fillMaxWidth(),
-        shape = neonShape(20.dp),
-        tonalElevation = 1.dp,
-        shadowElevation = 3.dp,
-        color = MaterialTheme.colorScheme.surface,
-        border = BorderStroke(
-            width = 1.dp,
-            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.7f)
-        )
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp)
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.Top
-            ) {
-                SkeletonBlock(
-                    modifier = Modifier
-                        .width(132.dp)
-                        .height(96.dp)
-                        .clip(neonShape(18.dp))
-                )
-
-                Column(
-                    modifier = Modifier
-                        .weight(1f)
-                        .padding(start = 16.dp),
-                    verticalArrangement = Arrangement.spacedBy(6.dp)
-                ) {
-                    SkeletonBlock(
-                        modifier = Modifier
-                            .fillMaxWidth(0.88f)
-                            .height(28.dp)
-                    )
-                    SkeletonBlock(
-                        modifier = Modifier
-                            .fillMaxWidth(0.62f)
-                            .height(28.dp)
-                    )
-                    SkeletonBlock(
-                        modifier = Modifier
-                            .fillMaxWidth(0.56f)
-                            .height(20.dp)
-                    )
-                    SkeletonBlock(
-                        modifier = Modifier
-                            .fillMaxWidth(0.72f)
-                            .height(20.dp)
-                    )
-                    SkeletonBlock(
-                        modifier = Modifier
-                            .fillMaxWidth(0.42f)
-                            .height(20.dp)
-                    )
-                    SkeletonBlock(
-                        modifier = Modifier
-                            .fillMaxWidth(0.68f)
-                            .height(18.dp)
-                    )
-                }
-            }
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                SkeletonBlock(
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(44.dp)
-                )
-                SkeletonBlock(
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(44.dp)
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun SkeletonBlock(modifier: Modifier = Modifier) {
-    val shape = neonShape(18.dp)
-    Box(
-        modifier = modifier
-            .clip(shape)
-            .background(
-                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
-                shape = shape
-            )
-            .shimmer()
-    )
 }
 
 @Composable

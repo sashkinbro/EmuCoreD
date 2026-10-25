@@ -1,8 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<resources>
-    <string name="formats_images_body">Usa imágenes de juegos descomprimidas. Extrae los archivos ZIP y 7z antes de importarlos.</string>
-    <string name="formats_3ds_body">Los paquetes CIA y ZCIA se instalan antes de iniciarse. Los juegos cifrados requieren tus propias claves del sistema.</string>
-    <string name="formats_ds_body">Los cartuchos DS y mejorados para DSi funcionan en modo DS. Los juegos exclusivos de DSi requieren un entorno DSi.</string>
-    <string name="formats_fds_body">Los juegos FDS requieren una BIOS disksys.rom de 8 KiB en la carpeta de firmware.</string>
-    <string name="formats_executables_body">Los ejecutables DOL y ELF pueden requerir que elijas su consola antes de iniciarlos.</string>
-</resources>

@@ -200,8 +200,7 @@ fun VectorOverlayButton(
         TouchControlVisualStyle.MINIMAL -> if (isFaceButton || isDirectionalButton) CircleShape else RoundedCornerShape(if (isShoulderButton) 8.dp else 6.dp)
     }
     val styleBrush = when (visualStyle) {
-        TouchControlVisualStyle.CLASSIC -> if (labelOverride == null) null else Brush.verticalGradient(
-            listOf(Color(0xCC3A414D), Color(0xDD11151D)))
+        TouchControlVisualStyle.CLASSIC -> null
         TouchControlVisualStyle.LEGACY -> Brush.verticalGradient(
             listOf(
                 Color(0xFF626A77).copy(alpha = if (isActivelyPressed) 0.78f else 0.88f),
@@ -229,7 +228,7 @@ fun VectorOverlayButton(
         )
     }
     val styleBorder = when (visualStyle) {
-        TouchControlVisualStyle.CLASSIC -> if (labelOverride == null) null else Color.White.copy(alpha = 0.35f)
+        TouchControlVisualStyle.CLASSIC -> null
         TouchControlVisualStyle.LEGACY -> Color.White.copy(alpha = if (isActivelyPressed) 0.48f else 0.34f)
         TouchControlVisualStyle.MODERN -> MaterialTheme.colorScheme.primary.copy(alpha = if (isActivelyPressed) 0.96f else 0.72f)
         TouchControlVisualStyle.ARCADE -> Color(0xFFFFE29A).copy(alpha = if (isActivelyPressed) 1f else 0.9f)
@@ -315,13 +314,29 @@ fun VectorOverlayButton(
             }
             else -> Unit
         }
-        if (visualStyle == TouchControlVisualStyle.CLASSIC && labelOverride == null) {
+        if (visualStyle == TouchControlVisualStyle.CLASSIC) {
             Image(
                 painter = painterResource(drawableRes),
                 contentDescription = null,
                 modifier = Modifier.fillMaxSize(),
                 contentScale = contentScale
             )
+            if (labelOverride != null) {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = labelOverride,
+                        color = Color.White.copy(alpha = 0.94f),
+                        style = MaterialTheme.typography.titleMedium.copy(
+                            fontWeight = FontWeight.Bold
+                        ),
+                        textAlign = TextAlign.Center,
+                        maxLines = 1
+                    )
+                }
+            }
         } else {
             AlternativeControlGlyph(
                 drawableRes = drawableRes,

@@ -118,6 +118,7 @@ class GameRepository {
             )
                 .sortedBy { it.title.lowercase() }
         }.onFailure { error ->
+            if (error is kotlinx.coroutines.CancellationException) throw error
             Log.w(TAG, "Unable to scan document tree: $uri", error)
         }.getOrDefault(emptyList())
     }
@@ -183,7 +184,8 @@ class GameRepository {
                 }
 
                 file.isFile && GamePlatform.isSupportedName(file.name) -> {
-                    val platform = com.sbro.emucored.core.ConsoleGameDiscovery.identify(context, file.absolutePath, file.name) ?: return@forEach
+                    val platform = com.sbro.emucored.core.ConsoleGameDiscovery.identify(context, file.absolutePath, file.name,
+                        checkActive = { if (shouldAbort()) throw kotlinx.coroutines.CancellationException("Library scan cancelled") }) ?: return@forEach
                     if (platform == GamePlatform.N3DS && file.extension.equals("zip", true) && N3dsGameMetadataReader.read(context, file.absolutePath) == null) return@forEach
                     val entrySize = file.length()
                     val cachedGame = cachedGamesByPath[file.absolutePath]
@@ -260,6 +262,12 @@ class GameRepository {
         }
         val items = mutableListOf<GameItem>()
         val children = runCatching { docFile.listFiles() }.getOrDefault(emptyArray())
+        // Already-authorized parent evidence is both exact and independent of
+        // the number of sibling folders elsewhere in a user's library tree.
+        val siblingDocuments by lazy { children.map { child ->
+            if (shouldAbort()) throw kotlinx.coroutines.CancellationException("Library scan cancelled")
+            documentDisplayName(context, child) to child.uri.toString()
+        } }
         val coverCandidates = buildDocumentCoverCandidates(children)
         val coverRepository = CoverArtRepository(context)
         val customCoverRepository = CustomGameCoverRepository(context)
@@ -287,7 +295,10 @@ class GameRepository {
                 }
                 SetupValidator.DocumentEntryKind.GAME_FILE -> {
                     val uriPath = file.uri.toString()
-                    val platform = com.sbro.emucored.core.ConsoleGameDiscovery.identify(context, uriPath, name) ?: continue
+                    com.sbro.emucored.core.ConsoleImageAccess.rememberDocumentParent(context, uriPath, docFile.uri.toString(), name)
+                    val platform = com.sbro.emucored.core.ConsoleGameDiscovery.identify(context, uriPath, name,
+                        siblingDocuments = if (com.sbro.emucored.core.ConsoleImageParts.isMultipart(name)) siblingDocuments else null,
+                        checkActive = { if (shouldAbort()) throw kotlinx.coroutines.CancellationException("Library scan cancelled") }) ?: continue
                     val fileSize = runCatching { file.length() }.getOrDefault(0L)
                     if (platform == GamePlatform.N3DS && name.endsWith(".zip", true) && N3dsGameMetadataReader.read(context, uriPath) == null) continue
                     val entrySize = fileSize

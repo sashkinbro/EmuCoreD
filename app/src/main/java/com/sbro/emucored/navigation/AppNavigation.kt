@@ -1,5 +1,10 @@
 package com.sbro.emucored.navigation
 
+import com.sbro.emucored.ui.saves.prepareSaveManager
+import kotlinx.coroutines.ensureActive
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Job
+import androidx.navigation.NavOptionsBuilder
 import android.net.Uri
 import android.util.Log
 import android.widget.Toast
@@ -59,7 +64,9 @@ import com.sbro.emucored.data.SaveStateRepository
 import com.sbro.emucored.ui.catalog.CatalogSearchScreen
 import com.sbro.emucored.ui.achievements.AchievementsScreen
 import com.sbro.emucored.ui.cheats.CheatManagerScreen
-import com.sbro.emucored.ui.controls.TouchControlCreatorScreen
+import com.sbro.emucored.ui.textures.TextureManagerScreen
+import com.sbro.emucored.ui.controls.ScopedTouchControlCreatorHostScreen
+import com.sbro.emucored.core.platform.ConsolePlatform
 import com.sbro.emucored.ui.detail.GameDetailScreen
 import com.sbro.emucored.ui.discord.DiscordScreen
 import com.sbro.emucored.ui.emulation.EmulationScreen
@@ -124,7 +131,7 @@ object LanguageSettingsRoute
 object ThemeManagerRoute
 
 @Serializable
-object TouchControlCreatorRoute
+data class TouchControlCreatorRoute(val platformId: String = ConsolePlatform.N3DS.id)
 
 @Serializable
 object OnboardingRoute
@@ -159,6 +166,9 @@ object AchievementsRoute
 
 @Serializable
 object ProfileRoute
+
+@Serializable
+data class TextureManagerRoute(val gamePath: String? = null)
 
 @Serializable
 object CheatManagerRoute
@@ -272,6 +282,31 @@ fun AppNavigation(
     val settingsViewModel: SettingsViewModel = viewModel()
     val settingsUiState by settingsViewModel.uiState.collectAsState()
     val scope = rememberCoroutineScope()
+    var savePreparationJob by remember { mutableStateOf<Job?>(null) }
+    var savePreparationOrigin by remember { mutableStateOf<String?>(null) }
+    LaunchedEffect(currentBackStackEntry?.id) {
+        if (savePreparationOrigin != null && savePreparationOrigin != currentBackStackEntry?.id) {
+            savePreparationJob?.cancel()
+            savePreparationOrigin = null
+        }
+    }
+    fun navigatePreparedSaveManager(route: SaveManagerRoute, options: NavOptionsBuilder.() -> Unit) {
+        savePreparationJob?.cancel()
+        val origin = navController.currentBackStackEntry?.id
+        savePreparationOrigin = origin
+        savePreparationJob = scope.launch {
+            try {
+                prepareSaveManager(context, route.gamePath, route.gameTitle, route.gameSerial)
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (error: Exception) {
+                // The destination owns a real failure/retry state; no fabricated slot data.
+                Log.w(TAG, "Save manager preparation failed", error)
+            }
+            ensureActive()
+            if (navController.currentBackStackEntry?.id == origin) navController.navigate(route, options)
+        }
+    }
     var homeDrawerEnabled by remember { mutableStateOf(true) }
     var blockRestoredEmulationRoute by remember(restoredFromSavedState) {
         mutableStateOf(restoredFromSavedState)
@@ -323,6 +358,9 @@ fun AppNavigation(
         navController.navigate(MemoryCardManagerRoute) {
             launchSingleTop = true
         }
+    }
+    val navigateTextureManager: () -> Unit = {
+        navController.navigate(TextureManagerRoute()) { launchSingleTop = true }
     }
     val navigateCheatManager: () -> Unit = {
         navController.navigate(CheatManagerRoute) {
@@ -432,11 +470,12 @@ fun AppNavigation(
                     onNavigateDataTransfer = navigateDataTransfer,
                     onResetAllSettings = resetAllSettingsAndOpenOnboarding,
                     onNavigateSaveManager = {
-                        navController.navigate(SaveManagerRoute()) {
+                        navigatePreparedSaveManager(SaveManagerRoute()) {
                             launchSingleTop = true
                         }
                     },
                     onNavigateMemoryCardManager = navigateMemoryCardManager,
+                    onNavigateTextureManager = navigateTextureManager,
                     onNavigateCheatManager = navigateCheatManager,
                     onNavigateAchievements = navigateAchievements,
                     onNavigateProfile = navigateProfile,
@@ -463,7 +502,7 @@ fun AppNavigation(
                             }
                         },
                         onLoadSaveClick = { game ->
-                            navController.navigate(
+                            navigatePreparedSaveManager(
                                 SaveManagerRoute(
                                     gamePath = game.path,
                                     gameTitle = game.title,
@@ -525,11 +564,12 @@ fun AppNavigation(
                     onNavigateDataTransfer = navigateDataTransfer,
                     onResetAllSettings = resetAllSettingsAndOpenOnboarding,
                     onNavigateSaveManager = {
-                        navController.navigate(SaveManagerRoute()) {
+                        navigatePreparedSaveManager(SaveManagerRoute()) {
                             launchSingleTop = true
                         }
                     },
                     onNavigateMemoryCardManager = navigateMemoryCardManager,
+                    onNavigateTextureManager = navigateTextureManager,
                     onNavigateCheatManager = navigateCheatManager,
                     onNavigateAchievements = navigateAchievements,
                     onNavigateProfile = navigateProfile,
@@ -597,11 +637,12 @@ fun AppNavigation(
                         onNavigateDataTransfer = navigateDataTransfer,
                         onResetAllSettings = resetAllSettingsAndOpenOnboarding,
                         onNavigateSaveManager = {
-                            navController.navigate(SaveManagerRoute()) {
+                            navigatePreparedSaveManager(SaveManagerRoute()) {
                                 launchSingleTop = true
                             }
                         },
                         onNavigateMemoryCardManager = navigateMemoryCardManager,
+                                            onNavigateTextureManager = navigateTextureManager,
                                             onNavigateCheatManager = navigateCheatManager,
                     onNavigateAchievements = navigateAchievements,
                     onNavigateProfile = navigateProfile,
@@ -692,11 +733,12 @@ fun AppNavigation(
                     onNavigateDataTransfer = navigateDataTransfer,
                     onResetAllSettings = resetAllSettingsAndOpenOnboarding,
                     onNavigateSaveManager = {
-                        navController.navigate(SaveManagerRoute()) {
+                        navigatePreparedSaveManager(SaveManagerRoute()) {
                             launchSingleTop = true
                         }
                     },
                     onNavigateMemoryCardManager = navigateMemoryCardManager,
+                    onNavigateTextureManager = navigateTextureManager,
                     onNavigateCheatManager = navigateCheatManager,
                     onNavigateAchievements = navigateAchievements,
                     onNavigateProfile = navigateProfile,
@@ -735,6 +777,7 @@ fun AppNavigation(
                     onNavigateDataTransfer = navigateDataTransfer,
                     onResetAllSettings = resetAllSettingsAndOpenOnboarding,
                     onNavigateMemoryCardManager = navigateMemoryCardManager,
+                    onNavigateTextureManager = navigateTextureManager,
                     onNavigateCheatManager = navigateCheatManager,
                     onNavigateAchievements = navigateAchievements,
                     onNavigateProfile = navigateProfile,
@@ -774,11 +817,12 @@ fun AppNavigation(
                     onNavigateDataTransfer = navigateDataTransfer,
                     onResetAllSettings = resetAllSettingsAndOpenOnboarding,
                     onNavigateSaveManager = {
-                        navController.navigate(SaveManagerRoute()) {
+                        navigatePreparedSaveManager(SaveManagerRoute()) {
                             launchSingleTop = true
                         }
                     },
                     onNavigateMemoryCardManager = navigateMemoryCardManager,
+                    onNavigateTextureManager = navigateTextureManager,
                     onNavigateCheatManager = navigateCheatManager,
                     onNavigateAchievements = navigateAchievements,
                     onNavigateProfile = navigateProfile,
@@ -804,8 +848,8 @@ fun AppNavigation(
                                 launchSingleTop = true
                             }
                         },
-                        onOpenTouchControlCreator = {
-                            navController.navigate(TouchControlCreatorRoute) {
+                        onOpenTouchControlCreator = { platform ->
+                            navController.navigate(TouchControlCreatorRoute(platform.id)) {
                                 launchSingleTop = true
                             }
                         },
@@ -846,7 +890,8 @@ fun AppNavigation(
                 }
             }
 
-            composable<TouchControlCreatorRoute> {
+            composable<TouchControlCreatorRoute> { backStackEntry ->
+                val route = backStackEntry.toRoute<TouchControlCreatorRoute>()
                 if (!settingsUiState.isLoaded) {
                     Box(
                         modifier = Modifier
@@ -857,11 +902,10 @@ fun AppNavigation(
                         EmuCoreDLoadingAnimation()
                     }
                 } else {
-                    TouchControlCreatorScreen(
-                        initialLibrary = settingsUiState.customTouchControls,
+                    ScopedTouchControlCreatorHostScreen(
+                        platformId = route.platformId,
                         isProUnlocked = settingsUiState.isProUnlocked,
                         onPurchasePro = { activity?.let(settingsViewModel::purchasePro) },
-                        onSave = settingsViewModel::saveCustomTouchControls,
                         onBackClick = { navController.popBackStack() }
                     )
                 }
@@ -871,6 +915,9 @@ fun AppNavigation(
                 val route = backStackEntry.toRoute<GameSettingsManagerRoute>()
                 PerGameSettingsManagerScreen(
                     initialGamePath = route.gamePath,
+                    onOpenTextureManager = { game ->
+                        navController.navigate(TextureManagerRoute(game.path)) { launchSingleTop = true }
+                    },
                     onOpenControlsLayoutEditor = { game ->
                         navController.navigate(
                             ControlsLayoutEditorRoute(
@@ -930,11 +977,12 @@ fun AppNavigation(
                     onNavigateDataTransfer = navigateDataTransfer,
                     onResetAllSettings = resetAllSettingsAndOpenOnboarding,
                     onNavigateSaveManager = {
-                        navController.navigate(SaveManagerRoute()) {
+                        navigatePreparedSaveManager(SaveManagerRoute()) {
                             launchSingleTop = true
                         }
                     },
                     onNavigateMemoryCardManager = navigateMemoryCardManager,
+                    onNavigateTextureManager = navigateTextureManager,
                     onNavigateCheatManager = navigateCheatManager,
                     onNavigateAchievements = navigateAchievements,
                     onNavigateProfile = navigateProfile,
@@ -1010,11 +1058,12 @@ fun AppNavigation(
                     onNavigateDataTransfer = navigateDataTransfer,
                     onResetAllSettings = resetAllSettingsAndOpenOnboarding,
                     onNavigateSaveManager = {
-                        navController.navigate(SaveManagerRoute()) {
+                        navigatePreparedSaveManager(SaveManagerRoute()) {
                             launchSingleTop = true
                         }
                     },
                     onNavigateMemoryCardManager = navigateMemoryCardManager,
+                    onNavigateTextureManager = navigateTextureManager,
                     onNavigateCheatManager = navigateCheatManager,
                     onBackClick = { navController.popBackStack() },
                     onLaunchGame = launchGamePickerAction
@@ -1028,6 +1077,14 @@ fun AppNavigation(
                         }
                     )
                 }
+            }
+
+            composable<TextureManagerRoute> { backStackEntry ->
+                val route = backStackEntry.toRoute<TextureManagerRoute>()
+                TextureManagerScreen(
+                    onBackClick = { navController.popBackStack() },
+                    initialGamePath = route.gamePath
+                )
             }
 
             composable<CheatManagerRoute> {
@@ -1067,6 +1124,6 @@ fun AppNavigation(
     }
 }
 
-private fun isSupportedGameImage(fileName: String): Boolean {
-    return com.sbro.emucored.core.N3dsGameFormats.isSupportedName(fileName)
+internal fun isSupportedGameImage(fileName: String): Boolean {
+    return com.sbro.emucored.core.ConsoleGameFormats.isSupportedName(fileName)
 }

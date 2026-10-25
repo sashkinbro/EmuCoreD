@@ -10,15 +10,21 @@ abstract class ThreadedFrameSessionEngine : CoreSessionEngine {
     @Volatile private var surface: Surface? = null
     private var width = 0
     private var height = 0
+    @Volatile private var actualFrameRate: Double? = null
+    private val metrics = CorePerformanceSampler()
     private val worker = OwnedCoreThread("EmuCore-frame", { nativeRunFrame(nativeHandle) },
-        { nativeFrameRate(nativeHandle) }, {
+        { nativeFrameRate(nativeHandle).also { actualFrameRate = it.takeIf { rate -> rate.isFinite() && rate > 0 } } }, {
             if (nativeHandle != 0L) nativeClose(nativeHandle)
             nativeHandle = 0L
+            actualFrameRate = null
+            metrics.reset()
         })
     final override val isRunning: Boolean get() = worker.isRunning
     final override val isPaused: Boolean get() = worker.isPaused
 
     final override suspend fun start(request: EngineLaunchRequest): EngineStartResult {
+        metrics.reset()
+        actualFrameRate = null
         if (request.platform.core != coreId) return EngineStartResult.Failed("unsupported_platform")
         var failureReason = "core_load_failed"
         val started = worker.start({
@@ -40,9 +46,9 @@ abstract class ThreadedFrameSessionEngine : CoreSessionEngine {
         }, request.startPaused)
         return if (started) EngineStartResult.Started else EngineStartResult.Failed(failureReason)
     }
-    final override suspend fun pause() = worker.pause { nativeSetPaused(nativeHandle, true) }
-    final override suspend fun resume() = worker.resume { nativeSetPaused(nativeHandle, false) }
-    final override fun requestStop() = worker.requestStop()
+    final override suspend fun pause() = worker.pause { metrics.reset(); nativeSetPaused(nativeHandle, true) }
+    final override suspend fun resume() = worker.resume { metrics.reset(); nativeSetPaused(nativeHandle, false) }
+    final override fun requestStop() { metrics.reset(); worker.requestStop() }
     final override suspend fun stop() = worker.stop()
     final override fun attachSurface(surface: Surface?, width: Int, height: Int) {
         this.surface = surface; this.width = width; this.height = height
@@ -64,6 +70,8 @@ abstract class ThreadedFrameSessionEngine : CoreSessionEngine {
         return worker.call(false) { nativeReplaceCheats(nativeHandle, codes.map { it.format }.toTypedArray(), codes.map { it.code }.toTypedArray()) }
     }
     final override fun frameCount(): Long = worker.frames
+    final override fun performanceSnapshot(nowMillis: Long): CorePerformanceSnapshot? =
+        metrics.sample(nowMillis, worker.frames, actualFrameRate, worker.isRunning, worker.isPaused)
 
     protected abstract fun nativeOpen(request: EngineLaunchRequest, directory: File): Long
     /** Runs on the owned worker before native allocation, never on the UI thread. */

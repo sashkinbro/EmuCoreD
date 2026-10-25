@@ -32,7 +32,8 @@ class ContentLibraryRepository(context: Context) {
             .sortedBy { it.title.lowercase(Locale.getDefault()) }
     }
 
-    fun resolveIdentity(game: GameItem): SelectedGameIdentity {
+    fun resolveIdentity(game: GameItem, checkActive: () -> Unit = {}): SelectedGameIdentity {
+        checkActive()
         val metadata = runCatching { EmulatorBridge.getGameMetadata(game.path) }.getOrNull()
         val serial = metadata?.serial?.normalizeNintendoGameSerial(game.platform) ?: game.serial?.normalizeNintendoGameSerial(game.platform)
         val crc = metadata?.serialWithCrc
@@ -42,13 +43,16 @@ class ContentLibraryRepository(context: Context) {
         val typed=runCatching {
             if(game.platform==GamePlatform.GAMECUBE || game.platform==GamePlatform.WII) {
                 fun probe(path:String)=DolphinSessionEngine.probeGameIdentity(path)?.let {
-                    CheatGameIdentity(game.platform,gameId=it.gameId,titleId=it.titleId,revision=it.revision)
+                    if (it.platform != game.platform.console) null else
+                        CheatGameIdentity(game.platform,gameId=it.gameId,titleId=it.titleId,revision=it.revision)
                 }
-                val local=DocumentPathResolver.resolveFilePath(appContext,game.path)?.removePrefix("!")
-                if(local!=null && File(local).canRead())probe(local) else {
-                    val uri=if(game.path.startsWith("content://"))Uri.parse(game.path)
-                        else DocumentPathResolver.findAccessibleTreeUriForRawPath(appContext,game.path)
-                    uri?.let{appContext.contentResolver.openFileDescriptor(it,"r")?.use{pfd->probe("/proc/self/fd/${pfd.fd}")}}
+                if (!com.sbro.emucored.core.ConsoleImageParts.isMultipart(game.fileName)) {
+                    probe(game.path)
+                } else {
+                    com.sbro.emucored.core.ConsoleImageAccess.prepareForProbe(appContext, game.path, checkActive = checkActive)?.use {
+                        checkActive()
+                        probe(it.path)
+                    }
                 }
             } else if(game.platform==GamePlatform.N3DS) CheatGameIdentity(game.platform,titleId=serial)
             else {
@@ -59,13 +63,14 @@ class ContentLibraryRepository(context: Context) {
                 input?.use { stream ->
                     val sha=MessageDigest.getInstance("SHA-1");val md5=MessageDigest.getInstance("MD5");val checksum=CRC32()
                     val buffer=ByteArray(128*1024);var size=0L
-                    while(true){val n=stream.read(buffer);if(n<0)break;size+=n;require(size<=512L*1024*1024)
+                    while(true){checkActive();val n=stream.read(buffer);if(n<0)break;size+=n;require(size<=512L*1024*1024)
                         sha.update(buffer,0,n);md5.update(buffer,0,n);checksum.update(buffer,0,n)}
                     fun ByteArray.hex()=joinToString(""){"%02X".format(it.toInt() and 255)}
                     CheatGameIdentity(game.platform,sha.digest().hex(),md5.digest().hex(),"%08X".format(checksum.value),size)
                 }
             }
-        }.getOrNull()
+        }.getOrElse { if (it is kotlinx.coroutines.CancellationException) throw it; null }
+        checkActive()
         return SelectedGameIdentity(serial = typed?.gameId ?: typed?.titleId ?: serial, crc = crc,typed=typed)
     }
 

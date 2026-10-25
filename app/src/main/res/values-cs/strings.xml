@@ -11,7 +11,7 @@
 
     <!-- Navigation -->
     <string name="shell_library">Knihovna</string>
-    <string name="shell_catalog_search">Hledat DS/DSi/3DS</string>
+    <string name="shell_catalog_search">Hledat hry</string>
     <string name="shell_supported_formats">Podporované formáty</string>
 
     <!-- Home Screen -->
@@ -515,7 +515,7 @@
     <string name="back">Zpět</string>
 
     <!-- Catalog Search -->
-    <string name="catalog_search_title">Katalog DS/DSi/3DS</string>
+    <string name="catalog_search_title">Hledat hry</string>
     <string name="catalog_filters_title">Filtry</string>
     <string name="catalog_filter_genre">Žánr</string>
     <string name="catalog_filter_year">Rok</string>
@@ -1863,4 +1863,267 @@
     <string name="settings_shader_presets_remove_title">Odebrat vybrané předvolby?</string>
     <string name="settings_shader_presets_remove_body">Vybrané předvolby: %1$d. Odebrat je ze seznamu?</string>
     <string name="settings_shader_presets_remove_failed">Vybrané předvolby se nepodařilo odebrat.</string>
+
+    <!-- Consolidated core, format, cheat and manager strings -->
+        <string name="cheat_catalog_browse_all">Procházet všechny cheaty pro tuto konzoli</string>
+        <string name="cheat_catalog_manual_attach">Přiřadit k vybrané hře</string>
+        <string name="cheat_catalog_manual_warning">Shoda tohoto balíčku s hrou není ověřena. Před zapnutím kódů zkontrolujte region, revizi a formát.</string>
+        <string name="cheat_format_unsupported">Vybrané jádro tento formát cheatů nepodporuje.</string>
+        <string name="core_option_help_recommended_default" formatted="false">Doporučená výchozí hodnota: %1$s.</string>
+        <string name="core_option_help_video_filter" formatted="false">Určuje zvětšení hotového obrazu: nejbližší soused zachová ostré pixely, lineární filtr smíchá sousední pixely. Lineární filtr může rozmazat text a pixelovou grafiku, aniž přidá detaily. Pro ostré pixely použijte nejbližšího souseda, pro jemnější obraz lineární filtr.</string>
+        <string name="core_option_help_audio_enabled" formatted="false">Zapíná nebo vypíná zvukový výstup hry. Ztlumení nezvyšuje emulovaný takt ani nezaručuje rychlejší hraní. Běžně ponechte zvuk zapnutý a vypněte jej pro tiché hraní.</string>
+        <string name="core_option_help_aspect_ratio_frame" formatted="false">Nastavuje tvar obrazu: automaticky použije poměr jádra, pixely zachovají čtvercové zdrojové pixely a ostatní volby vynutí poměr stran. Vynucené 4:3 nebo 16:9 mohou deformovat postavy a neodhalí další prostředí. Začněte automaticky a pixely použijte pro neupravené proporce.</string>
+        <string name="core_option_help_aspect_ratio_dolphin" formatted="false">Volí automatické rozpoznání, vynucené 4:3 či 16:9, roztažení na celou plochu nebo původní proporce. Vynucený poměr může zkreslit obraz a sám nerozšíří 3D kameru. Nejprve použijte automatiku a měňte podle potřeb hry nebo displeje.</string>
+        <string name="core_option_help_graphics_backend" formatted="false">Vybírá Vulkan nebo OpenGL pro grafiku Dolphinu. Kompatibilita ovladačů, záseky shaderů i zatížení GPU závisí na hře a zařízení, takže žádný není vždy nejrychlejší. Začněte Vulkanem a při chybách či nepravidelném obrazu porovnejte OpenGL.</string>
+        <string name="core_option_help_resolution" formatted="false">Násobí vnitřní rozlišení 3D vykreslování před zobrazením. Vyšší hodnoty zostřují geometrii, ale zvyšují práci GPU a paměť, původním texturám nové detaily nepřidají. Začněte na 1x a zvyšujte jen při plné rychlosti hry.</string>
+        <string name="core_option_help_widescreen_hack" formatted="false">Rozšiřuje 3D projekci her navržených pro užší obrazovku. Objekty mohou mizet na okrajích a rozhraní či efekty se rozcházet, protože hra stále očekává původní pohled. Ponechte vypnuté, pokud nemáte ověřený správný obraz dané hry.</string>
+        <string name="core_option_help_msaa" formatted="false">Vyhlazuje hrany polygonů více vzorky na pixel. Více vzorků spotřebuje propustnost GPU a paměť a nemusí být podporováno backendem. Začněte na 1x bez MSAA a zvyšujte pouze při rušivých hranách a stabilní rychlosti.</string>
+        <string name="core_option_help_anisotropy" formatted="false">Zlepšuje ostrost textur na šikmo pozorovaných plochách, například silnicích. Vyšší úrovně zatěžují GPU a vynucený filtr může změnit zamýšlený vzhled. Nejprve zachovejte výchozí hodnotu a zvyšte ji u rozmazaných šikmých textur.</string>
+        <string name="core_option_help_texture_filtering" formatted="false">Ponechá filtrování hry nebo vynutí nejbližšího souseda či lineární filtr. První zostří texely, druhý je smíchá a může rozmazat rozhraní nebo změnit efekty. Pro kompatibilitu použijte výchozí volbu a vynucený filtr ověřte ve hře.</string>
+        <string name="core_option_help_shader_compilation" formatted="false">Volí specializované shadery, hybridní či výhradní ubershadery nebo vynechávání vykreslení při kompilaci. Specializované mohou zadrhávat, ubershadery potřebují více GPU a vynechávání může skrývat objekty. Začněte specializovanými, při zásecích zkuste hybridní a pro úplný obraz nevynechávejte vykreslení.</string>
+        <string name="core_option_help_shader_cache" formatted="false">Uchovává zkompilované shadery mezi spuštěními. Zabírá úložiště a omezuje opakovanou kompilaci, ale nové efekty či ovladače mohou vyžadovat další překlad. Ponechte zapnuté kromě hledání grafických problémů souvisejících s mezipamětí.</string>
+        <string name="core_option_help_wait_for_shaders" formatted="false">Před začátkem hry čeká na kompilaci uložených shaderů. Omezuje počáteční záseky, ale prodlužuje načítání a neodstraní všechny pauzy nových shaderů. Zapněte, pokud je plynulý začátek důležitější než nejrychlejší spuštění.</string>
+        <string name="core_option_help_vsync" formatted="false">Synchronizuje zobrazované snímky s obnovováním displeje. Omezuje trhání obrazu, ale může zvýšit zpoždění či nepravidelnost, pokud hra nestíhá. Zkuste při trhání a vypněte, když se zhorší odezva nebo plynulost.</string>
+        <string name="core_option_help_backend_multithreading" formatted="false">Přesouvá podporovanou práci grafického backendu do dalšího vlákna. Může omezit úzké hrdlo CPU, ale přidává synchronizaci a závisí na ovladači. Běžně ponechte zapnuté a vypněte při hledání pádů ovladače či grafické nestability.</string>
+        <string name="core_option_help_skip_efb_access" formatted="false">Přeskakuje CPU čtení nebo zápisy do vloženého obrazového bufferu používaného některými efekty. Šetří drahou synchronizaci GPU, ale může poškodit výběr, kolize, viditelnost či herní logiku. Ponechte výchozí volbu a vypněte, pokud hra tyto přístupy potřebuje.</string>
+        <string name="core_option_help_efb_texture_only" formatted="false">Udržuje kopie vloženého obrazového bufferu jako GPU textury místo dalších zápisů do emulované RAM. Obvykle šetří zpětné čtení, ale některé hry potřebují RAM kopie pro efekty či logiku. Začněte zapnuté a vypněte při chybějících efektech nebo známém požadavku hry.</string>
+        <string name="core_option_help_xfb_texture_only" formatted="false">Udržuje kopie externího obrazového bufferu na GPU místo přenosu pixelů do emulované RAM. Šetří přenosy, ale může poškodit hry čtoucí či měnící tyto RAM obrazy. Začněte zapnuté a vypněte při chybějícím videu nebo chybných efektech.</string>
+        <string name="core_option_help_defer_efb_copies" formatted="false">Odkládá zápis kopií obrazového bufferu do RAM až do jejich potřeby. Omezuje čekání, ale spoléhá na časové předpoklady, které některé hry nesnesou. Nejprve ponechte zapnuté a vypněte při nesprávných efektech nebo logice.</string>
+        <string name="core_option_help_immediate_xfb" formatted="false">Zobrazuje kopie externího bufferu ihned místo čekání na běžný výstup. Může snížit latenci, ale odhalit mezisnímky či blikání a také přeskočí duplicitní zobrazení. Ponechte vypnuté, dokud neověříte správné zobrazení hry.</string>
+        <string name="core_option_help_skip_duplicate_xfbs" formatted="false">Zabraňuje opakovanému zobrazování shodných kopií externího bufferu. Šetří práci u her pod obnovovací frekvencí displeje, ale může zhoršit pravidelnost snímků. Pro úsporu ponechte zapnuté a vypněte, pokud opakované snímky působí plynuleji.</string>
+        <string name="core_option_help_scaled_efb_copy" formatted="false">Vytváří kopie vloženého bufferu ve zvoleném vnitřním rozlišení. Efekty mohou být ostřejší, ale roste paměť a některé hry očekávají původní velikost kopií. Ponechte zapnuté a vypněte při poruše efektů po zvýšení rozlišení.</string>
+        <string name="core_option_help_ignore_format_changes" formatted="false">Ignoruje změny formátu pixelů vloženého obrazového bufferu. Šetří převody, ale může způsobit nesprávné barvy nebo přesnost efektů. Nejprve zachovejte výchozí volbu a vypněte pro hry vyžadující přesné změny formátu.</string>
+        <string name="core_option_help_texture_cache_accuracy" formatted="false">Určuje důkladnost kontroly změn textur před použitím mezipaměti. Bezpečná volba kontroluje více dat za vyšší cenu CPU, rychlá může přehlédnout změny a zobrazit staré či blikající textury. Začněte vyváženě a při chybných aktualizacích přepněte na bezpečnou.</string>
+        <string name="core_option_help_gpu_texture_decoding" formatted="false">Přesouvá podporované dekódování textur z CPU na GPU. Může pomoci omezenému CPU, ale přidat zatížení GPU a vyžaduje podporu backendu. Nejdříve ponechte vypnuté a před trvalým zapnutím porovnejte stejnou scénu.</string>
+        <string name="core_option_help_fast_depth" formatted="false">Používá rychlejší přiblížení výpočtu hloubky. Šetří grafickou práci, ale může nesprávně umístit efekty či plochy vyžadující přesnou hloubku. Běžně ponechte zapnuté a vypněte při chybách souvisejících s hloubkou.</string>
+        <string name="core_option_help_disable_bbox" formatted="false">Vypíná emulaci funkce ohraničujícího obdélníku GPU. Šetří práci GPU, ale hry využívající její výsledky mohou ztratit efekty nebo přestat správně fungovat. Ponechte výchozí volbu a tuto možnost vypněte u her vyžadujících danou funkci.</string>
+        <string name="core_option_help_vertex_rounding" formatted="false">Zaokrouhluje 2D vrcholy a rozměry výřezu na celé pixely při vyšším vnitřním rozlišení. Opravuje spáry či posunuté sprity, ale mění umístění a nepůsobí v původním rozlišení. Zapněte jen pro viditelné 2D problémy po zvýšení rozlišení.</string>
+        <string name="core_option_help_disable_fog" formatted="false">Odstraňuje mlhu z herních scén. Vzdálené objekty jsou lépe vidět, ale mění se atmosféra a skryté hranice prostředí. Pro původní vzhled ponechte vypnuté a zapínejte jen podle osobní preference.</string>
+        <string name="core_option_help_disable_copy_filter" formatted="false">Odstraňuje kopírovací filtr konzole, který změkčuje konečný obraz. Obraz může být ostřejší, ale mít více zubatých hran nebo ztratit zamýšlené rozmazání. Tuto možnost ponechte zapnutou pro ostrý obraz nebo vypněte pro původní filtr.</string>
+        <string name="core_option_help_force_true_color" formatted="false">Používá vyšší barevnou přesnost než původní vykreslování. Omezuje barevné pruhy, ale mění dithering a efekty závislé na přesnosti konzole. Ponechte zapnuté pro čistší přechody a vypněte, když efekt potřebuje původní chování barev.</string>
+        <string name="core_option_help_per_pixel_lighting" formatted="false">Počítá podporované osvětlení po pixelech místo původního výsledku podle vrcholů. Světlo může být jemnější, ale více zatěžuje GPU a mění vzhled oproti konzoli. Ponechte vypnuté, pokud tento efekt neupřednostňujete a nemáte rezervu GPU.</string>
+        <string name="core_option_help_hires_textures" formatted="false">Načítá nainstalované náhradní textury ve vysokém rozlišení pro tuto hru. Balíčky zlepší detaily, ale spotřebují úložiště, paměť a načítání; nesprávné mohou zobrazit chybnou grafiku. Zapněte až po instalaci kompatibilního balíčku.</string>
+        <string name="core_option_help_cache_hires_textures" formatted="false">Přednačítá náhradní textury do paměti místo načítání při prvním použití. Omezuje záseky během hry, ale zvyšuje paměť a dobu spuštění. Při nedostatku paměti ponechte vypnuté a zapněte jen pro pohodlně se vejdoucí balíček.</string>
+        <string name="core_option_help_save_texture_cache" formatted="false">Zahrnuje textury obrazového bufferu do uložených stavů. Pomáhá obnovit chybějící či zvětšené efekty, ale zvětšuje stavy a prodlužuje ukládání i načítání. Ponechte zapnuté, pokud menší soubory nejsou důležitější než přesná vizuální obnova.</string>
+        <string name="core_option_help_cpu_backend" formatted="false">Vybírá ARM64 JIT, interpret s mezipamětí nebo obyčejný interpret CPU. Interprety pomáhají diagnostice, ale bývají mnohem pomalejší a mohou znemožnit plnou rychlost. Běžně použijte JIT a interpret jen pro konkrétní zkoumání kompatibility.</string>
+        <string name="core_option_help_dual_core" formatted="false">Provádí emulovanou práci CPU a GPU v oddělených hostitelských vláknech. Může zlepšit průchodnost, ale přináší změny synchronizace neslučitelné s některými hrami. Běžně ponechte zapnuté a vypněte při nestabilitě nebo časových problémech dané hry.</string>
+        <string name="core_option_help_mmu" formatted="false">Úplněji emuluje překlad virtuální paměti CPU. Některé hry jej potřebují, jiné nezískají vizuální výhodu a mohou zpomalit. Ponechte vypnuté, pokud hra podporu MMU nevyžaduje.</string>
+        <string name="core_option_help_accurate_cpu_cache" formatted="false">Přesněji emuluje chování mezipaměti CPU. Opravuje hry závislé na jejích detailech, ale přidává práci CPU bez běžného zlepšení obrazu. Ponechte vypnuté, pokud neřeší známý problém kompatibility.</string>
+        <string name="core_option_help_fprf" formatted="false">Emuluje příznaky výsledků s plovoucí čárkou určitých CPU instrukcí. Může opravit herní výpočty, ale přidává práci při potřebě těchto příznaků. Ponechte vypnuté, pokud hra nevyžaduje přesné výsledkové příznaky.</string>
+        <string name="core_option_help_accurate_nans" formatted="false">Zachovává přesnější chování NaN v emulované CPU. Týká se neobvyklých výpočtů místo ostrosti obrazu a může zvýšit výpočetní náklady. Ponechte vypnuté, pokud hra nepotřebuje tuto opravu plovoucí čárky.</string>
+        <string name="core_option_help_accurate_fmadds" formatted="false">Přesněji emuluje sloučené násobení a sčítání s plovoucí čárkou. Může opravit rozdíly výpočtů, ale spotřebovat čas CPU a přímo nezvyšuje rozlišení. Ponechte vypnuté, pokud přesné sloučené operace neopravují chyby hry.</string>
+        <string name="core_option_help_fastmem" formatted="false">Používá rychlejší cesty přístupu k hostitelské paměti pro emulovanou CPU. Snižuje režii CPU, ale vypnutí může pomoci diagnostice nekompatibilního paměťového přístupu. Ponechte zapnuté, pokud hledání závady neurčí tuto volbu jako příčinu.</string>
+        <string name="core_option_help_fast_disc" formatted="false">Odstraňuje běžná časová omezení čtení disku. Načítání může zrychlit, ale hry závislé na původním časování disku se mohou chovat nesprávně. Pro kompatibilitu ponechte vypnuté a zapněte až po ověření přechodů načítání.</string>
+        <string name="core_option_help_cpu_clock" formatted="false">Mění emulovaný takt CPU vůči původní konzoli. Zvýšení omezuje původní zpomalení, ale zatěžuje hostitelskou CPU; snížení může změnit časování či zpomalit logiku. Začněte na 100 procentech a upravujte jen pro ověřenou potřebu hry.</string>
+        <string name="core_option_help_dsp_hle" formatted="false">Používá vysokoúrovňovou místo nízkoúrovňové emulace zvukového procesoru. HLE je obvykle lehčí, LLE může opravit zvláštní zvukové chování, ale potřebuje více zpracování. Ponechte HLE zapnuté, pokud hra nevyžaduje nízkoúrovňový zvuk.</string>
+        <string name="core_option_help_dsp_jit" formatted="false">Používá rekompilátor místo interpretu nízkoúrovňového DSP. To je důležité hlavně při vypnutém DSP HLE, protože interpret může být mnohem pomalejší. Ponechte DSP JIT zapnuté kromě diagnostiky zvukového problému LLE.</string>
+        <string name="core_option_help_dsp_thread" formatted="false">Provádí nízkoúrovňové DSP v odděleném vlákně. Může lépe rozdělit zatížení CPU, ale změny synchronizace způsobit zvukové či časové chyby a DSP HLE neprospívá stejně. Nejdříve ponechte vypnuté a zkoušejte jen s LLE.</string>
+        <string name="core_option_help_audio_backend" formatted="false">Vybírá Cubeb nebo OpenSL ES pro zvuk Androidu. Podpora zařízení, latence a výpadky se liší bez změny samotné hudby. Začněte s Cubeb a zkuste OpenSL ES při chybějícím či opakovaně praskajícím zvuku.</string>
+        <string name="core_option_help_volume" formatted="false">Upravuje hlasitost hry před výstupem. Nižší hodnoty ztiší zvuk bez zpomalení hry, vysoké mohou již hlasitý mix znepříjemnit. Začněte výchozí hodnotou a ztlumte podle sluchátek či reproduktorů.</string>
+        <string name="core_option_help_audio_buffer_size" formatted="false">Nastavuje cílovou délku zvukového bufferu v milisekundách. Větší buffer vyrovná krátké prodlevy, ale zvýší latenci; menší reaguje rychleji a může praskat. Začněte na 80 ms a zvyšujte jen při stále slyšitelném nedostatku dat.</string>
+        <string name="core_option_help_audio_preserve_pitch" formatted="false">Stabilizuje výšku tónu při jiné než běžné rychlosti emulace. Časové natahování může přidat výpočty, latenci či artefakty, zejména při velkých změnách rychlosti. Zapněte při rušivé změně tónu a porovnejte při vybrané rychlosti.</string>
+        <string name="core_option_help_audio_fill_gaps" formatted="false">Vyplňuje krátké mezery zvukového výstupu místo ticha. Zmírní krátká zpomalení, ale neobnoví chybějící rychlost a během zastavení může změnit zvuk. Běžně ponechte zapnuté a vypněte při porovnávání zvukového časování či artefaktů.</string>
+        <string name="core_option_help_speed" formatted="false">Nastavuje cílovou rychlost emulace vůči normálnímu hraní. Vyšší rychlosti vyžadují více výkonu a mění tempo i zvuk, nižší hru úmyslně zpomalují. Běžně použijte 1,0 a měňte jen pro zamýšlené zrychlení či zpomalení.</string>
+        <string name="core_option_help_gc_language" formatted="false">Vybírá jazyk hlášený emulovanou konzolí GameCube. Dostupné jsou pouze jazyky obsažené ve hře a některá vydání nastavení ignorují. Zvolte preferovaný podporovaný jazyk nebo vlastní jazykové menu hry.</string>
+        <string name="core_option_help_wii_profile" formatted="false">Vybírá Wii Remote, Remote s Nunchukem nebo Classic Controller. Mění tlačítka a páčky dostupné hře a nepodporované ovladače nemusí fungovat. Vyberte typ uvedený hrou místo zapnutí všech rozšíření.</string>
+        <string name="core_option_help_wii_speaker" formatted="false">Zapíná reproduktor emulovaného Wii Remote. Hry jej používají pro doplňkové zvuky, které po vypnutí mohou v mixu chybět. Ponechte zapnuté, pokud zvuk ovladače ve hře nezpůsobuje problém.</string>
+        <string name="core_option_help_frameskip" formatted="false">Přeskakuje zvolený počet vykreslovaných snímků mezi zobrazovanými snímky. Šetří vykreslování na pomalém zařízení, ale zhoršuje plynulost a nezpřesňuje herní logiku. Ponechte nulu a zvyšujte jen pokud hra jinak neudrží rychlost.</string>
+        <string name="core_option_help_idle_optimization" formatted="false">Určuje, zda mGBA detekuje, odstraňuje nebo zachovává nečinné smyčky emulované CPU. Vynechání nečinnosti může zrychlit, ale nucené odstranění ovlivnit neobvyklé časování. Nejprve použijte detekci a při zkoumání časových či kompatibilních problémů ignorování.</string>
+        <string name="core_option_help_allow_opposing_directions" formatted="false">Dovoluje souběžný vstup opačných směrů, například vlevo a vpravo. Původní ovládání to obvykle znemožňuje a některé hry reagují nepředvídatelně. Ponechte vypnuté kromě konkrétního domácího programu či testu vstupu, který to potřebuje.</string>
+        <string name="core_option_help_highpass_filter" formatted="false">Vybírá horní propust Game Boy: přesný hardware, jen odstranění stejnosměrné složky nebo žádný filtr. Mění basy a přechody a vypnutí může přidat stejnosměrnou složku. Běžně použijte přesný režim a ostatní porovnávejte jen pro konkrétní zvukovou preferenci.</string>
+        <string name="core_option_help_interference_volume" formatted="false">Přidává šum rušení hardwaru Game Boy ve zvolené hlasitosti. Vyšší hodnoty zesílí šum pozadí, nezvyšují věrnost hudby. Pro čistý zvuk ponechte nulu nebo mírně přidejte pro původní charakter zařízení.</string>
+        <string name="core_option_help_palette" formatted="false">Vybírá monochromatické odstíny Game Boy, například DMG, šedou, Pocket a Light. Mění pouze barvy, nepřidává grafiku Game Boy Color ani výkon. Vyberte nejčitelnější paletu nebo nejbližší oblíbenému původnímu displeji.</string>
+        <string name="core_option_help_color_correction" formatted="false">Upravuje barevné křivky Game Boy Color podle původního displeje. Barvy mohou být méně syté než syrové RGB, ale bez korekce mohou být původně navržené barvy přehnané. Pro vzhled konzole ponechte zapnuté nebo vypněte pro neupravenou paletu.</string>
+        <string name="core_option_help_unlimited_sprites" formatted="false">Odstraňuje limit NES spritů na řádek. Omezuje hardwarové blikání, ale může odkrýt úmyslně skryté sprity nebo změnit efekty. Pro původní chování ponechte vypnuté a před zapnutím ověřte scény s mnoha sprity.</string>
+        <string name="core_option_help_bsnes_ppu_fast" formatted="false">Používá rychlejší zpracování obrazu SNES místo přesnějšího. Šetří práci emulace a umožňuje HD Mode 7, ale některé časově citlivé efekty se mohou lišit. Nejprve ponechte zapnuté a vypněte pro grafické chyby vyžadující přesnou PPU.</string>
+        <string name="core_option_help_bsnes_dsp_fast" formatted="false">Používá rychlejší zvukový DSP SNES. Může snížit práci CPU, ale u časově citlivého zvuku se lišit od přesné cesty. Začněte zapnuté a vypněte při opakovatelných zvukových chybách.</string>
+        <string name="core_option_help_bsnes_entropy" formatted="false">Řídí náhodnost paměti a registrů při spuštění. Nízká připomíná běžný start SNES, vysoká prověřuje předpoklady o neinicializované paměti a žádná používá konstanty očekávané starším domácím softwarem. Pro hry použijte nízkou a měňte jen pro vývoj či známou chybu startu.</string>
+        <string name="core_option_help_bsnes_blur_emulation" formatted="false">Emuluje vodorovné prolínání obrazu SNES včetně podporované pseudoprůhlednosti. Prolínání může opravit efekty, ale změkčuje hrany pixelů. Pro ostré pixely ponechte vypnuté nebo zapněte pro hry závislé na prolínané průhlednosti.</string>
+        <string name="core_option_help_bsnes_ppu_no_sprite_limit" formatted="false">Odstraňuje limity spritů SNES v rychlé PPU. Omezuje blikání či mizení, ale může odhalit objekty nebo změnit efekty závislé na limitech hardwaru. Pro původní grafiku ponechte vypnuté a zapínejte po ověření plných scén.</string>
+        <string name="core_option_help_bsnes_ppu_show_overscan" formatted="false">Zahrnuje řádky běžně skryté přesahem obrazu SNES. Zobrazí více okrajů, ale některé hry tam mají prázdné řádky nebo neplatnou grafiku. Pro obvyklý ořez ponechte vypnuté a zapněte, pokud další řádky potřebujete.</string>
+        <string name="core_option_help_bsnes_hotfixes" formatted="false">Používá opravy jádra pro vybrané chyby přítomné i v původních hrách. Mohou zlepšit hratelnost, ale záměrně mění chování oproti neupravenému hardwaru. Pro věrnost ponechte vypnuté nebo zapněte pro podporované opravy her.</string>
+        <string name="core_option_help_bsnes_mode7_scale" formatted="false">Zvyšuje rozlišení pozadí Mode 7 v rychlé PPU. Silnice a otáčející se plochy mohou být ostřejší, ale roste CPU i paměť a nezvětšují se všechny sprity. Začněte na 1x a zvyšujte jen při plné rychlosti.</string>
+        <string name="core_option_help_bsnes_cpu_overclock" formatted="false">Mění rychlost emulované hlavní CPU SNES vůči původnímu hardwaru. Vyšší hodnoty omezí původní zpomalení, ale potřebují více hostitelské práce a mohou narušit časování. Začněte na 100 procentech a upravujte jen pro hru ověřenou v různých scénách.</string>
+        <string name="core_option_help_bsnes_sa1_overclock" formatted="false">Mění takt emulovaného koprocesoru SA-1 v příslušných kazetách. Vyšší hodnoty mohou omezit zpomalení, ale zvýší CPU a změní časování, ostatním kazetám nepomohou. Začněte na 100 procentech a zvyšujte jen u ověřené hry SA-1.</string>
+        <string name="core_option_help_bsnes_sfx_overclock" formatted="false">Mění takt emulovaného Super FX v kazetách, které jej obsahují. Vyšší hodnoty zlepší některé 3D scény, ale přidávají CPU a mohou změnit časování či rychlost hry. Začněte na 100 procentech a zvyšujte opatrně jen u her Super FX.</string>
+        <string name="core_option_help_bsnes_cpu_fastmath" formatted="false">Zpřístupňuje výsledky násobení a dělení CPU SNES bez původního zpoždění. Pomáhá starým ROM hackům, ale mění hardwarové časování a nejde o obecné zrychlení. Ponechte vypnuté, pokud konkrétní hack nepotřebuje okamžité výsledky.</string>
+        <string name="core_option_help_bsnes_ppu_deinterlace" formatted="false">Mění zobrazování prokládaného obrazu SNES v rychlé PPU. Omezuje blikání prokládání, ale mění střídání půlsnímků a může změkčit či pozměnit jemné detaily. Nejprve ponechte zapnuté a vypněte pro původní prokládaný vzhled.</string>
+        <string name="core_option_help_bsnes_ppu_no_vram_blocking" formatted="false">Umožňuje přístup k videopaměti v době, kdy jej skutečný SNES blokuje. Některé staré ROM hacky tuto nepřesnost potřebují a může také snížit výkon rychlé PPU. Ponechte vypnuté, pokud známý nekompatibilní hack nevyžaduje volný přístup k VRAM.</string>
+        <string name="core_option_help_bsnes_mode7_perspective" formatted="false">Opravuje perspektivu pozadí Mode 7 s vysokým rozlišením v rychlé PPU. Nakloněné plochy jsou soudržnější, ale mění původní vzorkování a působí pouze na podporované scény. S HD Mode 7 ponechte zapnuté a vypněte při chybném vzhledu scény.</string>
+        <string name="core_option_help_bsnes_mode7_supersample" formatted="false">Přidává vzorkování při vykreslování Mode 7 ve vysokém rozlišení. Omezuje třpyt, ale zatěžuje CPU a nejde o obecné vyhlazování veškeré grafiky SNES. Nejprve ponechte vypnuté a zapněte jen při viditelném třpytu a stabilní rychlosti.</string>
+        <string name="core_option_help_bsnes_mode7_mosaic" formatted="false">Při herním mozaikovém efektu snižuje HD Mode 7 na původní měřítko. Zachová úmyslně kostkované přechody, zatímco vypnutí je při vyšším zvětšení mění. Ponechte zapnuté, pokud záměrně nechcete upravenou mozaiku ve vysokém rozlišení.</string>
+        <string name="core_option_help_bsnes_dsp_cubic" formatted="false">Používá kubickou interpolaci podporovaných zvukových vzorků DSP SNES. Mění tón oproti původní Gaussově interpolaci a nezvyšuje přesnost. Pro původní zvuk ponechte vypnuté nebo zapněte podle osobní zvukové preference.</string>
+        <string name="core_option_help_bsnes_dsp_echo_shadow" formatted="false">Používá oddělenou stínovou paměť pro echo buffer DSP SNES. Podporuje staré ROM hacky nesprávně používající echo RAM, ale mění vztah zvukových zápisů k běžné paměti. Ponechte vypnuté, pokud konkrétní hack toto kompatibilní chování nepotřebuje.</string>
+        <string name="core_option_help_bsnes_coprocessor_delayed_sync" formatted="false">Odkládá synchronizaci podporovaných koprocesorů SNES do okamžiku potřeby. Šetří režii CPU, ale uvolňuje časovou koordinaci a může ovlivnit neobvyklé chování. Nejprve ponechte zapnuté a vypněte při opakovatelném problému kompatibility koprocesoru.</string>
+        <string name="core_option_help_bsnes_coprocessor_prefer_hle" formatted="false">Upřednostňuje dostupnou vysokoúrovňovou emulaci koprocesorů kazet. Šetří CPU, ale je méně přesná; vypnutí použije nízkoúrovňovou emulaci, pokud je dostupný potřebný firmware. Běžně ponechte zapnuté a nízkoúrovňovou zkuste při známém problému kompatibility.</string>
+        <string name="core_option_help_bsnes_run_ahead_frames" formatted="false">Simuluje další snímky s návratem stavu pro snížení viditelného zpoždění vstupu. Více snímků vyžaduje výrazně více CPU a může způsobit zpomalení či stavové nekompatibility. Nejdříve ponechte vypnuté a zkuste jeden snímek pouze při dostatečné výkonové rezervě.</string>
+        <string name="core_option_help_bsnes_video_filter" formatted="false">Simuluje analogové připojení SNES od RF a kompozitu po čistší S-Video a RGB. Filtry přidávají prolínání barev, artefakty či práci, nikoli detaily původní hry. Pro čisté pixely vyberte žádný filtr nebo zvolte styl připojení podle oblíbeného vzhledu.</string>
+        <string name="core_option_cpu_backend">Jádro CPU</string>
+        <string name="core_option_dual_core">Dvoujádrová emulace</string>
+        <string name="core_option_dsp_hle">DSP HLE</string>
+        <string name="core_option_speed">Rychlost emulace</string>
+        <string name="core_option_wii_profile">Ovladač Wii</string>
+        <string name="core_option_video_filter">Filtrování obrazu</string>
+        <string name="core_option_color_correction">Korekce barev</string>
+        <string name="core_option_unlimited_sprites">Odstranit limit spritů</string>
+        <string name="core_option_ppu_fast">Rychlé PPU</string>
+        <string name="core_option_dsp_fast">Rychlé DSP</string>
+        <string name="core_option_entropy">Náhodná inicializace paměti</string>
+        <string name="core_option_blur">Emulovat rozmazání</string>
+        <string name="core_option_overscan">Zobrazit přesah obrazu</string>
+        <string name="core_option_hotfixes">Opravy kompatibility her</string>
+        <string name="core_option_mode7_scale">Měřítko HD Mode 7</string>
+        <string name="core_option_sa1_clock">Takt SA-1</string>
+        <string name="core_option_sfx_clock">Takt SuperFX</string>
+        <string name="core_option_fast_math">Rychlá aritmetika CPU</string>
+        <string name="core_option_deinterlace">Odstranění prokládání</string>
+        <string name="core_option_no_vram_blocking">Odstranit blokování VRAM</string>
+        <string name="core_option_mode7_perspective">Korekce perspektivy Mode 7</string>
+        <string name="core_option_mode7_supersample">Supervzorkování Mode 7</string>
+        <string name="core_option_mode7_mosaic">Mozaika Mode 7</string>
+        <string name="core_option_dsp_cubic">Kubická interpolace DSP</string>
+        <string name="core_option_dsp_echo_shadow">Stínová paměť ozvěny DSP</string>
+        <string name="core_option_delayed_sync">Odložená synchronizace koprocesorů</string>
+        <string name="core_option_prefer_hle">Upřednostnit HLE koprocesorů</string>
+        <string name="core_option_run_ahead">Snímky předstihu</string>
+        <string name="core_option_video_signal">Filtr videosignálu</string>
+        <string name="core_option_restart_required">Použije se po restartování hry.</string>
+        <string name="core_option_interpreter">Interpret</string>
+        <string name="core_option_nearest">Nejbližší soused</string>
+        <string name="core_option_linear">Bilineární</string>
+        <string name="core_option_low">Nízká</string>
+        <string name="core_option_high">Vysoká</string>
+        <string name="core_option_frameskip">Přeskakování snímků</string>
+        <string name="core_option_idle_optimization">Optimalizace čekacích smyček</string>
+        <string name="core_option_allow_opposing_directions">Povolit opačné směry</string>
+        <string name="core_option_palette">Paleta Game Boy</string>
+        <string name="core_option_highpass_filter">Horní propust zvuku</string>
+        <string name="core_option_interference_volume">Hlasitost rušení zvuku</string>
+        <string name="core_option_detect">Rozpoznat</string>
+        <string name="core_option_remove">Odstranit</string>
+        <string name="core_option_ignore">Ignorovat</string>
+        <string name="core_option_hardware">Věrné hardwaru</string>
+        <string name="core_option_greyscale">Stupně šedi</string>
+        <string name="dolphin_option_widescreen_hack">Hack Širokoúhlého obrazu</string>
+        <string name="dolphin_option_msaa">Vyhlazení okrajů</string>
+        <string name="dolphin_option_anisotropy">Anizotropní filtrování</string>
+        <string name="dolphin_option_texture_filtering">Filtrování textur</string>
+        <string name="dolphin_option_shader_compilation">Režim kompilace shaderů</string>
+        <string name="dolphin_option_shader_cache">@string/settings_core_label_use_disk_shader_cache</string>
+        <string name="dolphin_option_wait_for_shaders">Kompilovat shadery před spuštěním</string>
+        <string name="dolphin_option_vsync">V-Synch</string>
+        <string name="dolphin_option_backend_multithreading">Vícevláknové grafické rozhraní</string>
+        <string name="dolphin_option_skip_efb_access">Přeskočit EFB Přístup z Procesoru</string>
+        <string name="dolphin_option_efb_texture_only">Ukládat kopie EFB pouze do textury</string>
+        <string name="dolphin_option_xfb_texture_only">Ukládat kopie XFB pouze do textur</string>
+        <string name="dolphin_option_defer_efb_copies">Odložit kopie EFB do RAM</string>
+        <string name="dolphin_option_immediate_xfb">Okamžitě zobrazovat XFB</string>
+        <string name="dolphin_option_skip_duplicate_xfbs">Přeskakovat duplicitní snímky</string>
+        <string name="dolphin_option_scaled_efb_copy">EFB Kopie Změněné Velikosti</string>
+        <string name="dolphin_option_ignore_format_changes">Ignorovat Změny Formátu</string>
+        <string name="dolphin_option_texture_cache_accuracy">Přesnost mezipaměti textur</string>
+        <string name="dolphin_option_gpu_texture_decoding">Dekódování textur na GPU</string>
+        <string name="dolphin_option_fast_depth">Rychlý výpočet hloubky</string>
+        <string name="dolphin_option_disable_bbox">Zakázat ohraničující rámeček</string>
+        <string name="dolphin_option_vertex_rounding">Zaokrouhlování vrcholů</string>
+        <string name="dolphin_option_disable_fog">Zakázat Mlhu</string>
+        <string name="dolphin_option_disable_copy_filter">Vypnout filtr kopírování</string>
+        <string name="dolphin_option_force_true_color">Vynutit 24bitové barvy</string>
+        <string name="dolphin_option_per_pixel_lighting">Osvětlení Podle Pixelu</string>
+        <string name="dolphin_option_hires_textures">Nahrát Vlastní Textury</string>
+        <string name="dolphin_option_cache_hires_textures">Předzískat vlastní textury</string>
+        <string name="dolphin_option_save_texture_cache">Ukládat mezipaměť textur do stavu</string>
+        <string name="dolphin_option_mmu">Zapnout MMU</string>
+        <string name="dolphin_option_accurate_cpu_cache">Povolit mezipaměť se zpětným zápisem (pomalé)</string>
+        <string name="dolphin_option_fprf">FPRF</string>
+        <string name="dolphin_option_accurate_nans">Přesné hodnoty NaN</string>
+        <string name="dolphin_option_accurate_fmadds">Přesné sloučené násobení a sčítání</string>
+        <string name="dolphin_option_fastmem">Fastmem</string>
+        <string name="dolphin_option_fast_disc">Zrychlit přenos z disku</string>
+        <string name="dolphin_option_cpu_clock">@string/settings_core_label_cpu_clock_percentage</string>
+        <string name="dolphin_option_dsp_jit">Překladač DSP LLE</string>
+        <string name="dolphin_option_dsp_thread">DSP LLE v samostatném vlákně</string>
+        <string name="dolphin_option_audio_backend">Podpůrná vrstva zvuku:</string>
+        <string name="dolphin_option_audio_buffer_size">Velikost zvukové vyrovnávací paměti</string>
+        <string name="dolphin_option_audio_preserve_pitch">Zachovat výšku zvuku</string>
+        <string name="dolphin_option_audio_fill_gaps">Vyplňovat výpadky zvuku</string>
+        <string name="dolphin_option_gc_language">Jazyk GameCube</string>
+        <string name="dolphin_option_wii_speaker">Povolit data reproduktorů</string>
+        <string name="dolphin_choice_default">Výchozí</string>
+        <string name="dolphin_choice_stretch">Roztáhnout do Okna</string>
+        <string name="dolphin_choice_specialized">Specializované (výchozí)</string>
+        <string name="dolphin_choice_hybrid">Hybridní ubershadery</string>
+        <string name="dolphin_choice_exclusive">Pouze ubershadery</string>
+        <string name="dolphin_choice_skip">Přeskakovat vykreslování</string>
+        <string name="dolphin_choice_safe">Bezpečná</string>
+        <string name="dolphin_choice_balanced">Vyvážená</string>
+        <string name="dolphin_choice_fast">Rychlá</string>
+        <string name="dolphin_choice_cached_interpreter">Převaděč s mezipamětí (pomalejší)</string>
+        <string name="dolphin_choice_english">Angličtina</string>
+        <string name="dolphin_choice_german">Němčina</string>
+        <string name="dolphin_choice_french">Francouzština</string>
+        <string name="dolphin_choice_spanish">Španělština</string>
+        <string name="dolphin_choice_italian">Italština</string>
+        <string name="dolphin_choice_dutch">Nizozemština</string>
+        <string name="formats_images_body">Používejte rozbalené obrazy her. Archivy ZIP a 7z před importem rozbalte.</string>
+        <string name="formats_3ds_body">Balíčky CIA a ZCIA se před spuštěním nainstalují. Šifrované hry vyžadují vaše vlastní systémové klíče.</string>
+        <string name="formats_ds_body">Kazety DS a s vylepšeními DSi běží v režimu DS. Hry pouze pro DSi vyžadují prostředí DSi.</string>
+        <string name="formats_fds_body">Hry FDS vyžadují BIOS disksys.rom o velikosti 8 KiB ve složce firmwaru.</string>
+        <string name="formats_executables_body">Spustitelné obrazy se rozpoznávají podle hlaviček a musí odpovídat konzoli.</string>
+        <string name="formats_disc_parts_body">Všechny části rozděleného obrazu WBFS nebo ISO ponechte v jedné složce a povolte k ní přístup. Otevřete soubor WBFS nebo .part0.iso; další části nejsou samostatné hry.</string>
+        <string name="legacy_help_ds_renderer" formatted="false">Vybírá vykreslovač DS. Vulkan je výchozí a podporuje vyšší vnitřní rozlišení, softwarový používá původní 1x a může vyřešit grafické či ovladačové chyby. DS 2D stále může značně zatěžovat CPU, takže Vulkan není rychlejší v každé hře. Začněte Vulkanem a softwarový porovnejte ve stejné scéně při konkrétním problému.</string>
+        <string name="legacy_help_ds_upscale" formatted="false">Zvyšuje vnitřní rozlišení 3D grafiky DS s Vulkanem. Vyšší hodnoty zlepšují hrany, ale zatěžují GPU, paměť a zahřívání, původní 2D grafice přidají málo detailů. Softwarový vždy používá původní 1x. Začněte na výchozím 2x, při zpomalení snižte na 1x a zvyšujte jen při stabilním výkonu.</string>
+        <string name="legacy_help_cover_style" formatted="false">Vybírá ploché obaly, 3D krabičky nebo žádné obaly v knihovně. Mění vzhled knihovny, stahování a mezipaměť obrázků, nikoli grafiku či rychlost hry. Vyberte oblíbený styl nebo vypněte obaly pro omezení načítání a místa obrázků.</string>
+        <string name="legacy_help_camera_flip" formatted="false">Zrcadlí vybraný náhradní obraz kamery vodorovně, svisle nebo oběma směry před předáním hře 3DS. Opravuje orientaci, nikoli kvalitu kamery či rychlost hry. Začněte volbou Žádné a otáčejte pouze převrácený obraz.</string>
+        <string name="legacy_help_background_dim" formatted="false">Ztmavuje vybrané pozadí pro čitelné texty a ovládání. Vyšší procenta zakryjí více obrázku, ale nemění jas hry ani kvalitu vykreslování. Zvyšujte do snadné čitelnosti menu a snižujte pro viditelnější pozadí.</string>
+        <string name="legacy_help_theme" formatted="false">Vybírá barvy a vzhled aplikace. Systém sleduje světlé či tmavé nastavení zařízení, ostatní volby zachovají vlastní vzhled a grafiku her nemění. Začněte Systémem či Tmavým a vybírejte pro pohodlí nebo kontrast.</string>
+        <string name="legacy_help_keyboard_target" formatted="false">Směruje přiřazené klávesy na vybraný hráčský port. Mění příjemce vstupu, nikoli citlivost klávesnice nebo rychlost hry. Pro jednoho hráče použijte Hráče 1 a jiný podporovaný port jen pro dalšího hráče.</string>
+        <string name="legacy_help_mouse_target" formatted="false">Směruje tlačítka myši a míření na vybraný hráčský port. Nepodporovaný port nemusí v dané konzoli nebo hře přijímat vstup. Pro jednoho hráče použijte Hráče 1, jiný podporovaný port pouze pro více hráčů.</string>
+        <string name="legacy_help_mouse_wheel" formatted="false">Převádí pohyb kolečka myši na impulzy vybraných emulovaných tlačítek či směrů páčky. Mění přiřazení kolečka, nikoli citlivost kamery. Ponechte vypnuté, pokud nepotřebujete zkratku, a vyberte ovládání skutečně používané konzolí a hrou.</string>
+        <string name="legacy_help_mouse_wheel_pulse" formatted="false">Nastavuje délku stisknutí emulovaného vstupu jednoho kroku kolečka. Delší impulz hra snáze zachytí, ale může akci opakovat či držet příliš dlouho. Začněte výchozí hodnotou, zvyšte při ztracených krocích a snižte při příliš velkém pohybu.</string>
+        <string name="legacy_help_mouse_sensitivity" formatted="false">Násobí pohyb myši předaný emulované páčce. Vyšší hodnoty vyvolají silný vstup menším pohybem, ale zhorší přesné míření a nezvýší snímkovou frekvenci. Začněte na 100% a upravte podle hry a myši.</string>
+        <string name="legacy_help_mouse_vertical_sensitivity" formatted="false">Násobí svislé míření myší vůči běžné síle. Vyšší hodnoty vyžadují méně pohybu nahoru či dolů, ale mohou zhoršit přesnost. Začněte na 100% a snižte při příliš rychlém svislém pohybu vůči vodorovnému.</string>
+        <string name="legacy_help_mouse_smoothing" formatted="false">Filtruje malé změny míření myši proti chvění. Vyšší hodnoty stabilizují pohyb, ale zpožďují odezvu a znepřímí rychlé otočky. Začněte nízko a zvyšujte jen do odstranění rušivého chvění.</string>
+        <string name="legacy_help_mouse_deadzone" formatted="false">Ignoruje drobné pohyby myši před převodem na vstup páčky. Větší mrtvá zóna potlačí drift či šum, ale ztratí jemné korekce. Začněte výchozí hodnotou a zvyšujte pouze při nechtěném pohybu pohledu.</string>
+        <string name="legacy_help_screen_swap" formatted="false">Prohazuje zobrazené pozice dvou obrazovek konzole. U DS se dotykový vstup přesune s dotykovým displejem a stav hry ani výkon se nezmění. Zachovejte běžné pořadí, pokud druhá poloha není lépe viditelná či dosažitelná.</string>
+        <string name="legacy_help_second_screen_width" formatted="false">Nastavuje šířku ukotveného panelu druhé obrazovky. Širší panel se lépe čte, ale ubírá místo hlavní obrazovce a nemění vnitřní rozlišení. Začněte výchozí šířkou a zvětšujte jen podle potřeby.</string>
+        <string name="legacy_help_3ds_cpu_clock_percentage" formatted="false">Mění emulovaný takt CPU 3DS vůči skutečné konzoli. Vyšší hodnota omezí zpomalení hostované CPU, ale potřebuje více výkonu hostitele; nižší může ulevit hostiteli a současně zpomalit hru či narušit časování. Běžně ponechte 100% a měňte jen pro ověřený důvod konkrétní hry.</string>
+        <string name="legacy_help_3ds_is_new_3ds" formatted="false">Vybírá New 3DS místo původního modelu včetně dalšího výkonu CPU a paměti. Některé hry New 3DS vyžadují a změna ovlivňuje kompatibilitu i zátěž. Ponechte zapnuté kromě konkrétní potřeby původního modelu a po změně restartujte hru.</string>
+        <string name="legacy_help_3ds_region_value" formatted="false">Nastavuje oblast hlášenou emulovanou konzolí 3DS. Oblast ovlivňuje kompatibilitu, jazyky a regionální chování, nikoli přímo výkon. Pro přizpůsobení hře použijte Automaticky a ručně vybírejte jen při potřebě hry.</string>
+        <string name="legacy_help_3ds_language" formatted="false">Nastavuje systémový jazyk 3DS hlášený hrám. Hra podle něj volí text či hlasy jen z obsažených jazyků, jazyk aplikace ani výkon se nemění. Zvolte podporovaný oblíbený jazyk nebo nastavení hry, pokud systémový jazyk ignoruje.</string>
+        <string name="legacy_help_3ds_apply_region_free_patch" formatted="false">Obchází kontrolu oblasti 3DS pro spuštění titulu z jiné oblasti. Pomáhá regionální kompatibilitě, ale hru nepřekládá ani nezrychluje. Ponechte vypnuté při běžném spuštění a zapněte pouze pokud rozdílná oblast brání startu.</string>
+        <string name="legacy_help_3ds_enable_audio_stretching" formatted="false">Přizpůsobuje délku zvuku při pomalé emulaci a omezuje mezery či praskání. Zvuk může lehce změnit a samotnou hru nezrychlí. Pro plynulejší zvuk ponechte zapnuté a vypínejte jen při diagnostice nebo pro původní časování.</string>
+        <string name="legacy_help_3ds_enable_realtime_audio" formatted="false">Přizpůsobuje plánování zvuku měřené rychlosti emulace místo samotného hostovaného taktu. Při kolísání mění zvukové chování a může pomoci s časovými problémy. Běžně ponechte vypnuté a zapněte jen po zlepšení potvrzeném ve stejné hře.</string>
+        <string name="legacy_help_3ds_volume" formatted="false">Nastavuje emulovanou hlasitost před vlastní hlasitostí Androidu. Nižší hodnoty ztiší hru bez změny rychlosti či přesnosti zvuku. Začněte na 100%, běžně používejte hlasitost zařízení a zde snižujte pro vyrovnání příliš hlasité hry.</string>
+        <string name="legacy_help_3ds_input_type" formatted="false">Vybírá mikrofon 3DS: Automaticky dostupný backend, Žádný ticho a Statický šum generovaný hluk. Ovlivňuje hry naslouchající zvukům, nikoli reproduktorovou hlasitost či výkon. Začněte automaticky, šum použijte pro foukání a Žádný při nechtěném vstupu.</string>
+        <string name="legacy_help_3ds_graphics_api" formatted="false">Vybírá hardwarovou grafiku 3DS Vulkan nebo OpenGL. Výkon a správnost závisí na ovladači GPU a hře. Začněte Vulkanem, při grafických chybách či nestabilitě zkuste OpenGL a po změně hru restartujte.</string>
+        <string name="legacy_help_3ds_shaders_accurate_mul" formatted="false">Používá přesnější násobení v hardwarových shaderech pro správné efekty 3DS. Může opravit grafiku za cenu výkonu a platí pouze s hardwarovými shadery. Ponechte vypnuté, pokud neopravuje viditelné chyby aktuální hry.</string>
+        <string name="legacy_help_3ds_use_disk_shader_cache" formatted="false">Ukládá přeložené shadery na disk pro další spuštění. Omezuje opakované pauzy kompilace, ale zabírá místo a neodstraní každý první zásek. Běžně ponechte zapnuté a vypněte jen při diagnostice mezipaměti shaderů.</string>
+        <string name="legacy_help_3ds_use_vsync" formatted="false">Synchronizuje zobrazení s displejem proti viditelnému trhání. Může ovlivnit pravidelnost snímků a latenci vstupu, ale nezvyšuje rychlost emulace. Pro stabilní obraz ponechte zapnuté a vypnutí zkoušejte jen pro konkrétní problém latence či snímků.</string>
+        <string name="legacy_help_3ds_use_skip_duplicate_frames" formatted="false">Přeskakuje zobrazování snímků s nezměněným obrazem. Ve statických scénách šetří grafickou práci a energii, zatímco hra dále běží. Běžně ponechte vypnuté a zapněte jen při úspoře bez viditelného narušení snímků.</string>
+        <string name="legacy_help_3ds_resolution_factor" formatted="false">Zvyšuje vnitřní rozlišení grafiky 3DS. Vyšší hodnoty zostřují 3D hrany, ale zatěžují GPU, paměť a zahřívání a nepřidají detail každému 2D prvku. Začněte na 2x při dostatku výkonu nebo Původní pro nízkou zátěž a zvyšujte jen při plynulé hře.</string>
+        <string name="legacy_help_3ds_texture_filter" formatted="false">Používá zvětšovací filtr na herní textury. Může vyhladit či změnit pixelovou grafiku a přidává výpočty, nejlepší vzhled závisí na hře. Začněte volbou Žádný pro originální textury a nejlepší výkon a porovnávejte filtry podle preference.</string>
+        <string name="legacy_help_3ds_layout_option" formatted="false">Vybírá rozmístění a vzájemné velikosti obrazovek 3DS. Větší hlavní obraz se lépe čte, menší či skrytý dotykový hůře ovládá a vnitřní rozlišení se nemění. Začněte s oběma obrazovkami viditelnými a upravte podle hry.</string>
+        <string name="legacy_help_3ds_swap_screen" formatted="false">Prohazuje role obrazovek 3DS ve zvoleném rozložení včetně velké či samostatné obrazovky. Mění zobrazení a umístění dotyku, nikoli rychlost hry. Zachovejte běžné pořadí, pokud druhá zvýrazněná obrazovka nezlepší hraní.</string>
+        <string name="legacy_help_3ds_aspect_ratio" formatted="false">Mění tvar zobrazovaného obrazu 3DS. Širší či roztažený obraz vyplní displej, ale může deformovat kruhy, text a postavy bez přidání původních detailů. Začněte běžným poměrem a roztahujte jen podle preference.</string>
+        <string name="legacy_help_3ds_use_virtual_sd" formatted="false">Poskytuje emulovanému 3DS SD kartu uloženou v datové složce emulátoru. Hry a domácí software ji používají pro další data, která vypnutí znepřístupní. Ponechte zapnuté kromě diagnostiky SD a před změnou úložiště zálohujte data.</string>
+        <string name="legacy_help_3ds_motion_device" formatted="false">Vybírá zdroj pohybu 3DS: emulaci aplikace nebo externí server CemuHook UDP. Zdroj bez dat způsobí nefunkční pohybové ovládání a rychlost nezlepší. Běžně použijte Emulováno a UDP pouze s nastaveným funkčním serverem.</string>
+        <string name="legacy_help_3ds_touch_device" formatted="false">Vybírá dotykový vstup 3DS z emulačního okna nebo externího serveru CemuHook UDP. UDP bez nastaveného zdroje může znemožnit běžné dotykové ovládání. Pro hraní na zařízení použijte Emulační okno a UDP jen pro záměrný externí vstup.</string>
+        <string name="legacy_help_3ds_udp_pad_index" formatted="false">Vybírá jeden ze čtyř ovladačových slotů serveru CemuHook UDP. Nesprávný slot může vyřadit vzdálený vstup a nemění místní přiřazení ani výkon. Začněte Ovladačem 1 a měňte pouze podle slotu použitého serverem.</string>
+        <string name="save_manager_list_failed">Uložené stavy se nepodařilo načíst. Zkuste to znovu.</string>
+        <string name="texture_manager_help">Importujte ZIP balíček textur pro 3DS, GameCube nebo Wii. Import nahradí nainstalovaný balíček vybrané hry.</string>
+        <string name="texture_manager_import">Importovat balíček textur</string>
+        <string name="texture_manager_export">Exportovat balíček textur</string>
+        <string name="texture_manager_enable">Používat náhradní textury</string>
+        <string name="texture_manager_empty">Není nainstalován žádný balíček textur.</string>
+        <string name="texture_manager_identity_failed">Nelze přečíst ověřené ID textur této hry.</string>
+        <string name="texture_manager_done">Balíček textur byl aktualizován.</string>
+        <string name="texture_manager_failed">Tento balíček textur nelze zpracovat.</string>
+        <string name="texture_manager_stop">Před změnou balíčků textur zavřete spuštěnou hru.</string>
+        <string name="texture_manager_delete_title">Smazat balíček textur?</string>
+        <string name="texture_manager_delete_body">Odstranit nainstalované náhradní textury této hry?</string>
+        <string name="texture_manager_count">%1$d textur • %2$s</string>
+        <string name="texture_manager_scope_global">3DS: platí pro všechny hry, pokud jej nepřepíše profil hry.</string>
+        <string name="texture_manager_scope_game">Platí pro profil této hry.</string>
+        <string name="game_settings_manager_save_failure">Nastavení hry se nepodařilo uložit. Zkuste to znovu.</string>
 </resources>

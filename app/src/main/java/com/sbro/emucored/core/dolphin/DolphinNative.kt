@@ -24,6 +24,8 @@ internal object DolphinNative {
     /** key<TAB>boot|live<TAB>accepted values; reflects initialized GPU capabilities. */
     external fun optionCapabilities(): Array<String>
     external fun frames(): Long
+    /** Unique frames, actual VI target Hz, emulated-clock speed %, XFB size, backend ID. */
+    external fun performance(): DoubleArray?
     external fun probe(path: String): Int
     external fun probeIdentity(path:String):Array<String>?
     external fun cheats(formats:Array<String>,codes:Array<String>):Boolean

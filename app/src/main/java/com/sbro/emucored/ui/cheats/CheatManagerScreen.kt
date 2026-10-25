@@ -1,5 +1,7 @@
 package com.sbro.emucored.ui.cheats
 
+import kotlinx.coroutines.ensureActive
+import kotlinx.coroutines.currentCoroutineContext
 import android.provider.OpenableColumns
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -46,12 +48,14 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -86,7 +90,14 @@ import com.sbro.emucored.ui.theme.neon.neonButtonShape
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-fun CheatManagerScreen(onBackClick: () -> Unit) {
+fun CheatManagerScreen(onBackClick: () -> Unit) = CheatManagerContent(onBackClick)
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+internal fun CheatManagerContent(
+    onBackClick: () -> Unit,
+    identityResolver: (suspend (GameItem) -> SelectedGameIdentity)? = null
+) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val preferences = remember(context) { AppPreferences(context) }
@@ -100,7 +111,9 @@ fun CheatManagerScreen(onBackClick: () -> Unit) {
 
     var games by remember { mutableStateOf<List<GameItem>>(emptyList()) }
     var gamesLoading by remember { mutableStateOf(true) }
-    var selectedPath by remember { mutableStateOf<String?>(null) }
+    var selectedPath by rememberSaveable { mutableStateOf<String?>(null) }
+    val selectionGuard = rememberSaveable(saver = CheatSelectionGuard.Saver) { CheatSelectionGuard() }
+    var importSelection by rememberSaveable(stateSaver = PendingCheatImport.NullableSaver) { mutableStateOf<PendingCheatImport?>(null) }
     var identity by remember { mutableStateOf<SelectedGameIdentity?>(null) }
     var config by remember { mutableStateOf<CheatGameConfig?>(null) }
     var resolvingIdentity by remember { mutableStateOf(false) }
@@ -118,8 +131,7 @@ fun CheatManagerScreen(onBackClick: () -> Unit) {
     val importFailure = stringResource(R.string.cheat_manager_import_failed)
     val deleteSuccess = stringResource(R.string.cheat_manager_delete_success)
 
-    suspend fun loadConfig(selectedIdentity: SelectedGameIdentity?): CheatGameConfig? = withContext(Dispatchers.IO) {
-        val game = games.firstOrNull { it.path == selectedPath }
+    suspend fun loadConfig(game: GameItem?, selectedIdentity: SelectedGameIdentity?): CheatGameConfig? = withContext(Dispatchers.IO) {
         if (game != null && game.platform != GamePlatform.N3DS) return@withContext cheatRepository.typedGameConfig(game.platform,game.path)
         val serial = selectedIdentity?.serial.orEmpty()
         val crc = selectedIdentity?.crc
@@ -131,11 +143,10 @@ fun CheatManagerScreen(onBackClick: () -> Unit) {
         cheatRepository.getGameConfig(keys, serial, crc)
     }
 
-    fun syncSelectedGame() {
-        val changedPath=selectedPath
+    fun syncSelectedGame(game: GameItem, resolvedIdentity: SelectedGameIdentity?, request: CheatSelectionGuard.Request) {
         scope.launch {
-            val loaded = loadConfig(identity) ?: return@launch
-            config = loaded
+            val loaded = loadConfig(game, resolvedIdentity) ?: return@launch
+            selectionGuard.publish(request) { config = loaded }
             withContext(Dispatchers.IO) {
                 cheatWriteMutex.withLock {
                     cheatRepository.syncActiveCheats(
@@ -144,7 +155,7 @@ fun CheatManagerScreen(onBackClick: () -> Unit) {
                         loaded.crc,
                         includeCheats = true
                     )
-                    changedPath?.let(CheatRuntimeUpdates::notifyChanged)
+                    CheatRuntimeUpdates.notifyChanged(game.path)
                 }
             }
         }
@@ -152,7 +163,10 @@ fun CheatManagerScreen(onBackClick: () -> Unit) {
 
     LaunchedEffect(Unit) {
         games = withContext(Dispatchers.IO) { libraryRepository.loadGames() }
-        selectedPath = games.firstOrNull()?.path
+        selectedPath = selectedPath?.takeIf { path -> games.any { it.path == path } } ?: games.firstOrNull()?.path
+        selectedPath?.let { path ->
+            if (selectionGuard.current?.path != path) selectionGuard.select(path)
+        }
         // The identity effect below only starts after this composition, so mark
         // the resolution as in progress now. Otherwise the catalog section can
         // flash its "no packs for this game" card for a frame while the
@@ -162,7 +176,7 @@ fun CheatManagerScreen(onBackClick: () -> Unit) {
     }
 
     val selectedGame = games.firstOrNull { it.path == selectedPath }
-    LaunchedEffect(selectedPath) {
+    LaunchedEffect(selectedPath, selectedGame) {
         val game = selectedGame
         if (game == null) {
             identity = null
@@ -170,17 +184,23 @@ fun CheatManagerScreen(onBackClick: () -> Unit) {
             resolvingIdentity = false
             return@LaunchedEffect
         }
+        val request = selectionGuard.current?.takeIf { it.path == game.path }
+            ?: selectionGuard.select(game.path)
         identity = null
+        config = null
         resolvingIdentity = true
         val cachedIdentity = identityCache[game.path]
-        val resolved = cachedIdentity ?: withContext(Dispatchers.IO) { libraryRepository.resolveIdentity(game) }
+        val resolved = cachedIdentity ?: identityResolver?.invoke(game) ?: withContext(Dispatchers.IO) {
+            val probeContext = currentCoroutineContext()
+            libraryRepository.resolveIdentity(game, checkActive = { probeContext.ensureActive() })
+        }
             .also { identityCache[game.path] = it }
-        if (selectedPath != game.path) return@LaunchedEffect
-        identity = resolved
-        // Keep the previous game's list on screen until the new one is ready,
-        // so switching games doesn't collapse and rebuild the whole list.
-        config = loadConfig(resolved)
-        resolvingIdentity = false
+        val loaded = loadConfig(game, resolved)
+        selectionGuard.publish(request) {
+            identity = resolved
+            config = loaded
+            resolvingIdentity = false
+        }
     }
 
     LaunchedEffect(config?.gameKey) {
@@ -206,7 +226,11 @@ fun CheatManagerScreen(onBackClick: () -> Unit) {
     }
 
     val importLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
-        uri ?: return@rememberLauncherForActivityResult
+        val requested = importSelection.also { importSelection = null }
+        if (uri == null || requested == null) return@rememberLauncherForActivityResult
+        val importGame = requested.game
+        val importIdentity = requested.identity
+        val importRequest = requested.request
         scope.launch {
             val result = withContext(Dispatchers.IO) {
                 runCatching {
@@ -222,12 +246,12 @@ fun CheatManagerScreen(onBackClick: () -> Unit) {
                                 if (cursor.moveToFirst()) cursor.getString(0) else null
                             }
                     }.getOrNull()?.substringBeforeLast('.')
-                    val typedGame=selectedGame?.takeIf{it.platform!=GamePlatform.N3DS}
-                    val gameKey = typedGame?.let{TypedCheatCatalog.gameKey(it.platform,it.path)} ?: identity?.let { resolved ->
+                    val typedGame=importGame.takeIf{it.platform!=GamePlatform.N3DS}
+                    val gameKey = typedGame?.let{TypedCheatCatalog.gameKey(it.platform,it.path)} ?: importIdentity?.let { resolved ->
                         if (!resolved.serial.isNullOrBlank() && !resolved.crc.isNullOrBlank()) {
                             "${resolved.serial}_${resolved.crc}"
                         } else resolved.crc ?: resolved.serial
-                    } ?: selectedGame?.serial?.takeIf { it.isNotBlank() }
+                    } ?: importGame.serial?.takeIf { it.isNotBlank() }
                         ?: fallbackName
                         ?: "cheat_${System.currentTimeMillis()}"
                     val contents=if(typedGame==null)text else {
@@ -241,7 +265,9 @@ fun CheatManagerScreen(onBackClick: () -> Unit) {
             }
             if (result > 0) {
                 preferences.setEnableCheats(true)
-                config = loadConfig(identity)
+                CheatRuntimeUpdates.notifyChanged(importGame.path)
+                val loaded = loadConfig(importGame, importIdentity)
+                selectionGuard.publish(importRequest) { config = loaded }
             }
             Toast.makeText(context, if (result > 0) importSuccess else importFailure, Toast.LENGTH_LONG).show()
         }
@@ -255,6 +281,7 @@ fun CheatManagerScreen(onBackClick: () -> Unit) {
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
+                .testTag("cheat-manager-list")
                 .padding(horizontalSystemBarPadding),
             contentPadding = PaddingValues(
                 start = ScreenHorizontalPadding,
@@ -315,7 +342,15 @@ fun CheatManagerScreen(onBackClick: () -> Unit) {
                             )
                         }
                         OutlinedButton(
-                            shape = neonButtonShape(),onClick = { importLauncher.launch(arrayOf("*/*")) }) {
+                            enabled = selectedGame != null && !resolvingIdentity,
+                            shape = neonButtonShape(),onClick = {
+                                val game = selectedGame
+                                val request = selectionGuard.current
+                                if (game != null && request != null && request.path == game.path && !resolvingIdentity) {
+                                    importSelection = PendingCheatImport.capture(game, identity, request)
+                                    importLauncher.launch(arrayOf("*/*"))
+                                }
+                            }) {
                             Icon(Icons.Rounded.FolderOpen, contentDescription = null)
                             Spacer(Modifier.width(8.dp))
                             Text(stringResource(R.string.cheat_manager_import_pnach))
@@ -329,9 +364,9 @@ fun CheatManagerScreen(onBackClick: () -> Unit) {
                     selectedPath = selectedPath,
                     onSelected = { game ->
                         if (game.path != selectedPath) {
-                            // Leave the current list in place; the resolver below
-                            // swaps it once the new game's data is loaded.
+                            selectionGuard.select(game.path)
                             identity = null
+                            config = null
                             resolvingIdentity = true
                             selectedPath = game.path
                         }
@@ -381,15 +416,21 @@ fun CheatManagerScreen(onBackClick: () -> Unit) {
                 }
             }
             item(key = "cheat-online-catalog") {
+                val catalogGame = selectedGame
+                val catalogIdentity = identity
+                val catalogRequest = selectionGuard.current
                 CheatOnlineCatalogSection(
                     selectedGame = selectedGame,
                     identity = identity,
                     resolvingIdentity = resolvingIdentity,
                     gamesLoading = gamesLoading,
-                    onInstalled = { syncSelectedGame() }
+                    onInstalled = {
+                        if (catalogGame != null && catalogRequest != null)
+                            syncSelectedGame(catalogGame, catalogIdentity, catalogRequest)
+                    }
                 )
             }
-            config?.let { current ->
+            config?.takeUnless { resolvingIdentity }?.let { current ->
                 item(key = "installed-cheats-header") {
                     Row(
                         modifier = Modifier
@@ -398,6 +439,7 @@ fun CheatManagerScreen(onBackClick: () -> Unit) {
                                 placementSpec = tween(220),
                                 fadeOutSpec = tween(140)
                             )
+                            .testTag("cheat-config-${current.gameKey}")
                             .fillMaxWidth(),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
@@ -530,8 +572,9 @@ fun CheatManagerScreen(onBackClick: () -> Unit) {
                                 block = block,
                                 supported = supported,
                                 onEnabledChange = { enabled ->
+                                    if (resolvingIdentity || selectedPath != selectedGame?.path) return@CheatToggleCard
                                     val changedPath=selectedPath
-                                    val latest = config ?: current
+                                    val latest = current
                                     val updatedBlocks = latest.blocks.map { item ->
                                         if (item.id == block.id) item.copy(enabled = enabled) else item
                                     }
@@ -588,7 +631,7 @@ fun CheatManagerScreen(onBackClick: () -> Unit) {
                 TextButton(onClick = {
                     cheatRepository.deleteImportedCheats(current.gameKey, current.serial, current.crc)
                     pendingDeletePath?.let(CheatRuntimeUpdates::notifyChanged)
-                    config = null
+                    if (selectedPath == pendingDeletePath && config?.gameKey == current.gameKey) config = null
                     pendingDelete = null
                     Toast.makeText(context, deleteSuccess, Toast.LENGTH_SHORT).show()
                 }) { Text(stringResource(R.string.delete)) }
