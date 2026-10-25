@@ -6,7 +6,9 @@ import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import java.nio.file.Files
 import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.async
+import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
 import org.json.JSONObject
@@ -22,6 +24,66 @@ class ConsoleStateSlotTransactionTest {
             .putLong(1).putLong(checksum).putLong(payload.size.toLong()).array() + payload
     }
     private fun metadata() = JSONObject().put("platform", "GBA").put("gamePath", "owned-game").put("slot", 1)
+
+    @Test fun cancelledQueuedSaveDoesNotInvokeTheNativeWriterOrReplaceTheCompletedSave() = runBlocking {
+        val root = Files.createTempDirectory("state-cancelled-queue").toFile()
+        try {
+            val target = File(root, "slot.ecs")
+            val entered = CompletableDeferred<Unit>()
+            val release = CompletableDeferred<Unit>()
+            val first = async {
+                ConsoleStateSlotTransaction.save(target, {
+                    it.writeBytes(bytes(1)); entered.complete(Unit); release.await(); true
+                }, { metadata() })
+            }
+            entered.await()
+            var secondWriterCalled = false
+            val second = async(start = CoroutineStart.UNDISPATCHED) {
+                ConsoleStateSlotTransaction.save(target, {
+                    secondWriterCalled = true; it.writeBytes(bytes(2)); true
+                }, { metadata() })
+            }
+            second.cancel()
+            release.complete(Unit)
+            assertTrue(first.await())
+            second.cancelAndJoin()
+            assertFalse(secondWriterCalled)
+            assertArrayEquals(bytes(1), target.readBytes())
+        } finally { root.deleteRecursively() }
+    }
+
+    @Test fun importCannotReplaceAStateCreatedWhileItsNativeWriterWasRunning() = runBlocking {
+        val root = Files.createTempDirectory("state-import-reservation").toFile()
+        try {
+            val target = File(root, "slot.ecs")
+            val existingMetadata = metadata().put("sha256", "independent-save").toString()
+            assertFalse(ConsoleStateSlotTransaction.saveNew(target, writeState = {
+                it.writeBytes(bytes(2))
+                target.writeBytes(bytes(1))
+                File("${target.path}.json").writeText(existingMetadata)
+                true
+            }, metadata = { metadata() }))
+            assertArrayEquals(bytes(1), target.readBytes())
+            assertEquals(existingMetadata, File("${target.path}.json").readText())
+        } finally { root.deleteRecursively() }
+    }
+
+    @Test fun incompleteRollbackSetDoesNotPartiallyOverwriteTheCurrentPair() {
+        val root = Files.createTempDirectory("state-incomplete-rollback").toFile()
+        try {
+            val target = File(root, "slot.ecs").apply { writeBytes(bytes(2)) }
+            val currentMetadata = metadata().put("sha256", SaveStateFileIntegrity.sha256(target)).toString()
+            File("${target.path}.json").writeText(currentMetadata)
+            File("${target.path}.previous").writeBytes(bytes(1))
+            File("${target.path}.transaction.json").writeText(JSONObject().put("version", 1).put("phase", "prepared")
+                .put("hadState", true).put("hadMetadata", true).put("hadPreview", false)
+                .put("sha256", SaveStateFileIntegrity.sha256(target)).put("platform", "GBA").toString())
+            assertFalse(ConsoleStateSlotTransaction.recover(target))
+            assertArrayEquals(bytes(2), target.readBytes())
+            assertEquals(currentMetadata, File("${target.path}.json").readText())
+            assertTrue(File("${target.path}.transaction.json").isFile)
+        } finally { root.deleteRecursively() }
+    }
 
     @Test fun failedNativeWritesCorruptPayloadsAndMetadataFailuresPreserveThePreviousPair() = runBlocking {
         val root = Files.createTempDirectory("state-publication").toFile()

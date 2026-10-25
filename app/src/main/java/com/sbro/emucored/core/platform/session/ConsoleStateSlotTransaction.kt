@@ -27,7 +27,8 @@ object ConsoleStateSlotTransaction {
         val oldState = File("${target.path}.previous")
         val oldMetadata = File("${target.path}.previous.json")
         val oldPreview = File("${target.path}.previous.png")
-        val staged get() = listOf(stagedState, stagedMetadata, stagedPreview, journalPending, File("${stagedState.path}.tmp"))
+        val staged get() = listOf(stagedState, stagedMetadata, stagedPreview, journalPending,
+            File("${stagedState.path}.tmp"), File("${stagedState.path}.pending"))
         val backups get() = listOf(oldState, oldMetadata, oldPreview)
     }
 
@@ -36,19 +37,23 @@ object ConsoleStateSlotTransaction {
 
     /** Imports reserve an empty slot under the same lock used by running sessions. */
     suspend fun saveNew(target: File, preview: File? = null, writeState: suspend (File) -> Boolean,
-                        metadata: (File) -> JSONObject): Boolean =
-        saveInternal(target, replaceExisting = false, preview, writeState, metadata)
+                        onFailure: (Exception) -> Unit = {}, metadata: (File) -> JSONObject): Boolean =
+        saveInternal(target, replaceExisting = false, preview, writeState, metadata, onFailure)
 
     private suspend fun saveInternal(target: File, replaceExisting: Boolean, preview: File?,
-                                     writeState: suspend (File) -> Boolean, metadata: (File) -> JSONObject): Boolean =
-        withContext(NonCancellable + Dispatchers.IO) {
+                                     writeState: suspend (File) -> Boolean, metadata: (File) -> JSONObject,
+                                     onFailure: (Exception) -> Unit = {}): Boolean =
+        withContext(Dispatchers.IO) {
             mutex.withLock {
+              // Waiting callers remain cancellable; an acquired transaction must finish or roll back.
+              withContext(NonCancellable) transaction@{
                 val p = Paths(target.canonicalFile)
-                if (!recoverLocked(p) || (!replaceExisting && p.target.exists())) return@withLock false
+                if (!recoverLocked(p) || (!replaceExisting && p.target.exists())) return@transaction false
                 var prepared = false
+                var statePublished = false
                 try {
                     require(p.target.parentFile!!.let { it.isDirectory || it.mkdirs() })
-                    if (!writeState(p.stagedState)) return@withLock false
+                    if (!writeState(p.stagedState)) return@transaction false
                     require(p.stagedState.isFile)
                     val json = metadata(p.stagedState)
                     val platform = GamePlatform.valueOf(json.getString("platform"))
@@ -61,6 +66,8 @@ object ConsoleStateSlotTransaction {
                     sync(p.stagedState)
                     writeSynced(p.stagedMetadata, bytes)
                     preview?.let { copySynced(it, p.stagedPreview) }
+                    require(replaceExisting || !p.target.exists())
+                    require(listOf(p.target, p.metadata, p.preview).all { !it.exists() || it.isFile })
                     val record = JSONObject().put("version", 1).put("phase", "prepared")
                         .put("hadState", p.target.isFile).put("hadMetadata", p.metadata.isFile).put("hadPreview", p.preview.isFile)
                         .put("sha256", digest).put("platform", platform.name)
@@ -69,15 +76,25 @@ object ConsoleStateSlotTransaction {
                     if (p.preview.isFile) copySynced(p.preview, p.oldPreview)
                     journal(p, record)
                     prepared = true
+                    if (!replaceExisting) {
+                        // Android app storage may prohibit hardlinks. Reserve an empty name exclusively;
+                        // this mutex keeps cooperating saves/loads away until the atomic rename completes.
+                        require(p.target.createNewFile())
+                        statePublished = true
+                    }
                     move(p.stagedState, p.target)
+                    statePublished = true
                     move(p.stagedMetadata, p.metadata)
                     if (preview != null) move(p.stagedPreview, p.preview)
                     else if (p.preview.exists()) require(p.preview.delete())
                     journal(p, record.put("phase", "committed"))
                     cleanup(p)
                     true
-                } catch (_: Exception) {
-                    if (prepared) runCatching { recoverLocked(p) }
+                } catch (error: Exception) {
+                    if (prepared) runCatching {
+                        if (!replaceExisting && !statePublished) cleanup(p) else recoverLocked(p)
+                    }
+                    runCatching { onFailure(error) }
                     false
                 } finally {
                     if (!p.journal.exists()) {
@@ -85,6 +102,7 @@ object ConsoleStateSlotTransaction {
                         p.backups.forEach(::deleteFile)
                     }
                 }
+              }
             }
         }
 
@@ -141,6 +159,12 @@ object ConsoleStateSlotTransaction {
                 JSONObject(p.metadata.readText()).getString("sha256") == record.getString("sha256")
         }.getOrDefault(false)
         if (!committed) {
+            // Check the entire rollback set before changing any member of the current pair.
+            listOf(Triple(p.target, p.oldState, "hadState"), Triple(p.metadata, p.oldMetadata, "hadMetadata"),
+                Triple(p.preview, p.oldPreview, "hadPreview")).forEach { (target, backup, key) ->
+                if (record.getBoolean(key)) require(backup.isFile)
+                else require(!target.exists() || target.isFile)
+            }
             // Keep backups until the whole rollback finishes: recovery itself is crash-safe and repeatable.
             restore(p.target, p.oldState, record.getBoolean("hadState"))
             restore(p.metadata, p.oldMetadata, record.getBoolean("hadMetadata"))

@@ -6,6 +6,9 @@ import kotlinx.coroutines.runBlocking
 import java.io.File
 import java.io.InputStream
 import java.io.OutputStream
+import java.io.ByteArrayOutputStream
+import java.security.DigestInputStream
+import java.security.MessageDigest
 import java.nio.file.Files
 import java.nio.file.StandardCopyOption
 import java.util.UUID
@@ -57,14 +60,16 @@ internal class SaveStateArchive(private val filesDirectory: File, private val le
                 metadata.optString("sha256").takeIf(String::isNotBlank)?.let { require(it == digest) }
                 spec.put("state", name).put("size", file.length()).put("sha256", digest)
                 zip.putNextEntry(ZipEntry(name))
-                file.inputStream().use { boundedCopy(it, zip, SaveStateFileIntegrity.MAX_STATE_BYTES) }
+                verifiedCopy(file, zip, SaveStateFileIntegrity.MAX_STATE_BYTES, spec.getLong("size"), digest)
                 zip.closeEntry()
                 val preview = File("${file.path}.png")
                 if (validPng(preview)) {
                     val previewName = "previews/$index.png"
-                    spec.put("preview", previewName).put("previewSha256", SaveStateFileIntegrity.sha256(preview))
+                    val previewDigest = SaveStateFileIntegrity.sha256(preview)
+                    val previewSize = preview.length()
+                    spec.put("preview", previewName).put("previewSha256", previewDigest)
                     zip.putNextEntry(ZipEntry(previewName))
-                    preview.inputStream().use { boundedCopy(it, zip, MAX_PREVIEW) }
+                    verifiedCopy(preview, zip, MAX_PREVIEW, previewSize, previewDigest)
                     zip.closeEntry()
                 }
                 manifest.put(spec)
@@ -80,7 +85,7 @@ internal class SaveStateArchive(private val filesDirectory: File, private val le
     fun recognizes(zip: ZipFile): Boolean = runCatching {
         val entry = zip.getEntry("manifest.json") ?: return@runCatching false
         require(entry.size in 1..MAX_MANIFEST)
-        JSONObject(zip.getInputStream(entry).use { it.readBytes().decodeToString() }).optString("format") == FORMAT
+        JSONObject(readManifest(zip, entry)).optString("format") == FORMAT
     }.getOrDefault(false)
 
     fun preview(staged: File, displayName: String, gamePath: String?, expectedPlatform: GamePlatform?, gameSerial: String?): SaveStateImportPreview {
@@ -113,7 +118,7 @@ internal class SaveStateArchive(private val filesDirectory: File, private val le
         return SaveStateImportPreview(staged.path, displayName, candidates, skipped, 0)
     }
 
-    fun importStates(staged: File, candidates: List<SaveStateImportCandidate>): SaveStateImportResult {
+    fun importStates(staged: File, candidates: List<SaveStateImportCandidate>, onFailure: (Throwable) -> Unit = {}): SaveStateImportResult {
         var imported = 0
         var failed = 0
         ZipFile(staged).use { zip ->
@@ -146,9 +151,10 @@ internal class SaveStateArchive(private val filesDirectory: File, private val le
                     require(runBlocking {
                         ConsoleStateSlotTransaction.saveNew(target, preview,
                             writeState = { destination -> Files.move(state.toPath(), destination.toPath()); true },
+                            onFailure = onFailure,
                             metadata = { metadata })
                     })
-                }.isSuccess
+                }.onFailure(onFailure).isSuccess
                 temporaryFiles.forEach(File::delete)
                 if (success) imported++ else failed++
             }
@@ -157,11 +163,11 @@ internal class SaveStateArchive(private val filesDirectory: File, private val le
     }
 
     private fun records(zip: ZipFile): List<Record> {
-        val names = zip.entries().asSequence().map { it.name }.toList()
+        val names = zip.entries().asSequence().take(1002).map { it.name }.toList()
         require(names.size <= 1001 && names.toSet().size == names.size && names.all(::safeName))
         val manifest = requireNotNull(zip.getEntry("manifest.json"))
         require(manifest.size in 1..MAX_MANIFEST)
-        val json = JSONObject(zip.getInputStream(manifest).use { it.readBytes().decodeToString() })
+        val json = JSONObject(readManifest(zip, manifest))
         require(json.getString("format") == FORMAT && json.getInt("version") == 2)
         val entries = json.getJSONArray("entries")
         require(entries.length() in 1..500)
@@ -225,7 +231,20 @@ internal class SaveStateArchive(private val filesDirectory: File, private val le
         private fun safeName(name: String): Boolean = name.isNotBlank() && !name.startsWith('/') &&
             '\\' !in name && ':' !in name && name.split('/').none { it.isBlank() || it == "." || it == ".." }
 
-        private fun boundedCopy(input: InputStream, output: OutputStream, maximum: Long) {
+        private fun readManifest(zip: ZipFile, entry: ZipEntry): String {
+            require(entry.size in 1..MAX_MANIFEST)
+            val output = ByteArrayOutputStream()
+            zip.getInputStream(entry).use { require(boundedCopy(it, output, MAX_MANIFEST) == entry.size) }
+            return output.toByteArray().decodeToString()
+        }
+
+        private fun verifiedCopy(file: File, output: OutputStream, maximum: Long, expectedSize: Long, expectedSha: String) {
+            val digest = MessageDigest.getInstance("SHA-256")
+            val size = DigestInputStream(file.inputStream(), digest).use { boundedCopy(it, output, maximum) }
+            require(size == expectedSize && digest.digest().joinToString("") { "%02x".format(it.toInt() and 255) } == expectedSha)
+        }
+
+        private fun boundedCopy(input: InputStream, output: OutputStream, maximum: Long): Long {
             val buffer = ByteArray(128 * 1024)
             var total = 0L
             while (true) {
@@ -235,6 +254,7 @@ internal class SaveStateArchive(private val filesDirectory: File, private val le
                 require(total <= maximum)
                 output.write(buffer, 0, count)
             }
+            return total
         }
 
         internal fun validPng(file: File): Boolean = runCatching {

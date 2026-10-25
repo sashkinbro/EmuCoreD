@@ -53,7 +53,9 @@ class DsAtomicSaveDeviceInstrumentedTest {
                 assertTrue(repository.backupEntries(entries, Uri.fromFile(archive)))
                 val preview = repository.analyzeImport(Uri.fromFile(archive), rom.path)
                 assertEquals(2, preview.candidates.single().targetSlot)
-                assertEquals(1, repository.importStates(preview).importedCount)
+                val failures = mutableListOf<Throwable>()
+                val imported = repository.importStates(preview) { failures += it }
+                assertEquals(failures.joinToString("\n") { it.stackTraceToString() }, 1, imported.importedCount)
                 assertTrue(DsSession.loadState(2))
                 val corrupt = File(context.cacheDir, "corrupt.zip")
                 ZipFile(archive).use { source -> ZipOutputStream(corrupt.outputStream()).use { output ->

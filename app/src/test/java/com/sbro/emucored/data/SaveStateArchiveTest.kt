@@ -2,6 +2,8 @@ package com.sbro.emucored.data
 
 import com.sbro.emucored.core.platform.session.ConsoleSessionStorage
 import java.io.File
+import java.io.ByteArrayOutputStream
+import java.io.OutputStream
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import java.nio.file.Files
@@ -14,6 +16,31 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class SaveStateArchiveTest {
+    @Test fun exportRejectsAStateReplacedBetweenManifestHashingAndPayloadCopy() {
+        val directory = Files.createTempDirectory("state-export-race").toFile()
+        try {
+            val archive = SaveStateArchive(directory, File(directory, "legacy"))
+            val entry = state(directory, GamePlatform.GBA, "racing-game", 0)
+            val file = File(entry.absolutePath)
+            val replacement = file.readBytes().apply { this[lastIndex] = (last().toInt() xor 1).toByte() }
+            val bytes = ByteArrayOutputStream()
+            var replaced = false
+            val output = object : OutputStream() {
+                override fun write(value: Int) {
+                    if (!replaced) {
+                        replaced = true
+                        val pending = File(directory, "external-state.pending").apply { writeBytes(replacement) }
+                        Files.move(pending.toPath(), file.toPath(), java.nio.file.StandardCopyOption.REPLACE_EXISTING)
+                    }
+                    bytes.write(value)
+                }
+            }
+            assertThrows(IllegalArgumentException::class.java) { archive.write(listOf(entry), output) }
+            assertTrue(replaced)
+            assertArrayEquals(replacement, file.readBytes())
+        } finally { directory.deleteRecursively() }
+    }
+
     private fun state(root: File, platform: GamePlatform, identity: String, slot: Int): SaveStateEntryInfo {
         val file = ConsoleSessionStorage.stateFile(root, platform.console, identity, slot)
         file.parentFile!!.mkdirs()

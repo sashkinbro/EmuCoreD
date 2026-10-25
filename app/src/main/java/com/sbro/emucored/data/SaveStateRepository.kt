@@ -374,7 +374,7 @@ class SaveStateRepository(private val context: Context) {
         }
     }
 
-    fun importStates(preview: SaveStateImportPreview): SaveStateImportResult {
+    fun importStates(preview: SaveStateImportPreview, onFailure: (Throwable) -> Unit = {}): SaveStateImportResult {
         val stagedFile = File(preview.stagedFilePath)
         val importDir = importCacheDir().canonicalFile
         require(stagedFile.canonicalFile.parentFile == importDir) { "Invalid staged import path" }
@@ -383,7 +383,7 @@ class SaveStateRepository(private val context: Context) {
         if (preview.candidates.any { it.platform != null }) {
             return try {
                 require(preview.candidates.all { it.platform != null })
-                SaveStateArchive(context.filesDir, saveStatesDir()).importStates(stagedFile, preview.candidates)
+                SaveStateArchive(context.filesDir, saveStatesDir()).importStates(stagedFile, preview.candidates, onFailure)
             } finally { stagedFile.delete() }
         }
         var imported = 0
