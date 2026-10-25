@@ -27,6 +27,9 @@ import java.io.File
 import java.util.UUID
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
+import java.util.concurrent.Executors
+import java.util.concurrent.atomic.AtomicBoolean
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.*
 import org.junit.Assert.*
 import org.junit.Rule
@@ -40,6 +43,45 @@ class AdditionalConsoleProfileResetDeviceTest {
 
     @Test(timeout = 60_000) fun changingACoreOptionCreatesAResettableProfile() = exercise(false)
     @Test(timeout = 60_000) fun resetRestoresGlobalsAndPreservesThePausedGuest() = exercise(true)
+
+    @Test(timeout = 30_000)
+    fun preferenceUpdatePreservesAPlatformChangeThatHappensDuringReduction() {
+        val app = InstrumentationRegistry.getInstrumentation().targetContext.applicationContext as Application
+        val store = ViewModelStore()
+        compose.runOnUiThread {
+            model = ViewModelProvider(store, ViewModelProvider.AndroidViewModelFactory.getInstance(app))[EmulationViewModel::class.java]
+        }
+        val executor = Executors.newSingleThreadExecutor()
+        val entered = CountDownLatch(1)
+        val release = CountDownLatch(1)
+        val first = AtomicBoolean(true)
+        try {
+            @Suppress("UNCHECKED_CAST")
+            val state = EmulationViewModel::class.java.getDeclaredField("_uiState").apply { isAccessible = true }
+                .get(model) as MutableStateFlow<EmulationUiState>
+            val reduce = EmulationViewModel::class.java.getDeclaredMethod(
+                "applyGlobalRuntimePreferenceUpdate", kotlin.jvm.functions.Function1::class.java
+            ).apply { isAccessible = true }
+            val change: (EmulationUiState) -> EmulationUiState = { previous ->
+                if (first.compareAndSet(true, false)) {
+                    entered.countDown()
+                    check(release.await(10, TimeUnit.SECONDS))
+                }
+                previous.copy(frameSkip = 2)
+            }
+            val future = executor.submit { reduce.invoke(model, change) }
+            assertTrue("Preference reduction did not start", entered.await(10, TimeUnit.SECONDS))
+            state.value = state.value.copy(gamePlatform = GamePlatform.GBA)
+            release.countDown()
+            future.get(10, TimeUnit.SECONDS)
+            assertEquals("A preference update must retain a concurrent game identity", GamePlatform.GBA, state.value.gamePlatform)
+            assertEquals(2, state.value.frameSkip)
+        } finally {
+            release.countDown()
+            executor.shutdownNow()
+            compose.runOnUiThread { store.clear() }
+        }
+    }
 
     private fun exercise(preseedProfile: Boolean) = runBlocking {
         val app = InstrumentationRegistry.getInstrumentation().targetContext.applicationContext as Application

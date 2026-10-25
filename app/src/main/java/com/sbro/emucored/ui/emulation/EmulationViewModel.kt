@@ -87,6 +87,8 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.flow.updateAndGet
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
@@ -393,7 +395,7 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
                         currentGamePath != game.path || isShuttingDown ||
                         currentGameCoverArtPath != null) return@withLock
                     currentGameCoverArtPath = downloaded
-                    _uiState.value = _uiState.value.copy(currentGameCoverPath = downloaded)
+                    _uiState.update { latest -> latest.copy(currentGameCoverPath = downloaded) }
                 }
             } catch (cancelled: CancellationException) {
                 throw cancelled
@@ -439,12 +441,13 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
     private inline fun applyGlobalRuntimePreferenceUpdate(
         crossinline transform: (EmulationUiState) -> EmulationUiState
     ) {
-        val current = _uiState.value
         // A running game session owns its per-game overrides: a late global
         // preference emission must not overwrite them (e.g. upscale 2x set in
         // the in-game menu being reset to the global 1x a moment later).
-        if (current.gameSettingsProfileActive || activePerGameKey() != null) return
-        _uiState.value = transform(current)
+        if (activePerGameKey() != null) return
+        _uiState.update { current ->
+            if (current.gameSettingsProfileActive) current else transform(current)
+        }
         syncNativePerformanceOverlayState(_uiState.value)
         syncGamepadRuntimeSettings(_uiState.value)
     }
@@ -479,13 +482,13 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
                     else -> EmulationTransportMode.None
                 }
                 if (_uiState.value.transportMode != transport) {
-                    _uiState.value = _uiState.value.copy(transportMode = transport)
+                    _uiState.update { latest -> latest.copy(transportMode = transport) }
                 }
             }
         }
         viewModelScope.launch {
             preferences.overlayShow.collect { enabled ->
-                _uiState.value = _uiState.value.copy(controlsVisible = enabled)
+                _uiState.update { latest -> latest.copy(controlsVisible = enabled) }
             }
         }
         viewModelScope.launch {
@@ -505,7 +508,7 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
                         ?.let(perGameSettingsRepository::get)
                         ?.touchControlVisualStyle
                 }
-                _uiState.value = _uiState.value.copy(touchControlVisualStyle = override ?: style)
+                _uiState.update { latest -> latest.copy(touchControlVisualStyle = override ?: style) }
             }
         }
         viewModelScope.launch {
@@ -515,44 +518,44 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
                         ?.let(perGameSettingsRepository::get)
                         ?.touchControlPressEffect
                 }
-                _uiState.value = _uiState.value.copy(touchControlPressEffect = override ?: effect)
+                _uiState.update { latest -> latest.copy(touchControlPressEffect = override ?: effect) }
             }
         }
         viewModelScope.launch {
             preferences.stickToggleTarget.collect { target ->
-                _uiState.value = _uiState.value.copy(stickToggleTarget = target)
+                _uiState.update { latest -> latest.copy(stickToggleTarget = target) }
             }
         }
         viewModelScope.launch {
             preferences.customTouchControls.collect { library ->
-                _uiState.value = _uiState.value.copy(
+                _uiState.update { latest -> latest.copy(
                     customTouchControls = currentCustomTouchControlsProfile ?: library
-                )
+                ) }
             }
         }
         viewModelScope.launch {
             preferences.gameMenuLayoutStyle.collect { style ->
-                _uiState.value = _uiState.value.copy(gameMenuLayoutStyle = style)
+                _uiState.update { latest -> latest.copy(gameMenuLayoutStyle = style) }
             }
         }
         viewModelScope.launch {
             preferences.gameMenuTabOrder.collect { order ->
-                _uiState.value = _uiState.value.copy(gameMenuTabOrder = order)
+                _uiState.update { latest -> latest.copy(gameMenuTabOrder = order) }
             }
         }
         viewModelScope.launch {
             preferences.hiddenGameMenuTabs.collect { hidden ->
-                _uiState.value = _uiState.value.copy(hiddenGameMenuTabs = hidden)
+                _uiState.update { latest -> latest.copy(hiddenGameMenuTabs = hidden) }
             }
         }
         viewModelScope.launch {
             preferences.gameMenuSectionOrder.collect { order ->
-                _uiState.value = _uiState.value.copy(gameMenuSectionOrder = order)
+                _uiState.update { latest -> latest.copy(gameMenuSectionOrder = order) }
             }
         }
         viewModelScope.launch {
             preferences.hiddenGameMenuSections.collect { hidden ->
-                _uiState.value = _uiState.value.copy(hiddenGameMenuSections = hidden)
+                _uiState.update { latest -> latest.copy(hiddenGameMenuSections = hidden) }
             }
         }
         viewModelScope.launch {
@@ -562,59 +565,58 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
         }
         viewModelScope.launch {
             preferences.fpsOverlayCorner.collect { corner ->
-                _uiState.value = _uiState.value.copy(fpsOverlayCorner = corner)
+                _uiState.update { latest -> latest.copy(fpsOverlayCorner = corner) }
             }
         }
         viewModelScope.launch {
             preferences.fpsOverlayScale.collect { scale ->
-                _uiState.value = _uiState.value.copy(fpsOverlayScale = scale)
+                _uiState.update { latest -> latest.copy(fpsOverlayScale = scale) }
             }
         }
         viewModelScope.launch {
             preferences.fpsOverlayMetrics.collect { metrics ->
-                val updated = _uiState.value.copy(fpsOverlayMetrics = metrics)
-                _uiState.value = updated
+                val updated = _uiState.updateAndGet { it.copy(fpsOverlayMetrics = metrics) }
                 syncNativePerformanceOverlayState(updated)
             }
         }
         viewModelScope.launch {
             preferences.compactControls.collect { enabled ->
-                _uiState.value = _uiState.value.copy(compactControls = enabled)
+                _uiState.update { latest -> latest.copy(compactControls = enabled) }
             }
         }
         viewModelScope.launch {
             preferences.gamepadStickDeadzone.collect { value ->
-                _uiState.value = _uiState.value.copy(gamepadStickDeadzone = value)
+                _uiState.update { latest -> latest.copy(gamepadStickDeadzone = value) }
             }
         }
         viewModelScope.launch {
             preferences.invertLeftStick.collect { enabled ->
-                _uiState.value = _uiState.value.copy(invertLeftStick = enabled)
+                _uiState.update { latest -> latest.copy(invertLeftStick = enabled) }
             }
         }
         viewModelScope.launch {
             preferences.invertRightStick.collect { enabled ->
-                _uiState.value = _uiState.value.copy(invertRightStick = enabled)
+                _uiState.update { latest -> latest.copy(invertRightStick = enabled) }
             }
         }
         viewModelScope.launch {
             preferences.invertLeftStickHorizontal.collect { enabled ->
-                _uiState.value = _uiState.value.copy(invertLeftStickHorizontal = enabled)
+                _uiState.update { latest -> latest.copy(invertLeftStickHorizontal = enabled) }
             }
         }
         viewModelScope.launch {
             preferences.invertRightStickHorizontal.collect { enabled ->
-                _uiState.value = _uiState.value.copy(invertRightStickHorizontal = enabled)
+                _uiState.update { latest -> latest.copy(invertRightStickHorizontal = enabled) }
             }
         }
         viewModelScope.launch {
             preferences.gamepadLeftStickSensitivity.collect { value ->
-                _uiState.value = _uiState.value.copy(gamepadLeftStickSensitivity = value)
+                _uiState.update { latest -> latest.copy(gamepadLeftStickSensitivity = value) }
             }
         }
         viewModelScope.launch {
             preferences.gamepadRightStickSensitivity.collect { value ->
-                _uiState.value = _uiState.value.copy(gamepadRightStickSensitivity = value)
+                _uiState.update { latest -> latest.copy(gamepadRightStickSensitivity = value) }
             }
         }
         viewModelScope.launch {
@@ -639,12 +641,12 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
         }
         viewModelScope.launch {
             preferences.backButtonExitsGame.collect { enabled ->
-                _uiState.value = _uiState.value.copy(backButtonExitsGame = enabled)
+                _uiState.update { latest -> latest.copy(backButtonExitsGame = enabled) }
             }
         }
         viewModelScope.launch {
             preferences.keepScreenOn.collect { enabled ->
-                _uiState.value = _uiState.value.copy(keepScreenOn = enabled)
+                _uiState.update { latest -> latest.copy(keepScreenOn = enabled) }
             }
         }
         viewModelScope.launch {
@@ -744,7 +746,7 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
         viewModelScope.launch { preferences.gyroInvertY.collect { value -> applyGlobalRuntimePreferenceUpdate { it.copy(gyroInvertY = value) } } }
         viewModelScope.launch {
             preferences.autoSaveEnabled.collect { enabled ->
-                _uiState.value = _uiState.value.copy(autoSaveEnabled = enabled)
+                _uiState.update { latest -> latest.copy(autoSaveEnabled = enabled) }
                 if (enabled) {
                     lastAutoSavePlayTimeMs = _uiState.value.activePlayTimeMs
                 }
@@ -752,7 +754,7 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
         }
         viewModelScope.launch {
             preferences.autoSaveIntervalMinutes.collect { value ->
-                _uiState.value = _uiState.value.copy(autoSaveIntervalMinutes = value.coerceIn(1, 999))
+                _uiState.update { latest -> latest.copy(autoSaveIntervalMinutes = value.coerceIn(1, 999)) }
             }
         }
 
@@ -779,7 +781,7 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
         }
 
         val nextPlayTimeMs = state.activePlayTimeMs + 1_000L
-        _uiState.value = state.copy(activePlayTimeMs = nextPlayTimeMs)
+        _uiState.update { it.copy(activePlayTimeMs = nextPlayTimeMs) }
         if (shouldTrackCurrentProfilePlayTime) {
             pendingPlayTimeSyncMs += 1_000L
             if (pendingPlayTimeSyncMs >= PLAY_TIME_LOCAL_CACHE_INTERVAL_MS) {
@@ -897,12 +899,11 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
     ): Boolean {
         val path = currentGamePath ?: return false
         val previousModified = saveStateLastModified(path, AUTO_SAVE_SLOT)
-        val before = _uiState.value
-        _uiState.value = before.copy(
+        _uiState.update { before -> before.copy(
             isAutoSaveInProgress = true,
             isActionInProgress = if (showActionProgress) true else before.isActionInProgress,
             actionLabel = if (showActionProgress) "saving" else before.actionLabel
-        )
+        ) }
         val scheduled = lifecycleMutex.withLock {
             val state = _uiState.value
             if ((isShuttingDown && !allowDuringShutdown) ||
@@ -920,12 +921,11 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
             }
         }
         val success = scheduled && waitForSaveStateUpdate(path, AUTO_SAVE_SLOT, previousModified)
-        val after = _uiState.value
-        _uiState.value = after.copy(
+        _uiState.update { after -> after.copy(
             isAutoSaveInProgress = false,
             isActionInProgress = if (showActionProgress) false else after.isActionInProgress,
             actionLabel = if (showActionProgress) null else after.actionLabel
-        )
+        ) }
         refreshSaveStateMetadata()
         if (success) requestSaveStatePreview(path, AUTO_SAVE_SLOT, awaitCompletion = allowDuringShutdown)
         return success
@@ -1034,30 +1034,30 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
         pendingPlayTimeSyncMs = 0L
         shouldCountCurrentProfileSession = false
         shouldTrackCurrentProfilePlayTime = false
-        _uiState.value = _uiState.value.copy(
+        _uiState.update { latest -> latest.copy(
             activePlayTimeMs = 0L,
             currentSlotLastModified = 0L,
             autoSaveLastModified = 0L,
             isAutoSaveInProgress = false
-        )
+        ) }
 
         viewModelScope.launch(Dispatchers.IO) {
-            _uiState.value = _uiState.value.copy(
+            _uiState.update { latest -> latest.copy(
                 statusMessage = "status_preparing"
-            )
+            ) }
 
             if (_uiState.value.isRunning || EmulatorBridge.isVmActive()) {
-                _uiState.value = _uiState.value.copy(
+                _uiState.update { latest -> latest.copy(
                     isStarting = true,
                     statusMessage = "status_waiting_vm"
-                )
+                ) }
                 performShutdown()
             }
 
             currentGamePath?.let { source ->
                 val known = ConsoleGameDiscovery.identify(getApplication(), source)
                     ?: GamePlatform.forPath(source)
-                if (known != null) _uiState.value = _uiState.value.copy(gamePlatform = known)
+                if (known != null) _uiState.update { latest -> latest.copy(gamePlatform = known) }
             }
             var finalLaunchPath: String? = null
             var dsRenderScale = 1
@@ -1065,10 +1065,10 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
             lifecycleMutex.withLock {
                 if (isShuttingDown || cancelPendingStart) return@launch
 
-                _uiState.value = _uiState.value.copy(
+                _uiState.update { latest -> latest.copy(
                     isStarting = true,
                     statusMessage = "status_checking_bios"
-                )
+                ) }
 
                 val config = loadLaunchConfig()
                 dsRenderScale = config.upscaleMultiplier.roundToInt().coerceIn(1, 8)
@@ -1076,9 +1076,9 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
                 // Preserve DS software (13) before the 3DS config normalizes renderer IDs.
                 dsRenderer = renderer
                 Log.i(TAG, "Launch config loaded renderer=$renderer override=${rendererOverride != null}")
-                _uiState.value = _uiState.value.copy(
+                _uiState.update { latest -> latest.copy(
                     statusMessage = "status_applying_config"
-                )
+                ) }
                 delay(200.milliseconds)
 
                 if (activeGamePlatform() == GamePlatform.N3DS) {
@@ -1109,9 +1109,9 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
                     )
                 }
 
-                _uiState.value = _uiState.value.copy(
+                _uiState.update { latest -> latest.copy(
                     statusMessage = "status_loading_game"
-                )
+                ) }
                 delay(200.milliseconds)
 
                 val bootSourcePath = launchPathOverride?.takeIf { it.isNotBlank() } ?: path
@@ -1125,13 +1125,13 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
                 }
 
                 if (launchPath.isNullOrBlank()) {
-                    _uiState.value = _uiState.value.copy(
+                    _uiState.update { latest -> latest.copy(
                         isStarting = false,
                         statusMessage = null,
                         toastMessage = "launch_path_error"
-                    )
+                    ) }
                     delay(2500.milliseconds)
-                    _uiState.value = _uiState.value.copy(toastMessage = null)
+                    _uiState.update { latest -> latest.copy(toastMessage = null) }
                     return@withLock
                 }
 
@@ -1148,7 +1148,7 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
                     shouldCountCurrentProfileSession = false
                     shouldTrackCurrentProfilePlayTime = false
                     pendingPerGameCoreOptions = emptyMap()
-                    _uiState.value = _uiState.value.copy(
+                    _uiState.update { latest -> latest.copy(
                         currentGameTitle = currentGameTitle,
                         currentGameSubtitle = currentGameSubtitle(),
                         currentGameCoverPath = currentGameCoverArtPath,
@@ -1156,7 +1156,7 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
                         perGameCoreOptions = emptyMap(),
                         cheatsGameKey = null,
                         availableCheats = emptyList()
-                    )
+                    ) }
                 } else {
                     val safePath = path.orEmpty()
                     val existingProfile = currentGamePath?.let(perGameSettingsRepository::get)
@@ -1187,13 +1187,13 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
                         )?.coreOptions.orEmpty()
                         .filterKeys { !AzaharCoreOptions.isManagedKey(it) && it != "swap_screen" }
                     refreshCurrentGameCheats(metadata, config.enableCheats)
-                    _uiState.value = _uiState.value.copy(
+                    _uiState.update { latest -> latest.copy(
                         currentGameTitle = currentGameTitle,
                         currentGameSubtitle = currentGameSubtitle(),
                         currentGameCoverPath = currentGameCoverArtPath,
                         gameSettingsProfileActive = existingProfile != null,
                         perGameCoreOptions = pendingPerGameCoreOptions
-                    )
+                    ) }
                     downloadMissingCover(GameItem(
                         title = currentGameTitle,
                         path = safePath,
@@ -1211,20 +1211,18 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
                         )
                     }
                 }
-                _uiState.value = _uiState.value.copy(
-                    customTouchControls = currentCustomTouchControlsProfile
-                        ?: preferences.customTouchControls.first()
-                )
+                val customControls = currentCustomTouchControlsProfile ?: preferences.customTouchControls.first()
+                _uiState.update { latest -> latest.copy(customTouchControls = customControls) }
                 updateCrashContext(
                     launchState = "starting",
                     launchPath = path
                 )
 
-                _uiState.value = _uiState.value.copy(
+                _uiState.update { latest -> latest.copy(
                     isRunning = true,
                     isStarting = false,
                     statusMessage = "status_starting_core"
-                )
+                ) }
                 refreshSaveStateMetadata()
                 if (!autotestMode && !bootSmokeProbe && !path.isNullOrBlank()) {
                     preferences.markGameLaunched(
@@ -1239,49 +1237,51 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
                 val liveRuntime = loadLiveRuntimeSnapshot()
                 val overlaySnapshot = preferences.overlayLayoutSnapshot.first()
 
-                val runtimeState = _uiState.value.copy(
-                    showFps = liveRuntime.showFps,
-                    fpsOverlayMode = liveRuntime.fpsOverlayMode,
-                    confirmSaveLoadActions = liveRuntime.confirmSaveLoadActions,
-                    backButtonExitsGame = liveRuntime.backButtonExitsGame,
-                    renderer = renderer,
-                    swapScreens = config.swapScreens ?: false,
-                    upscale = liveRuntime.upscale,
-                    aspectRatio = liveRuntime.aspectRatio,
-                    displayCrop = liveRuntime.displayCrop,
-                    enableCheats = liveRuntime.enableCheats,
-                    frameSkip = liveRuntime.frameSkip,
-                    frameLimitEnabled = liveRuntime.frameLimitEnabled,
-                    fastForwardSpeed = liveRuntime.fastForwardSpeed,
-                    racingMode = liveRuntime.racingMode,
-                    stickyButtons = liveRuntime.stickyButtons,
-                    touchscreenLeftStick = liveRuntime.touchscreenLeftStick,
-                    touchscreenLeftStickSensitivity = liveRuntime.touchscreenLeftStickSensitivity,
-                    touchscreenRightStick = liveRuntime.touchscreenRightStick,
-                    touchscreenRightStickSensitivity = liveRuntime.touchscreenRightStickSensitivity,
-                    touchHaptics = liveRuntime.touchHaptics,
-                    touchHapticsPreset = liveRuntime.touchHapticsPreset,
-                    touchHapticsStrength = liveRuntime.touchHapticsStrength,
-                    touchControlVisualStyle = liveRuntime.touchControlVisualStyle,
-                    touchControlPressEffect = liveRuntime.touchControlPressEffect,
-                    gyroMode = liveRuntime.gyroMode,
-                    gyroSensitivity = liveRuntime.gyroSensitivity,
-                    gyroSmoothing = liveRuntime.gyroSmoothing,
-                    gyroInvertX = liveRuntime.gyroInvertX,
-                    gyroInvertY = liveRuntime.gyroInvertY,
-                    gamepadRightStickUpToR2 = liveRuntime.gamepadRightStickUpToR2,
-                    gamepadRightStickDownToL2 = liveRuntime.gamepadRightStickDownToL2,
-                    gamepadButtonHaptics = liveRuntime.gamepadButtonHaptics,
-                    gamepadStickDeadzone = liveRuntime.gamepadStickDeadzone,
-                    gamepadLeftStickSensitivity = liveRuntime.gamepadLeftStickSensitivity,
-                    gamepadRightStickSensitivity = liveRuntime.gamepadRightStickSensitivity,
-                    gamepadBindingsByPad = liveRuntime.gamepadBindingsByPad,
-                    autoSaveOnExit = liveRuntime.autoSaveOnExit,
-                    autoLoadOnStart = liveRuntime.autoLoadOnStart,
-                    targetFps = liveRuntime.targetFps,
-                )
-                val overlayState = runtimeState.withOverlayLayoutSnapshot(overlaySnapshot)
-                _uiState.value = currentTouchControlsLayoutProfile?.let { overlayState.withTouchControlsLayout(it) } ?: overlayState
+                _uiState.update { latest ->
+                    val runtimeState = latest.copy(
+                        showFps = liveRuntime.showFps,
+                        fpsOverlayMode = liveRuntime.fpsOverlayMode,
+                        confirmSaveLoadActions = liveRuntime.confirmSaveLoadActions,
+                        backButtonExitsGame = liveRuntime.backButtonExitsGame,
+                        renderer = renderer,
+                        swapScreens = config.swapScreens ?: false,
+                        upscale = liveRuntime.upscale,
+                        aspectRatio = liveRuntime.aspectRatio,
+                        displayCrop = liveRuntime.displayCrop,
+                        enableCheats = liveRuntime.enableCheats,
+                        frameSkip = liveRuntime.frameSkip,
+                        frameLimitEnabled = liveRuntime.frameLimitEnabled,
+                        fastForwardSpeed = liveRuntime.fastForwardSpeed,
+                        racingMode = liveRuntime.racingMode,
+                        stickyButtons = liveRuntime.stickyButtons,
+                        touchscreenLeftStick = liveRuntime.touchscreenLeftStick,
+                        touchscreenLeftStickSensitivity = liveRuntime.touchscreenLeftStickSensitivity,
+                        touchscreenRightStick = liveRuntime.touchscreenRightStick,
+                        touchscreenRightStickSensitivity = liveRuntime.touchscreenRightStickSensitivity,
+                        touchHaptics = liveRuntime.touchHaptics,
+                        touchHapticsPreset = liveRuntime.touchHapticsPreset,
+                        touchHapticsStrength = liveRuntime.touchHapticsStrength,
+                        touchControlVisualStyle = liveRuntime.touchControlVisualStyle,
+                        touchControlPressEffect = liveRuntime.touchControlPressEffect,
+                        gyroMode = liveRuntime.gyroMode,
+                        gyroSensitivity = liveRuntime.gyroSensitivity,
+                        gyroSmoothing = liveRuntime.gyroSmoothing,
+                        gyroInvertX = liveRuntime.gyroInvertX,
+                        gyroInvertY = liveRuntime.gyroInvertY,
+                        gamepadRightStickUpToR2 = liveRuntime.gamepadRightStickUpToR2,
+                        gamepadRightStickDownToL2 = liveRuntime.gamepadRightStickDownToL2,
+                        gamepadButtonHaptics = liveRuntime.gamepadButtonHaptics,
+                        gamepadStickDeadzone = liveRuntime.gamepadStickDeadzone,
+                        gamepadLeftStickSensitivity = liveRuntime.gamepadLeftStickSensitivity,
+                        gamepadRightStickSensitivity = liveRuntime.gamepadRightStickSensitivity,
+                        gamepadBindingsByPad = liveRuntime.gamepadBindingsByPad,
+                        autoSaveOnExit = liveRuntime.autoSaveOnExit,
+                        autoLoadOnStart = liveRuntime.autoLoadOnStart,
+                        targetFps = liveRuntime.targetFps,
+                    )
+                    val overlayState = runtimeState.withOverlayLayoutSnapshot(overlaySnapshot)
+                    currentTouchControlsLayoutProfile?.let { overlayState.withTouchControlsLayout(it) } ?: overlayState
+                }
                 syncNativePerformanceOverlayState(_uiState.value)
                 syncGamepadRuntimeSettings(_uiState.value)
                 if (_uiState.value.gameSettingsProfileActive) {
@@ -1313,34 +1313,34 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
                     if (!isActive) return@launch
 
                     if (!EmulatorBridge.hasValidVm()) {
-                        _uiState.value = _uiState.value.copy(
+                        _uiState.update { latest -> latest.copy(
                             statusMessage = null,
                             toastMessage = "load_failed"
-                        )
+                        ) }
                         delay(2500.milliseconds)
                         if (_uiState.value.toastMessage == "load_failed") {
-                            _uiState.value = _uiState.value.copy(toastMessage = null)
+                            _uiState.update { latest -> latest.copy(toastMessage = null) }
                         }
                         return@launch
                     }
 
                     delay(500.milliseconds)
                     val loaded = EmulatorBridge.loadState(normalizedSlotToLoad)
-                    _uiState.value = _uiState.value.copy(
+                    _uiState.update { latest -> latest.copy(
                         isRunning = true,
                         isPaused = false,
                         statusMessage = if (loaded) "status_running" else null,
                         toastMessage = if (loaded) null else "load_failed"
-                    )
+                    ) }
                     refreshSaveStateMetadata()
                     delay(2000.milliseconds)
                     if (_uiState.value.statusMessage == "status_running") {
-                        _uiState.value = _uiState.value.copy(statusMessage = null)
+                        _uiState.update { latest -> latest.copy(statusMessage = null) }
                     }
                     if (_uiState.value.toastMessage == "load_failed") {
                         delay(500.milliseconds)
                         if (_uiState.value.toastMessage == "load_failed") {
-                            _uiState.value = _uiState.value.copy(toastMessage = null)
+                            _uiState.update { latest -> latest.copy(toastMessage = null) }
                         }
                     }
                 }
@@ -1349,11 +1349,11 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
             val pathToLaunch = finalLaunchPath ?: return@launch
 
             if (cancelPendingStart) {
-                _uiState.value = _uiState.value.copy(
+                _uiState.update { latest -> latest.copy(
                     isRunning = false,
                     isStarting = false,
                     statusMessage = null
-                )
+                ) }
                 return@launch
             }
 
@@ -1365,10 +1365,10 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
                             if (tryAutoLoadOnStart()) {
                                 break
                             }
-                            _uiState.value = _uiState.value.copy(statusMessage = "status_running")
+                            _uiState.update { latest -> latest.copy(statusMessage = "status_running") }
                             delay(2000.milliseconds)
                             if (_uiState.value.statusMessage == "status_running") {
-                                _uiState.value = _uiState.value.copy(statusMessage = null)
+                                _uiState.update { latest -> latest.copy(statusMessage = null) }
                             }
                             break
                         }
@@ -1393,18 +1393,20 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
             }
             Log.i(TAG, "EmulatorBridge.startEmulation returned $started path=$pathToLaunch")
             if (started && DsSession.isActive) {
-                _uiState.value = _uiState.value.copy(
-                    performanceOverlayHeader = buildPerformanceOverlayHeader(getApplication())
-                        .substringBefore(" | ") + " | " + EmuCoreDsNative.nativeGetVersion()
-                )
+                val header = buildPerformanceOverlayHeader(getApplication()).substringBefore(" | ") +
+                    " | " + EmuCoreDsNative.nativeGetVersion()
+                _uiState.update { latest -> latest.copy(
+                    performanceOverlayHeader = header
+                ) }
             }
             if (started) {
                 EmulatorBridge.setSwapScreens(_uiState.value.swapScreens)
                 RetroAchievementsRepository.get(getApplication()).onGameStarted(pathToLaunch)
                 syncCheatsForCurrentGame()
                 if (activeGamePlatform() !in setOf(GamePlatform.N3DS, GamePlatform.NDS)) {
-                    _uiState.value = _uiState.value.copy(perGameCoreOptions = CoreOptionPreferences(getApplication())
-                        .effectiveOptions(activeGamePlatform().console, currentGamePath))
+                    val effective = CoreOptionPreferences(getApplication())
+                        .effectiveOptions(activeGamePlatform().console, currentGamePath)
+                    _uiState.update { latest -> latest.copy(perGameCoreOptions = effective) }
                 }
                 // Per-game core options win over the global store.
                 pendingPerGameCoreOptions.forEach { (coreKey, coreValue) ->
@@ -1421,13 +1423,13 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
                 !cancelPendingStart &&
                 !isShuttingDown
             ) {
-                _uiState.value = _uiState.value.copy(
+                _uiState.update { latest -> latest.copy(
                     isRunning = false,
                     statusMessage = null,
                     toastMessage = "launch_failed"
-                )
+                ) }
                 delay(2500.milliseconds)
-                _uiState.value = _uiState.value.copy(toastMessage = null)
+                _uiState.update { latest -> latest.copy(toastMessage = null) }
             }
         }
     }
@@ -1441,10 +1443,10 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
 
         val isPaused = state.isPaused
         pausedForBackground = false
-        _uiState.value = _uiState.value.copy(
+        _uiState.update { latest -> latest.copy(
             isPaused = !isPaused,
-            showMenu = if (isPaused) false else _uiState.value.showMenu
-        )
+            showMenu = if (isPaused) false else latest.showMenu
+        ) }
         DiscordIntegration.setPaused(!isPaused)
         updateCrashContext(launchState = if (!isPaused) "paused" else "running")
         viewModelScope.launch(Dispatchers.IO) {
@@ -1464,7 +1466,7 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
             pausedForBackground = false
             EmulatorBridge.resetKeyStatus()
             refreshSaveStateMetadata()
-            _uiState.value = _uiState.value.copy(showMenu = true, isPaused = true)
+            _uiState.update { latest -> latest.copy(showMenu = true, isPaused = true) }
             DiscordIntegration.setPaused(true)
             updateCrashContext(launchState = "paused")
             viewModelScope.launch(Dispatchers.IO) {
@@ -1479,7 +1481,7 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
 
     private fun closeMenu() {
         pausedForBackground = false
-        _uiState.value = _uiState.value.copy(showMenu = false, isPaused = false)
+        _uiState.update { latest -> latest.copy(showMenu = false, isPaused = false) }
         DiscordIntegration.setPaused(false)
         updateCrashContext(launchState = "running")
         viewModelScope.launch(Dispatchers.IO) {
@@ -1493,13 +1495,13 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
         viewModelScope.launch {
             val newValue = !_uiState.value.controlsVisible
             preferences.setOverlayShow(newValue)
-            _uiState.value = _uiState.value.copy(controlsVisible = newValue)
+            _uiState.update { latest -> latest.copy(controlsVisible = newValue) }
         }
     }
 
     fun saveCurrentGameSettingsProfile() {
         viewModelScope.launch {
-            persistRuntimeState(_uiState.value)
+            persistRuntimeState({ it })
         }
     }
 
@@ -1540,7 +1542,7 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
             val profileActive = withContext(Dispatchers.IO) {
                 perGameSettingsRepository.get(gameKey) != null
             }
-            _uiState.value = _uiState.value.copy(gameSettingsProfileActive = profileActive)
+            _uiState.update { latest -> latest.copy(gameSettingsProfileActive = profileActive) }
             refreshKeyboardMouseOverride()
         }
     }
@@ -1578,8 +1580,8 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
                     gameSerial = currentGameSerial.takeIf(String::isNotBlank), coreOptions = coreOptions,
                     providedKeys = setOf("coreOptions"))
                 perGameSettingsRepository.save(profile)
-                _uiState.value = _uiState.value.copy(gameSettingsProfileActive = true,
-                    perGameCoreOptions = store.effectiveOptions(selectedPlatform.console, identity))
+                _uiState.update { latest -> latest.copy(gameSettingsProfileActive = true,
+                    perGameCoreOptions = store.effectiveOptions(selectedPlatform.console, identity)) }
             }
             return
         }
@@ -1608,50 +1610,50 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
             perGameSettingsRepository.save(profile)
             pendingPerGameCoreOptions =
                 coreOptions.filterKeys { !AzaharCoreOptions.isManagedKey(it) }
-            _uiState.value = _uiState.value.copy(
+            _uiState.update { latest -> latest.copy(
                 gameSettingsProfileActive = true,
                 perGameCoreOptions = pendingPerGameCoreOptions
-            )
+            ) }
         }
     }
 
     fun setOverlayScale(value: Int) {
         viewModelScope.launch {
             preferences.setOverlayScale(value)
-            _uiState.value = _uiState.value.copy(overlayScale = value.coerceIn(50, 150))
+            _uiState.update { latest -> latest.copy(overlayScale = value.coerceIn(50, 150)) }
         }
     }
 
     fun setOverlayOpacity(value: Int) {
         viewModelScope.launch {
             preferences.setOverlayOpacity(value)
-            _uiState.value = _uiState.value.copy(
+            _uiState.update { latest -> latest.copy(
                 overlayOpacity = value.coerceIn(
                     AppPreferences.OVERLAY_OPACITY_MIN,
                     AppPreferences.OVERLAY_OPACITY_MAX
                 )
-            )
+            ) }
         }
     }
 
     fun setHideOverlayOnGamepad(enabled: Boolean) {
         viewModelScope.launch {
             preferences.setHideOverlayOnGamepad(enabled)
-            _uiState.value = _uiState.value.copy(hideOverlayOnGamepad = enabled)
+            _uiState.update { latest -> latest.copy(hideOverlayOnGamepad = enabled) }
         }
     }
 
     fun setCompactControls(enabled: Boolean) {
         viewModelScope.launch {
             preferences.setCompactControls(enabled)
-            _uiState.value = _uiState.value.copy(compactControls = enabled)
+            _uiState.update { latest -> latest.copy(compactControls = enabled) }
         }
     }
 
     fun setKeepScreenOn(enabled: Boolean) {
         viewModelScope.launch {
             preferences.setKeepScreenOn(enabled)
-            _uiState.value = _uiState.value.copy(keepScreenOn = enabled)
+            _uiState.update { latest -> latest.copy(keepScreenOn = enabled) }
         }
     }
 
@@ -1682,7 +1684,7 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
         viewModelScope.launch {
             val normalized = value.coerceIn(50, 200)
             preferences.setLeftStickSensitivity(normalized)
-            _uiState.value = _uiState.value.copy(leftStickSensitivity = normalized)
+            _uiState.update { latest -> latest.copy(leftStickSensitivity = normalized) }
         }
     }
 
@@ -1690,41 +1692,41 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
         viewModelScope.launch {
             val normalized = value.coerceIn(50, 200)
             preferences.setRightStickSensitivity(normalized)
-            _uiState.value = _uiState.value.copy(rightStickSensitivity = normalized)
+            _uiState.update { latest -> latest.copy(rightStickSensitivity = normalized) }
         }
     }
 
     fun setInvertLeftStick(enabled: Boolean) {
         viewModelScope.launch {
             preferences.setInvertLeftStick(enabled)
-            _uiState.value = _uiState.value.copy(invertLeftStick = enabled)
+            _uiState.update { latest -> latest.copy(invertLeftStick = enabled) }
         }
     }
 
     fun setInvertRightStick(enabled: Boolean) {
         viewModelScope.launch {
             preferences.setInvertRightStick(enabled)
-            _uiState.value = _uiState.value.copy(invertRightStick = enabled)
+            _uiState.update { latest -> latest.copy(invertRightStick = enabled) }
         }
     }
 
     fun setInvertLeftStickHorizontal(enabled: Boolean) {
         viewModelScope.launch {
             preferences.setInvertLeftStickHorizontal(enabled)
-            _uiState.value = _uiState.value.copy(invertLeftStickHorizontal = enabled)
+            _uiState.update { latest -> latest.copy(invertLeftStickHorizontal = enabled) }
         }
     }
 
     fun setInvertRightStickHorizontal(enabled: Boolean) {
         viewModelScope.launch {
             preferences.setInvertRightStickHorizontal(enabled)
-            _uiState.value = _uiState.value.copy(invertRightStickHorizontal = enabled)
+            _uiState.update { latest -> latest.copy(invertRightStickHorizontal = enabled) }
         }
     }
 
     fun setTouchscreenRightStick(enabled: Boolean) {
         viewModelScope.launch {
-            persistRuntimeState(_uiState.value.copy(touchscreenRightStick = enabled)) {
+            persistRuntimeState({ it.copy(touchscreenRightStick = enabled) }) {
                 preferences.setTouchscreenRightStick(enabled)
             }
         }
@@ -1736,7 +1738,7 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
                 AppPreferences.TOUCHSCREEN_RIGHT_STICK_SENSITIVITY_MIN,
                 AppPreferences.TOUCHSCREEN_RIGHT_STICK_SENSITIVITY_MAX
             )
-            persistRuntimeState(_uiState.value.copy(touchscreenRightStickSensitivity = normalized)) {
+            persistRuntimeState({ it.copy(touchscreenRightStickSensitivity = normalized) }) {
                 preferences.setTouchscreenRightStickSensitivity(normalized)
             }
         }
@@ -1744,7 +1746,7 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
 
     fun setTouchscreenLeftStick(enabled: Boolean) {
         viewModelScope.launch {
-            persistRuntimeState(_uiState.value.copy(touchscreenLeftStick = enabled)) {
+            persistRuntimeState({ it.copy(touchscreenLeftStick = enabled) }) {
                 preferences.setTouchscreenLeftStick(enabled)
             }
         }
@@ -1756,7 +1758,7 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
                 AppPreferences.TOUCHSCREEN_RIGHT_STICK_SENSITIVITY_MIN,
                 AppPreferences.TOUCHSCREEN_RIGHT_STICK_SENSITIVITY_MAX
             )
-            persistRuntimeState(_uiState.value.copy(touchscreenLeftStickSensitivity = normalized)) {
+            persistRuntimeState({ it.copy(touchscreenLeftStickSensitivity = normalized) }) {
                 preferences.setTouchscreenLeftStickSensitivity(normalized)
             }
         }
@@ -1766,7 +1768,7 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
         viewModelScope.launch {
             val normalized = value.coerceIn(0, 35)
             preferences.setGamepadStickDeadzone(normalized)
-            _uiState.value = _uiState.value.copy(gamepadStickDeadzone = normalized)
+            _uiState.update { latest -> latest.copy(gamepadStickDeadzone = normalized) }
         }
     }
 
@@ -1774,7 +1776,7 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
         viewModelScope.launch {
             val normalized = value.coerceIn(50, 200)
             preferences.setGamepadLeftStickSensitivity(normalized)
-            _uiState.value = _uiState.value.copy(gamepadLeftStickSensitivity = normalized)
+            _uiState.update { latest -> latest.copy(gamepadLeftStickSensitivity = normalized) }
         }
     }
 
@@ -1782,14 +1784,13 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
         viewModelScope.launch {
             val normalized = value.coerceIn(50, 200)
             preferences.setGamepadRightStickSensitivity(normalized)
-            _uiState.value = _uiState.value.copy(gamepadRightStickSensitivity = normalized)
+            _uiState.update { latest -> latest.copy(gamepadRightStickSensitivity = normalized) }
         }
     }
 
     fun setGamepadRightStickUpToR2(enabled: Boolean) {
         viewModelScope.launch {
-            val newState = _uiState.value.copy(gamepadRightStickUpToR2 = enabled)
-            persistRuntimeState(newState) {
+            val newState = persistRuntimeState({ it.copy(gamepadRightStickUpToR2 = enabled) }) {
                 preferences.setGamepadRightStickUpToR2(enabled)
             }
             syncGamepadRightStickTriggerMapping(newState)
@@ -1798,8 +1799,7 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
 
     fun setGamepadRightStickDownToL2(enabled: Boolean) {
         viewModelScope.launch {
-            val newState = _uiState.value.copy(gamepadRightStickDownToL2 = enabled)
-            persistRuntimeState(newState) {
+            val newState = persistRuntimeState({ it.copy(gamepadRightStickDownToL2 = enabled) }) {
                 preferences.setGamepadRightStickDownToL2(enabled)
             }
             syncGamepadRightStickTriggerMapping(newState)
@@ -1808,8 +1808,7 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
 
     fun setGamepadBindingsByPad(bindingsByPad: Map<Int, Map<String, Int>>) {
         viewModelScope.launch {
-            val newState = _uiState.value.copy(gamepadBindingsByPad = bindingsByPad)
-            _uiState.value = newState
+            _uiState.update { it.copy(gamepadBindingsByPad = bindingsByPad) }
             GamepadManager.applyPerGameOverrides(
                 bindingsByPad = bindingsByPad,
                 deadzone = null,
@@ -1830,7 +1829,7 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
 
     fun setStickToggleTarget(target: Int) {
         val normalized = AppPreferences.normalizeStickToggleTarget(target)
-        _uiState.value = _uiState.value.copy(stickToggleTarget = normalized)
+        _uiState.update { latest -> latest.copy(stickToggleTarget = normalized) }
         viewModelScope.launch {
             preferences.setStickToggleTarget(normalized)
         }
@@ -1950,14 +1949,14 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
                     )
                 }
                 currentCustomTouchControlsProfile = sanitized
-                _uiState.value = _uiState.value.copy(
+                _uiState.update { latest -> latest.copy(
                     customTouchControls = sanitized,
                     gameSettingsProfileActive = true
-                )
+                ) }
             } else {
                 currentCustomTouchControlsProfile = null
                 preferences.setCustomTouchControls(sanitized)
-                _uiState.value = _uiState.value.copy(customTouchControls = sanitized)
+                _uiState.update { latest -> latest.copy(customTouchControls = sanitized) }
             }
         }
     }
@@ -1965,7 +1964,7 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
     fun toggleFpsVisibility() {
         viewModelScope.launch {
             val newValue = !_uiState.value.showFps
-            persistRuntimeState(_uiState.value.copy(showFps = newValue)) {
+            persistRuntimeState({ it.copy(showFps = newValue) }) {
                 preferences.setShowFps(newValue)
             }
         }
@@ -1973,7 +1972,7 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
 
     fun setFpsOverlayMode(mode: Int) {
         viewModelScope.launch {
-            persistRuntimeState(_uiState.value.copy(fpsOverlayMode = mode)) {
+            persistRuntimeState({ it.copy(fpsOverlayMode = mode) }) {
                 preferences.setFpsOverlayMode(mode)
             }
         }
@@ -1982,7 +1981,7 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
     fun setFpsOverlayCorner(corner: Int) {
         viewModelScope.launch {
             preferences.setFpsOverlayCorner(corner)
-            _uiState.value = _uiState.value.copy(fpsOverlayCorner = corner)
+            _uiState.update { latest -> latest.copy(fpsOverlayCorner = corner) }
         }
     }
 
@@ -1992,15 +1991,15 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
             val normalized = if (isDs) DsSettingsPolicy.normalizeRenderer(renderer) else renderer
             if (!EmulatorBridge.setRenderer(normalized)) {
                 if (isDs && !DsSession.isActive) {
-                    _uiState.value = _uiState.value.withRuntimeFailure(RuntimeFailure(
+                    _uiState.update { it.withRuntimeFailure(RuntimeFailure(
                         "DS renderer restart and rollback failed. The recovery checkpoint was retained in the app cache."
-                    ))
+                    )) }
                 }
                 return@launch
             }
             // Only Azahar's session recreation drops its core-option overrides.
             if (!isDs) pendingPerGameCoreOptions.forEach { (key, value) -> NativeApp.applyCoreOption(key, value) }
-            persistRuntimeState(_uiState.value.copy(renderer = normalized)) {
+            persistRuntimeState({ it.copy(renderer = normalized) }) {
                 if (isDs) preferences.setDsRenderer(normalized) else preferences.setRenderer(normalized)
             }
             EmulatorBridge.setSwapScreens(_uiState.value.swapScreens)
@@ -2013,7 +2012,7 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
             val isDs = activeGamePlatform() == GamePlatform.NDS
             val normalizedUpscale = if (isDs) DsSettingsPolicy.normalizeUpscaleMultiplier(upscale)
                 else normalizeUpscale(upscale)
-            persistRuntimeState(_uiState.value.copy(upscale = normalizedUpscale)) {
+            persistRuntimeState({ it.copy(upscale = normalizedUpscale) }) {
                 if (isDs) preferences.setDsUpscaleMultiplier(normalizedUpscale)
                 else preferences.setUpscaleMultiplier(normalizedUpscale)
             }
@@ -2037,11 +2036,11 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
                     providedKeys = emptySet()
                 )
                 withContext(Dispatchers.IO) { perGameSettingsRepository.save(profile.withScreenSwap(swapped)) }
-                _uiState.value = _uiState.value.copy(
+                _uiState.update { latest -> latest.copy(
                     swapScreens = swapped,
                     gameSettingsProfileActive = true,
-                    perGameCoreOptions = _uiState.value.perGameCoreOptions - "swap_screen"
-                )
+                    perGameCoreOptions = latest.perGameCoreOptions - "swap_screen"
+                ) }
                 pendingPerGameCoreOptions = pendingPerGameCoreOptions - "swap_screen"
                 EmulatorBridge.setSwapScreens(swapped)
             }
@@ -2050,7 +2049,7 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
 
     fun setAspectRatio(value: Int) {
         viewModelScope.launch {
-            persistRuntimeState(_uiState.value.copy(aspectRatio = value)) {
+            persistRuntimeState({ it.copy(aspectRatio = value) }) {
                 preferences.setAspectRatio(value)
             }
             EmulatorBridge.setAspectRatio(value)
@@ -2062,7 +2061,7 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
     fun setDisplayCrop(value: DisplayCrop) {
         viewModelScope.launch {
             val crop = value.sanitized()
-            persistRuntimeState(_uiState.value.copy(displayCrop = crop)) {
+            persistRuntimeState({ it.copy(displayCrop = crop) }) {
                 preferences.setDisplayCrop(crop)
             }
             EmulatorBridge.setDisplayCrop(crop)
@@ -2084,7 +2083,7 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
 
     fun setEnableCheats(enabled: Boolean) {
         viewModelScope.launch {
-            persistRuntimeState(_uiState.value.copy(enableCheats = enabled)) {
+            persistRuntimeState({ it.copy(enableCheats = enabled) }) {
                 preferences.setEnableCheats(enabled)
             }
             CoreOptionStore.set("cheats_enabled", enabled.toString())
@@ -2105,10 +2104,10 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
             // Only this ID is written, so toggles made in the cheat manager
             // (which share the same state file) are preserved.
             cheatRepository.setBlockEnabled(gameKey, blockId, enabled)
-            persistRuntimeState(_uiState.value.copy(
+            persistRuntimeState({ it.copy(
                 availableCheats = updatedBlocks,
                 enableCheats = true
-            )) {
+            ) }) {
                 preferences.setEnableCheats(true)
             }
             syncCheatsForCurrentGame(gameKey)
@@ -2127,10 +2126,10 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
                 if (block.id in idSet) block.copy(enabled = enabled) else block
             }
             cheatRepository.setBlocksEnabled(gameKey, idSet, enabled)
-            persistRuntimeState(_uiState.value.copy(
+            persistRuntimeState({ it.copy(
                 availableCheats = updatedBlocks,
                 enableCheats = true
-            )) {
+            ) }) {
                 preferences.setEnableCheats(true)
             }
             syncCheatsForCurrentGame(gameKey)
@@ -2166,16 +2165,16 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
                 serial = serial,
                 crc = crc.takeIf { it.isNotBlank() }
             ) ?: return@launch
-            _uiState.value = _uiState.value.copy(
+            _uiState.update { latest -> latest.copy(
                 cheatsGameKey = config.gameKey,
                 availableCheats = config.blocks
-            )
+            ) }
         }
     }
 
     fun setFrameSkip(value: Int) {
         viewModelScope.launch {
-            persistRuntimeState(_uiState.value.copy(frameSkip = value)) {
+            persistRuntimeState({ it.copy(frameSkip = value) }) {
                 preferences.setFrameSkip(value)
             }
             EmulatorBridge.setFrameSkip(value)
@@ -2190,7 +2189,7 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
 
     fun setFrameLimitEnabled(enabled: Boolean) {
         viewModelScope.launch {
-            persistRuntimeState(_uiState.value.copy(frameLimitEnabled = enabled)) {
+            persistRuntimeState({ it.copy(frameLimitEnabled = enabled) }) {
                 preferences.setFrameLimitEnabled(enabled)
             }
             EmulatorBridge.setFrameLimitEnabled(enabled)
@@ -2210,8 +2209,7 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
     fun setAudioVolume(value: Int) {
         viewModelScope.launch {
             val clamped = value.coerceIn(AudioDefaults.VOLUME_MIN, AudioDefaults.VOLUME_MAX)
-            val newState = _uiState.value.copy(audioVolume = clamped)
-            persistRuntimeState(newState) {
+            persistRuntimeState({ it.copy(audioVolume = clamped) }) {
                 preferences.setAudioVolume(clamped)
             }
             CoreOptionStore.set("volume", clamped.toString())
@@ -2221,8 +2219,7 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
 
     fun setAudioMuted(muted: Boolean) {
         viewModelScope.launch {
-            val newState = _uiState.value.copy(audioMuted = muted)
-            persistRuntimeState(newState) {
+            persistRuntimeState({ it.copy(audioMuted = muted) }) {
                 preferences.setAudioMuted(muted)
             }
             CoreOptionStore.set("audio_muted", muted.toString())
@@ -2231,8 +2228,10 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
     }
 
     private fun applyOverlayLayoutSnapshot(snapshot: OverlayLayoutSnapshot) {
-        val overlayState = _uiState.value.withOverlayLayoutSnapshot(snapshot)
-        _uiState.value = currentTouchControlsLayoutProfile?.let { overlayState.withTouchControlsLayout(it) } ?: overlayState
+        _uiState.update { latest ->
+            val overlayState = latest.withOverlayLayoutSnapshot(snapshot)
+            currentTouchControlsLayoutProfile?.let { overlayState.withTouchControlsLayout(it) } ?: overlayState
+        }
     }
 
     private fun EmulationUiState.withOverlayLayoutSnapshot(snapshot: OverlayLayoutSnapshot): EmulationUiState {
@@ -2331,8 +2330,8 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
 
     private suspend fun persistTouchControlsLayout(updatedState: EmulationUiState): EmulationUiState {
         val gameKey = activePerGameKey()
+        val layout = updatedState.toTouchControlsLayoutProfile()
         return if (gameKey != null) {
-            val layout = updatedState.toTouchControlsLayoutProfile()
             val existing = perGameSettingsRepository.get(gameKey)
             perGameSettingsRepository.save(
                 existing.withTouchControlsLayout(
@@ -2342,15 +2341,14 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
                     layout = layout
                 )
             )
+            if (activePerGameKey() != gameKey) return _uiState.value
             currentTouchControlsLayoutProfile = layout
-            val finalState = updatedState.copy(gameSettingsProfileActive = true)
-            _uiState.value = finalState
-            finalState
+            _uiState.updateAndGet { it.withTouchControlsLayout(layout).copy(gameSettingsProfileActive = true) }
         } else {
             persistGlobalTouchControlsLayout(updatedState)
+            if (activePerGameKey() != gameKey) return _uiState.value
             currentTouchControlsLayoutProfile = null
-            _uiState.value = updatedState
-            updatedState
+            _uiState.updateAndGet { it.withTouchControlsLayout(layout) }
         }
     }
 
@@ -2360,9 +2358,9 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
             currentTouchControlsLayoutProfile = null
             currentCustomTouchControlsProfile = null
             preferences.resetControlsLayout()
-            _uiState.value = _uiState.value
-                .withOverlayLayoutSnapshot(preferences.overlayLayoutSnapshot.first())
-                .copy(customTouchControls = preferences.customTouchControls.first())
+            val overlay = preferences.overlayLayoutSnapshot.first()
+            val custom = preferences.customTouchControls.first()
+            _uiState.update { it.withOverlayLayoutSnapshot(overlay).copy(customTouchControls = custom) }
             return
         }
 
@@ -2379,19 +2377,20 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
         currentTouchControlsLayoutProfile = null
         currentCustomTouchControlsProfile = null
         val profileStillActive = perGameSettingsRepository.get(gameKey) != null
-        _uiState.value = _uiState.value
-            .withOverlayLayoutSnapshot(preferences.overlayLayoutSnapshot.first())
-            .copy(
-                customTouchControls = preferences.customTouchControls.first(),
+        val overlay = preferences.overlayLayoutSnapshot.first()
+        val custom = preferences.customTouchControls.first()
+        _uiState.update { it.withOverlayLayoutSnapshot(overlay).copy(
+                customTouchControls = custom,
                 gameSettingsProfileActive = profileStillActive
-            )
+            ) }
     }
 
     private suspend fun persistRuntimeState(
-        updatedState: EmulationUiState,
+        transform: (EmulationUiState) -> EmulationUiState,
         persistGlobal: suspend () -> Unit = {}
     ): EmulationUiState {
         val gameKey = activePerGameKey()
+        val updatedState = transform(_uiState.value)
         return if (gameKey != null) {
             val existingProfile = perGameSettingsRepository.get(gameKey)
             val touchControlsLayout = existingProfile?.touchControlsLayout ?: currentTouchControlsLayoutProfile
@@ -2464,15 +2463,16 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
                     providedKeys = providedKeys
                 )
             )
-            val finalState = updatedState.copy(gameSettingsProfileActive = true)
-            _uiState.value = finalState
+            if (activePerGameKey() != gameKey) return _uiState.value
+            val finalState = _uiState.updateAndGet { transform(it).copy(gameSettingsProfileActive = true) }
             syncNativePerformanceOverlayState(finalState)
             finalState
         } else {
             persistGlobal()
-            _uiState.value = updatedState
-            syncNativePerformanceOverlayState(updatedState)
-            updatedState
+            if (activePerGameKey() != gameKey) return _uiState.value
+            val finalState = _uiState.updateAndGet(transform)
+            syncNativePerformanceOverlayState(finalState)
+            finalState
         }
     }
 
@@ -2518,10 +2518,11 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
             GamepadManager.clearPerGameOverrides()
             refreshKeyboardMouseOverride()
             val actualRenderer = _uiState.value.renderer
-            _uiState.value = _uiState.value.withGlobalRuntimeDefaults(settings, platform, false)
-                .withOverlayLayoutSnapshot(preferences.overlayLayoutSnapshot.first()).copy(
+            val overlay = preferences.overlayLayoutSnapshot.first()
+            _uiState.update { it.withGlobalRuntimeDefaults(settings, platform, false)
+                .withOverlayLayoutSnapshot(overlay).copy(
                     renderer = actualRenderer, upscale = global["resolution"]?.toFloatOrNull() ?: 1f,
-                    gameSettingsProfileActive = false, perGameCoreOptions = global)
+                    gameSettingsProfileActive = false, perGameCoreOptions = global) }
             syncGamepadRuntimeSettings(_uiState.value)
             syncNativePerformanceOverlayState(_uiState.value)
             updateCrashContext()
@@ -2536,9 +2537,9 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
         // Use the normal state-preserving renderer path before deleting anything.
         if (_uiState.value.renderer != defaults.renderer && !EmulatorBridge.setRenderer(defaults.renderer)) {
             if (platform == GamePlatform.NDS && !DsSession.isActive) {
-                _uiState.value = _uiState.value.withRuntimeFailure(RuntimeFailure(
+                _uiState.update { it.withRuntimeFailure(RuntimeFailure(
                     "DS renderer restart and rollback failed. The recovery checkpoint was retained in the app cache."
-                ))
+                )) }
             }
             return
         }
@@ -2581,9 +2582,9 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
         }
         pendingPerGameCoreOptions = emptyMap()
         val resetSwap = config.swapScreens ?: false
-        _uiState.value = _uiState.value
+        _uiState.update { it
             .withGlobalRuntimeDefaults(settings, platform, resetSwap)
-            .withOverlayLayoutSnapshot(layout)
+            .withOverlayLayoutSnapshot(layout) }
         EmulatorBridge.setSwapScreens(resetSwap)
         syncNativePerformanceOverlayState(_uiState.value)
         syncGamepadRuntimeSettings(_uiState.value)
@@ -2915,10 +2916,10 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
             serial = serial,
             crc = crc
         )
-        _uiState.value = _uiState.value.copy(
+        _uiState.update { latest -> latest.copy(
             cheatsGameKey = config?.gameKey,
             availableCheats = config?.blocks.orEmpty()
-        )
+        ) }
         if (config != null && cheatsEnabled) {
             cheatRepository.syncActiveCheats(config.gameKey, serial, crc)
         }
@@ -2929,7 +2930,7 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
         val platform = activeGamePlatform()
         val config = cheatRepository.typedGameConfig(platform, identity)
         if (identity != currentGamePath || platform != activeGamePlatform()) return
-        _uiState.value = _uiState.value.copy(cheatsGameKey = config?.gameKey, availableCheats = config?.blocks.orEmpty())
+        _uiState.update { latest -> latest.copy(cheatsGameKey = config?.gameKey, availableCheats = config?.blocks.orEmpty()) }
     }
 
     private suspend fun syncCheatsForCurrentGame(gameKeyOverride: String? = null) {
@@ -2973,7 +2974,7 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
     }
 
     fun setSlot(slot: Int) {
-        _uiState.value = _uiState.value.copy(currentSlot = normalizeManualSaveSlot(slot))
+        _uiState.update { latest -> latest.copy(currentSlot = normalizeManualSaveSlot(slot)) }
         refreshSaveStateMetadata()
     }
 
@@ -2995,15 +2996,13 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
 
     fun setAutoSaveOnExit(enabled: Boolean) {
         viewModelScope.launch(Dispatchers.IO) {
-            val updated = _uiState.value.copy(autoSaveOnExit = enabled)
-            persistRuntimeState(updated)
+            persistRuntimeState({ it.copy(autoSaveOnExit = enabled) })
         }
     }
 
     fun setAutoLoadOnStart(enabled: Boolean) {
         viewModelScope.launch(Dispatchers.IO) {
-            val updated = _uiState.value.copy(autoLoadOnStart = enabled)
-            persistRuntimeState(updated)
+            persistRuntimeState({ it.copy(autoLoadOnStart = enabled) })
         }
     }
 
@@ -3011,12 +3010,12 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
         val path = currentGamePath
         if (path.isNullOrBlank()) {
             savePreviewJob?.cancel()
-            _uiState.value = _uiState.value.copy(
+            _uiState.update { latest -> latest.copy(
                 currentSlotLastModified = 0L,
                 currentSlotPreviewPath = null,
                 autoSaveLastModified = 0L,
                 autoSavePreviewPath = null
-            )
+            ) }
             return
         }
 
@@ -3025,17 +3024,17 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
         val autoSaveFile = resolveSaveStateFile(path, AUTO_SAVE_SLOT)
             ?.takeIf { it.exists() }
         if (DsSession.isActive) {
-            _uiState.value = _uiState.value.copy(
+            _uiState.update { latest -> latest.copy(
                 currentSlotLastModified = currentSlotFile?.lastModified() ?: 0L,
                 autoSaveLastModified = autoSaveFile?.lastModified() ?: 0L
-            )
+            ) }
             refreshSaveStatePreviews(currentSlotFile, autoSaveFile)
             return
         }
-        _uiState.value = _uiState.value.copy(
+        _uiState.update { latest -> latest.copy(
             currentSlotLastModified = currentSlotFile?.lastModified() ?: 0L,
             autoSaveLastModified = autoSaveFile?.lastModified() ?: 0L
-        )
+        ) }
         refreshSaveStatePreviews(currentSlotFile, autoSaveFile)
     }
 
@@ -3050,10 +3049,10 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
                 runCatching { saveStateRepository.getPreviewImagePath(file) }.getOrNull()
             }
             ensureActive()
-            _uiState.value = _uiState.value.copy(
+            _uiState.update { latest -> latest.copy(
                 currentSlotPreviewPath = currentPreview,
                 autoSavePreviewPath = autoSavePreview
-            )
+            ) }
         }
     }
 
@@ -3126,10 +3125,10 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
         viewModelScope.launch(Dispatchers.IO) {
             val path = currentGamePath
             val previousModified = path?.let { saveStateLastModified(it, slot) } ?: 0L
-            _uiState.value = _uiState.value.copy(
+            _uiState.update { latest -> latest.copy(
                 isActionInProgress = true,
                 actionLabel = "saving"
-            )
+            ) }
             val scheduled = lifecycleMutex.withLock {
                 if (isShuttingDown) {
                     false
@@ -3144,27 +3143,27 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
             } else {
                 scheduled && path != null && waitForSaveStateUpdate(path, slot, previousModified)
             }
-            _uiState.value = _uiState.value.copy(
+            _uiState.update { latest -> latest.copy(
                 isActionInProgress = false,
                 actionLabel = null,
                 toastMessage = if (success) "saved" else "save_failed"
-            )
+            ) }
             // Refresh even on failure: whatever is on disk is the truth, and a
             // silent failure used to leave the slot looking empty.
             refreshSaveStateMetadata()
             if (success && path != null) requestSaveStatePreview(path, slot)
             delay(2000.milliseconds)
-            _uiState.value = _uiState.value.copy(toastMessage = null)
+            _uiState.update { latest -> latest.copy(toastMessage = null) }
         }
     }
 
     fun quickLoad() {
         val slot = _uiState.value.currentSlot
         viewModelScope.launch(Dispatchers.IO) {
-            _uiState.value = _uiState.value.copy(
+            _uiState.update { latest -> latest.copy(
                 isActionInProgress = true,
                 actionLabel = "loading"
-            )
+            ) }
             val success = lifecycleMutex.withLock {
                 if (isShuttingDown) {
                     false
@@ -3174,22 +3173,22 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
                     } catch (_: Exception) { false }
                 }
             }
-            _uiState.value = _uiState.value.copy(
+            _uiState.update { latest -> latest.copy(
                 isActionInProgress = false,
                 actionLabel = null,
                 toastMessage = if (success) "loaded" else null
-            )
+            ) }
             delay(2000.milliseconds)
-            _uiState.value = _uiState.value.copy(toastMessage = null)
+            _uiState.update { latest -> latest.copy(toastMessage = null) }
         }
     }
 
     fun loadAutoSave() {
         viewModelScope.launch(Dispatchers.IO) {
-            _uiState.value = _uiState.value.copy(
+            _uiState.update { latest -> latest.copy(
                 isActionInProgress = true,
                 actionLabel = "loading"
-            )
+            ) }
             val success = lifecycleMutex.withLock {
                 if (isShuttingDown) {
                     false
@@ -3199,13 +3198,13 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
                     } catch (_: Exception) { false }
                 }
             }
-            _uiState.value = _uiState.value.copy(
+            _uiState.update { latest -> latest.copy(
                 isActionInProgress = false,
                 actionLabel = null,
                 toastMessage = if (success) "loaded" else null
-            )
+            ) }
             delay(2000.milliseconds)
-            _uiState.value = _uiState.value.copy(toastMessage = null)
+            _uiState.update { latest -> latest.copy(toastMessage = null) }
         }
     }
 
@@ -3214,11 +3213,11 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
         if (!_uiState.value.autoLoadOnStart || saveStateLastModified(path, AUTO_SAVE_SLOT) <= 0L) {
             return false
         }
-        _uiState.value = _uiState.value.copy(
+        _uiState.update { latest -> latest.copy(
             isActionInProgress = true,
             actionLabel = "loading",
             statusMessage = "status_loading_state"
-        )
+        ) }
         val success = lifecycleMutex.withLock {
             if (isShuttingDown || !_uiState.value.isRunning) {
                 false
@@ -3230,19 +3229,19 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
                 }
             }
         }
-        _uiState.value = _uiState.value.copy(
+        _uiState.update { latest -> latest.copy(
             isActionInProgress = false,
             actionLabel = null,
             statusMessage = if (success) "status_running" else null,
             toastMessage = if (success) "loaded" else "load_failed"
-        )
+        ) }
         refreshSaveStateMetadata()
         delay(2000.milliseconds)
         if (_uiState.value.statusMessage == "status_running") {
-            _uiState.value = _uiState.value.copy(statusMessage = null)
+            _uiState.update { latest -> latest.copy(statusMessage = null) }
         }
         if (_uiState.value.toastMessage == "loaded" || _uiState.value.toastMessage == "load_failed") {
-            _uiState.value = _uiState.value.copy(toastMessage = null)
+            _uiState.update { latest -> latest.copy(toastMessage = null) }
         }
         return success
     }
@@ -3277,7 +3276,7 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
                     shouldAutoSave = runCatching { EmulatorBridge.pause() }.isSuccess
                 }
                 if (!shouldAutoSave) EmulatorBridge.requestShutdown()
-                _uiState.value = _uiState.value.copy(
+                _uiState.update { latest -> latest.copy(
                     isRunning = false,
                     isStarting = false,
                     isPaused = false,
@@ -3285,7 +3284,7 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
                     isActionInProgress = false,
                     actionLabel = null,
                     statusMessage = null
-                )
+                ) }
                 _performanceState.value = EmulationPerformanceState(fps = "0")
                 syncNativePerformanceOverlayState(_uiState.value)
                 true
@@ -3334,7 +3333,7 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
                 try {
                     EmulatorBridge.pause()
                     pausedForBackground = true
-                    _uiState.value = state.copy(isPaused = true)
+                    _uiState.update { it.copy(isPaused = true) }
                     DiscordIntegration.setPaused(true)
                     syncPendingPlayTime(forceCloud = false)
                     updateCrashContext(launchState = "paused")
@@ -3359,7 +3358,7 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
                 try {
                     EmulatorBridge.resume()
                     pausedForBackground = false
-                    _uiState.value = state.copy(isPaused = false)
+                    _uiState.update { it.copy(isPaused = false) }
                     DiscordIntegration.setPaused(false)
                     updateCrashContext(launchState = "running")
                 } catch (_: Exception) { }
@@ -3391,7 +3390,7 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
                 try {
                     EmulatorBridge.shutdown()
                 } catch (_: Exception) { }
-                _uiState.value = _uiState.value.copy(
+                _uiState.update { latest -> latest.copy(
                     isRunning = false,
                     isStarting = false,
                     isPaused = false,
@@ -3399,7 +3398,7 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
                     isActionInProgress = false,
                     actionLabel = null,
                     statusMessage = null
-                )
+                ) }
                 _performanceState.value = EmulationPerformanceState(fps = "0")
                 syncNativePerformanceOverlayState(_uiState.value)
                 clearCrashContext()
@@ -3463,9 +3462,9 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
         // The sidebar can still be drawing its exit animation after shutdown.
         // Keep its game identity until navigation disposes the screen; the next
         // launch replaces it while the menu is hidden.
-        _uiState.value = _uiState.value.copy(
+        _uiState.update { latest -> latest.copy(
             gameSettingsProfileActive = false
-        )
+        ) }
         currentGameSource = ""
         NativeApp.setCrashContextString("emu_launch_state", "idle")
         NativeApp.setCrashContextString("emu_game_title", "")
