@@ -1,6 +1,8 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 cmake_minimum_required(VERSION 3.22)
 project(EmuCoreGB LANGUAGES C CXX)
+option(EMUCORED_DIAGNOSTICS "Enable development diagnostics" OFF)
+add_compile_definitions(EMUCORED_DIAGNOSTICS=$<BOOL:${EMUCORED_DIAGNOSTICS}>)
 
 file(STRINGS "${CMAKE_CURRENT_SOURCE_DIR}/SameBoy/version.mk" sameboy_version_line REGEX "^VERSION := ")
 string(REPLACE "VERSION := " "" sameboy_version "${sameboy_version_line}")
@@ -41,3 +43,5 @@ if(ANDROID AND EMUCORED_BUILD_ANDROID_RUNTIME)
   target_link_libraries(emucored_gb_session_contract PRIVATE emucored_sameboy android aaudio EGL GLESv2)
  endif()
 endif()
+
+include("${CMAKE_CURRENT_LIST_DIR}/Diagnostics.cmake")

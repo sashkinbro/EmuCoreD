@@ -1,6 +1,8 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 cmake_minimum_required(VERSION 3.22)
 project(EmuCoreGBA LANGUAGES C CXX)
+option(EMUCORED_DIAGNOSTICS "Enable development diagnostics" OFF)
+add_compile_definitions(EMUCORED_DIAGNOSTICS=$<BOOL:${EMUCORED_DIAGNOSTICS}>)
 
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 set(LIBMGBA_ONLY ON CACHE BOOL "Build only the mGBA engine" FORCE)
@@ -44,3 +46,5 @@ if(ANDROID AND EMUCORED_BUILD_ANDROID_RUNTIME)
   target_link_libraries(emucored_gba_session_contract PRIVATE emucored_gba_core android aaudio EGL GLESv2)
  endif()
 endif()
+
+include("${CMAKE_CURRENT_LIST_DIR}/Diagnostics.cmake")

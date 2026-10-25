@@ -5,6 +5,7 @@ set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 option(EMUCORED_DIAGNOSTICS "Enable development diagnostics" OFF)
+add_compile_definitions(EMUCORED_DIAGNOSTICS=$<BOOL:${EMUCORED_DIAGNOSTICS}>)
 set(BSNES_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/bsnes")
 set(BSNES_SRC "${BSNES_ROOT}/bsnes")
 # Match the pinned upstream core-only Makefiles; included implementation .cpp
@@ -41,3 +42,5 @@ if(EMUCORED_BUILD_CORE_TESTS)
     add_executable(emucored_bsnes_contract_test tests/bsnes_contract_test.cpp)
     target_link_libraries(emucored_bsnes_contract_test PRIVATE emucored_bsnes_core)
 endif()
+
+include("${CMAKE_CURRENT_LIST_DIR}/Diagnostics.cmake")

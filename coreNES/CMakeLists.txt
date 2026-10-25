@@ -1,6 +1,8 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 cmake_minimum_required(VERSION 3.22)
 project(EmuCoreNES LANGUAGES C CXX)
+option(EMUCORED_DIAGNOSTICS "Enable development diagnostics" OFF)
+add_compile_definitions(EMUCORED_DIAGNOSTICS=$<BOOL:${EMUCORED_DIAGNOSTICS}>)
 file(GLOB_RECURSE nestopia_sources CONFIGURE_DEPENDS nestopia/src/*.cpp)
 add_library(emucored_nestopia STATIC ${nestopia_sources})
 set_target_properties(emucored_nestopia PROPERTIES POSITION_INDEPENDENT_CODE ON)
@@ -21,3 +23,5 @@ if(ANDROID AND EMUCORED_BUILD_ANDROID_RUNTIME)
   target_link_libraries(emucored_nes_session_contract PRIVATE emucored_nestopia android aaudio EGL GLESv2)
  endif()
 endif()
+
+include("${CMAKE_CURRENT_LIST_DIR}/Diagnostics.cmake")
