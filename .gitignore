@@ -41,6 +41,7 @@
 # Local configuration
 local.properties
 /docs/
+/CORE_INTEGRATION.md
 
 # Local debugging logs and scratch files - never commit
 /logs/

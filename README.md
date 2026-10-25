@@ -121,7 +121,7 @@ Discord support is built when a compatible Discord Social SDK directory is suppl
 - `core-tests/` Standalone Android engine checks
 - `IGDB/` Local catalog tooling (not part of the app build)
 
-All nine console families are integrated into the app and launchable. See [core integration status](CORE_INTEGRATION.md) for source pins and per-core notes.
+All nine console families are integrated into the app and launchable. Source pins and per-core build notes live with each vendored core.
 
 ## Supported Content
 
