@@ -6,6 +6,18 @@
 
 EmuCoreD is a Nintendo library, launcher, and emulator frontend for Android. It supports nine console families — Nintendo 3DS, Nintendo DS, GameCube, Wii, Game Boy Advance, Game Boy, Game Boy Color, NES/Famicom, and SNES/Super Famicom — through bundled Azahar, melonDS, Dolphin, mGBA, SameBoy, Nestopia, and bsnes cores. The cores are built together with the app, so no separate core download is needed.
 
+## Supported Consoles
+
+- Nintendo 3DS — Azahar
+- Nintendo DS — melonDS
+- GameCube — Dolphin
+- Wii — Dolphin
+- Game Boy Advance — mGBA
+- Game Boy — SameBoy
+- Game Boy Color — SameBoy
+- NES / Famicom — Nestopia
+- SNES / Super Famicom — bsnes
+
 Official website: [https://emucored.web.app/](https://emucored.web.app/)
 
 ![Status](https://img.shields.io/badge/Status-Active%20Development-blue)
