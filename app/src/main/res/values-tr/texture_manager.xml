@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="texture_manager_help">3DS, GameCube veya Wii için ZIP doku paketi içe aktarın. İçe aktarma, seçilen oyunun kurulu paketini değiştirir.</string>
+    <string name="texture_manager_import">Doku paketi içe aktar</string>
+    <string name="texture_manager_export">Doku paketini dışa aktar</string>
+    <string name="texture_manager_enable">Değiştirilmiş dokuları kullan</string>
+    <string name="texture_manager_empty">Kurulu doku paketi yok.</string>
+    <string name="texture_manager_identity_failed">Bu oyunun doğrulanmış doku kimliği okunamadı.</string>
+    <string name="texture_manager_done">Doku paketi güncellendi.</string>
+    <string name="texture_manager_failed">Bu doku paketi işlenemedi.</string>
+    <string name="texture_manager_stop">Doku paketlerini değiştirmeden önce çalışan oyunu kapatın.</string>
+    <string name="texture_manager_delete_title">Doku paketi silinsin mi?</string>
+    <string name="texture_manager_delete_body">Bu oyunun kurulu değiştirilmiş dokuları kaldırılsın mı?</string>
+    <string name="texture_manager_count">%1$d doku • %2$s</string>
+</resources>

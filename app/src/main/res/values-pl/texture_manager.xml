@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="texture_manager_help">Zaimportuj pakiet tekstur ZIP dla 3DS, GameCube lub Wii. Import zastępuje zainstalowany pakiet wybranej gry.</string>
+    <string name="texture_manager_import">Importuj pakiet tekstur</string>
+    <string name="texture_manager_export">Eksportuj pakiet tekstur</string>
+    <string name="texture_manager_enable">Używaj tekstur zastępczych</string>
+    <string name="texture_manager_empty">Nie zainstalowano pakietu tekstur.</string>
+    <string name="texture_manager_identity_failed">Nie można odczytać zweryfikowanego identyfikatora tekstur tej gry.</string>
+    <string name="texture_manager_done">Pakiet tekstur zaktualizowany.</string>
+    <string name="texture_manager_failed">Nie można przetworzyć tego pakietu tekstur.</string>
+    <string name="texture_manager_stop">Zamknij uruchomioną grę przed zmianą pakietów tekstur.</string>
+    <string name="texture_manager_delete_title">Usunąć pakiet tekstur?</string>
+    <string name="texture_manager_delete_body">Usunąć zainstalowane tekstury zastępcze tej gry?</string>
+    <string name="texture_manager_count">%1$d tekstur • %2$s</string>
+</resources>

@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="texture_manager_help">Import a ZIP texture pack for 3DS, GameCube or Wii. Importing replaces the selected game’s installed pack.</string>
+    <string name="texture_manager_import">Import texture pack</string>
+    <string name="texture_manager_export">Export texture pack</string>
+    <string name="texture_manager_enable">Use replacement textures</string>
+    <string name="texture_manager_empty">No texture pack installed.</string>
+    <string name="texture_manager_identity_failed">Cannot read this game’s verified texture ID.</string>
+    <string name="texture_manager_done">Texture pack updated.</string>
+    <string name="texture_manager_failed">Could not process this texture pack.</string>
+    <string name="texture_manager_stop">Close the running game before changing texture packs.</string>
+    <string name="texture_manager_delete_title">Delete texture pack?</string>
+    <string name="texture_manager_delete_body">Remove this game’s installed replacement textures?</string>
+    <string name="texture_manager_count">%1$d textures • %2$s</string>
+</resources>

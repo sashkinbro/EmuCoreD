@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="texture_manager_help">3DS, GameCube 또는 Wii용 ZIP 텍스처 팩을 가져옵니다. 선택한 게임에 설치된 팩을 교체합니다.</string>
+    <string name="texture_manager_import">텍스처 팩 가져오기</string>
+    <string name="texture_manager_export">텍스처 팩 내보내기</string>
+    <string name="texture_manager_enable">대체 텍스처 사용</string>
+    <string name="texture_manager_empty">설치된 텍스처 팩이 없습니다.</string>
+    <string name="texture_manager_identity_failed">이 게임의 검증된 텍스처 ID를 읽을 수 없습니다.</string>
+    <string name="texture_manager_done">텍스처 팩을 업데이트했습니다.</string>
+    <string name="texture_manager_failed">이 텍스처 팩을 처리할 수 없습니다.</string>
+    <string name="texture_manager_stop">텍스처 팩을 변경하기 전에 실행 중인 게임을 종료하세요.</string>
+    <string name="texture_manager_delete_title">텍스처 팩을 삭제할까요?</string>
+    <string name="texture_manager_delete_body">이 게임에 설치된 대체 텍스처를 삭제할까요?</string>
+    <string name="texture_manager_count">텍스처 %1$d개 • %2$s</string>
+</resources>

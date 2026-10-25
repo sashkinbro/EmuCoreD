@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="texture_manager_help">استورد حزمة خامات ZIP لأجهزة 3DS أو GameCube أو Wii. سيستبدل الاستيراد الحزمة المثبتة للعبة المحددة.</string>
+    <string name="texture_manager_import">استيراد حزمة خامات</string>
+    <string name="texture_manager_export">تصدير حزمة خامات</string>
+    <string name="texture_manager_enable">استخدام خامات بديلة</string>
+    <string name="texture_manager_empty">لا توجد حزمة خامات مثبتة.</string>
+    <string name="texture_manager_identity_failed">تعذر قراءة معرّف الخامات الموثّق لهذه اللعبة.</string>
+    <string name="texture_manager_done">تم تحديث حزمة الخامات.</string>
+    <string name="texture_manager_failed">تعذرت معالجة حزمة الخامات هذه.</string>
+    <string name="texture_manager_stop">أغلق اللعبة قيد التشغيل قبل تغيير حزم الخامات.</string>
+    <string name="texture_manager_delete_title">حذف حزمة الخامات؟</string>
+    <string name="texture_manager_delete_body">إزالة الخامات البديلة المثبتة لهذه اللعبة؟</string>
+    <string name="texture_manager_count">%1$d خامة • %2$s</string>
+</resources>

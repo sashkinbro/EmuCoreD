@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="texture_manager_help">بسته بافت ZIP برای 3DS، GameCube یا Wii وارد کنید. وارد کردن، بسته نصب‌شده بازی انتخاب‌شده را جایگزین می‌کند.</string>
+    <string name="texture_manager_import">وارد کردن بسته بافت</string>
+    <string name="texture_manager_export">صدور بسته بافت</string>
+    <string name="texture_manager_enable">استفاده از بافت‌های جایگزین</string>
+    <string name="texture_manager_empty">هیچ بسته بافتی نصب نشده است.</string>
+    <string name="texture_manager_identity_failed">شناسه تأییدشده بافت این بازی خوانده نشد.</string>
+    <string name="texture_manager_done">بسته بافت به‌روز شد.</string>
+    <string name="texture_manager_failed">پردازش این بسته بافت ممکن نشد.</string>
+    <string name="texture_manager_stop">پیش از تغییر بسته‌های بافت، بازی در حال اجرا را ببندید.</string>
+    <string name="texture_manager_delete_title">بسته بافت حذف شود؟</string>
+    <string name="texture_manager_delete_body">بافت‌های جایگزین نصب‌شده این بازی حذف شوند؟</string>
+    <string name="texture_manager_count">%1$d بافت • %2$s</string>
+</resources>

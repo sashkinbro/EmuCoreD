@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="texture_manager_help">导入适用于3DS、GameCube或Wii的ZIP纹理包。导入会替换所选游戏已安装的纹理包。</string>
+    <string name="texture_manager_import">导入纹理包</string>
+    <string name="texture_manager_export">导出纹理包</string>
+    <string name="texture_manager_enable">使用替换纹理</string>
+    <string name="texture_manager_empty">尚未安装纹理包。</string>
+    <string name="texture_manager_identity_failed">无法读取此游戏经过验证的纹理ID。</string>
+    <string name="texture_manager_done">纹理包已更新。</string>
+    <string name="texture_manager_failed">无法处理此纹理包。</string>
+    <string name="texture_manager_stop">更改纹理包前请关闭正在运行的游戏。</string>
+    <string name="texture_manager_delete_title">删除纹理包？</string>
+    <string name="texture_manager_delete_body">移除此游戏已安装的替换纹理？</string>
+    <string name="texture_manager_count">%1$d个纹理 • %2$s</string>
+</resources>
