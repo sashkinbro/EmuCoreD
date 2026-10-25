@@ -110,6 +110,29 @@ int main(int argc, char **argv) {
       CHECK(GB_read_memory(s->gb,0xc040)==0x5a);
       CHECK(replaceCheats(s,{{"gb-game-genie",{"A51-50F"}}}));
       CHECK(GB_read_memory(s->gb,0x150)==0xa5);
+      size_t romSize = 0;
+      auto *romData = static_cast<uint8_t *>(
+          GB_get_direct_access(s->gb, GB_DIRECT_ACCESS_ROM, &romSize, nullptr));
+      CHECK(romData && romSize > 0x150);
+      // Six-digit codes carry no compare byte, even when the ROM byte is nonzero.
+      for (uint8_t original : {uint8_t(0), uint8_t(0x3e), uint8_t(0xff)}) {
+        romData[0x150] = original;
+        CHECK(GB_read_memory(s->gb,0x150)==0xa5);
+      }
+      CHECK(!replaceCheats(s,{{"gb-game-genie",{"A51-50Z"}}}));
+      CHECK(GB_read_memory(s->gb,0x150)==0xa5);
+      CHECK(replaceCheats(s,{}));
+      CHECK(GB_read_memory(s->gb,0x150)==0xff);
+      romData[0x150] = 0x3e;
+      CHECK(GB_read_memory(s->gb,0x150)==0x3e);
+      // Encoded compare byte 0x12 decodes to 0x3e; keep nine-digit semantics.
+      CHECK(replaceCheats(s,{{"gb-game-genie",{"A51-50F-102"}}}));
+      CHECK(GB_read_memory(s->gb,0x150)==0xa5);
+      romData[0x150] = 0x3f;
+      CHECK(GB_read_memory(s->gb,0x150)==0x3f);
+      CHECK(!replaceCheats(s,{{"gb-game-genie",{"A51-507"}}}));
+      romData[0x150] = 0x3e;
+      CHECK(GB_read_memory(s->gb,0x150)==0xa5);
       CHECK(replaceCheats(s,{}));
       CHECK(GB_read_memory(s->gb,0x150)==0x3e);
       std::vector<uint8_t> b(GB_get_save_state_size(s->gb));

@@ -26,6 +26,27 @@ struct Session {
     }
   }
 };
+static const GB_cheat_t *importTypedCheat(GB_gameboy_t *gb,
+                                        const std::string &format,
+                                        const std::string &line) {
+  if (format == "gb-game-genie" && line.size() == 7) {
+    if (!cheatLineMatches(line, "[0-9A-F]{3}-[0-9A-F]{3}")) return nullptr;
+    const std::string digits = line.substr(0, 3) + line.substr(4);
+    uint16_t encodedAddress = 0;
+    unsigned value = 0;
+    const auto parsedValue = std::from_chars(digits.data(), digits.data() + 2, value, 16);
+    const auto parsedAddress = std::from_chars(digits.data() + 2, digits.data() + 6, encodedAddress, 16);
+    if (parsedValue.ec != std::errc{} || parsedAddress.ec != std::errc{}) return nullptr;
+    const uint16_t address = static_cast<uint16_t>(
+        ((encodedAddress >> 4) | (encodedAddress << 12)) ^ 0xf000);
+    if (address > 0x7fff) return nullptr;
+    // The pinned SameBoy six-digit importer enables comparison with zero.
+    // These codes have no compare byte; use its public API explicitly.
+    return GB_add_cheat(gb, "", address, GB_CHEAT_ANY_BANK,
+                        static_cast<uint8_t>(value), 0, false, true);
+  }
+  return GB_import_cheat(gb, line.c_str(), "", true);
+}
 static bool replaceCheats(Session* s,const std::vector<TypedCheatInput>& codes) {
   if(!s || !s->gb)return false;
   auto* temporary=GB_init(GB_alloc(),GB_MODEL_CGB_E);
@@ -34,14 +55,14 @@ static bool replaceCheats(Session* s,const std::vector<TypedCheatInput>& codes) 
   for(const auto& block:codes) {
     const char* pattern=block.format=="gb-gameshark"?"[0-9A-F]{8}":block.format=="gb-game-genie"?"[0-9A-F]{3}-[0-9A-F]{3}(-[0-9A-F]{3})?":nullptr;
     if(!pattern) {valid=false;break;}
-    for(const auto& line:block.lines) if(!cheatLineMatches(line,pattern) || !GB_import_cheat(temporary,line.c_str(),"",true)) {valid=false;break;}
+    for(const auto& line:block.lines) if(!cheatLineMatches(line,pattern) || !importTypedCheat(temporary,block.format,line)) {valid=false;break;}
     if(!valid)break;
   }
   GB_dealloc(temporary); if(!valid)return false;
   const auto previous=s->activeCheats;
   auto install=[&](const std::vector<TypedCheatInput>& list) {
     GB_remove_all_cheats(s->gb);
-    for(const auto& block:list)for(const auto& line:block.lines)if(!GB_import_cheat(s->gb,line.c_str(),"",true))return false;
+    for(const auto& block:list)for(const auto& line:block.lines)if(!importTypedCheat(s->gb,block.format,line))return false;
     GB_set_cheats_enabled(s->gb,!list.empty()); return true;
   };
   if(!install(codes)) {install(previous);return false;}
