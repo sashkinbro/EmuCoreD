@@ -123,7 +123,7 @@ internal fun TextureOnlineCatalogSection(
         games = loaded.first
         packs = loaded.second.entries
         cached = loaded.second.fromCache
-        failed = loaded.second.entries.isEmpty()
+        failed = loaded.second.entries.isEmpty() && loaded.second.error != null
         installed = loaded.third
         selectedPath = initialGamePath?.takeIf { path -> games.any { it.path == path } }
             ?: selectedPath?.takeIf { path -> games.any { it.path == path } }
@@ -161,8 +161,9 @@ internal fun TextureOnlineCatalogSection(
     }
     val phase = when {
         loading || resolvingTarget -> TextureOnlinePhase.LOADING
-        selectedGame == null || target == null -> TextureOnlinePhase.EMPTY
         failed -> TextureOnlinePhase.ERROR
+        selectedGame == null -> TextureOnlinePhase.EMPTY
+        target == null -> TextureOnlinePhase.IDENTITY_ERROR
         selection.matchingPacks.isEmpty() && selection.otherVersionPacks.isEmpty() -> TextureOnlinePhase.EMPTY
         else -> TextureOnlinePhase.CONTENT
     }
@@ -217,6 +218,11 @@ internal fun TextureOnlineCatalogSection(
                     TextureOnlinePhase.ERROR -> Text(
                         text = stringResource(R.string.content_catalog_failed),
                         color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                    TextureOnlinePhase.IDENTITY_ERROR -> Text(
+                        text = stringResource(R.string.texture_manager_identity_failed),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         style = MaterialTheme.typography.bodyMedium
                     )
                     TextureOnlinePhase.EMPTY -> TextureCatalogEmptyState()
@@ -460,4 +466,4 @@ private fun formatTextureBytes(bytes: Long): String {
     return String.format(java.util.Locale.getDefault(), "%.2f GB", mb / 1024.0)
 }
 
-private enum class TextureOnlinePhase { LOADING, EMPTY, ERROR, CONTENT }
+private enum class TextureOnlinePhase { LOADING, EMPTY, ERROR, IDENTITY_ERROR, CONTENT }

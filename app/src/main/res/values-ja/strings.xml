@@ -1,11 +1,11 @@
 <resources>
     <string name="emulation_runtime_failure_title">エミュレーションを停止しました</string>
     <string name="emulation_runtime_failure_description">ランタイムでエラーが発生し、安全に続行できません。このセッションを終了してゲームを再起動してください。レンダラーは自動的に変更されていません。\n\n詳細:\n</string>
-    <string name="onboarding_core_title">Nintendo ??????</string>
-    <string name="onboarding_core_subtitle">????????Nintendo??????????ARM64?????????Vulkan?????????</string>
-    <string name="onboarding_core_card_title">9???????????????</string>
-    <string name="onboarding_core_card_cpu">?????Nintendo????????????ARM64????????????????????</string>
-    <string name="onboarding_core_card_gpu">Vulkan?OpenGL????????????????????????</string>
+    <string name="onboarding_core_title">Nintendo 本体のために</string>
+    <string name="onboarding_core_subtitle">対応するすべてのNintendo本体向けの内蔵コア。ARM64動的再コンパイルとVulkan描画に対応します。</string>
+    <string name="onboarding_core_card_title">9つのエミュレーションコアを内蔵</string>
+    <string name="onboarding_core_card_cpu">対応する各Nintendo本体には専用コアがあり、ARM64動的再コンパイルでスムーズに動作します。</string>
+    <string name="onboarding_core_card_gpu">VulkanとOpenGLの描画は、コアが対応している場合に利用できます。</string>
     <string name="onboarding_core_card_reference">有料プランは不要で、すべてのコア機能を利用できます。</string>
     <string name="app_name">EmuCoreD</string>
 
@@ -365,9 +365,9 @@
     <string name="settings_fps_overlay_mode_detailed">統計情報</string>
 
     <string name="onboarding_page_1_title">EmuCoreD へようこそ</string>
-    <string name="onboarding_page_1_subtitle">????????????????????????Nintendo??????????????</string>
+    <string name="onboarding_page_1_subtitle">素早い設定、分かりやすい操作、どの画面でも快適なNintendoライブラリとランチャーです。</string>
     <string name="onboarding_page_2_title">強力なエミュレーション</string>
-    <string name="onboarding_page_2_subtitle">????????????????????????????????????Nintendo??????????</string>
+    <string name="onboarding_page_2_subtitle">高度なグラフィック設定、カスタマイズ可能な操作、性能最適化でお気に入りのNintendoゲームを楽しめます。</string>
     <string name="onboarding_page_3_title">あなたのゲームライブラリ</string>
     <string name="onboarding_page_3_subtitle">美しいカバー、詳しい情報、お気に入りへの素早いアクセスで自分だけのライブラリを作れます。</string>
     <string name="onboarding_page_4_title">プレイの準備</string>
@@ -379,7 +379,7 @@
     <string name="onboarding_profile_fast_title">高速 / 安全ではない</string>
     <string name="onboarding_profile_fast_desc">追加の速度が必要な弱いデバイス向けです。一部のゲームでは、より多くのグリッチが表示されたり、安定性が低下したりする可能性があります。</string>
     <string name="onboarding_title">プレイの準備をしましょう</string>
-    <string name="onboarding_subtitle">Nintendo???????????????????????????????</string>
+    <string name="onboarding_subtitle">Nintendoのゲームフォルダーを選び、ファイルアクセスを許可してください。</string>
     <string name="onboarding_games_title">ゲームフォルダを選択</string>
     <string name="onboarding_games_desc">ゲームが含まれているフォルダを選択します。</string>
     <string name="onboarding_status_required">必須</string>
@@ -1845,7 +1845,7 @@
 
     <!-- Consolidated core, format, cheat and manager strings -->
         <string name="cheat_catalog_browse_all">この本体のすべてのチートを表示</string>
-        <string name="cheat_catalog_manual_attach">選択したゲームに関連付ける</string>
+        <string name="cheat_catalog_manual_attach">関連付け</string>
         <string name="cheat_catalog_manual_warning">このパックとゲームの一致は未確認です。コードを有効にする前に、地域、リビジョン、形式を確認してください。</string>
         <string name="cheat_format_unsupported">選択したコアはこのチート形式に対応していません。</string>
         <string name="core_option_help_recommended_default">推奨される開始値: %1$s。</string>
@@ -2114,7 +2114,7 @@
     <string name="texture_manager_loading">テクスチャパックを読み込んでいます…</string>
     <string name="texture_manager_options">ランタイムオプション</string>
     <string name="texture_manager_enable_replacements">リプレイスメントテクスチャを読み込む</string>
-    <string name="texture_manager_enable_replacements_desc">各ゲームのシリアルフォルダからPNGおよびDDS / KTX2ファイルを使用します。</string>
+    <string name="texture_manager_enable_replacements_desc">各ゲームのシリアルフォルダからPNGおよびDDS / KTXファイルを使用します。</string>
     <string name="texture_manager_pack_modified">更新日: %s</string>
     <string name="texture_manager_empty_title">テクスチャパックがまだありません</string>
     <string name="texture_manager_storage">テクスチャストレージ</string>
@@ -2125,8 +2125,8 @@
     <string name="texture_catalog_install_success">テクスチャパックをインストールし、テクスチャ置換を有効にしました。</string>
     <string name="texture_catalog_install_failed">テクスチャパックを安全にダウンロードまたはインストールできませんでした。</string>
     <string name="texture_catalog_pack_meta">バージョン %1$s • %2$s • %3$d ファイル</string>
-    <string name="texture_manager_summary_meta">%1$d ??? ? %2$d ????? ? %3$s</string>
-    <string name="texture_manager_delete_confirm">%1$s ??????????????????????????</string>
-    <string name="texture_manager_empty_body">Nintendo 3DS?GameCube?Wii ?? ZIP ????????????????????????????????????????????</string>
-    <string name="texture_manager_platform_note">Nintendo 3DS ????????????????GameCube ? Wii ????????????????????</string>
+    <string name="texture_manager_summary_meta">%1$d パック • %2$d テクスチャ • %3$s</string>
+    <string name="texture_manager_delete_confirm">%1$s のすべてのリプレイスメントテクスチャを削除しますか？</string>
+    <string name="texture_manager_empty_body">Nintendo 3DS、GameCube、Wii 用の ZIP テクスチャパックをインポートしてください。インストール済みのパックがここに表示されます。</string>
+    <string name="texture_manager_platform_note">Nintendo 3DS のテクスチャ置換は全体設定です。GameCube と Wii はゲーム設定でゲームごとに有効にします。</string>
 </resources>

@@ -17,17 +17,22 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.OpenInNew
+import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.CloudDownload
 import androidx.compose.material.icons.rounded.Info
+import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -46,14 +51,18 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.sbro.emucored.R
+import com.sbro.emucored.data.CheatRepository
 import com.sbro.emucored.data.GameItem
+import com.sbro.emucored.data.GamePlatform
+import com.sbro.emucored.data.RemoteCatalogResult
 import com.sbro.emucored.data.SelectedGameIdentity
 import com.sbro.emucored.data.cheats.CheatGameIdentity
 import com.sbro.emucored.data.cheats.CheatRuntimeUpdates
 import com.sbro.emucored.data.cheats.TypedCheatCatalogRepository
 import com.sbro.emucored.data.cheats.TypedCheatPack
-import com.sbro.emucored.data.CheatRepository
+import com.sbro.emucored.ui.common.AppAlertDialog
 import com.sbro.emucored.ui.common.cheatCatalogGameTitleKey
+import com.sbro.emucored.ui.common.rememberRetainedState
 import com.sbro.emucored.ui.theme.neon.neonButtonShape
 import com.sbro.emucored.ui.theme.neon.neonShape
 import java.util.Locale
@@ -77,18 +86,19 @@ internal fun selectTypedCheatPacks(
     } else {
         packs.filter { it.matches(identity) }.sortedWith(ordered)
     }
+    val matchingIds = matching.mapTo(HashSet()) { it.id }
     val titleKey = gameTitle.cheatCatalogGameTitleKey()
     val otherVersions = if (titleKey.isBlank()) {
         emptyList()
     } else {
         packs.filter { pack ->
-            pack !in matching && pack.title.cheatCatalogGameTitleKey() == titleKey
+            pack.id !in matchingIds && pack.title.cheatCatalogGameTitleKey() == titleKey
         }.sortedWith(ordered)
     }
     return TypedCheatSelection(matching, otherVersions)
 }
 
-/** Matched recommendations and other revisions, using the same catalog presentation as 3DS. */
+/** Matched recommendations plus an explicit manual catalog for everything else. */
 @Composable
 internal fun TypedCheatOnlineCatalogSection(
     game: GameItem,
@@ -101,30 +111,118 @@ internal fun TypedCheatOnlineCatalogSection(
     val scope = rememberCoroutineScope()
     val repository = remember(context) { TypedCheatCatalogRepository(context) }
     val cheats = remember(context) { CheatRepository(context) }
-    var packs by remember(game.platform) { mutableStateOf(emptyList<TypedCheatPack>()) }
-    var loading by remember(game.platform) { mutableStateOf(true) }
-    var failed by remember(game.platform) { mutableStateOf(false) }
-    var installing by remember { mutableStateOf<String?>(null) }
-    var refresh by remember(game.platform) { mutableIntStateOf(0) }
     val success = stringResource(R.string.cheat_catalog_install_success)
     val failure = stringResource(R.string.cheat_catalog_install_failed)
 
+    // Catalogs are per console. Keep them alive across game switches so moving
+    // between two games on the same console never downloads or parses the index
+    // again; scrolling the section out of view must not lose it either.
+    var cachedCatalogs by rememberRetainedState(
+        "typed_cheat_catalog.cache",
+        emptyMap<GamePlatform, RemoteCatalogResult<TypedCheatPack>>()
+    )
+    var result by remember(game.platform) { mutableStateOf(cachedCatalogs[game.platform]) }
+    var loading by remember(game.platform) { mutableStateOf(result == null) }
+    var refresh by remember(game.platform) { mutableIntStateOf(0) }
+    var installing by remember { mutableStateOf<String?>(null) }
+    var pendingManual by remember { mutableStateOf<TypedCheatPack?>(null) }
+    var browseAll by remember(game.platform) { mutableStateOf(false) }
+    var manualQuery by remember(game.platform) { mutableStateOf("") }
+    var manualCount by remember(game.platform) { mutableIntStateOf(ManualPageSize) }
+    var manualPacks by remember(game.platform) { mutableStateOf(emptyList<TypedCheatPack>()) }
+    var selection by remember(game.platform) {
+        mutableStateOf(TypedCheatSelection(emptyList(), emptyList()))
+    }
+    var selectionGamePath by remember(game.platform) { mutableStateOf<String?>(null) }
+    var selecting by remember(game.platform) { mutableStateOf(false) }
+
     LaunchedEffect(game.platform, refresh) {
-        loading = true
-        val result = withContext(Dispatchers.IO) { repository.load(game.platform, refresh > 0) }
-        packs = result.entries
-        failed = result.entries.isEmpty() && result.error != null
+        val cached = cachedCatalogs[game.platform]
+        if (refresh == 0 && cached != null) {
+            result = cached
+            loading = false
+            return@LaunchedEffect
+        }
+        if (result == null) loading = true
+        val loaded = withContext(Dispatchers.IO) {
+            repository.load(game.platform, forceRefresh = refresh > 0)
+        }
+        val previous = result
+        if (loaded.entries.isNotEmpty() || previous == null || previous.entries.isEmpty()) {
+            result = loaded
+        }
+        result?.let { cachedCatalogs = cachedCatalogs + (game.platform to it) }
         loading = false
     }
 
+    val packs = result?.entries.orEmpty()
+    val failed = result?.entries?.isEmpty() == true && result?.error != null
     val typedIdentity = identity?.typed
-    val selection = remember(packs, typedIdentity, game.title) {
-        selectTypedCheatPacks(packs, typedIdentity, game.title)
+
+    LaunchedEffect(packs, typedIdentity, game.path, game.title) {
+        if (selectionGamePath != game.path) {
+            selection = TypedCheatSelection(emptyList(), emptyList())
+            selectionGamePath = game.path
+        }
+        selecting = true
+        selection = withContext(Dispatchers.Default) {
+            selectTypedCheatPacks(packs, typedIdentity, game.title)
+        }
+        selecting = false
     }
+
+    LaunchedEffect(browseAll, packs, manualQuery) {
+        if (!browseAll) {
+            manualPacks = emptyList()
+            return@LaunchedEffect
+        }
+        manualPacks = withContext(Dispatchers.Default) {
+            val query = manualQuery.trim()
+            packs
+                .filter { query.isBlank() || it.title.contains(query, ignoreCase = true) }
+                .sortedWith(compareBy<TypedCheatPack>({ it.title.lowercase(Locale.US) }, { it.id }))
+        }
+    }
+
+    LaunchedEffect(browseAll, manualQuery) { manualCount = ManualPageSize }
+
+    fun installPack(pack: TypedCheatPack, manual: Boolean) {
+        if (installing != null) return
+        installing = pack.id
+        scope.launch {
+            val gameIdentity = typedIdentity ?: CheatGameIdentity(game.platform)
+            val installed = withContext(Dispatchers.IO) {
+                runCatching {
+                    val raw = repository.download(pack)
+                    cheats.importTypedPack(
+                        game.path,
+                        gameIdentity,
+                        pack,
+                        raw,
+                        manual = manual
+                    ) > 0
+                }.getOrDefault(false)
+            }
+            installing = null
+            if (installed) {
+                CheatRuntimeUpdates.notifyChanged(game.path)
+                onInstalled()
+            }
+            Toast.makeText(
+                context,
+                if (installed) success else failure,
+                Toast.LENGTH_LONG
+            ).show()
+        }
+    }
+
     val phase = when {
-        resolving || loading -> TypedCheatPhase.LOADING
+        loading || (result == null && resolving) -> TypedCheatPhase.LOADING
         failed -> TypedCheatPhase.ERROR
-        selection.matchingPacks.isEmpty() && selection.otherVersionPacks.isEmpty() -> TypedCheatPhase.EMPTY
+        selection.matchingPacks.isEmpty() && selection.otherVersionPacks.isEmpty() &&
+            (resolving || selecting) && packs.isNotEmpty() -> TypedCheatPhase.LOADING
+        selection.matchingPacks.isEmpty() && selection.otherVersionPacks.isEmpty() && !browseAll ->
+            TypedCheatPhase.EMPTY
         else -> TypedCheatPhase.CONTENT
     }
 
@@ -146,6 +244,33 @@ internal fun TypedCheatOnlineCatalogSection(
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
+            OutlinedButton(
+                shape = neonButtonShape(),
+                onClick = { browseAll = !browseAll },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Icon(
+                    imageVector = if (browseAll) Icons.Rounded.Check else Icons.Rounded.Search,
+                    contentDescription = null
+                )
+                Spacer(Modifier.width(7.dp))
+                Text(stringResource(R.string.cheat_catalog_browse_all))
+            }
+            if (browseAll) {
+                Text(
+                    text = stringResource(R.string.cheat_catalog_manual_warning),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                OutlinedTextField(
+                    value = manualQuery,
+                    onValueChange = { manualQuery = it },
+                    singleLine = true,
+                    shape = RoundedCornerShape(16.dp),
+                    label = { Text(stringResource(R.string.cheat_manager_search)) },
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
             AnimatedContent(
                 targetState = phase,
                 transitionSpec = {
@@ -174,65 +299,97 @@ internal fun TypedCheatOnlineCatalogSection(
                         }
                     }
                     TypedCheatPhase.CONTENT -> Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-                        if (selection.matchingPacks.isNotEmpty()) {
-                            TypedCheatSectionTitle(
-                                stringResource(R.string.content_compatible_game_version_section)
-                            )
-                            selection.matchingPacks.forEach { pack ->
+                        if (browseAll) {
+                            if (manualPacks.isEmpty()) {
+                                Text(
+                                    text = stringResource(R.string.cheat_manager_search_empty),
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    style = MaterialTheme.typography.bodyMedium
+                                )
+                            }
+                            manualPacks.take(manualCount).forEach { pack ->
+                                val matching = typedIdentity?.let(pack::matches) == true
                                 TypedCheatCatalogCard(
                                     pack = pack,
-                                    compatible = true,
+                                    compatible = matching,
                                     installing = installing == pack.id,
                                     onSource = { runCatching { links.openUri(pack.sourceUrl) } },
-                                    onInstall = {
-                                        val gameIdentity = typedIdentity ?: return@TypedCheatCatalogCard
-                                        installing = pack.id
-                                        scope.launch {
-                                            val installed = withContext(Dispatchers.IO) {
-                                                runCatching {
-                                                    val raw = repository.download(pack)
-                                                    cheats.importTypedPack(
-                                                        game.path,
-                                                        gameIdentity,
-                                                        pack,
-                                                        raw,
-                                                        manual = false
-                                                    ) > 0
-                                                }.getOrDefault(false)
-                                            }
-                                            installing = null
-                                            if (installed) {
-                                                CheatRuntimeUpdates.notifyChanged(game.path)
-                                                onInstalled()
-                                            }
-                                            Toast.makeText(
-                                                context,
-                                                if (installed) success else failure,
-                                                Toast.LENGTH_LONG
-                                            ).show()
-                                        }
+                                    onInstall = if (matching) {
+                                        { installPack(pack, manual = false) }
+                                    } else null,
+                                    onManualInstall = if (matching) null else {
+                                        { pendingManual = pack }
                                     }
                                 )
                             }
-                        }
-                        if (selection.otherVersionPacks.isNotEmpty()) {
-                            TypedCheatSectionTitle(
-                                stringResource(R.string.content_other_game_versions_section)
-                            )
-                            selection.otherVersionPacks.forEach { pack ->
-                                TypedCheatCatalogCard(
-                                    pack = pack,
-                                    compatible = false,
-                                    installing = false,
-                                    onSource = { runCatching { links.openUri(pack.sourceUrl) } },
-                                    onInstall = {}
+                            if (manualPacks.size > manualCount) {
+                                TextButton(onClick = { manualCount += ManualPageSize }) {
+                                    Text(stringResource(R.string.detail_show_more))
+                                }
+                            }
+                        } else {
+                            if (selection.matchingPacks.isNotEmpty()) {
+                                TypedCheatSectionTitle(
+                                    stringResource(R.string.content_compatible_game_version_section)
                                 )
+                                selection.matchingPacks.forEach { pack ->
+                                    TypedCheatCatalogCard(
+                                        pack = pack,
+                                        compatible = true,
+                                        installing = installing == pack.id,
+                                        onSource = { runCatching { links.openUri(pack.sourceUrl) } },
+                                        onInstall = { installPack(pack, manual = false) }
+                                    )
+                                }
+                            }
+                            if (selection.otherVersionPacks.isNotEmpty()) {
+                                TypedCheatSectionTitle(
+                                    stringResource(R.string.content_other_game_versions_section)
+                                )
+                                Text(
+                                    text = stringResource(R.string.cheat_catalog_manual_warning),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                                selection.otherVersionPacks.forEach { pack ->
+                                    TypedCheatCatalogCard(
+                                        pack = pack,
+                                        compatible = false,
+                                        installing = installing == pack.id,
+                                        onSource = { runCatching { links.openUri(pack.sourceUrl) } },
+                                        onManualInstall = { pendingManual = pack }
+                                    )
+                                }
                             }
                         }
                     }
                 }
             }
         }
+    }
+
+    pendingManual?.let { pack ->
+        AppAlertDialog(
+            onDismissRequest = { pendingManual = null },
+            title = { Text(stringResource(R.string.cheat_catalog_manual_attach)) },
+            text = { Text(stringResource(R.string.cheat_catalog_manual_warning)) },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        pendingManual = null
+                        installPack(pack, manual = true)
+                    },
+                    shape = neonButtonShape()
+                ) {
+                    Text(stringResource(R.string.cheat_catalog_manual_attach))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { pendingManual = null }) {
+                    Text(stringResource(R.string.cancel))
+                }
+            }
+        )
     }
 }
 
@@ -242,7 +399,8 @@ private fun TypedCheatCatalogCard(
     compatible: Boolean,
     installing: Boolean,
     onSource: () -> Unit,
-    onInstall: () -> Unit
+    onInstall: (() -> Unit)? = null,
+    onManualInstall: (() -> Unit)? = null
 ) {
     Surface(
         modifier = Modifier.fillMaxWidth(),
@@ -262,7 +420,7 @@ private fun TypedCheatCatalogCard(
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             TypedCheatCompatibilityBadge(compatible)
-            if (compatible) {
+            if (compatible && onInstall != null) {
                 Button(
                     shape = neonButtonShape(),
                     onClick = onInstall,
@@ -277,6 +435,26 @@ private fun TypedCheatCatalogCard(
                     Spacer(Modifier.width(7.dp))
                     Text(
                         text = stringResource(R.string.content_download_install),
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+            }
+            if (!compatible && onManualInstall != null) {
+                Button(
+                    shape = neonButtonShape(),
+                    onClick = onManualInstall,
+                    enabled = !installing,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    if (installing) {
+                        CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
+                    } else {
+                        Icon(Icons.Rounded.CloudDownload, contentDescription = null)
+                    }
+                    Spacer(Modifier.width(7.dp))
+                    Text(
+                        text = stringResource(R.string.cheat_catalog_manual_attach),
                         maxLines = 2,
                         overflow = TextOverflow.Ellipsis
                     )
@@ -359,3 +537,5 @@ private fun TypedCheatEmptyState() {
 }
 
 private enum class TypedCheatPhase { LOADING, EMPTY, ERROR, CONTENT }
+
+private const val ManualPageSize = 30

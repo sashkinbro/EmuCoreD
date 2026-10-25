@@ -1447,16 +1447,16 @@ private fun SettingsContent(
                     ConsoleCoreOptionsPanel(platform, SettingsCategory.Controls, consoleCoreOptions,
                         onChange = { key, value -> viewModel.setConsoleCoreOption(platform, key, value) })
                     SettingsSection(title = stringResource(R.string.settings_touch_controls)) {
+                        ActionItem(
+                            icon = Icons.Rounded.Tune,
+                            title = stringResource(R.string.settings_edit_global_controls),
+                            subtitle = stringResource(R.string.settings_edit_global_controls_desc),
+                            actionIcon = Icons.Rounded.Gamepad,
+                            actionLabel = stringResource(R.string.settings_edit_controls_action),
+                            onClick = { onOpenControlsLayoutEditor?.invoke() },
+                            enabled = onOpenControlsLayoutEditor != null
+                        )
                         if (supportsAzaharOptions) {
-                            ActionItem(
-                                icon = Icons.Rounded.Tune,
-                                title = stringResource(R.string.settings_edit_global_controls),
-                                subtitle = stringResource(R.string.settings_edit_global_controls_desc),
-                                actionIcon = Icons.Rounded.Gamepad,
-                                actionLabel = stringResource(R.string.settings_edit_controls_action),
-                                onClick = { onOpenControlsLayoutEditor?.invoke() },
-                                enabled = onOpenControlsLayoutEditor != null
-                            )
                             StickToggleTargetPicker(
                                 selected = uiState.stickToggleTarget,
                                 onSelect = viewModel::setStickToggleTarget

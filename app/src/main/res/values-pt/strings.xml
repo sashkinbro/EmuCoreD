@@ -2,10 +2,10 @@
     <string name="emulation_runtime_failure_title">Emulação interrompida</string>
     <string name="emulation_runtime_failure_description">O ambiente de execução encontrou um erro e não pode continuar com segurança. Saia desta sessão e inicie o jogo novamente. O renderizador não foi alterado automaticamente.\n\nDetalhes:\n</string>
     <string name="onboarding_core_title">Feito para consoles Nintendo</string>
-    <string name="onboarding_core_subtitle">N?cleos integrados para cada console Nintendo suportada, com recompila??o din?mica ARM64 e renderiza??o Vulkan.</string>
-    <string name="onboarding_core_card_title">Nove n?cleos de emula??o integrados</string>
-    <string name="onboarding_core_card_cpu">Cada console Nintendo suportada usa um n?cleo dedicado com recompila??o din?mica ARM64 para um desempenho fluido.</string>
-    <string name="onboarding_core_card_gpu">A renderiza??o Vulkan e OpenGL est? dispon?vel quando o n?cleo a suporta.</string>
+    <string name="onboarding_core_subtitle">Núcleos integrados para cada console Nintendo suportada, com recompilação dinâmica ARM64 e renderização Vulkan.</string>
+    <string name="onboarding_core_card_title">Nove núcleos de emulação integrados</string>
+    <string name="onboarding_core_card_cpu">Cada console Nintendo suportada usa um núcleo dedicado com recompilação dinâmica ARM64 para um desempenho fluido.</string>
+    <string name="onboarding_core_card_gpu">A renderização Vulkan e OpenGL está disponível quando o núcleo a suporta.</string>
     <string name="onboarding_core_card_reference">Nenhum nível de compra é necessário; todos os recursos do núcleo estão disponíveis.</string>
     <string name="app_name">EmuCoreD</string>
 
@@ -221,9 +221,9 @@
     <string name="settings_fps_overlay_mode_detailed">Estatísticas</string>
 
     <string name="onboarding_page_1_title">Bem-vindo ao EmuCoreD</string>
-    <string name="onboarding_page_1_subtitle">Sua biblioteca e launcher Nintendo, pensados para configura??o r?pida, navega??o clara e conforto em qualquer tela.</string>
+    <string name="onboarding_page_1_subtitle">Sua biblioteca e launcher Nintendo, pensados para configuração rápida, navegação clara e conforto em qualquer tela.</string>
     <string name="onboarding_page_2_title">Emulação Poderosa</string>
-    <string name="onboarding_page_2_subtitle">Jogue seus t?tulos Nintendo favoritos com op??es gr?ficas avan?adas, controles personaliz?veis e otimiza??es.</string>
+    <string name="onboarding_page_2_subtitle">Jogue seus títulos Nintendo favoritos com opções gráficas avançadas, controles personalizáveis e otimizações.</string>
     <string name="onboarding_page_3_title">Sua Biblioteca de Jogos</string>
     <string name="onboarding_page_3_subtitle">Monte sua biblioteca com capas bonitas, informações detalhadas e acesso rápido aos favoritos.</string>
     <string name="onboarding_page_4_title">Pronto para Jogar</string>
@@ -1848,7 +1848,7 @@
 
     <!-- Consolidated core, format, cheat and manager strings -->
         <string name="cheat_catalog_browse_all">Explorar todos os cheats deste console</string>
-        <string name="cheat_catalog_manual_attach">Associar ao jogo selecionado</string>
+        <string name="cheat_catalog_manual_attach">Associar</string>
         <string name="cheat_catalog_manual_warning">A correspondência deste pacote com o jogo não foi verificada. Confira a região, revisão e formato antes de ativar os códigos.</string>
         <string name="cheat_format_unsupported">O núcleo selecionado não suporta este formato de cheats.</string>
         <string name="core_option_help_recommended_default" formatted="false">Valor inicial recomendado: %1$s.</string>
@@ -2117,7 +2117,7 @@
     <string name="texture_manager_loading">Carregando pacotes de texturas…</string>
     <string name="texture_manager_options">Opções de Execução</string>
     <string name="texture_manager_enable_replacements">Carregar texturas de substituição</string>
-    <string name="texture_manager_enable_replacements_desc">Usa arquivos PNG e DDS / KTX2 da pasta serial de cada jogo.</string>
+    <string name="texture_manager_enable_replacements_desc">Usa arquivos PNG e DDS / KTX da pasta serial de cada jogo.</string>
     <string name="texture_manager_pack_modified">Modificado em %s</string>
     <string name="texture_manager_empty_title">Nenhum pacote de texturas ainda</string>
     <string name="texture_manager_storage">Armazenamento de Texturas</string>
@@ -2128,8 +2128,8 @@
     <string name="texture_catalog_install_success">Pacote de texturas instalado. A substituição de texturas foi ativada.</string>
     <string name="texture_catalog_install_failed">Não foi possível transferir ou instalar o pacote de texturas em segurança.</string>
     <string name="texture_catalog_pack_meta">Versão %1$s • %2$s • %3$d ficheiros</string>
-    <string name="texture_manager_summary_meta">%1$d pacotes ? %2$d texturas ? %3$s</string>
-    <string name="texture_manager_delete_confirm">Eliminar todas as texturas de substitui??o de %1$s?</string>
-    <string name="texture_manager_empty_body">Importe um pacote ZIP de texturas para Nintendo 3DS, GameCube ou Wii. Os pacotes instalados aparecer?o aqui.</string>
-    <string name="texture_manager_platform_note">As texturas de substitui??o do Nintendo 3DS s?o globais. No GameCube e Wii, s?o ativadas por jogo nas defini??es do jogo.</string>
+    <string name="texture_manager_summary_meta">%1$d pacotes • %2$d texturas • %3$s</string>
+    <string name="texture_manager_delete_confirm">Eliminar todas as texturas de substituição de %1$s?</string>
+    <string name="texture_manager_empty_body">Importe um pacote ZIP de texturas para Nintendo 3DS, GameCube ou Wii. Os pacotes instalados aparecerão aqui.</string>
+    <string name="texture_manager_platform_note">As texturas de substituição do Nintendo 3DS são globais. No GameCube e Wii, são ativadas por jogo nas definições do jogo.</string>
 </resources>

@@ -1,11 +1,11 @@
 <resources>
     <string name="emulation_runtime_failure_title">Emulation gestoppt</string>
     <string name="emulation_runtime_failure_description">Die Laufzeit ist auf einen Fehler gestoßen und kann nicht sicher fortfahren. Beende diese Sitzung und starte das Spiel erneut. Der Renderer wurde nicht automatisch geändert.\n\nDetails:\n</string>
-    <string name="onboarding_core_title">F?r Nintendo-Konsolen gemacht</string>
-    <string name="onboarding_core_subtitle">Integrierte Kerne f?r jede unterst?tzte Nintendo-Konsole, mit dynamischer ARM64-Rekompilierung und Vulkan-Rendering.</string>
+    <string name="onboarding_core_title">Für Nintendo-Konsolen gemacht</string>
+    <string name="onboarding_core_subtitle">Integrierte Kerne für jede unterstützte Nintendo-Konsole, mit dynamischer ARM64-Rekompilierung und Vulkan-Rendering.</string>
     <string name="onboarding_core_card_title">Neun integrierte Emulationskerne</string>
-    <string name="onboarding_core_card_cpu">Jede unterst?tzte Nintendo-Konsole nutzt einen eigenen Kern mit dynamischer ARM64-Rekompilierung f?r fl?ssige Leistung.</string>
-    <string name="onboarding_core_card_gpu">Vulkan- und OpenGL-Rendering stehen zur Verf?gung, sofern der Kern sie unterst?tzt.</string>
+    <string name="onboarding_core_card_cpu">Jede unterstützte Nintendo-Konsole nutzt einen eigenen Kern mit dynamischer ARM64-Rekompilierung für flüssige Leistung.</string>
+    <string name="onboarding_core_card_gpu">Vulkan- und OpenGL-Rendering stehen zur Verfügung, sofern der Kern sie unterstützt.</string>
     <string name="onboarding_core_card_reference">Es ist keine Kaufstufe erforderlich; jede Kernfunktion ist verfügbar.</string>
     <string name="app_name">EmuCoreD</string>
 
@@ -221,15 +221,15 @@
     <string name="settings_fps_overlay_mode_detailed">Statistiken</string>
 
     <string name="onboarding_page_1_title">Willkommen bei EmuCoreD</string>
-    <string name="onboarding_page_1_subtitle">Deine Nintendo-Bibliothek und dein Launcher f?r schnelle Einrichtung, klare Navigation und komfortable Bedienung auf jedem Bildschirm.</string>
+    <string name="onboarding_page_1_subtitle">Deine Nintendo-Bibliothek und dein Launcher für schnelle Einrichtung, klare Navigation und komfortable Bedienung auf jedem Bildschirm.</string>
     <string name="onboarding_page_2_title">Leistungsstarke Emulation</string>
-    <string name="onboarding_page_2_subtitle">Spiele deine Lieblingsspiele f?r Nintendo mit erweiterten Grafikoptionen, anpassbaren Steuerungen und Leistungsoptimierungen.</string>
+    <string name="onboarding_page_2_subtitle">Spiele deine Lieblingsspiele für Nintendo mit erweiterten Grafikoptionen, anpassbaren Steuerungen und Leistungsoptimierungen.</string>
     <string name="onboarding_page_3_title">Deine Spielebibliothek</string>
     <string name="onboarding_page_3_subtitle">Baue deine persönliche Spielbibliothek mit schönen Covern, detaillierten Infos und schnellem Zugriff auf Favoriten.</string>
     <string name="onboarding_page_4_title">Bereit zum Spielen</string>
     <string name="onboarding_page_4_subtitle">Wähle deine Spieleordner und den Speicherort der Emulator-Daten, um loszulegen.</string>
     <string name="onboarding_title">Mach dich bereit zum Spielen</string>
-    <string name="onboarding_subtitle">W?hle deine Nintendo-Spielordner und erlaube den Dateizugriff.</string>
+    <string name="onboarding_subtitle">Wähle deine Nintendo-Spielordner und erlaube den Dateizugriff.</string>
     <string name="onboarding_games_title">Spieleordner auswählen</string>
     <string name="onboarding_games_desc">Wähle den Ordner aus, der deine Spiele enthält.</string>
     <string name="onboarding_status_required">Erforderlich</string>
@@ -1848,7 +1848,7 @@
 
     <!-- Consolidated core, format, cheat and manager strings -->
         <string name="cheat_catalog_browse_all">Alle Cheats für diese Konsole durchsuchen</string>
-        <string name="cheat_catalog_manual_attach">Dem ausgewählten Spiel zuordnen</string>
+        <string name="cheat_catalog_manual_attach">Anhängen</string>
         <string name="cheat_catalog_manual_warning">Die Übereinstimmung dieses Pakets mit dem Spiel ist nicht bestätigt. Prüfe Region, Revision und Format, bevor du Codes aktivierst.</string>
         <string name="cheat_format_unsupported">Der ausgewählte Kern unterstützt dieses Cheatformat nicht.</string>
         <string name="core_option_help_recommended_default" formatted="false">Empfohlener Ausgangswert: %1$s.</string>
@@ -2117,7 +2117,7 @@
     <string name="texture_manager_loading">Lade Texturpakete…</string>
     <string name="texture_manager_options">Laufzeitoptionen</string>
     <string name="texture_manager_enable_replacements">Ersatztexturen laden</string>
-    <string name="texture_manager_enable_replacements_desc">Verwende PNG- und DDS / KTX2-Dateien aus jedem Spiel-Seriennummernordner.</string>
+    <string name="texture_manager_enable_replacements_desc">Verwende PNG- und DDS / KTX-Dateien aus jedem Spiel-Seriennummernordner.</string>
     <string name="texture_manager_pack_modified">Geändert am %s</string>
     <string name="texture_manager_empty_title">Noch keine Texturpakete</string>
     <string name="texture_manager_storage">Texturspeicher</string>
@@ -2128,8 +2128,8 @@
     <string name="texture_catalog_install_success">Texturpaket installiert. Texturersetzungen wurden aktiviert.</string>
     <string name="texture_catalog_install_failed">Das Texturpaket konnte nicht sicher heruntergeladen oder installiert werden.</string>
     <string name="texture_catalog_pack_meta">Version %1$s • %2$s • %3$d Dateien</string>
-    <string name="texture_manager_summary_meta">%1$d Pakete ? %2$d Texturen ? %3$s</string>
-    <string name="texture_manager_delete_confirm">Alle Ersatztexturen f?r %1$s l?schen?</string>
-    <string name="texture_manager_empty_body">Importiere ein ZIP-Texturpaket f?r Nintendo 3DS, GameCube oder Wii. Installierte Pakete erscheinen hier.</string>
-    <string name="texture_manager_platform_note">Ersatztexturen f?r Nintendo 3DS gelten global. F?r GameCube und Wii werden sie pro Spiel in den Spieleinstellungen aktiviert.</string>
+    <string name="texture_manager_summary_meta">%1$d Pakete • %2$d Texturen • %3$s</string>
+    <string name="texture_manager_delete_confirm">Alle Ersatztexturen für %1$s löschen?</string>
+    <string name="texture_manager_empty_body">Importiere ein ZIP-Texturpaket für Nintendo 3DS, GameCube oder Wii. Installierte Pakete erscheinen hier.</string>
+    <string name="texture_manager_platform_note">Ersatztexturen für Nintendo 3DS gelten global. Für GameCube und Wii werden sie pro Spiel in den Spieleinstellungen aktiviert.</string>
 </resources>

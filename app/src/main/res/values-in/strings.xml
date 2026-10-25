@@ -1860,7 +1860,7 @@
 
     <!-- Consolidated core, format, cheat and manager strings -->
         <string name="cheat_catalog_browse_all">Jelajahi semua cheat untuk konsol ini</string>
-        <string name="cheat_catalog_manual_attach">Tautkan ke game yang dipilih</string>
+        <string name="cheat_catalog_manual_attach">Tautkan</string>
         <string name="cheat_catalog_manual_warning">Kecocokan paket ini dengan game belum diverifikasi. Periksa wilayah, revisi, dan format sebelum mengaktifkan kode.</string>
         <string name="cheat_format_unsupported">Core yang dipilih tidak mendukung format cheat ini.</string>
         <string name="core_option_help_recommended_default" formatted="true">Nilai awal yang disarankan: %1$s.</string>
@@ -2129,7 +2129,7 @@
     <string name="texture_manager_loading">Memuat paket tekstur…</string>
     <string name="texture_manager_options">Opsi Waktu Proses</string>
     <string name="texture_manager_enable_replacements">Muat tekstur pengganti</string>
-    <string name="texture_manager_enable_replacements_desc">Gunakan file PNG dan DDS / KTX2 dari setiap folder serial game.</string>
+    <string name="texture_manager_enable_replacements_desc">Gunakan file PNG dan DDS / KTX dari setiap folder serial game.</string>
     <string name="texture_manager_pack_modified">Diubah %s</string>
     <string name="texture_manager_empty_title">Belum ada paket tekstur</string>
     <string name="texture_manager_storage">Penyimpanan Tekstur</string>
@@ -2140,7 +2140,7 @@
     <string name="texture_catalog_install_success">Paket tekstur terpasang. Penggantian tekstur telah diaktifkan.</string>
     <string name="texture_catalog_install_failed">Paket tekstur tidak dapat diunduh atau dipasang dengan aman.</string>
     <string name="texture_catalog_pack_meta">Versi %1$s • %2$s • %3$d file</string>
-    <string name="texture_manager_summary_meta">%1$d paket ? %2$d tekstur ? %3$s</string>
+    <string name="texture_manager_summary_meta">%1$d paket • %2$d tekstur • %3$s</string>
     <string name="texture_manager_delete_confirm">Hapus semua tekstur pengganti untuk %1$s?</string>
     <string name="texture_manager_empty_body">Impor paket tekstur ZIP untuk Nintendo 3DS, GameCube, atau Wii. Paket yang terpasang akan muncul di sini.</string>
     <string name="texture_manager_platform_note">Tekstur pengganti Nintendo 3DS berlaku global. Untuk GameCube dan Wii, aktifkan per game di pengaturan game.</string>

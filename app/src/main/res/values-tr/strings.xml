@@ -1,11 +1,11 @@
 <resources>
     <string name="emulation_runtime_failure_title">Emülasyon durduruldu</string>
     <string name="emulation_runtime_failure_description">Çalışma zamanı bir hatayla karşılaştı ve güvenle devam edemiyor. Bu oturumdan çıkıp oyunu yeniden başlatın. İşleyici otomatik olarak değiştirilmedi.\n\nAyrıntılar:\n</string>
-    <string name="onboarding_core_title">Nintendo konsollar? i?in tasarland?</string>
-    <string name="onboarding_core_subtitle">Desteklenen her Nintendo konsolu i?in yerle?ik ?ekirdekler; ARM64 dinamik yeniden derleme ve Vulkan i?leme.</string>
-    <string name="onboarding_core_card_title">Dokuz yerle?ik em?lasyon ?ekirde?i</string>
-    <string name="onboarding_core_card_cpu">Desteklenen her Nintendo konsolu, ak?c? performans i?in ARM64 dinamik yeniden derleme kullanan kendi ?ekirde?ine sahiptir.</string>
-    <string name="onboarding_core_card_gpu">Vulkan ve OpenGL i?leme, ?ekirdek destekledi?inde kullan?labilir.</string>
+    <string name="onboarding_core_title">Nintendo konsolları için tasarlandı</string>
+    <string name="onboarding_core_subtitle">Desteklenen her Nintendo konsolu için yerleşik çekirdekler; ARM64 dinamik yeniden derleme ve Vulkan işleme.</string>
+    <string name="onboarding_core_card_title">Dokuz yerleşik emülasyon çekirdeği</string>
+    <string name="onboarding_core_card_cpu">Desteklenen her Nintendo konsolu, akıcı performans için ARM64 dinamik yeniden derleme kullanan kendi çekirdeğine sahiptir.</string>
+    <string name="onboarding_core_card_gpu">Vulkan ve OpenGL işleme, çekirdek desteklediğinde kullanılabilir.</string>
     <string name="onboarding_core_card_reference">Ücretli bir kademe gerekmez; tüm çekirdek özellikleri kullanılabilir.</string>
     <string name="app_name">EmuCoreD</string>
 
@@ -365,9 +365,9 @@
     <string name="settings_fps_overlay_mode_detailed">İstatistikler</string>
 
     <string name="onboarding_page_1_title">EmuCoreD\'e Hoş Geldiniz</string>
-    <string name="onboarding_page_1_subtitle">H?zl? kurulum, net gezinme ve her ekranda rahat kullan?m i?in tasarlanm?? Nintendo kitapl???n?z ve ba?lat?c?n?z.</string>
+    <string name="onboarding_page_1_subtitle">Hızlı kurulum, net gezinme ve her ekranda rahat kullanım için tasarlanmış Nintendo kitaplığınız ve başlatıcınız.</string>
     <string name="onboarding_page_2_title">Güçlü Emülasyon</string>
-    <string name="onboarding_page_2_subtitle">Favori Nintendo oyunlar?n?z? geli?mi? grafik se?enekleri, ?zelle?tirilebilir kontroller ve performans iyile?tirmeleriyle oynay?n.</string>
+    <string name="onboarding_page_2_subtitle">Favori Nintendo oyunlarınızı gelişmiş grafik seçenekleri, özelleştirilebilir kontroller ve performans iyileştirmeleriyle oynayın.</string>
     <string name="onboarding_page_3_title">Oyun Kütüphaneniz</string>
     <string name="onboarding_page_3_subtitle">Güzel kapaklar, ayrıntılı bilgiler ve favorilere hızlı erişimle kendi kitaplığınızı oluşturun.</string>
     <string name="onboarding_page_4_title">Oynamaya Hazır</string>
@@ -379,7 +379,7 @@
     <string name="onboarding_profile_fast_title">Hızlı / Güvenli Olmayan</string>
     <string name="onboarding_profile_fast_desc">Ekstra hıza ihtiyaç duyan daha zayıf cihazlar için. Bazı oyunlar daha fazla hata gösterebilir veya daha az kararlı hale gelebilir.</string>
     <string name="onboarding_title">Oynamak için hazırlanın</string>
-    <string name="onboarding_subtitle">Nintendo oyun klas?rlerinizi se?in ve dosya eri?imi verin.</string>
+    <string name="onboarding_subtitle">Nintendo oyun klasörlerinizi seçin ve dosya erişimi verin.</string>
     <string name="onboarding_games_title">Oyun klasörünü seç</string>
     <string name="onboarding_games_desc">Oyunlarınızı içeren klasörü seçin.</string>
     <string name="onboarding_status_required">Gerekli</string>
@@ -1846,7 +1846,7 @@
 
     <!-- Consolidated core, format, cheat and manager strings -->
         <string name="cheat_catalog_browse_all">Bu konsolun tüm hilelerine göz at</string>
-        <string name="cheat_catalog_manual_attach">Seçili oyunla ilişkilendir</string>
+        <string name="cheat_catalog_manual_attach">Bağla</string>
         <string name="cheat_catalog_manual_warning">Bu paketin oyunla eşleşmesi doğrulanmadı. Kodları etkinleştirmeden önce bölgeyi, revizyonu ve biçimi kontrol edin.</string>
         <string name="cheat_format_unsupported">Seçili çekirdek bu hile biçimini desteklemiyor.</string>
         <string name="core_option_help_recommended_default" formatted="true">Önerilen başlangıç değeri: %1$s.</string>
@@ -2115,7 +2115,7 @@
     <string name="texture_manager_loading">Doku paketleri yükleniyor…</string>
     <string name="texture_manager_options">Çalışma Zamanı Seçenekleri</string>
     <string name="texture_manager_enable_replacements">Değiştirme dokularını yükle</string>
-    <string name="texture_manager_enable_replacements_desc">Her oyun seri klasöründeki PNG ve DDS / KTX2 dosyalarını kullanın.</string>
+    <string name="texture_manager_enable_replacements_desc">Her oyun seri klasöründeki PNG ve DDS / KTX dosyalarını kullanın.</string>
     <string name="texture_manager_pack_modified">Değiştirilme tarihi %s</string>
     <string name="texture_manager_empty_title">Henüz doku paketi yok</string>
     <string name="texture_manager_storage">Doku Depolama</string>
@@ -2126,8 +2126,8 @@
     <string name="texture_catalog_install_success">Doku paketi yüklendi. Doku değiştirme etkinleştirildi.</string>
     <string name="texture_catalog_install_failed">Doku paketi güvenli biçimde indirilemedi veya yüklenemedi.</string>
     <string name="texture_catalog_pack_meta">Sürüm %1$s • %2$s • %3$d dosya</string>
-    <string name="texture_manager_summary_meta">%1$d paket ? %2$d doku ? %3$s</string>
-    <string name="texture_manager_delete_confirm">%1$s i?in t?m de?i?tirme dokular? silinsin mi?</string>
-    <string name="texture_manager_empty_body">Nintendo 3DS, GameCube veya Wii i?in ZIP doku paketi i?e aktar?n. Y?klenen paketler burada g?r?n?r.</string>
-    <string name="texture_manager_platform_note">Nintendo 3DS doku de?i?tirme geneldir. GameCube ve Wii i?in oyun ayarlar?ndan oyun ba??na etkinle?tirilir.</string>
+    <string name="texture_manager_summary_meta">%1$d paket • %2$d doku • %3$s</string>
+    <string name="texture_manager_delete_confirm">%1$s için tüm değiştirme dokuları silinsin mi?</string>
+    <string name="texture_manager_empty_body">Nintendo 3DS, GameCube veya Wii için ZIP doku paketi içe aktarın. Yüklenen paketler burada görünür.</string>
+    <string name="texture_manager_platform_note">Nintendo 3DS doku değiştirme geneldir. GameCube ve Wii için oyun ayarlarından oyun başına etkinleştirilir.</string>
 </resources>

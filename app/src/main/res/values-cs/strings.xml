@@ -1,11 +1,11 @@
 <resources>
     <string name="emulation_runtime_failure_title">Emulace zastavena</string>
     <string name="emulation_runtime_failure_description">Běhové prostředí narazilo na chybu a nemůže bezpečně pokračovat. Ukončete tuto relaci a spusťte hru znovu. Renderer nebyl automaticky změněn.\n\nPodrobnosti:\n</string>
-    <string name="onboarding_core_title">Vytvo?eno pro konzole Nintendo</string>
-    <string name="onboarding_core_subtitle">Integrovan? j?dra pro ka?dou podporovanou konzoli Nintendo, s dynamickou rekompilac? ARM64 a vykreslov?n?m Vulkan.</string>
-    <string name="onboarding_core_card_title">Dev?t integrovan?ch emula?n?ch jader</string>
-    <string name="onboarding_core_card_cpu">Ka?d? podporovan? konzole Nintendo pou??v? vlastn? j?dro s dynamickou rekompilac? ARM64 pro plynul? v?kon.</string>
-    <string name="onboarding_core_card_gpu">Vykreslov?n? Vulkan a OpenGL je dostupn? tam, kde je j?dro podporuje.</string>
+    <string name="onboarding_core_title">Vytvořeno pro konzole Nintendo</string>
+    <string name="onboarding_core_subtitle">Integrovaná jádra pro každou podporovanou konzoli Nintendo, s dynamickou rekompilací ARM64 a vykreslováním Vulkan.</string>
+    <string name="onboarding_core_card_title">Devět integrovaných emulačních jader</string>
+    <string name="onboarding_core_card_cpu">Každá podporovaná konzole Nintendo používá vlastní jádro s dynamickou rekompilací ARM64 pro plynulý výkon.</string>
+    <string name="onboarding_core_card_gpu">Vykreslování Vulkan a OpenGL je dostupné tam, kde je jádro podporuje.</string>
     <string name="onboarding_core_card_reference">Není vyžadována žádná placená úroveň; všechny funkce jádra jsou dostupné.</string>
     <string name="app_name">EmuCoreD</string>
 
@@ -462,9 +462,9 @@
 
     <!-- Onboarding -->
     <string name="onboarding_page_1_title">Vítejte v EmuCoreD</string>
-    <string name="onboarding_page_1_subtitle">Va?e knihovna a launcher Nintendo pro rychl? nastaven?, p?ehlednou navigaci a pohodl? na ka?d? obrazovce.</string>
+    <string name="onboarding_page_1_subtitle">Vaše knihovna a launcher Nintendo pro rychlé nastavení, přehlednou navigaci a pohodlí na každé obrazovce.</string>
     <string name="onboarding_page_2_title">Výkonná Emulace</string>
-    <string name="onboarding_page_2_subtitle">Hrajte obl?ben? hry Nintendo s pokro?il?mi grafick?mi mo?nostmi, nastaviteln?m ovl?d?n?m a optimalizac? v?konu.</string>
+    <string name="onboarding_page_2_subtitle">Hrajte oblíbené hry Nintendo s pokročilými grafickými možnostmi, nastavitelným ovládáním a optimalizací výkonu.</string>
     <string name="onboarding_page_3_title">Vaše Herní Knihovna</string>
     <string name="onboarding_page_3_subtitle">Vytvořte si knihovnu her s krásnými obaly, podrobnými informacemi a rychlým přístupem k oblíbeným.</string>
     <string name="onboarding_page_4_title">Připraveno ke Hraní (Ready to Play)</string>
@@ -493,7 +493,7 @@
     <string name="settings_mediatek_notice_title">Kompatibilita MediaTek</string>
     <string name="settings_mediatek_notice_message">Podpora pro MediaTek je stále experimentální. Během naší práce na vylepšení kompatibility a výkonu může docházet k pádům, vizuálním chybám a nestabilnímu chování.\n\nPokud zaznamenáte grafické problémy, zkuste OpenGL se zapnutým ANGLE. Pokud problémy přetrvávají, použijte softwarový vykreslovač.</string>
     <string name="onboarding_title">Připravte se hrát</string>
-    <string name="onboarding_subtitle">Vyberte slo?ky s hrami Nintendo a ud?lte p??stup k soubor?m.</string>
+    <string name="onboarding_subtitle">Vyberte složky s hrami Nintendo a udělte přístup k souborům.</string>
     <string name="onboarding_games_title">Přidat složky s hrami</string>
     <string name="onboarding_games_desc">Přidejte jednu nebo více složek obsahujících vaše hry.</string>
     <string name="onboarding_games_selected_count">Vybrané složky: %1$d. Klepnutím přidáte další.</string>
@@ -1867,7 +1867,7 @@
 
     <!-- Consolidated core, format, cheat and manager strings -->
         <string name="cheat_catalog_browse_all">Procházet všechny cheaty pro tuto konzoli</string>
-        <string name="cheat_catalog_manual_attach">Přiřadit k vybrané hře</string>
+        <string name="cheat_catalog_manual_attach">Přiřadit</string>
         <string name="cheat_catalog_manual_warning">Shoda tohoto balíčku s hrou není ověřena. Před zapnutím kódů zkontrolujte region, revizi a formát.</string>
         <string name="cheat_format_unsupported">Vybrané jádro tento formát cheatů nepodporuje.</string>
         <string name="core_option_help_recommended_default" formatted="false">Doporučená výchozí hodnota: %1$s.</string>
@@ -2136,7 +2136,7 @@
     <string name="texture_manager_loading">Načítání balíčků textur…</string>
     <string name="texture_manager_options">Možnosti za běhu (Runtime)</string>
     <string name="texture_manager_enable_replacements">Načíst náhradní textury</string>
-    <string name="texture_manager_enable_replacements_desc">Použít soubory PNG a DDS / KTX2 ze složky každého sériového čísla hry.</string>
+    <string name="texture_manager_enable_replacements_desc">Použít soubory PNG a DDS / KTX ze složky každého sériového čísla hry.</string>
     <string name="texture_manager_pack_modified">Upraveno %s</string>
     <string name="texture_manager_empty_title">Zatím žádné balíčky textur</string>
     <string name="texture_manager_storage">Úložiště textur</string>
@@ -2147,8 +2147,8 @@
     <string name="texture_catalog_install_success">Balíček textur byl nainstalován. Nahrazování textur bylo povoleno.</string>
     <string name="texture_catalog_install_failed">Balíček textur nebylo možné bezpečně stáhnout nebo nainstalovat.</string>
     <string name="texture_catalog_pack_meta">Verze %1$s • %2$s • souborů: %3$d</string>
-    <string name="texture_manager_summary_meta">%1$d bal??k? ? %2$d textur ? %3$s</string>
-    <string name="texture_manager_delete_confirm">Smazat v?echny n?hradn? textury pro %1$s?</string>
-    <string name="texture_manager_empty_body">Importujte ZIP bal??ek textur pro Nintendo 3DS, GameCube nebo Wii. Nainstalovan? bal??ky se zobraz? zde.</string>
-    <string name="texture_manager_platform_note">N?hradn? textury pro Nintendo 3DS plat? glob?ln?. U GameCube a Wii se zap?naj? pro ka?dou hru zvl??? v nastaven? hry.</string>
+    <string name="texture_manager_summary_meta">%1$d balíčků • %2$d textur • %3$s</string>
+    <string name="texture_manager_delete_confirm">Smazat všechny náhradní textury pro %1$s?</string>
+    <string name="texture_manager_empty_body">Importujte ZIP balíček textur pro Nintendo 3DS, GameCube nebo Wii. Nainstalované balíčky se zobrazí zde.</string>
+    <string name="texture_manager_platform_note">Náhradní textury pro Nintendo 3DS platí globálně. U GameCube a Wii se zapínají pro každou hru zvlášť v nastavení hry.</string>
 </resources>

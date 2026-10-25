@@ -1870,7 +1870,7 @@
 
     <!-- Consolidated core, format, cheat and manager strings -->
         <string name="cheat_catalog_browse_all">Browse all cheats for this console</string>
-        <string name="cheat_catalog_manual_attach">Attach to selected game</string>
+        <string name="cheat_catalog_manual_attach">Attach</string>
         <string name="cheat_catalog_manual_warning">This pack has no verified match for this game. Check the region, revision and format before enabling codes.</string>
         <string name="cheat_format_unsupported">This cheat format is not supported by the selected core.</string>
         <string name="core_option_help_recommended_default">Recommended starting value: %1$s.</string>
@@ -2139,7 +2139,7 @@
     <string name="texture_manager_loading">Loading texture packs…</string>
     <string name="texture_manager_options">Runtime Options</string>
     <string name="texture_manager_enable_replacements">Load replacement textures</string>
-    <string name="texture_manager_enable_replacements_desc">Use PNG and DDS / KTX2 files from each game serial folder.</string>
+    <string name="texture_manager_enable_replacements_desc">Use PNG and DDS / KTX files from each game serial folder.</string>
     <string name="texture_manager_pack_modified">Modified %s</string>
     <string name="texture_manager_empty_title">No texture packs yet</string>
     <string name="texture_manager_storage">Texture Storage</string>
@@ -2150,7 +2150,7 @@
     <string name="texture_catalog_install_success">Texture pack installed. Texture replacements were enabled.</string>
     <string name="texture_catalog_install_failed">The texture pack could not be downloaded or installed safely.</string>
     <string name="texture_catalog_pack_meta">Version %1$s • %2$s • %3$d files</string>
-    <string name="texture_manager_summary_meta">%1$d packs ? %2$d textures ? %3$s</string>
+    <string name="texture_manager_summary_meta">%1$d packs • %2$d textures • %3$s</string>
     <string name="texture_manager_delete_confirm">Delete all replacement textures for %1$s?</string>
     <string name="texture_manager_empty_body">Import a ZIP texture pack for Nintendo 3DS, GameCube or Wii. Installed packs appear here.</string>
     <string name="texture_manager_platform_note">Nintendo 3DS replacements are global. GameCube and Wii replacements are enabled per game in the game settings.</string>

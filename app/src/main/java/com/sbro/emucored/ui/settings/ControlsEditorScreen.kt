@@ -454,7 +454,7 @@ fun ControlsEditorScreen(
     val selectedStickSurfaceMode = selectedIsStick && (selectedLayout?.surfaceOnly == true)
     val selectedStandardTitle = selectedControlId
         ?.takeUnless { it in ControlGroupIds || it.toCustomControlIdOrNull() != null }
-        ?.let { controlTitle(it) }
+        ?.let { controlTitle(it, consolePolicy) }
         .orEmpty()
     val canDuplicateSelected = when {
         editorCustomControls.controls.size >= CustomTouchControlLibrary.MAX_CONTROLS -> false
@@ -804,7 +804,7 @@ fun ControlsEditorScreen(
                     }
                     selectedControlId?.let {
                         Text(
-                            text = selectedCustomControl?.name ?: controlTitle(it),
+                            text = selectedCustomControl?.name ?: controlTitle(it, consolePolicy),
                             style = MaterialTheme.typography.labelMedium,
                             color = Color.White.copy(alpha = 0.84f)
                         )
@@ -1058,7 +1058,7 @@ fun ControlsEditorScreen(
                     }
 
                     AdjustPanel(
-                        title = customControl?.name ?: controlTitle(controlId),
+                        title = customControl?.name ?: controlTitle(controlId, consolePolicy),
                         onDismiss = { showControlAdjustDialog = false },
                         modifier = Modifier.padding(top = 8.dp)
                     ) {
@@ -1160,7 +1160,7 @@ fun ControlsEditorScreen(
                             }
                             customControl?.secondaryActionId?.let { secondary ->
                                 Text(
-                                    text = actionLabel(secondary),
+                                    text = consoleActionLabel(secondary, consolePolicy),
                                     style = MaterialTheme.typography.labelMedium.copy(
                                         fontWeight = FontWeight.SemiBold
                                     ),
@@ -1226,7 +1226,7 @@ fun ControlsEditorScreen(
     if (standardComboControlId != null && standardComboActionId != null) {
         ComboActionDialog(
             consolePolicy = consolePolicy,
-            title = controlTitle(standardComboControlId),
+            title = controlTitle(standardComboControlId, consolePolicy),
             initialActionId = standardComboActionId,
             initialSecondaryActionId = null,
             confirmLabel = stringResource(R.string.controls_editor_done),
@@ -1419,8 +1419,8 @@ private fun ComboActionDialog(
                 }
 
                 ComboActionPreview(
-                    primaryLabel = actionLabel(actionId),
-                    secondaryLabel = secondaryActionId?.let { actionLabel(it) }
+                    primaryLabel = consoleActionLabel(actionId, consolePolicy),
+                    secondaryLabel = secondaryActionId?.let { consoleActionLabel(it, consolePolicy) }
                 )
 
                 ComboActionSection(
@@ -1442,7 +1442,7 @@ private fun ComboActionDialog(
                         )
                     } else {
                         ComboActionBadge(
-                            label = actionLabel(actionId),
+                            label = consoleActionLabel(actionId, consolePolicy),
                             highlighted = true
                         )
                     }
@@ -1582,39 +1582,48 @@ private fun ComboActionSection(
 }
 
 @Composable
-private fun controlTitle(controlId: String): String = when (controlId) {
-    "zl" -> "ZL"
-    "l" -> "L"
-    "zr" -> "ZR"
-    "r" -> "R"
-    ControlGroupDpad -> stringResource(R.string.settings_control_group_dpad)
-    ControlGroupActions -> stringResource(R.string.settings_control_group_face_buttons)
-    "dpad_up" -> stringResource(R.string.settings_gamepad_action_dpad_up)
-    "dpad_down" -> stringResource(R.string.settings_gamepad_action_dpad_down)
-    "dpad_left" -> stringResource(R.string.settings_gamepad_action_dpad_left)
-    "dpad_right" -> stringResource(R.string.settings_gamepad_action_dpad_right)
-    "left_stick_up" -> stringResource(R.string.settings_gamepad_action_left_stick_up)
-    "left_stick_down" -> stringResource(R.string.settings_gamepad_action_left_stick_down)
-    "left_stick_left" -> stringResource(R.string.settings_gamepad_action_left_stick_left)
-    "left_stick_right" -> stringResource(R.string.settings_gamepad_action_left_stick_right)
-    "right_stick_up" -> stringResource(R.string.settings_gamepad_action_right_stick_up)
-    "right_stick_down" -> stringResource(R.string.settings_gamepad_action_right_stick_down)
-    "right_stick_left" -> stringResource(R.string.settings_gamepad_action_right_stick_left)
-    "right_stick_right" -> stringResource(R.string.settings_gamepad_action_right_stick_right)
-    "dpad_cluster" -> stringResource(R.string.settings_control_label_extra_dpad)
-    "left_stick" -> stringResource(R.string.settings_control_label_left_stick)
-    "x" -> stringResource(R.string.settings_gamepad_action_x)
-    "y" -> stringResource(R.string.settings_gamepad_action_y)
-    "a" -> stringResource(R.string.settings_gamepad_action_a)
-    "b" -> stringResource(R.string.settings_gamepad_action_b)
-    "right_stick" -> stringResource(R.string.settings_control_label_right_stick)
-    "select" -> stringResource(R.string.settings_gamepad_action_select)
-    "left_input_toggle" -> stringResource(R.string.settings_gamepad_action_left_input_toggle)
-    "start" -> stringResource(R.string.settings_gamepad_action_start)
-    "home" -> stringResource(R.string.settings_gamepad_action_home)
-    "touch" -> stringResource(R.string.settings_gamepad_action_touch)
-    else -> controlId
+private fun controlTitle(controlId: String, consolePolicy: ConsoleOverlayPolicy): String {
+    // The console's own symbol wins over the generic action name: Wii 1/2, +/−, C/Z,
+    // GameCube Z. This is what the matching button already shows on the canvas.
+    consolePolicy.buttonLabel(controlId)?.let { return it }
+    return when (controlId) {
+        "zl" -> "ZL"
+        "l" -> "L"
+        "zr" -> "ZR"
+        "r" -> "R"
+        ControlGroupDpad -> stringResource(R.string.settings_control_group_dpad)
+        ControlGroupActions -> stringResource(R.string.settings_control_group_face_buttons)
+        "dpad_up" -> stringResource(R.string.settings_gamepad_action_dpad_up)
+        "dpad_down" -> stringResource(R.string.settings_gamepad_action_dpad_down)
+        "dpad_left" -> stringResource(R.string.settings_gamepad_action_dpad_left)
+        "dpad_right" -> stringResource(R.string.settings_gamepad_action_dpad_right)
+        "left_stick_up" -> stringResource(R.string.settings_gamepad_action_left_stick_up)
+        "left_stick_down" -> stringResource(R.string.settings_gamepad_action_left_stick_down)
+        "left_stick_left" -> stringResource(R.string.settings_gamepad_action_left_stick_left)
+        "left_stick_right" -> stringResource(R.string.settings_gamepad_action_left_stick_right)
+        "right_stick_up" -> stringResource(R.string.settings_gamepad_action_right_stick_up)
+        "right_stick_down" -> stringResource(R.string.settings_gamepad_action_right_stick_down)
+        "right_stick_left" -> stringResource(R.string.settings_gamepad_action_right_stick_left)
+        "right_stick_right" -> stringResource(R.string.settings_gamepad_action_right_stick_right)
+        "dpad_cluster" -> stringResource(R.string.settings_control_label_extra_dpad)
+        "left_stick" -> stringResource(R.string.settings_control_label_left_stick)
+        "x" -> stringResource(R.string.settings_gamepad_action_x)
+        "y" -> stringResource(R.string.settings_gamepad_action_y)
+        "a" -> stringResource(R.string.settings_gamepad_action_a)
+        "b" -> stringResource(R.string.settings_gamepad_action_b)
+        "right_stick" -> stringResource(R.string.settings_control_label_right_stick)
+        "select" -> stringResource(R.string.settings_gamepad_action_select)
+        "left_input_toggle" -> stringResource(R.string.settings_gamepad_action_left_input_toggle)
+        "start" -> stringResource(R.string.settings_gamepad_action_start)
+        "home" -> stringResource(R.string.settings_gamepad_action_home)
+        "touch" -> stringResource(R.string.settings_gamepad_action_touch)
+        else -> controlId
+    }
 }
+
+@Composable
+private fun consoleActionLabel(actionId: String, consolePolicy: ConsoleOverlayPolicy): String =
+    consolePolicy.buttonLabel(actionId) ?: actionLabel(actionId)
 
 @SuppressLint("ConfigurationScreenWidthHeight")
 @Composable

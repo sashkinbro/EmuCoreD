@@ -1,13 +1,13 @@
 
 <resources>
-    <string name="onboarding_core_title">???????? ??? ???????? Nintendo</string>
-    <string name="onboarding_core_subtitle">????????? ???? ??? ?????? ????????????? ??????? Nintendo ? ?????????? ARM64-????????????? ?? ??????????? Vulkan.</string>
+    <string name="onboarding_core_title">Створено для консолей Nintendo</string>
+    <string name="onboarding_core_subtitle">Вбудовані ядра для кожної підтримуваної консолі Nintendo з динамічною ARM64-рекомпіляцією та рендерингом Vulkan.</string>
     <string name="emulation_runtime_failure_title">Емуляцію зупинено</string>
     <string name="emulation_runtime_failure_description">Під час роботи виникла помилка, і коректно продовжити сеанс неможливо. Вийдіть із сеансу та запустіть гру знову. Рендерер не змінювався автоматично.\n\nПодробиці:\n</string>
     <string name="app_name">EmuCoreD</string>
-    <string name="onboarding_core_card_title">??????? ?????????? ???? ????????</string>
-    <string name="onboarding_core_card_cpu">????? ???????????? ??????? Nintendo ??? ?????? ???? ? ?????????? ARM64-????????????? ??? ??????? ??????.</string>
-    <string name="onboarding_core_card_gpu">????????? Vulkan ? OpenGL ????????? ???, ?? ???? ????????? ????.</string>
+    <string name="onboarding_core_card_title">Девʼять вбудованих ядер емуляції</string>
+    <string name="onboarding_core_card_cpu">Кожна підтримувана консоль Nintendo має окреме ядро з динамічною ARM64-рекомпіляцією для плавної роботи.</string>
+    <string name="onboarding_core_card_gpu">Рендеринг Vulkan і OpenGL доступний там, де його підтримує ядро.</string>
     <string name="onboarding_core_card_reference">Усі можливості ядра доступні без платної підписки.</string>
 
     <string name="shell_library">Бібліотека</string>
@@ -236,9 +236,9 @@
     <string name="settings_fps_overlay_mode_detailed">Статистика</string>
 
     <string name="onboarding_page_1_title">Ласкаво просимо до EmuCoreD</string>
-    <string name="onboarding_page_1_subtitle">???? ?????????? ?? ??????? Nintendo, ???????? ??? ???????? ????????????, ?????????? ????????? ?? ????????? ?? ????-????? ??????.</string>
+    <string name="onboarding_page_1_subtitle">Ваша бібліотека та лаунчер Nintendo, створені для швидкого налаштування, зрозумілої навігації та зручності на будь-якому екрані.</string>
     <string name="onboarding_page_2_title">Потужна емуляція</string>
-    <string name="onboarding_page_2_subtitle">?????? ? ???????? ???? Nintendo ? ??????????? ?????????? ???????????, ???????????? ?????????? ?? ???????????? ??????????????.</string>
+    <string name="onboarding_page_2_subtitle">Грайте в улюблені ігри Nintendo з розширеними графічними параметрами, настроюваним керуванням та оптимізацією продуктивності.</string>
     <string name="onboarding_page_3_title">Ваша бібліотека ігор</string>
     <string name="onboarding_page_3_subtitle">Створіть власну бібліотеку ігор з гарними обкладинками, детальною інформацією та швидким доступом до улюбленого.</string>
     <string name="onboarding_page_4_title">Готові до гри</string>
@@ -250,7 +250,7 @@
     <string name="onboarding_profile_fast_title">Швидкий / Небезпечний</string>
     <string name="onboarding_profile_fast_desc">Для слабших пристроїв, яким потрібна додаткова швидкість. У частини ігор може бути більше графічних помилок або гірша стабільність.</string>
     <string name="onboarding_title">Готуйтеся до гри</string>
-    <string name="onboarding_subtitle">???????? ????? ? ?????? Nintendo ? ??????? ?????? ?? ??????.</string>
+    <string name="onboarding_subtitle">Виберіть папки з іграми Nintendo і надайте доступ до файлів.</string>
     <string name="onboarding_games_title">Виберіть папку з іграми</string>
     <string name="onboarding_games_desc">Виберіть папку, яка містить ваші ігри.</string>
     <string name="onboarding_status_required">Обов\'язково</string>
@@ -1851,7 +1851,7 @@
 
     <!-- Consolidated core, format, cheat and manager strings -->
         <string name="cheat_catalog_browse_all">Переглянути всі чіти для цієї консолі</string>
-        <string name="cheat_catalog_manual_attach">Прив’язати до вибраної гри</string>
+        <string name="cheat_catalog_manual_attach">Прив’язати</string>
         <string name="cheat_catalog_manual_warning">Відповідність цього набору грі не підтверджена. Перед увімкненням кодів перевірте регіон, ревізію та формат.</string>
         <string name="cheat_format_unsupported">Вибране ядро не підтримує цей формат чітів.</string>
         <string name="core_option_help_recommended_default">Рекомендоване початкове значення: %1$s.</string>
@@ -2120,7 +2120,7 @@
     <string name="texture_manager_loading">Завантаження пакетів текстур…</string>
     <string name="texture_manager_options">Параметри виконання</string>
     <string name="texture_manager_enable_replacements">Завантажувати текстури для заміни</string>
-    <string name="texture_manager_enable_replacements_desc">Використовувати файли PNG та DDS / KTX2 з папки з серійним номером кожної гри.</string>
+    <string name="texture_manager_enable_replacements_desc">Використовувати файли PNG та DDS / KTX з папки з серійним номером кожної гри.</string>
     <string name="texture_manager_pack_modified">Змінено: %s</string>
     <string name="texture_manager_empty_title">Поки немає пакетів текстур</string>
     <string name="texture_manager_storage">Сховище текстур</string>
@@ -2131,8 +2131,8 @@
     <string name="texture_catalog_install_success">Текстурний пак встановлено. Заміни текстур увімкнено.</string>
     <string name="texture_catalog_install_failed">Не вдалося безпечно завантажити або встановити текстурний пак.</string>
     <string name="texture_catalog_pack_meta">Версія %1$s • %2$s • файлів: %3$d</string>
-    <string name="texture_manager_summary_meta">%1$d ????? ? %2$d ??????? ? %3$s</string>
-    <string name="texture_manager_delete_confirm">???????? ??? ???????? ??? ?????? ??? %1$s?</string>
-    <string name="texture_manager_empty_body">?????????? ZIP-??? ??????? ??? Nintendo 3DS, GameCube ??? Wii. ??????????? ???? ?????????? ???.</string>
-    <string name="texture_manager_platform_note">??? Nintendo 3DS ?????? ??????? ??? ?????????. ??? GameCube ? Wii ???? ?????????? ?????? ??? ?????? ??? ? ?????????????.</string>
+    <string name="texture_manager_summary_meta">%1$d паків • %2$d текстур • %3$s</string>
+    <string name="texture_manager_delete_confirm">Видалити всі текстури для заміни гри %1$s?</string>
+    <string name="texture_manager_empty_body">Імпортуйте ZIP-пак текстур для Nintendo 3DS, GameCube або Wii. Встановлені паки з’являться тут.</string>
+    <string name="texture_manager_platform_note">Для Nintendo 3DS заміна текстур діє глобально. Для GameCube і Wii вона вмикається окремо для кожної гри в налаштуваннях.</string>
 </resources>

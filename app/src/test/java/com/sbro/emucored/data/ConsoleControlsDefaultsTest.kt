@@ -1,10 +1,22 @@
 package com.sbro.emucored.data
 
 import com.sbro.emucored.core.platform.ConsolePlatform
+import com.sbro.emucored.ui.common.ConsoleOverlayPolicy
 import org.junit.Assert.*
 import org.junit.Test
 
 class ConsoleControlsDefaultsTest {
+    @Test fun everyVisibleDefaultControlIsSupportedByItsConsoleProfile() {
+        ConsoleControlsScope.all.forEach { scope ->
+            val policy = ConsoleOverlayPolicy.forPlatform(scope.platform, scope.normalizedWiiProfile)
+            val visible = ConsoleControlsDefaults.layout(scope).controlLayouts
+                .filterValues { it.visible }
+                .keys
+            val unsupported = visible.filterNot(policy::supportsControl)
+            assertTrue("${scope.key} exposes unsupported controls: $unsupported", unsupported.isEmpty())
+        }
+    }
+
     @Test fun freshConsolesExposeTheirActualInputsIncludingBothGameCubeSticks() {
         val basic = setOf("a", "b", "select", "start", "dpad_cluster")
         val expected = mapOf(

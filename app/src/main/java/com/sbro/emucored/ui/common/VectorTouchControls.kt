@@ -107,6 +107,28 @@ enum class OverlayDpadDirection {
 // drag clamping always agree on the same in-cluster arrow footprint.
 internal const val OverlayDpadClusterArrowScale = 0.36f
 
+/**
+ * A console button glyph can be replaced by a label (Wii 1/2, +/−, C/Z, GameCube Z).
+ * The stock vectors already contain the original letter, so overlaying a label would
+ * show two glyphs at once. These outlines keep the button shape without the letter.
+ */
+@DrawableRes
+private fun blankOverlayDrawableFor(@DrawableRes drawableRes: Int): Int = when (drawableRes) {
+    R.drawable.ic_controller_x_button,
+    R.drawable.ic_controller_y_button,
+    R.drawable.ic_controller_a_button,
+    R.drawable.ic_controller_b_button,
+    R.drawable.ic_controller_l3_button,
+    R.drawable.ic_controller_r3_button -> R.drawable.ic_controller_blank_face_button
+    R.drawable.ic_controller_l1_button,
+    R.drawable.ic_controller_l2_button,
+    R.drawable.ic_controller_r1_button,
+    R.drawable.ic_controller_r2_button,
+    R.drawable.ic_controller_select_button,
+    R.drawable.ic_controller_start_button -> R.drawable.ic_controller_blank_shoulder_button
+    else -> drawableRes
+}
+
 @DrawableRes
 fun overlayDrawableForControl(controlId: String): Int? = when (controlId) {
     "x" -> R.drawable.ic_controller_x_button
@@ -316,7 +338,9 @@ fun VectorOverlayButton(
         }
         if (visualStyle == TouchControlVisualStyle.CLASSIC) {
             Image(
-                painter = painterResource(drawableRes),
+                painter = painterResource(
+                    if (labelOverride != null) blankOverlayDrawableFor(drawableRes) else drawableRes
+                ),
                 contentDescription = null,
                 modifier = Modifier.fillMaxSize(),
                 contentScale = contentScale

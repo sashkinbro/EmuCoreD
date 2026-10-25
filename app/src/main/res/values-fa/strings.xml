@@ -1,11 +1,11 @@
 <resources>
     <string name="emulation_runtime_failure_title">شبیه‌سازی متوقف شد</string>
     <string name="emulation_runtime_failure_description">محیط اجرا با خطایی مواجه شد و نمی‌تواند با خیال راحت ادامه دهد. از این نشست خارج شوید و بازی را دوباره شروع کنید. رندرر به‌صورت خودکار تغییر نکرد.\n\nجزئیات:\n</string>
-    <string name="onboarding_core_title">????????? ???? ????????? Nintendo</string>
-    <string name="onboarding_core_subtitle">???????? ????? ???? ?? ????? Nintendo ????????????? ?? ?????????? ????? ARM64 ? ???? Vulkan.</string>
-    <string name="onboarding_core_card_title">?? ????? ????????? ?????</string>
-    <string name="onboarding_core_card_cpu">?? ????? Nintendo ???????????? ????? ??????? ?? ?????????? ????? ARM64 ???? ?????? ???? ????.</string>
-    <string name="onboarding_core_card_gpu">???? Vulkan ? OpenGL ?? ???? ???????? ???? ?? ????? ???.</string>
+    <string name="onboarding_core_title">ساخته‌شده برای کنسول‌های Nintendo</string>
+    <string name="onboarding_core_subtitle">هسته‌های داخلی برای هر کنسول Nintendo پشتیبانی‌شده، با بازکامپایل پویای ARM64 و رندر Vulkan.</string>
+    <string name="onboarding_core_card_title">نه هستهٔ شبیه‌سازی داخلی</string>
+    <string name="onboarding_core_card_cpu">هر کنسول Nintendo پشتیبانی‌شده هستهٔ اختصاصی با بازکامپایل پویای ARM64 برای کارایی روان دارد.</string>
+    <string name="onboarding_core_card_gpu">رندر Vulkan و OpenGL در صورت پشتیبانی هسته در دسترس است.</string>
     <string name="onboarding_core_card_reference">هیچ سطح پرداختی لازم نیست؛ همه ویژگی‌های هسته در دسترس هستند.</string>
     <string name="app_name">EmuCoreD</string>
 
@@ -441,9 +441,9 @@
 
     <!-- Onboarding -->
     <string name="onboarding_page_1_title">به EmuCoreD خوش آمدید</string>
-    <string name="onboarding_page_1_subtitle">???????? ? ????????? Nintendo ???? ???? ?????????? ????? ?????? ???? ? ????? ???? ??? ?? ????.</string>
+    <string name="onboarding_page_1_subtitle">کتابخانه و اجراکننده Nintendo شما، برای راه‌اندازی سریع، پیمایش روشن و تجربه راحت روی هر صفحه.</string>
     <string name="onboarding_page_2_title">شبیه‌سازی قدرتمند</string>
-    <string name="onboarding_page_2_subtitle">???????? ????? Nintendo ?? ?? ????????? ??????? ???????? ????????? ???? ????? ? ?????????? ?????? ????? ????.</string>
+    <string name="onboarding_page_2_subtitle">بازی‌های محبوب Nintendo را با گزینه‌های گرافیکی پیشرفته، کنترل‌های قابل تنظیم و بهینه‌سازی کارایی تجربه کنید.</string>
     <string name="onboarding_page_3_title">کتابخانه بازی‌های شما</string>
     <string name="onboarding_page_3_subtitle">کتابخانه شخصی خود را با جلدهای زیبا، اطلاعات کامل و دسترسی سریع به علاقه‌مندی‌ها بسازید.</string>
     <string name="onboarding_page_4_title">آماده بازی</string>
@@ -471,7 +471,7 @@
     <string name="settings_mediatek_notice_title">سازگاری MediaTek</string>
     <string name="settings_mediatek_notice_message">پشتیبانی از MediaTek هنوز آزمایشی است. تا زمانی که به بهبود سازگاری و عملکرد ادامه می‌دهیم، ممکن است خرابی، اشکالات گرافیکی و عملکرد ناپایدار رخ دهد.\n\nاگر با مشکل گرافیکی روبه‌رو شدید، OpenGL را با ANGLE فعال امتحان کنید. اگر مشکل ادامه داشت، از رندرکننده نرم‌افزاری استفاده کنید.</string>
     <string name="onboarding_title">برای بازی آماده شوید</string>
-    <string name="onboarding_subtitle">???????? ???? Nintendo ?? ?????? ???? ? ?????? ???? ?????.</string>
+    <string name="onboarding_subtitle">پوشه‌های بازی Nintendo را انتخاب کنید و دسترسی فایل بدهید.</string>
     <string name="onboarding_games_title">انتخاب پوشه بازی‌ها</string>
     <string name="onboarding_games_desc">پوشه‌ای را که حاوی بازی‌های شماست انتخاب کنید.</string>
     <string name="onboarding_status_required">الزامی است</string>
@@ -1861,7 +1861,7 @@
 
     <!-- Consolidated core, format, cheat and manager strings -->
         <string name="cheat_catalog_browse_all">مرور همه تقلب‌های این کنسول</string>
-        <string name="cheat_catalog_manual_attach">اتصال به بازی انتخاب‌شده</string>
+        <string name="cheat_catalog_manual_attach">پیوست</string>
         <string name="cheat_catalog_manual_warning">مطابقت این بسته با بازی تأیید نشده است. پیش از فعال‌سازی کدها، منطقه، بازبینی و قالب را بررسی کنید.</string>
         <string name="cheat_format_unsupported">هسته انتخاب‌شده از این قالب تقلب پشتیبانی نمی‌کند.</string>
         <string name="core_option_help_recommended_default" formatted="true">مقدار پیشنهادی برای شروع: %1$s.</string>
@@ -2130,7 +2130,7 @@
     <string name="texture_manager_loading">در حال بارگذاری بسته‌های بافت…</string>
     <string name="texture_manager_options">گزینه‌های زمان اجرا</string>
     <string name="texture_manager_enable_replacements">بارگذاری بافت‌های جایگزین</string>
-    <string name="texture_manager_enable_replacements_desc">استفاده از فایل‌های PNG و DDS / KTX2 از پوشه سریال هر بازی.</string>
+    <string name="texture_manager_enable_replacements_desc">استفاده از فایل‌های PNG و DDS / KTX از پوشه سریال هر بازی.</string>
     <string name="texture_manager_pack_modified">تغییر یافته در %s</string>
     <string name="texture_manager_empty_title">هنوز بسته بافتی وجود ندارد</string>
     <string name="texture_manager_storage">ذخیره‌سازی بافت</string>
@@ -2141,8 +2141,8 @@
     <string name="texture_catalog_install_success">بسته بافت نصب و جایگزینی بافت فعال شد.</string>
     <string name="texture_catalog_install_failed">بسته بافت با اطمینان بارگیری یا نصب نشد.</string>
     <string name="texture_catalog_pack_meta">نسخه %1$s • %2$s • %3$d فایل</string>
-    <string name="texture_manager_summary_meta">%1$d ???? ? %2$d ???? ? %3$s</string>
-    <string name="texture_manager_delete_confirm">??? ???????? ??????? ???? %1$s ??? ?????</string>
-    <string name="texture_manager_empty_body">?? ???? ZIP ???? ???? Nintendo 3DS? GameCube ?? Wii ???? ????. ???????? ??????? ????? ????? ???? ???????.</string>
-    <string name="texture_manager_platform_note">???????? ??????? Nintendo 3DS ?????? ?????. ???? GameCube ? Wii ?? ??????? ?? ???? ??????? ???? ???????.</string>
+    <string name="texture_manager_summary_meta">%1$d بسته • %2$d بافت • %3$s</string>
+    <string name="texture_manager_delete_confirm">همه بافت‌های جایگزین برای %1$s حذف شوند؟</string>
+    <string name="texture_manager_empty_body">یک بسته ZIP بافت برای Nintendo 3DS، GameCube یا Wii وارد کنید. بسته‌های نصب‌شده اینجا نمایش داده می‌شوند.</string>
+    <string name="texture_manager_platform_note">بافت‌های جایگزین Nintendo 3DS سراسری هستند. برای GameCube و Wii در تنظیمات هر بازی جداگانه فعال می‌شوند.</string>
 </resources>

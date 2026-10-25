@@ -8,10 +8,12 @@ import androidx.lifecycle.viewModelScope
 import com.sbro.emucored.R
 import com.sbro.emucored.core.BackupSessionGate
 import com.sbro.emucored.data.GameItem
+import com.sbro.emucored.data.GamePlatform
 import com.sbro.emucored.data.RemoteTexturePack
 import com.sbro.emucored.data.drive.DriveBackupException
 import com.sbro.emucored.data.textures.AndroidTexturePackRepository
 import com.sbro.emucored.data.textures.InstalledTexturePack
+import com.sbro.emucored.data.textures.TexturePackIdentity
 import com.sbro.emucored.data.textures.TexturePackTarget
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
@@ -137,3 +139,19 @@ class TextureManagerViewModel private constructor(application: Application,
     private fun errorMessage(error: Exception) = if (error is DriveBackupException && error.reason == "busy")
         R.string.texture_manager_stop else R.string.texture_manager_failed
 }
+
+/** Bounded process-death state for the document picker's requested game. */
+internal fun saveTextureSelection(selection: TextureGameSelection): ArrayList<String> = arrayListOf(
+    selection.game.path,
+    selection.game.platform.name,
+    selection.game.title,
+    selection.target.id
+)
+
+internal fun restoreTextureSelection(values: List<String>): TextureGameSelection? = runCatching {
+    require(values.size == 4 && values[0].isNotBlank())
+    val platform = GamePlatform.valueOf(values[1])
+    require(TexturePackIdentity.supports(platform))
+    val game = GameItem(values[2], values[0], "", 0, 0, platform = platform)
+    TextureGameSelection(game, TexturePackTarget(platform.console, values[3]))
+}.getOrNull()

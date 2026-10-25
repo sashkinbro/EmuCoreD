@@ -2,10 +2,10 @@
     <string name="emulation_runtime_failure_title">Emulacja zatrzymana</string>
     <string name="emulation_runtime_failure_description">Środowisko wykonawcze napotkało błąd i nie może bezpiecznie kontynuować. Zakończ tę sesję i uruchom grę ponownie. Renderer nie został zmieniony automatycznie.\n\nSzczegóły:\n</string>
     <string name="onboarding_core_title">Zbudowany dla konsol Nintendo</string>
-    <string name="onboarding_core_subtitle">Wbudowane rdzenie dla ka?dej obs?ugiwanej konsoli Nintendo, z dynamiczn? rekompilacj? ARM64 i renderowaniem Vulkan.</string>
-    <string name="onboarding_core_card_title">Dziewi?? wbudowanych rdzeni emulacji</string>
-    <string name="onboarding_core_card_cpu">Ka?da obs?ugiwana konsola Nintendo ma dedykowany rdze? z dynamiczn? rekompilacj? ARM64, zapewniaj?cy p?ynne dzia?anie.</string>
-    <string name="onboarding_core_card_gpu">Renderowanie Vulkan i OpenGL jest dost?pne, gdy rdze? je obs?uguje.</string>
+    <string name="onboarding_core_subtitle">Wbudowane rdzenie dla każdej obsługiwanej konsoli Nintendo, z dynamiczną rekompilacją ARM64 i renderowaniem Vulkan.</string>
+    <string name="onboarding_core_card_title">Dziewięć wbudowanych rdzeni emulacji</string>
+    <string name="onboarding_core_card_cpu">Każda obsługiwana konsola Nintendo ma dedykowany rdzeń z dynamiczną rekompilacją ARM64, zapewniający płynne działanie.</string>
+    <string name="onboarding_core_card_gpu">Renderowanie Vulkan i OpenGL jest dostępne, gdy rdzeń je obsługuje.</string>
     <string name="onboarding_core_card_reference">Żaden płatny poziom nie jest wymagany; wszystkie funkcje jądra są dostępne.</string>
     <string name="app_name">EmuCoreD</string>
 
@@ -459,9 +459,9 @@
 
     <!-- Onboarding -->
     <string name="onboarding_page_1_title">Witamy w EmuCoreD</string>
-    <string name="onboarding_page_1_subtitle">Twoja biblioteka i launcher Nintendo, zaprojektowane dla szybkiej konfiguracji, przejrzystej nawigacji i wygody na ka?dym ekranie.</string>
+    <string name="onboarding_page_1_subtitle">Twoja biblioteka i launcher Nintendo, zaprojektowane dla szybkiej konfiguracji, przejrzystej nawigacji i wygody na każdym ekranie.</string>
     <string name="onboarding_page_2_title">Skalowana siła renderowania / Emulacja 3D</string>
-    <string name="onboarding_page_2_subtitle">Graj w ulubione gry Nintendo z zaawansowanymi opcjami graficznymi, konfigurowalnym sterowaniem i optymalizacj? wydajno?ci.</string>
+    <string name="onboarding_page_2_subtitle">Graj w ulubione gry Nintendo z zaawansowanymi opcjami graficznymi, konfigurowalnym sterowaniem i optymalizacją wydajności.</string>
     <string name="onboarding_page_3_title">Buduj okładki i Twoją Bibliotekę Gier (Biblioteka)</string>
     <string name="onboarding_page_3_subtitle">Zbuduj własną bibliotekę gier z pięknymi okładkami, szczegółowymi informacjami i szybkim dostępem do ulubionych.</string>
     <string name="onboarding_page_4_title">Gotowy?</string>
@@ -490,7 +490,7 @@
     <string name="settings_mediatek_notice_message">Zaznaczamy że wspieranie i ułatwienia renderowania urządzeń pod układ procesora mobilnego w systemie ze sprzętem SoC na MediaTek (wraz układem z akceleratorem z Mali u Android czy opcją platform z PowerVR pod środowiskiem u MediaTek po SoC platform graficznych renderu) jest ciągle objęte u EmuCoreD na status w obszarze wspierania jedynie u wariantu dla spraw technicznych do próbnej gałęzi eksperymentalnej z rozwojem w PCSX i we wdrożeniu do użycia mobilnego. \n\nWięc nadal wystąpić przez powody niedopracowań u sterowników od producentów: mogą u Państwa bez przyczyny wyskakiwać znane u wszystkich błędy / ubytki lub awarie silnika z wygaszeniem ekranu i wyrzuceniem do systemowego launchera z powodu zawieszania u sterownika od strony smartfona u GPU, a także mogą pojawić błędy na siatce przy klatkach grafiki czy niestabilności ze słabszym bądź bardzo niepewnym renderem w klatkach podczas trwania nieprzerwanej sesji emulacji u gier pomimo tego że nadal powoli ciągle skupiamy proces do usprawnienia zgodności u wsparcia by zminimalizować na platformie pod MediaTek wszelkie niedogodności związane u tego procesora z brakiem użycia natywnego stabilnego działania bez łatek. \n\nJeśli więc na ten czas doświadczysz ciągle ze strony problemów pod procesami przy renderingu na gałęzi w MediaTek we wdrożeniach u wybranego sprzętu z używanego standardowego trybu na gałęzi GPU pod Vulkan - Zmień pod menu u renderer i sprawdź jak chodzi po przełączeniu natywnie do u użycia u OpenGL z ręcznym załączaniem (albo bez i włączenie domyślnym w MediaTek bez łatki) trybu ANGLE dla bibliotek na wspieraniu (Spróbuj w przypadku OpenGL i braku pożądanej jakości renderu, do włączenia u kompatybilności opartą specjalnie dla tego u opcji funkcję: bibliotek od środowiska ANGLE z renderu użytego wraz pod tryb u OpenGL w opcjach grafiki). Jeśli po problemach na grafice oraz próbach zmiany nadal wszystko to nie pomoże u Ciebie i po włączeniu gry ciągle jest ten u ciebie problem na telefonie, dla stabilnego pod proces u renderu, użyj i pozostań z domyślnego najstarszego renderingu w Software (Tylko proces po procesorze) pomimo znaczącego drastycznego spowolnienia na CPU przez użycie Software Renderer przy wsparciu kompatybilności.</string>
     <string name="onboarding_title">Gotowy do odpalenia gry w PSP u EmuCoreD w swoim urządzeniu Android. Miłego powrotu u najlepszych platform wspieranych platformą emulacji PCSX u nas (Rozpocznij u EmuCoreD by móc powrócić i po raz kolejny przechodzić na telefonie Twoje ulubione wspaniałe klasyki konsol od gier używając EmuCoreD u gier z PSP pod użyciem interfejsu aplikacji).</string>
 
-    <string name="onboarding_subtitle">Wybierz foldery z grami Nintendo i przyznaj dost?p do plik?w.</string>
+    <string name="onboarding_subtitle">Wybierz foldery z grami Nintendo i przyznaj dostęp do plików.</string>
     <string name="onboarding_games_title">Dodaj foldery z grami</string>
     <string name="onboarding_games_desc">Dodaj jeden lub więcej folderów zawierających Twoje gry.</string>
     <string name="onboarding_games_selected_count">Wybrano folderów: %1$d. Dotknij, aby dodać kolejny.</string>
@@ -1867,7 +1867,7 @@
 
     <!-- Consolidated core, format, cheat and manager strings -->
         <string name="cheat_catalog_browse_all">Przeglądaj wszystkie kody dla tej konsoli</string>
-        <string name="cheat_catalog_manual_attach">Przypisz do wybranej gry</string>
+        <string name="cheat_catalog_manual_attach">Przypisz</string>
         <string name="cheat_catalog_manual_warning">Zgodność tego pakietu z grą nie została potwierdzona. Przed włączeniem kodów sprawdź region, rewizję i format.</string>
         <string name="cheat_format_unsupported">Wybrany rdzeń nie obsługuje tego formatu kodów.</string>
         <string name="core_option_help_recommended_default">Zalecana wartość początkowa: %1$s.</string>
@@ -2136,7 +2136,7 @@
     <string name="texture_manager_loading">Wczytywanie paczek tekstur…</string>
     <string name="texture_manager_options">Opcje środowiska uruchomieniowego</string>
     <string name="texture_manager_enable_replacements">Wczytuj tekstury zastępcze</string>
-    <string name="texture_manager_enable_replacements_desc">Używaj plików PNG i DDS / KTX2 z folderu numeru seryjnego danej gry.</string>
+    <string name="texture_manager_enable_replacements_desc">Używaj plików PNG i DDS / KTX z folderu numeru seryjnego danej gry.</string>
     <string name="texture_manager_pack_modified">Zmodyfikowano %s</string>
     <string name="texture_manager_empty_title">Brak paczek tekstur</string>
     <string name="texture_manager_storage">Pamięć tekstur</string>
@@ -2147,8 +2147,8 @@
     <string name="texture_catalog_install_success">Pakiet tekstur został zainstalowany. Opcja podmiany tekstur została aktywowana.</string>
     <string name="texture_catalog_install_failed">Paczka z teksturami nie mogła zostać poprawnie lub w całości pobrana.</string>
     <string name="texture_catalog_pack_meta">Wersja %1$s • %2$s • %3$d plików</string>
-    <string name="texture_manager_summary_meta">%1$d paczek ? %2$d tekstur ? %3$s</string>
-    <string name="texture_manager_delete_confirm">Usun?? wszystkie tekstury zast?pcze dla %1$s?</string>
-    <string name="texture_manager_empty_body">Zaimportuj paczk? ZIP z teksturami dla Nintendo 3DS, GameCube lub Wii. Zainstalowane paczki pojawi? si? tutaj.</string>
-    <string name="texture_manager_platform_note">Tekstury zast?pcze Nintendo 3DS dzia?aj? globalnie. Dla GameCube i Wii w??cza si? je osobno dla ka?dej gry w ustawieniach gry.</string>
+    <string name="texture_manager_summary_meta">%1$d paczek • %2$d tekstur • %3$s</string>
+    <string name="texture_manager_delete_confirm">Usunąć wszystkie tekstury zastępcze dla %1$s?</string>
+    <string name="texture_manager_empty_body">Zaimportuj paczkę ZIP z teksturami dla Nintendo 3DS, GameCube lub Wii. Zainstalowane paczki pojawią się tutaj.</string>
+    <string name="texture_manager_platform_note">Tekstury zastępcze Nintendo 3DS działają globalnie. Dla GameCube i Wii włącza się je osobno dla każdej gry w ustawieniach gry.</string>
 </resources>

@@ -1,11 +1,11 @@
 <resources>
     <string name="emulation_runtime_failure_title">تم إيقاف المحاكاة</string>
     <string name="emulation_runtime_failure_description">واجهت بيئة التشغيل خطأً ولا يمكنها المتابعة بأمان. اخرج من هذه الجلسة وابدأ اللعبة من جديد. لم يتم تغيير العارض تلقائيًا.\n\nالتفاصيل:\n</string>
-    <string name="onboarding_core_title">???? ?????? Nintendo</string>
-    <string name="onboarding_core_subtitle">??? ????? ??? ???? Nintendo ?????? ?? ????? ????? ????????? ARM64 ???? Vulkan.</string>
-    <string name="onboarding_core_card_title">???? ??? ?????? ?????</string>
-    <string name="onboarding_core_card_cpu">??? ???? Nintendo ????? ???? ????? ?????? ????? ??????? ??????????? ARM64 ????? ???.</string>
-    <string name="onboarding_core_card_gpu">????? ??? Vulkan ?OpenGL ??? ????? ??????.</string>
+    <string name="onboarding_core_title">مصمم لأجهزة Nintendo</string>
+    <string name="onboarding_core_subtitle">نوى مدمجة لكل جهاز Nintendo مدعوم، مع إعادة ترجمة ديناميكية ARM64 وعرض Vulkan.</string>
+    <string name="onboarding_core_card_title">تسعة نوى محاكاة مدمجة</string>
+    <string name="onboarding_core_card_cpu">لكل جهاز Nintendo مدعوم نواة مخصصة تستخدم إعادة الترجمة الديناميكية ARM64 لأداء سلس.</string>
+    <string name="onboarding_core_card_gpu">يتوفر عرض Vulkan وOpenGL حيث تدعمه النواة.</string>
     <string name="onboarding_core_card_reference">لا حاجة إلى أي مستوى مدفوع؛ فجميع ميزات النواة متاحة.</string>
     <string name="app_name">EmuCoreD</string>
 
@@ -365,9 +365,9 @@
     <string name="settings_fps_overlay_mode_detailed">إحصائيات</string>
 
     <string name="onboarding_page_1_title">مرحبًا بك في EmuCoreD</string>
-    <string name="onboarding_page_1_subtitle">?????? ?????? Nintendo? ?????? ?????? ???? ????? ???? ?????? ????? ??? ?? ????.</string>
+    <string name="onboarding_page_1_subtitle">مكتبتك ومشغّل Nintendo، مصممان لإعداد سريع وتنقل واضح وتجربة مريحة على أي شاشة.</string>
     <string name="onboarding_page_2_title">محاكاة قوية</string>
-    <string name="onboarding_page_2_subtitle">?????? ?????? Nintendo ??????? ?? ?????? ?????? ?????? ????? ???? ??????? ???????? ????.</string>
+    <string name="onboarding_page_2_subtitle">استمتع بألعاب Nintendo المفضلة مع خيارات رسومية متقدمة وتحكم قابل للتخصيص وتحسينات أداء.</string>
     <string name="onboarding_page_3_title">مكتبة ألعابك</string>
     <string name="onboarding_page_3_subtitle">ابنِ مكتبتك الخاصة بأغلفة جميلة ومعلومات مفصلة ووصول سريع للمفضلة.</string>
     <string name="onboarding_page_4_title">جاهز للعب</string>
@@ -379,7 +379,7 @@
     <string name="onboarding_profile_fast_title">سريع / غير آمن</string>
     <string name="onboarding_profile_fast_desc">للأجهزة الأضعف التي تحتاج إلى سرعة إضافية. قد تظهر بعض الألعاب المزيد من الأخطاء أو تصبح أقل استقرارًا.</string>
     <string name="onboarding_title">استعد للعب</string>
-    <string name="onboarding_subtitle">???? ?????? ????? Nintendo ????? ?????? ???????.</string>
+    <string name="onboarding_subtitle">اختر مجلدات ألعاب Nintendo وامنح الوصول للملفات.</string>
     <string name="onboarding_games_title">اختر مجلد الألعاب</string>
     <string name="onboarding_games_desc">حدد المجلد الذي يحتوي على ألعابك.</string>
     <string name="onboarding_status_required">مطلوب</string>
@@ -1854,7 +1854,7 @@
 
     <!-- Consolidated core, format, cheat and manager strings -->
         <string name="cheat_catalog_browse_all">تصفح جميع الغش لهذه المنصة</string>
-        <string name="cheat_catalog_manual_attach">ربط باللعبة المحددة</string>
+        <string name="cheat_catalog_manual_attach">إرفاق</string>
         <string name="cheat_catalog_manual_warning">لم يتم التحقق من تطابق هذه الحزمة مع اللعبة. تحقق من المنطقة والمراجعة والتنسيق قبل تفعيل الرموز.</string>
         <string name="cheat_format_unsupported">النواة المحددة لا تدعم تنسيق الغش هذا.</string>
         <string name="core_option_help_recommended_default" formatted="true">القيمة الموصى بها للبدء: %1$s.</string>
@@ -2123,7 +2123,7 @@
     <string name="texture_manager_loading">جاري تحميل حزم الإكساءات…</string>
     <string name="texture_manager_options">خيارات التشغيل</string>
     <string name="texture_manager_enable_replacements">تحميل إكساءات الاستبدال</string>
-    <string name="texture_manager_enable_replacements_desc">استخدام ملفات PNG و DDS / KTX2 من مجلد كل رقم تسلسلي للعبة.</string>
+    <string name="texture_manager_enable_replacements_desc">استخدام ملفات PNG و DDS / KTX من مجلد كل رقم تسلسلي للعبة.</string>
     <string name="texture_manager_pack_modified">تعديل %s</string>
     <string name="texture_manager_empty_title">لا توجد حزم إكساءات بعد</string>
     <string name="texture_manager_storage">تخزين الإكساءات</string>
@@ -2134,8 +2134,8 @@
     <string name="texture_catalog_install_success">تم تثبيت حزمة الأنسجة وتفعيل استبدال الأنسجة.</string>
     <string name="texture_catalog_install_failed">تعذر تنزيل حزمة الأنسجة أو تثبيتها بأمان.</string>
     <string name="texture_catalog_pack_meta">الإصدار %1$s • %2$s • %3$d ملف</string>
-    <string name="texture_manager_summary_meta">%1$d ??? ? %2$d ??????? ? %3$s</string>
-    <string name="texture_manager_delete_confirm">?? ???? ??? ???? ??????? ????????? ?? %1$s?</string>
-    <string name="texture_manager_empty_body">?????? ???? ??????? ZIP ?? Nintendo 3DS ?? GameCube ?? Wii. ????? ????? ??????? ???.</string>
-    <string name="texture_manager_platform_note">??????? ????????? ?? Nintendo 3DS ????. ??? GameCube ?Wii ??????? ??? ???? ?? ??????? ??????.</string>
+    <string name="texture_manager_summary_meta">%1$d حزم • %2$d إكساءات • %3$s</string>
+    <string name="texture_manager_delete_confirm">هل تريد حذف جميع إكساءات الاستبدال لـ %1$s؟</string>
+    <string name="texture_manager_empty_body">استورد حزمة إكساءات ZIP لـ Nintendo 3DS أو GameCube أو Wii. ستظهر الحزم المثبتة هنا.</string>
+    <string name="texture_manager_platform_note">إكساءات الاستبدال في Nintendo 3DS عامة. أما GameCube وWii فتُفعّل لكل لعبة من إعدادات اللعبة.</string>
 </resources>

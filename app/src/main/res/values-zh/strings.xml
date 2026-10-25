@@ -1,11 +1,11 @@
 <resources>
     <string name="emulation_runtime_failure_title">模拟已停止</string>
     <string name="emulation_runtime_failure_description">运行时遇到错误，无法安全继续。请退出本次会话并重新启动游戏。渲染器未自动更改。\n\n详情：\n</string>
-    <string name="onboarding_core_title">?? Nintendo ????</string>
-    <string name="onboarding_core_subtitle">?????? Nintendo ????????? ARM64 ?????? Vulkan ???</string>
-    <string name="onboarding_core_card_title">????????</string>
-    <string name="onboarding_core_card_cpu">????? Nintendo ??????????? ARM64 ????????????</string>
-    <string name="onboarding_core_card_gpu">Vulkan ? OpenGL ???????????</string>
+    <string name="onboarding_core_title">专为 Nintendo 主机打造</string>
+    <string name="onboarding_core_subtitle">为所有支持的 Nintendo 主机内置核心，支持 ARM64 动态重编译和 Vulkan 渲染。</string>
+    <string name="onboarding_core_card_title">内置九个模拟核心</string>
+    <string name="onboarding_core_card_cpu">每个支持的 Nintendo 主机都有专用核心，通过 ARM64 动态重编译实现流畅运行。</string>
+    <string name="onboarding_core_card_gpu">Vulkan 和 OpenGL 渲染在核心支持时可用。</string>
     <string name="onboarding_core_card_reference">无需付费层级；所有核心功能均可使用。</string>
     <string name="app_name">EmuCoreD</string>
 
@@ -221,15 +221,15 @@
     <string name="settings_fps_overlay_mode_detailed">詳細統計</string>
 
     <string name="onboarding_page_1_title">歡迎使用 EmuCoreD</string>
-    <string name="onboarding_page_1_subtitle">?? Nintendo ?????????????????????????????????</string>
+    <string name="onboarding_page_1_subtitle">您的 Nintendo 游戏库与启动器，专为快速设置、清晰导航和各类屏幕的舒适体验而设计。</string>
     <string name="onboarding_page_2_title">強大的模擬功能</string>
-    <string name="onboarding_page_2_subtitle">?????????????????????????? Nintendo ???</string>
+    <string name="onboarding_page_2_subtitle">通过高级图形选项、自定义控制和性能优化，畅玩您喜爱的 Nintendo 游戏。</string>
     <string name="onboarding_page_3_title">您的遊戲庫</string>
     <string name="onboarding_page_3_subtitle">用精美封面、详细信息和收藏快捷入口打造您的个人游戏库。</string>
     <string name="onboarding_page_4_title">準備遊玩</string>
     <string name="onboarding_page_4_subtitle">选择游戏文件夹和模拟器数据存储位置即可开始。</string>
     <string name="onboarding_title">準備開始遊玩</string>
-    <string name="onboarding_subtitle">???? Nintendo ???????????????</string>
+    <string name="onboarding_subtitle">选择您的 Nintendo 游戏文件夹并授予文件访问权限。</string>
     <string name="onboarding_games_title">選擇遊戲資料夾</string>
     <string name="onboarding_games_desc">選擇包含您遊戲的資料夾。</string>
     <string name="onboarding_status_required">必填</string>
@@ -1847,7 +1847,7 @@
 
     <!-- Consolidated core, format, cheat and manager strings -->
         <string name="cheat_catalog_browse_all">浏览此主机的所有金手指</string>
-        <string name="cheat_catalog_manual_attach">关联到所选游戏</string>
+        <string name="cheat_catalog_manual_attach">关联</string>
         <string name="cheat_catalog_manual_warning">尚未验证此包与游戏是否匹配。启用代码前，请检查地区、修订版本和格式。</string>
         <string name="cheat_format_unsupported">所选核心不支持此金手指格式。</string>
         <string name="core_option_help_recommended_default">建议起始值：%1$s。</string>
@@ -2116,7 +2116,7 @@
     <string name="texture_manager_loading">正在加载纹理包…</string>
     <string name="texture_manager_options">运行选项</string>
     <string name="texture_manager_enable_replacements">加载替换纹理</string>
-    <string name="texture_manager_enable_replacements_desc">使用每个游戏序列号文件夹中的 PNG 和 DDS / KTX2 文件。</string>
+    <string name="texture_manager_enable_replacements_desc">使用每个游戏序列号文件夹中的 PNG 和 DDS / KTX 文件。</string>
     <string name="texture_manager_pack_modified">修改于 %s</string>
     <string name="texture_manager_empty_title">暂无纹理包</string>
     <string name="texture_manager_storage">纹理存储</string>
@@ -2127,8 +2127,8 @@
     <string name="texture_catalog_install_success">纹理包已安装，并已启用纹理替换。</string>
     <string name="texture_catalog_install_failed">无法安全下载或安装纹理包。</string>
     <string name="texture_catalog_pack_meta">版本 %1$s • %2$s • %3$d 个文件</string>
-    <string name="texture_manager_summary_meta">%1$d ?? ? %2$d ??? ? %3$s</string>
-    <string name="texture_manager_delete_confirm">??? %1$s ?????????</string>
-    <string name="texture_manager_empty_body">? Nintendo 3DS?GameCube ? Wii ?? ZIP ????????????????</string>
-    <string name="texture_manager_platform_note">Nintendo 3DS ???????????GameCube ? Wii ?????????????????</string>
+    <string name="texture_manager_summary_meta">%1$d 个包 • %2$d 个纹理 • %3$s</string>
+    <string name="texture_manager_delete_confirm">要删除 %1$s 的所有替换纹理吗？</string>
+    <string name="texture_manager_empty_body">为 Nintendo 3DS、GameCube 或 Wii 导入 ZIP 纹理包。已安装的包会显示在这里。</string>
+    <string name="texture_manager_platform_note">Nintendo 3DS 的纹理替换是全局设置。GameCube 和 Wii 需在游戏设置中为每个游戏单独启用。</string>
 </resources>

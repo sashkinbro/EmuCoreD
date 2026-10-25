@@ -167,7 +167,7 @@ internal fun CheatOnlineCatalogSection(
         if (loaded.first.entries.isNotEmpty() || packs.isEmpty()) {
             packs = loaded.first.entries
             cached = loaded.first.fromCache
-            loadFailed = loaded.first.entries.isEmpty()
+            loadFailed = loaded.first.entries.isEmpty() && loaded.first.error != null
         }
         installed = loaded.second
         loading = false
