@@ -2204,4 +2204,5 @@
     <string name="settings_gpu_driver_status_system">استفاده از درایور GPU سیستم</string>
     <string name="settings_gpu_driver_status_system_desc">EmuCoreD از لودر پیش‌فرض Vulkan اندروید استفاده خواهد کرد.</string>
     <string name="settings_gpu_driver_system">سیستم</string>
+    <string name="settings_gpu_driver_manage">مدیریت درایورهای GPU</string>
 </resources>

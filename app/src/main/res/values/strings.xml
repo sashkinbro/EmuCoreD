@@ -2213,4 +2213,5 @@
     <string name="settings_gpu_driver_status_system">Using the system GPU driver</string>
     <string name="settings_gpu_driver_status_system_desc">EmuCoreD will use Android\'s default Vulkan loader.</string>
     <string name="settings_gpu_driver_system">System</string>
+    <string name="settings_gpu_driver_manage">Manage GPU drivers</string>
 </resources>

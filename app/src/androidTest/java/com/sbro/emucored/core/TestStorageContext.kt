@@ -36,11 +36,17 @@ internal class TestStorageContext :
     private val testCache = File(root, "cache").apply {
         check(mkdirs() && isDirectory) { "Cannot create isolated test cache: $this" }
     }
+    private val testExternal = File(root, "external").apply {
+        check(mkdirs() && isDirectory) { "Cannot create isolated external files: $this" }
+    }
     private val preferenceNames = mutableSetOf<String>()
 
     override fun getApplicationContext(): Context = this
     override fun getFilesDir(): File = testFiles
     override fun getCacheDir(): File = testCache
+    override fun getExternalFilesDir(type: String?): File =
+        if (type == null) testExternal else File(testExternal, type).apply { mkdirs() }
+    override fun getExternalFilesDirs(type: String?): Array<File> = arrayOf(getExternalFilesDir(type))
 
     override fun getSharedPreferences(name: String, mode: Int): SharedPreferences {
         val isolatedName = "${token}_$name"

@@ -2210,4 +2210,5 @@
     <string name="settings_gpu_driver_status_system">Používá se systémový ovladač GPU</string>
     <string name="settings_gpu_driver_status_system_desc">EmuCoreD použije výchozí zavaděč Vulkan systému Android.</string>
     <string name="settings_gpu_driver_system">Systémový</string>
+    <string name="settings_gpu_driver_manage">Spravovat ovladače GPU</string>
 </resources>

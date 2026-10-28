@@ -2192,4 +2192,5 @@
     <string name="settings_gpu_driver_status_system">Используется системный драйвер GPU</string>
     <string name="settings_gpu_driver_status_system_desc">EmuCoreD будет использовать стандартный загрузчик Vulkan от Android.</string>
     <string name="settings_gpu_driver_system">Системный</string>
+    <string name="settings_gpu_driver_manage">Управление драйверами GPU</string>
 </resources>

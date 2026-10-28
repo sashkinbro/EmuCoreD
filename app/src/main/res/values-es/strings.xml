@@ -2191,4 +2191,5 @@
     <string name="settings_gpu_driver_status_system">Usando el controlador de GPU del sistema</string>
     <string name="settings_gpu_driver_status_system_desc">EmuCoreD utilizará el cargador Vulkan predeterminado de Android.</string>
     <string name="settings_gpu_driver_system">Sistema</string>
+    <string name="settings_gpu_driver_manage">Administrar controladores de GPU</string>
 </resources>

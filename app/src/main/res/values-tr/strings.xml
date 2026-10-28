@@ -2189,4 +2189,5 @@
     <string name="settings_gpu_driver_status_system">Sistem GPU sürücüsü kullanılıyor</string>
     <string name="settings_gpu_driver_status_system_desc">EmuCoreD, Android\'in varsayılan Vulkan yükleyicisini kullanacak.</string>
     <string name="settings_gpu_driver_system">Sistem</string>
+    <string name="settings_gpu_driver_manage">GPU sürücülerini yönet</string>
 </resources>

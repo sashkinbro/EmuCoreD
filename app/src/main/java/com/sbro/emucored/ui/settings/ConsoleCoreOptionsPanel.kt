@@ -19,7 +19,8 @@ fun ConsoleCoreOptionsPanel(
     values: Map<String, String>,
     onChange: (key: String, value: String) -> Unit,
     onReset: ((key: String) -> Unit)? = null,
-    card: Boolean = true
+    card: Boolean = true,
+    afterOption: (@Composable (String) -> Unit)? = null
 ) {
     val options = CoreOptionSchema.options(platform).filter { it.category == category }
     if (options.isEmpty()) return
@@ -50,6 +51,7 @@ fun ConsoleCoreOptionsPanel(
                     helpText = help, onResetToDefault = reset
                 )
             }
+            afterOption?.invoke(option.key)
         }
     }
 }

@@ -2188,4 +2188,5 @@
     <string name="settings_gpu_driver_status_system">システムのGPUドライバーを使用中</string>
     <string name="settings_gpu_driver_status_system_desc">EmuCoreDはAndroidのデフォルトのVulkanローダーを使用します。</string>
     <string name="settings_gpu_driver_system">システム</string>
+    <string name="settings_gpu_driver_manage">GPUドライバーを管理</string>
 </resources>

@@ -985,14 +985,6 @@ private fun GameSettingsManagerEditorPanel(
                 onClick = onOpenTextureManager
             )
         }
-        if (selectedTab == GameSettingsManagerTab.Core && onOpenGpuDriver != null) {
-            ManagerActionButton(
-                modifier = Modifier.fillMaxWidth(),
-                icon = Icons.Rounded.FolderOpen,
-                title = stringResource(R.string.settings_gpu_driver_manager_title),
-                onClick = onOpenGpuDriver
-            )
-        }
         if (selectedTab == GameSettingsManagerTab.Controls) {
             ManagerActionButton(
                 modifier = Modifier.fillMaxWidth(),
@@ -1015,7 +1007,8 @@ private fun GameSettingsManagerEditorPanel(
             maxUpscaleMultiplier = maxUpscaleMultiplier,
             shaderPresets = shaderPresets,
             onRemoveShaderPresets = onRemoveShaderPresets,
-            onDraftChange = onDraftChange
+            onDraftChange = onDraftChange,
+            onOpenGpuDriver = onOpenGpuDriver
         )
     }
 }
@@ -1029,7 +1022,8 @@ private fun GameSettingsTabContent(
     maxUpscaleMultiplier: Int,
     shaderPresets: List<RetroArchShaderPreset>,
     onRemoveShaderPresets: suspend (Set<String>) -> Boolean,
-    onDraftChange: (PerGameSettings) -> Unit
+    onDraftChange: (PerGameSettings) -> Unit,
+    onOpenGpuDriver: (() -> Unit)? = null
 ) {
     val nativeUpscaleLabel = stringResource(R.string.settings_upscale_native)
     val context = LocalContext.current
@@ -1058,7 +1052,11 @@ private fun GameSettingsTabContent(
             onValueChange = { key, value ->
                 onDraftChange(draft.copy(coreOptions = draft.coreOptions + (key to value)))
             },
-            onReset = { key -> onDraftChange(draft.copy(coreOptions = draft.coreOptions - key)) }
+            onReset = { key -> onDraftChange(draft.copy(coreOptions = draft.coreOptions - key)) },
+            afterOption = { key ->
+                if (key == "graphics_backend" && selectedTab == GameSettingsManagerTab.Core && onOpenGpuDriver != null)
+                    GpuDriverManagerAction(onOpenGpuDriver)
+            }
         )
         when (selectedTab) {
             GameSettingsManagerTab.Core -> if (!usesTypedOptions) {
@@ -1079,6 +1077,7 @@ private fun GameSettingsTabContent(
                             onDraftChange(draft.copy(renderer = capabilities.normalizeRenderer(defaultProfile.renderer)))
                         }
                     )
+                    if (onOpenGpuDriver != null) GpuDriverManagerAction(onOpenGpuDriver)
                     // Internal resolution is the app-level per-game setting
                     // (draft.upscaleMultiplier) - the same value the in-game
                     // resolution selector edits. Exposing the raw core option
@@ -1522,7 +1521,8 @@ private fun TypedCoreOptionsSection(
     category: SettingsCategory,
     values: Map<String, String>,
     onValueChange: (String, String) -> Unit,
-    onReset: (String) -> Unit
+    onReset: (String) -> Unit,
+    afterOption: (@Composable (String) -> Unit)? = null
 ) {
     val options = remember(platform, category) {
         CoreOptionSchema.options(platform).filter { it.category == category }
@@ -1537,8 +1537,19 @@ private fun TypedCoreOptionsSection(
                 onValueChange = onValueChange,
                 onReset = onReset
             )
+            afterOption?.invoke(option.key)
         }
     }
+}
+
+@Composable
+private fun GpuDriverManagerAction(onClick: () -> Unit) {
+    ManagerActionButton(
+        modifier = Modifier.fillMaxWidth(),
+        icon = Icons.Rounded.Tune,
+        title = stringResource(R.string.settings_gpu_driver_manage),
+        onClick = onClick
+    )
 }
 
 @Composable

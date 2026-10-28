@@ -2191,4 +2191,5 @@
     <string name="settings_gpu_driver_status_system">System-GPU-Treiber wird verwendet</string>
     <string name="settings_gpu_driver_status_system_desc">EmuCoreD wird den standardmäßigen Vulkan-Loader von Android verwenden.</string>
     <string name="settings_gpu_driver_system">System</string>
+    <string name="settings_gpu_driver_manage">GPU-Treiber verwalten</string>
 </resources>

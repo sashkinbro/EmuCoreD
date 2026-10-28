@@ -2190,4 +2190,5 @@
     <string name="settings_gpu_driver_status_system">正在使用系统 GPU 驱动</string>
     <string name="settings_gpu_driver_status_system_desc">EmuCoreD 将使用 Android 默认的 Vulkan 加载器。</string>
     <string name="settings_gpu_driver_system">系統</string>
+    <string name="settings_gpu_driver_manage">管理 GPU 驱动</string>
 </resources>

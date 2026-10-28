@@ -2197,4 +2197,5 @@
     <string name="settings_gpu_driver_status_system">استخدام تعريف GPU الخاص بالنظام</string>
     <string name="settings_gpu_driver_status_system_desc">سيستخدم EmuCoreD محمل Vulkan الافتراضي لنظام Android.</string>
     <string name="settings_gpu_driver_system">النظام</string>
+    <string name="settings_gpu_driver_manage">إدارة تعريفات GPU</string>
 </resources>

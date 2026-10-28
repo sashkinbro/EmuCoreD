@@ -2189,4 +2189,5 @@
     <string name="settings_gpu_driver_status_system">सिस्टम GPU ड्राइवर का उपयोग कर रहा है</string>
     <string name="settings_gpu_driver_status_system_desc">EmuCoreD Android के डिफ़ॉल्ट Vulkan लोडर का उपयोग करेगा।</string>
     <string name="settings_gpu_driver_system">सिस्टम</string>
+    <string name="settings_gpu_driver_manage">GPU ड्राइवर प्रबंधित करें</string>
 </resources>
