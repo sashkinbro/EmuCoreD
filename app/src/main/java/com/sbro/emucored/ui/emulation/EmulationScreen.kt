@@ -3,6 +3,7 @@ package com.sbro.emucored.ui.emulation
 
 import android.annotation.SuppressLint
 import android.content.pm.ActivityInfo
+import android.content.res.Configuration
 import android.graphics.PixelFormat
 import android.view.MotionEvent
 import android.view.SurfaceHolder
@@ -138,6 +139,7 @@ import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.pointer.pointerInteropFilter
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
@@ -630,6 +632,7 @@ fun EmulationScreen(
     var showGamepadIndicator by remember { mutableStateOf(gamepadConnected) }
 
     val tvUiEnabled = LocalTvUiEnvironment.current.enabled
+    val dsLandscape = LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
     val dsControlsScale = (uiState.overlayScale / 100f).coerceIn(0.8f, 1.4f)
     val dsControlsHeight = 260.dp * dsControlsScale
     val viewportControls = emulationViewportControls(
@@ -639,7 +642,8 @@ fun EmulationScreen(
         hideOverlayOnGamepad = uiState.hideOverlayOnGamepad,
         tvUiEnabled = tvUiEnabled,
         touchPadMapped = touchPadIndex != null,
-        dsControlsHeightDp = dsControlsHeight.value
+        dsControlsHeightDp = dsControlsHeight.value,
+        isLandscape = dsLandscape
     )
     val shouldShowOverlay = viewportControls.showOverlay
 
@@ -780,14 +784,13 @@ fun EmulationScreen(
     }
 
     val emulationOrientation: Int? = when {
-        isNds -> ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
         orientationLockPreference == null || emulationAllowsBothOrientations == null -> null
         tvUiEnabled -> ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
         orientationLockPreference == AppPreferences.ORIENTATION_LOCK_PORTRAIT ->
             ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
         orientationLockPreference == AppPreferences.ORIENTATION_LOCK_LANDSCAPE ->
             ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
-        emulationAllowsBothOrientations == true -> ActivityInfo.SCREEN_ORIENTATION_SENSOR
+        isNds || emulationAllowsBothOrientations == true -> ActivityInfo.SCREEN_ORIENTATION_SENSOR
         else -> ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
     }
 
@@ -1034,7 +1037,7 @@ fun EmulationScreen(
         }
     }
 
-    Box(modifier = Modifier.fillMaxSize()) {
+    Box(modifier = Modifier.fillMaxSize().background(if (isNds) Color.Black else Color.Transparent)) {
         // Game surface
         val surfaceGeneration = presentationSurfaceGeneration
         key(surfaceGeneration) {
@@ -1505,7 +1508,7 @@ fun EmulationScreen(
             // stay aligned in Arabic, Persian, and every other RTL language.
             CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
                 OnScreenControls(
-                    modifier = if (isNds) {
+                    modifier = if (isNds && !dsLandscape) {
                         Modifier
                             .fillMaxWidth()
                             .height(dsControlsHeight)

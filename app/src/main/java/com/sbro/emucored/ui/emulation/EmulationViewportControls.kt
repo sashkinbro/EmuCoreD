@@ -9,10 +9,11 @@ internal fun emulationViewportControls(
     hideOverlayOnGamepad: Boolean,
     tvUiEnabled: Boolean,
     touchPadMapped: Boolean,
-    dsControlsHeightDp: Float
+    dsControlsHeightDp: Float,
+    isLandscape: Boolean = false
 ): EmulationViewportControls {
     val showOverlay = !tvUiEnabled && controlsVisible &&
         (touchPadMapped || !gamepadConnected || !hideOverlayOnGamepad)
-    // Only DS places controls in a separate panel; 3DS controls overlay its full surface.
-    return EmulationViewportControls(showOverlay, if (dsMode && showOverlay) dsControlsHeightDp else 0f)
+    // In portrait DS uses a separate panel; landscape overlays the full surface.
+    return EmulationViewportControls(showOverlay, if (dsMode && showOverlay && !isLandscape) dsControlsHeightDp else 0f)
 }

@@ -32,16 +32,23 @@ class EmulationViewportControlsTest {
         assertFalse(layout(ds = false, connected = true).showOverlay)
     }
 
+    @Test fun landscapeDsKeepsTheFullSurfaceWhenTouchControlsAreVisible() {
+        val controls = layout(ds = true, landscape = true)
+        assertTrue(controls.showOverlay)
+        assertEquals(0f, controls.reservedBottomDp, 0f)
+    }
+
     private fun layout(
         ds: Boolean,
         connected: Boolean = false,
         visible: Boolean = true,
         autoHide: Boolean = true,
         tv: Boolean = false,
-        mappedTouchPad: Boolean = false
+        mappedTouchPad: Boolean = false,
+        landscape: Boolean = false
     ) = emulationViewportControls(
         dsMode = ds, controlsVisible = visible, gamepadConnected = connected,
         hideOverlayOnGamepad = autoHide, tvUiEnabled = tv,
-        touchPadMapped = mappedTouchPad, dsControlsHeightDp = 260f
+        touchPadMapped = mappedTouchPad, dsControlsHeightDp = 260f, isLandscape = landscape
     )
 }

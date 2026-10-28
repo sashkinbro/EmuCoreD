@@ -3,6 +3,7 @@ package com.sbro.emucored.ui.settings
 import android.annotation.SuppressLint
 import android.app.Activity
 import android.content.pm.ActivityInfo
+import android.content.res.Configuration
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -74,6 +75,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalResources
@@ -765,7 +767,7 @@ fun ControlsEditorScreen(
             overlayRightSafeInset = overlayRightSafeInset,
             overlayTopSafeInset = overlayTopSafeInset,
             overlayBottomSafeInset = overlayBottomSafeInset,
-            modifier = if (dsMode) {
+            modifier = if (dsMode && LocalConfiguration.current.orientation != Configuration.ORIENTATION_LANDSCAPE) {
                 Modifier
                     .fillMaxWidth()
                     .height(dsControlsHeight)
