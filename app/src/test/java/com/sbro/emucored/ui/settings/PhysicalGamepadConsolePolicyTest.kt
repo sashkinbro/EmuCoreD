@@ -1,11 +1,29 @@
 package com.sbro.emucored.ui.settings
 
 import com.sbro.emucored.core.platform.ConsolePlatform
+import com.sbro.emucored.core.GamepadManager
 import com.sbro.emucored.ui.common.ConsoleOverlayPolicy
 import org.junit.Assert.*
 import org.junit.Test
 
 class PhysicalGamepadConsolePolicyTest {
+    @Test fun n64MappingIncludesZAndNamesTheCButtons() {
+        val overlay = ConsoleOverlayPolicy.forPlatform(ConsolePlatform.N64)
+        val policy = KeyboardMouseConsolePolicy(overlay)
+        val actions = GamepadManager.mappableButtonActions()
+            .map { it.id }.filter(policy::supportsAction)
+        assertTrue("N64 Z must be bindable in the game menu", "zl" in actions)
+        assertEquals("Z", overlay.buttonLabel("zl"))
+        assertEquals("C↑", overlay.buttonLabel("x"))
+        assertEquals("C↓", overlay.buttonLabel("y"))
+        assertTrue("C-left must be bindable", "right_stick_left" in actions)
+        assertEquals("C←", overlay.buttonLabel("right_stick_left"))
+        assertEquals("C→", overlay.buttonLabel("zr"))
+        assertFalse("N64 has no Select button", "select" in actions)
+        assertTrue("N64 fast forward must remain bindable", "fast_forward" in actions)
+        val gameCube = KeyboardMouseConsolePolicy(ConsoleOverlayPolicy.forPlatform(ConsolePlatform.GAMECUBE))
+        assertTrue(gameCube.supportsAction("fast_forward"))
+    }
     @Test fun selectedWiiAttachmentChangesAvailableBindingsAndPhysicalLabels() {
         val actions = listOf("a", "x", "select", "start", "l", "r", "zl", "zr", "home", "left_stick_up", "right_stick_up")
         val classic = KeyboardMouseConsolePolicy(ConsoleOverlayPolicy.forPlatform(ConsolePlatform.WII, "classic"))

@@ -9,8 +9,8 @@ import org.junit.Test
 class KeyboardMouseConsolePolicyTest {
     @Test fun nesHasDigitalButtonsAndSaveActionsWithoutAnalogOrThreeDsShortcuts() {
         val policy = KeyboardMouseConsolePolicy(ConsoleOverlayPolicy.forPlatform(ConsolePlatform.NES))
-        for (id in listOf("a", "b", "start", "select", "dpad_up", "quick_save", "quick_load")) assertTrue(id, policy.supportsAction(id))
-        for (id in listOf("x", "zl", "home", "touch", "left_stick_up", "right_stick_right", "swap_screens", "toggle_second_screen", "fast_forward")) assertFalse(id, policy.supportsAction(id))
+        for (id in listOf("a", "b", "start", "select", "dpad_up", "quick_save", "quick_load", "fast_forward")) assertTrue(id, policy.supportsAction(id))
+        for (id in listOf("x", "zl", "home", "touch", "left_stick_up", "right_stick_right", "swap_screens", "toggle_second_screen")) assertFalse(id, policy.supportsAction(id))
         assertEquals(listOf(0, 1), (0..5).filter(policy::supportsWheel))
         assertEquals(listOf(0), (0..2).filter(policy::supportsAim))
     }

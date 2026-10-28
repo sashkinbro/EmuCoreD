@@ -430,7 +430,7 @@ object GamepadManager {
     }
 
     fun mappableButtonActions(): List<MappableButtonAction> =
-        mappableActions.filterNot { it.id in setOf("zl", "zr", "home", "touch") }
+        mappableActions.filterNot { it.id == "touch" }
 
     /** Keyboard/mouse mapping exposes every 3DS action with a core input. */
     fun keyboardMouseMappableActions(): List<MappableButtonAction> =

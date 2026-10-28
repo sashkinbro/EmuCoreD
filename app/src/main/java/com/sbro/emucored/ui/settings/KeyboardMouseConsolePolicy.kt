@@ -8,6 +8,7 @@ import com.sbro.emucored.ui.common.ConsoleOverlayPolicy
 internal class KeyboardMouseConsolePolicy(val overlay: ConsoleOverlayPolicy) {
     fun supportsAction(id: String): Boolean = when {
         id in setOf("quick_save", "quick_load") -> true
+        id == "fast_forward" -> overlay.platform != ConsolePlatform.NDS
         id == "toggle_second_screen" -> overlay.platform == ConsolePlatform.N3DS
         id == "swap_screens" -> overlay.platform in setOf(ConsolePlatform.NDS, ConsolePlatform.N3DS)
         id.startsWith("left_stick_") -> overlay.leftAnalog

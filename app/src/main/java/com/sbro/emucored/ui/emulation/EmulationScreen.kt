@@ -238,6 +238,7 @@ import com.sbro.emucored.ui.settings.ControlsEditorScreen
 import com.sbro.emucored.ui.settings.LocalSettingsHorizontalPadding
 import com.sbro.emucored.ui.settings.LocalSettingsHorizontalScrollBleed
 import com.sbro.emucored.ui.settings.KeyboardMouseSettingsDialog
+import com.sbro.emucored.ui.settings.KeyboardMouseConsolePolicy
 import com.sbro.emucored.ui.settings.toControlsEditorState
 import com.sbro.emucored.data.forPlatform
 import com.sbro.emucored.data.ConsoleControlsScope
@@ -503,7 +504,10 @@ fun EmulationScreen(
     } else {
         gamepadBindingsByPad
     }
-    val gamepadActions = remember { GamepadManager.mappableButtonActions() }
+    val gamepadActions = remember(overlayPolicy) {
+        val policy = KeyboardMouseConsolePolicy(overlayPolicy)
+        GamepadManager.mappableButtonActions().filter { policy.supportsAction(it.id) }
+    }
     val scope = rememberCoroutineScope()
     val achievementsRepository = remember(context) { RetroAchievementsRepository.get(context) }
     var achievementUnlockBanner by remember { mutableStateOf<RetroAchievementsEvent?>(null) }
@@ -1998,7 +2002,7 @@ fun EmulationScreen(
                             )
                             val isCustomBinding = selectedBindings.containsKey(action.id)
                             EmulationGamepadBindingRow(
-                                title = gamepadActionLabel(action.id),
+                                title = overlayPolicy.buttonLabel(action.id) ?: gamepadActionLabel(action.id),
                                 value = assignedKeyCode?.let(GamepadManager::keyCodeLabel)
                                     ?: stringResource(R.string.settings_not_set),
                                 autoLabel = if (isCustomBinding || action.defaultKeyCodes.isEmpty()) {
@@ -2110,7 +2114,8 @@ fun EmulationScreen(
                     stringResource(
                         R.string.settings_gamepad_mapping_listening_player_desc,
                         gamepadPlayerLabel(pendingGamepadPadIndex),
-                        gamepadActionLabel(pendingGamepadActionId.orEmpty())
+                        overlayPolicy.buttonLabel(pendingGamepadActionId.orEmpty())
+                            ?: gamepadActionLabel(pendingGamepadActionId.orEmpty())
                     )
                 )
             },
