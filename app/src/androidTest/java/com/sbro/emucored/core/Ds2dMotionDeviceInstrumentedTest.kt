@@ -114,6 +114,8 @@ class Ds2dMotionDeviceInstrumentedTest {
                                 assertTrue("Cannot create common guest checkpoint", DsSession.saveState(7))
                                 checkpoint = File(requireNotNull(DsSession.statePath(7)))
                                 checkpointSha = sha256(checkpoint.readBytes())
+                                // Reuse this test-owned, visually checked scene in timing probes.
+                                checkpoint.copyTo(File(output, "checkpoint.dss"), overwrite = true)
                                 consumer.end(scene)
                                 // PNG compression is deferred until the native session is stopped.
                                 sceneFrame = scene.snapshot().single()

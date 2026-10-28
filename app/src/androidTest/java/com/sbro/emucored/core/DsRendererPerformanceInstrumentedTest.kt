@@ -44,6 +44,8 @@ import org.junit.runner.RunWith
  */
 @RunWith(AndroidJUnit4::class)
 class DsRendererPerformanceInstrumentedTest {
+    private var movementProbe = false
+    private var lastProbeMask = 0xFFF
     @Test(timeout = 600_000)
     fun measureSteadyPresentationWithoutPixelReadback() {
         val args = InstrumentationRegistry.getArguments()
@@ -57,6 +59,10 @@ class DsRendererPerformanceInstrumentedTest {
         val warmup = (args.getString("dsWarmupFrames")?.toInt() ?: 180).coerceIn(180, 1800)
         val steady = (args.getString("dsSteadyFrames")?.toInt() ?: 300).coerceIn(300, 1800)
         val nfsProbe = args.getString("dsProbeNfsProfile") == "true"
+        val navigation = args.getString("dsNavigationBits").orEmpty().split(',')
+            .filter(String::isNotBlank).map { it.trim().toInt().also { bit -> require(bit in 0..11) } }
+        val moving = args.getString("dsContraMovement") == "true"
+        val checkpoint = args.getString("dsCheckpointPath")?.let(::File)
         assertTrue("DS JNI library must load", EmuCoreDsNative.isLoaded)
         assertFalse("Benchmark cannot replace an interactive DS session", DsSession.isActive)
         assertFalse("Benchmark cannot replace an interactive runtime", CoreRuntime.hasSession())
@@ -132,6 +138,12 @@ class DsRendererPerformanceInstrumentedTest {
                     ))
                     assertEquals("Wrong renderer selected", renderer, DsSession.currentRenderer())
                     assertEquals("Wrong render scale selected", scale, DsSession.currentRenderScale())
+                    if (checkpoint != null) {
+                        require(checkpoint.isFile)
+                        DsSession.pause()
+                        assertTrue("Cannot restore the shared measured scene", EmuCoreDsNative.nativeLoadState(checkpoint.path))
+                        DsSession.resume()
+                    }
                     awaitFrames(warmup, callbackFailure)
                     if (nfsProbe) {
                         // Intro screens can ignore input; boot must complete before navigation.
@@ -145,11 +157,22 @@ class DsRendererPerformanceInstrumentedTest {
                         pressAndRelease(0, callbackFailure) // DS KEYINPUT A bit
                         awaitFrames(warmup, callbackFailure)
                     }
+                    if (navigation.isNotEmpty()) {
+                        awaitFrames(360, callbackFailure)
+                        navigation.forEach { bit ->
+                            pressAndRelease(bit, callbackFailure)
+                            awaitFrames(90, callbackFailure)
+                        }
+                        awaitFrames(180, callbackFailure)
+                    }
                     val nativeStart = EmuCoreDsNative.nativeGetFrameCount()
                     val imagesStart = images.get()
                     val startedAt = SystemClock.elapsedRealtimeNanos()
                     synchronized(sampleLock) { previousArrival = 0L; recording = true }
+                    movementProbe = moving
                     awaitFrames(steady, callbackFailure)
+                    movementProbe = false
+                    EmuCoreDsNative.nativeSetKeyMask(0xFFF)
                     val endedAt = SystemClock.elapsedRealtimeNanos()
                     val nativeEnd = EmuCoreDsNative.nativeGetFrameCount()
                     val imagesEnd = images.get()
@@ -168,10 +191,17 @@ class DsRendererPerformanceInstrumentedTest {
                         put("core", EmuCoreDsNative.nativeGetVersion())
                         put("renderer", DsSession.currentRenderer())
                         put("requestedRenderer", renderer)
+                        put("navigationBits", JSONArray(navigation))
+                        put("movementProbe", moving)
                         put("scale", DsSession.currentRenderScale())
                         put("surface", "256x386 ImageReader RGBA8888")
                         put("timingClock", "elapsedRealtimeNanos at ImageReader acquireNextImage")
-                        put("probe", if (nfsProbe) "NFS touch/Start/A navigation attempt; verify scene PNG" else "no input")
+                        put("probe", when {
+                            checkpoint != null -> "shared checkpoint; frame-relative run/jump/fire=$moving"
+                            moving -> "navigation attempt; frame-relative run/jump/fire"
+                            nfsProbe -> "NFS touch/Start/A navigation attempt; verify scene PNG"
+                            else -> "no input"
+                        })
                         put("warmupNativeFrames", warmup)
                         put("elapsedMs", (endedAt - startedAt) / 1_000_000.0)
                         put("nativeFrames", nativeEnd - nativeStart)
@@ -194,6 +224,7 @@ class DsRendererPerformanceInstrumentedTest {
                         callbackFailure.get()?.let { throw AssertionError("Scene capture failed", it) }
                     }
                 } finally {
+                    movementProbe = false
                     EmuCoreDsNative.nativeSetKeyMask(0xFFF)
                     DsSession.stop()
                     DsSession.setSurface(null)
@@ -219,6 +250,17 @@ class DsRendererPerformanceInstrumentedTest {
         val first = EmuCoreDsNative.nativeGetFrameCount()
         val deadline = SystemClock.elapsedRealtime() + 180_000
         while (EmuCoreDsNative.nativeGetFrameCount() - first < count) {
+            if (movementProbe) {
+                // Identical guest-frame-based controls for both backends: run,
+                // shoot, and alternate jump/release without timing by wall clock.
+                val frame = EmuCoreDsNative.nativeGetFrameCount() - first
+                val held = (1 shl 4) or (1 shl 0) or if (frame % 60 < 24) (1 shl 1) else 0
+                val mask = 0xFFF and held.inv()
+                if (mask != lastProbeMask) {
+                    EmuCoreDsNative.nativeSetKeyMask(mask)
+                    lastProbeMask = mask
+                }
+            }
             failure.get()?.let { throw AssertionError("Image consumer failed", it) }
             assertTrue("DS stopped while waiting for progress", EmuCoreDsNative.nativeIsRunning())
             assertTrue("Native frame progress timed out", SystemClock.elapsedRealtime() < deadline)

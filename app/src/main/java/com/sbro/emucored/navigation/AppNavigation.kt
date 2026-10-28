@@ -246,7 +246,12 @@ fun AppNavigation(
             val hasGameFolder = withContext(Dispatchers.IO) {
                 SetupValidator.isAnyGameFolderPresentForStartup(context, gamePaths)
             }
-            val shouldOpenHome = onboardingCompleted && hasGameFolder
+            // Completed setups always land on Home. Removable/FUSE storage can
+            // be briefly unavailable while the device is still booting, and
+            // relaunching onboarding in that window makes a configured library
+            // look lost. Home already has targeted recovery cards for
+            // missing/inaccessible paths.
+            val shouldOpenHome = onboardingCompleted
             Log.i(
                 TAG,
                 "Startup destination onboarding=$onboardingCompleted gameFolder=$hasGameFolder launch=${launchRequest != null}"
