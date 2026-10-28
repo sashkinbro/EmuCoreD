@@ -146,6 +146,7 @@ object EmulatorBridge {
      */
     suspend fun applyRuntimeConfig(
         emulatorDataPath: String? = null,
+        gamePath: String? = null,
         renderer: Int,
         upscaleMultiplier: Float,
         gpuHardwareProfile: Int = GpuHardwareProfiles.ADRENO,
@@ -190,6 +191,11 @@ object EmulatorBridge {
         )
         NativeApp.setCrashContextBool("emu_mediatek_angle_opengl", mediatekAngleOpenGl)
 
+        val compatibility = gamePath
+            ?.let { path -> runCatching { getGameMetadata(path) }.getOrNull() }
+            ?.let { metadata -> N3dsGameCompatibility.defaultsFor(metadata.serial, metadata.title) }
+            ?: N3dsGameCompatibility.Defaults()
+
         CoreConfig.apply(
             CoreConfig.Values(
                 renderer = resolvedRenderer,
@@ -212,7 +218,9 @@ object EmulatorBridge {
                 performanceOverlay = prefs.showFps.first(),
                 mediatekAngleOpenGl = mediatekAngleOpenGl,
                 layoutOption = layoutOption,
-                swapScreens = swapScreens
+                swapScreens = swapScreens,
+                simulate3dsGpuTimings = compatibility.simulateGpuTimings,
+                delayGameRenderThreadUs = compatibility.delayGameRenderThreadUs
             )
         )
         NativeApp.setDisplayCrop(displayCrop.sanitized())

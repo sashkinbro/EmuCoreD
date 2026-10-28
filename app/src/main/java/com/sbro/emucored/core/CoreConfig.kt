@@ -44,7 +44,10 @@ internal object CoreConfig {
         /** -1 keeps the user's stored layout; any other value forces it. */
         val layoutOption: Int = -1,
         /** null keeps the user's stored swap preference. */
-        val swapScreens: Boolean? = null
+        val swapScreens: Boolean? = null,
+        /** Compatibility timing defaults for the selected title. */
+        val simulate3dsGpuTimings: Boolean = false,
+        val delayGameRenderThreadUs: Int = 0
     )
 
     /** Latest applied app values, so runtime option changes can rewrite the file. */
@@ -99,6 +102,8 @@ internal object CoreConfig {
         "shaders_accurate_mul" to "Renderer",
         "use_disk_shader_cache" to "Renderer",
         "use_skip_duplicate_frames" to "Renderer",
+        "simulate_3ds_gpu_timings" to "Renderer",
+        "delay_game_render_thread_us" to "Renderer",
         "texture_filter" to "Renderer",
         "texture_sampling" to "Renderer",
         "motion_device" to "Controls",
@@ -150,6 +155,20 @@ internal object CoreConfig {
         put("Renderer", "turbo_limit", values.fastForwardSpeed.coerceIn(1f, 5f).toInt().toString())
         put("Renderer", "async_shader_compilation", "true")
         put("Renderer", "spirv_shader_gen", "true")
+        // Per-title compatibility defaults. A global user choice wins; a
+        // per-game core-option override is applied after this block.
+        put(
+            "Renderer",
+            "simulate_3ds_gpu_timings",
+            CoreOptionStore.value("simulate_3ds_gpu_timings")
+                ?: values.simulate3dsGpuTimings.toString()
+        )
+        put(
+            "Renderer",
+            "delay_game_render_thread_us",
+            CoreOptionStore.value("delay_game_render_thread_us")
+                ?: values.delayGameRenderThreadUs.coerceIn(0, 65_000).toString()
+        )
         put("Utility", "custom_textures", values.customTextures.toString())
         put(
             "Layout",

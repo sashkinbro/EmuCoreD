@@ -1150,6 +1150,7 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
                 if (activeGamePlatform() == GamePlatform.N3DS) {
                     EmulatorBridge.applyRuntimeConfig(
                         emulatorDataPath = config.emulatorDataPath,
+                        gamePath = path,
                         renderer = renderer,
                         upscaleMultiplier = config.upscaleMultiplier,
                         gpuHardwareProfile = config.gpuHardwareProfile,
@@ -2630,6 +2631,7 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
         if (platform == GamePlatform.N3DS) {
             EmulatorBridge.applyRuntimeConfig(
                 emulatorDataPath = config.emulatorDataPath,
+                gamePath = gameKey,
                 renderer = config.renderer,
                 upscaleMultiplier = config.upscaleMultiplier,
                 gpuHardwareProfile = config.gpuHardwareProfile,
