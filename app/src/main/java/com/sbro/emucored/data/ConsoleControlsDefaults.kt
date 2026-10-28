@@ -47,7 +47,7 @@ object ConsoleControlsDefaults {
             layout.copy(visible = id in visible)
         }.toMutableMap()
         if (scope.platform == ConsolePlatform.GAMECUBE) {
-            controls["a"] = controls.getValue("a").copy(scale = 120)
+            // Every face button shares one size; only the smaller C-stick is scaled down.
             controls["right_stick"] = controls.getValue("right_stick").copy(scale = 90)
         }
         return TouchControlsLayoutProfile(controlLayouts = controls)

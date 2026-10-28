@@ -36,6 +36,11 @@ class ConsoleControlsDefaultsTest {
         }
     }
 
+    @Test fun gameCubeFaceButtonsShareOneDefaultSize() {
+        val defaults = ConsoleControlsDefaults.layout(ConsoleControlsScope(ConsolePlatform.GAMECUBE)).controlLayouts
+        assertEquals(setOf(100), listOf("a", "b", "x", "y").map { defaults.getValue(it).scale }.toSet())
+    }
+
     @Test fun wiiProfilesHaveIndependentCompleteControllerDefaults() {
         val base = setOf("a", "b", "x", "y", "select", "start", "home", "dpad_cluster", "right_stick")
         for ((profile, extra) in mapOf("remote" to emptySet(), "nunchuk" to setOf("l", "r", "left_stick"),

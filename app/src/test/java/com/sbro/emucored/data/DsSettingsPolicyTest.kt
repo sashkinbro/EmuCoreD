@@ -11,7 +11,7 @@ class DsSettingsPolicyTest {
         val settings = SettingsSnapshot(renderer = 12, upscaleMultiplier = 7f)
         val ds = settings.forPlatform(GamePlatform.NDS)
         assertEquals(14, ds.renderer)
-        assertEquals(2f, ds.upscaleMultiplier, 0f)
+        assertEquals(1f, ds.upscaleMultiplier, 0f)
         assertSame(settings, settings.forPlatform(GamePlatform.N3DS))
     }
 
@@ -32,8 +32,8 @@ class DsSettingsPolicyTest {
         assertEquals(1f, DsSettingsPolicy.normalizeUpscaleMultiplier(-10f), 0f)
         assertEquals(8f, DsSettingsPolicy.normalizeUpscaleMultiplier(100f), 0f)
         assertEquals(3f, DsSettingsPolicy.normalizeUpscaleMultiplier(2.6f), 0f)
-        assertEquals(2f, DsSettingsPolicy.normalizeUpscaleMultiplier(Float.NaN), 0f)
-        assertEquals(2f, DsSettingsPolicy.normalizeUpscaleMultiplier(Float.POSITIVE_INFINITY), 0f)
+        assertEquals(1f, DsSettingsPolicy.normalizeUpscaleMultiplier(Float.NaN), 0f)
+        assertEquals(1f, DsSettingsPolicy.normalizeUpscaleMultiplier(Float.POSITIVE_INFINITY), 0f)
     }
 
     @Test fun dsPreferenceWritesLeaveThreeDsStorageUntouchedAndReloadBothValues() {
@@ -41,7 +41,7 @@ class DsSettingsPolicyTest {
         val threeDsUpscale = floatPreferencesKey("upscale_multiplier_v2")
         val prefs = mutablePreferencesOf(threeDsRenderer to 12, threeDsUpscale to 7f)
         assertEquals(14, DsSettingsPolicy.readRenderer(prefs))
-        assertEquals(2f, DsSettingsPolicy.readUpscaleMultiplier(prefs), 0f)
+        assertEquals(1f, DsSettingsPolicy.readUpscaleMultiplier(prefs), 0f)
         DsSettingsPolicy.storeRenderer(prefs, 13)
         DsSettingsPolicy.storeUpscaleMultiplier(prefs, 4f)
         val reloaded = prefs.toPreferences()

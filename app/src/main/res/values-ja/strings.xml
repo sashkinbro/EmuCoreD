@@ -2051,7 +2051,7 @@
         <string name="formats_executables_body">実行可能イメージはヘッダーで識別され、対象の本体に対応している必要があります。</string>
         <string name="formats_disc_parts_body">分割されたWBFSまたはISOイメージは、すべてのパートを同じフォルダーに置き、そのフォルダーへのアクセスを許可してください。WBFSまたは.part0.isoファイルを開いてください。後続のパートは別のゲームではありません。</string>
         <string name="legacy_help_ds_renderer">DS の描画方式を選びます。標準の Vulkan は内部解像度を上げられます。Software は本来の 1x 解像度で描画し、一部の表示不具合やドライバーの問題を回避できます。DS の 2D 描画は CPU 負荷も大きく、Vulkan がすべてのゲームで速いとは限りません。まず Vulkan を使い、特定の不具合がある場合に Software で同じ場面を比較してください。</string>
-        <string name="legacy_help_ds_upscale">Vulkan 使用時の DS の 3D 描画解像度を上げます。輪郭は鮮明になりますが、GPU 負荷、メモリ使用量、発熱が増えます。元の 2D 画像の細部はほとんど増えません。Software は常に本来の 1x です。標準の 2x から始め、遅くなる場合は 1x に下げ、速度が安定している場合だけ上げてください。</string>
+        <string name="legacy_help_ds_upscale">Vulkan 使用時の DS の 3D 描画解像度を上げます。輪郭は鮮明になりますが、GPU 負荷、メモリ使用量、発熱が増えます。元の 2D 画像の細部はほとんど増えません。Software は常に本来の 1x です。本来の解像度から始め、速度が安定している場合だけ上げてください。</string>
         <string name="legacy_help_cover_style">ライブラリでフラット カバー、3D ボックス アートワーク、またはカバーなしを選択します。これにより、ゲームのグラフィックスやエミュレーション速度ではなく、ライブラリの外観と画像のダウンロード/キャッシュの使用が変更されます。好みのスタイルを使用してください。カバーを無効にしてアートワークの読み込みを回避し、ライブラリの画像ストレージを減らします。</string>
         <string name="legacy_help_camera_flip">3DS ゲームがそれを認識する前に、選択した置換カメラ画像を水平、垂直、または両方向にミラーリングします。これにより、カメラの品質やゲーム速度ではなく、方向が修正されます。 「なし」から開始し、ゲーム内で画像が反転して表示される場合にのみ反転します。</string>
         <string name="legacy_help_background_dim">選択した背景を暗くして、テキストとコントロールを読みやすい状態に保ちます。パーセンテージが高いほど、より多くのアートワークが非表示になります。これにより、ゲームの明るさやレンダリングの品質は変わりません。メニュー ラベルが読みやすくなるまで値を増やし、より多くのアートワークを表示するには値を減らします。</string>
@@ -2136,7 +2136,7 @@
     <string name="onboarding_supported_consoles">対応コンソール</string>
     <string name="console_n64">Nintendo 64</string>
     <string name="core_option_n64_resolution">内部解像度</string>
-    <string name="core_option_help_n64_resolution">解像度を上げると 3D 映像が鮮明になりますが、GPU の負荷が増えます。ゲームを再起動してください。</string>
+    <string name="core_option_help_n64_resolution">解像度を上げると 3D 映像が鮮明になりますが、GPU の負荷が増えます。ゲームを再起動してください。2× から始め、ゲームが滑らかな場合のみ上げてください。</string>
     <string name="core_option_n64_framebuffer">フレームバッファーのエミュレーション</string>
     <string name="core_option_help_n64_framebuffer">多くのゲームで使う効果を有効にします。性能確認時のみ無効にしてください。再起動が必要です。</string>
     <string name="core_option_n64_rsp">RSP エンジン</string>

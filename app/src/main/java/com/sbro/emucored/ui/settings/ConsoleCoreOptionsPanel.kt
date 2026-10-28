@@ -82,7 +82,7 @@ internal fun coreOptionNumericValue(key: String, value: String): String = when {
 
 @Composable
 internal fun coreOptionTitle(option: CoreOptionDefinition): String = stringResource(when (option.key) {
-    "n64_resolution" -> R.string.core_option_n64_resolution
+    "n64_resolution" -> R.string.settings_upscale
     "n64_framebuffer" -> R.string.core_option_n64_framebuffer
     "n64_rsp" -> R.string.core_option_n64_rsp
     "widescreen_hack" -> R.string.dolphin_option_widescreen_hack
@@ -177,11 +177,33 @@ internal fun coreOptionTitle(option: CoreOptionDefinition): String = stringResou
 @Composable
 internal fun coreOptionValue(value: String, key: String): String = when {
     key == "resolution" -> "${value}×"
+    key == "n64_resolution" -> n64ResolutionValue(value)
     key == "msaa" && value != "1" -> "${value}× MSAA"
     key == "msaa" -> stringResource(R.string.settings_core_choice_disabled)
     key == "anisotropy" && value != "default" -> "${value}×"
     key == "audio_buffer_size" -> "$value ms"
     else -> coreOptionChoiceValue(value)
+}
+
+/**
+ * The N64 core stores fixed render sizes, but they are exact 1x..4x steps of the
+ * console's 320x240 output. Present them the same way as every other console's
+ * image-quality picker instead of leaking raw resolutions into the UI.
+ */
+private val N64ResolutionMultipliers = mapOf(
+    "320x240" to 1,
+    "640x480" to 2,
+    "960x720" to 3,
+    "1280x960" to 4
+)
+
+/** Exact 1x..4x step for a raw mupen64plus screen size, or null when unknown. */
+internal fun n64ResolutionMultiplier(value: String): Int? = N64ResolutionMultipliers[value]
+
+@Composable
+private fun n64ResolutionValue(value: String): String {
+    val multiplier = n64ResolutionMultiplier(value) ?: return value
+    return if (multiplier == 1) stringResource(R.string.settings_upscale_native) else "${multiplier}×"
 }
 
 @Composable

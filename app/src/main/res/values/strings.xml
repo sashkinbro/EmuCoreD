@@ -2076,7 +2076,7 @@
         <string name="formats_executables_body">Executable images are identified from their headers and must match the console.</string>
         <string name="formats_disc_parts_body">For split WBFS or ISO images, keep every part in one folder and grant folder access. Open the WBFS or .part0.iso file; later parts are not separate games.</string>
         <string name="legacy_help_ds_renderer">Chooses the DS renderer. Vulkan is the default and supports higher internal resolutions; Software renders at native 1x resolution and can resolve some graphics or driver problems. DS 2D rendering can still be CPU-heavy, so Vulkan is not faster in every game. Start with Vulkan; try Software for a specific compatibility problem and compare the same scene.</string>
-        <string name="legacy_help_ds_upscale">Raises the internal resolution of DS 3D graphics when using Vulkan. Higher values improve 3D edges but increase GPU load, memory use and heat; native 2D artwork gains little detail. Software always uses native 1x. Start at the default 2x and reduce to 1x if the game slows down; increase only when performance stays stable.</string>
+        <string name="legacy_help_ds_upscale">Raises the internal resolution of DS 3D graphics when using Vulkan. Higher values improve 3D edges but increase GPU load, memory use and heat; native 2D artwork gains little detail. Software always uses native 1x. Start at Native and raise the value only when performance stays stable.</string>
         <string name="legacy_help_cover_style">Chooses flat covers, 3D box artwork or no covers in the library. This changes library appearance and image downloads/cache use, not game graphics or emulation speed. Use the style you prefer; disable covers to avoid artwork loading and reduce library image storage.</string>
         <string name="legacy_help_camera_flip">Mirrors the selected replacement camera image horizontally, vertically or in both directions before a 3DS game sees it. This corrects its orientation, not camera quality or game speed. Start with None and flip only when the image appears reversed in the game.</string>
         <string name="legacy_help_background_dim">Darkens the selected background so text and controls remain readable. Higher percentages hide more of the artwork; this does not change game brightness or rendering quality. Increase it until menu labels are easy to read and reduce it to show more artwork.</string>
@@ -2161,7 +2161,7 @@
     <string name="onboarding_supported_consoles">Supported consoles</string>
     <string name="console_n64">Nintendo 64</string>
     <string name="core_option_n64_resolution">Internal resolution</string>
-    <string name="core_option_help_n64_resolution">Higher resolution sharpens 3D graphics but increases GPU load. Restart the game to apply. Start at 640x480 and raise it only if gameplay remains smooth.</string>
+    <string name="core_option_help_n64_resolution">Higher resolution sharpens 3D graphics but increases GPU load. Restart the game to apply. Start at 2× and raise it only if gameplay remains smooth.</string>
     <string name="core_option_n64_framebuffer">Framebuffer emulation</string>
     <string name="core_option_help_n64_framebuffer">Enables effects used by many games. Disable only when testing performance; restart required. Leave this enabled for accurate graphics in most games.</string>
     <string name="core_option_n64_rsp">RSP engine</string>

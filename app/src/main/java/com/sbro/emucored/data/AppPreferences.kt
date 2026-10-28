@@ -21,7 +21,6 @@ import com.sbro.emucored.core.PerformanceProfiles
 import com.sbro.emucored.core.RendererDefaults
 import com.sbro.emucored.core.TvInterfaceMode
 import com.sbro.emucored.core.UPSCALE_DEFAULT
-import com.sbro.emucored.core.defaultUpscaleMultiplier
 import com.sbro.emucored.core.normalizeUpscale
 import com.sbro.emucored.ui.theme.ThemeMode
 import kotlinx.coroutines.flow.Flow
@@ -3719,7 +3718,7 @@ class AppPreferences(private val context: Context) {
     private fun readUpscale(prefs: Preferences): Float {
         return (prefs[UPSCALE]
             ?: prefs[UPSCALE_LEGACY]?.toFloat()
-            ?: defaultUpscaleMultiplier(context)).let(::normalizeUpscale)
+            ?: UPSCALE_DEFAULT).let(::normalizeUpscale)
     }
 
 

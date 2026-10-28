@@ -2073,7 +2073,7 @@
         <string name="formats_executables_body">Obrazy wykonywalne są rozpoznawane na podstawie nagłówków i muszą pasować do konsoli.</string>
         <string name="formats_disc_parts_body">Wszystkie części podzielonego obrazu WBFS lub ISO przechowuj w jednym folderze i przyznaj do niego dostęp. Otwórz plik WBFS lub .part0.iso; kolejne części nie są osobnymi grami.</string>
         <string name="legacy_help_ds_renderer">Wybiera renderer DS. Domyślny Vulkan obsługuje wyższe rozdzielczości wewnętrzne; programowy renderer Software pracuje w natywnej rozdzielczości 1x i może usuwać niektóre problemy grafiki lub sterownika. Grafika 2D DS nadal może mocno obciążać CPU, więc Vulkan nie jest szybszy w każdej grze. Zacznij od Vulkan; przy konkretnej niezgodności porównaj tę samą scenę w Software.</string>
-        <string name="legacy_help_ds_upscale">Zwiększa wewnętrzną rozdzielczość grafiki 3D DS w Vulkan. Wyższe wartości wygładzają krawędzie, ale zwiększają obciążenie GPU, zużycie pamięci i nagrzewanie; oryginalna grafika 2D zyskuje niewiele szczegółów. Software zawsze używa 1x. Zacznij od domyślnych 2x i zmniejsz do 1x przy spowolnieniach; zwiększaj tylko przy stabilnej szybkości.</string>
+        <string name="legacy_help_ds_upscale">Zwiększa wewnętrzną rozdzielczość grafiki 3D DS w Vulkan. Wyższe wartości wygładzają krawędzie, ale zwiększają obciążenie GPU, zużycie pamięci i nagrzewanie; oryginalna grafika 2D zyskuje niewiele szczegółów. Software zawsze używa 1x. Zacznij od rozdzielczości natywnej i zwiększaj tylko przy stabilnej szybkości.</string>
         <string name="legacy_help_cover_style">Wybiera płaskie okładki, grafikę pudełkową 3D lub brak okładek w bibliotece. Zmienia to wygląd biblioteki i pobieranie obrazów/użycie pamięci podręcznej, a nie grafikę gry lub prędkość emulacji. Użyj preferowanego stylu; wyłącz okładki, aby uniknąć ładowania grafiki i zmniejszyć ilość miejsca na obrazy w bibliotece.</string>
         <string name="legacy_help_camera_flip">Tworzy lustrzane odbicie obrazu z wybranej kamery zastępczej w poziomie, w pionie lub w obu kierunkach, zanim pojawi się w grze 3DS. Poprawia to jego orientację, a nie jakość kamery czy szybkość gry. Zacznij od Braku i odwracaj tylko wtedy, gdy obraz w grze pojawi się jako odwrócony.</string>
         <string name="legacy_help_background_dim">Przyciemnia wybrane tło, dzięki czemu tekst i elementy sterujące pozostają czytelne. Wyższe wartości procentowe ukrywają większą część grafiki; nie zmienia to jasności gry ani jakości renderowania. Zwiększaj go, aż etykiety menu będą łatwe do odczytania i zmniejsz, aby wyświetlić więcej grafiki.</string>
@@ -2158,7 +2158,7 @@
     <string name="onboarding_supported_consoles">Obsługiwane konsole</string>
     <string name="console_n64">Nintendo 64</string>
     <string name="core_option_n64_resolution">Rozdzielczość wewnętrzna</string>
-    <string name="core_option_help_n64_resolution">Wyższa rozdzielczość wyostrza grafikę 3D, ale zwiększa obciążenie GPU. Uruchom grę ponownie.</string>
+    <string name="core_option_help_n64_resolution">Wyższa rozdzielczość wyostrza grafikę 3D, ale zwiększa obciążenie GPU. Uruchom grę ponownie. Zacznij od 2× i zwiększaj tylko wtedy, gdy gra pozostaje płynna.</string>
     <string name="core_option_n64_framebuffer">Emulacja bufora klatki</string>
     <string name="core_option_help_n64_framebuffer">Włącza efekty używane przez wiele gier. Wyłączaj tylko do testowania wydajności; wymagany restart.</string>
     <string name="core_option_n64_rsp">Silnik RSP</string>

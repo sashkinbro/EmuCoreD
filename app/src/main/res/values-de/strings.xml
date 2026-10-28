@@ -2054,7 +2054,7 @@
         <string name="formats_executables_body">Ausführbare Abbilder werden anhand ihrer Header erkannt und müssen zur Konsole passen.</string>
         <string name="formats_disc_parts_body">Bewahre alle Teile eines geteilten WBFS- oder ISO-Abbilds im selben Ordner auf und erteile Zugriff auf den Ordner. Öffne die WBFS- oder .part0.iso-Datei; weitere Teile sind keine eigenen Spiele.</string>
         <string name="legacy_help_ds_renderer" formatted="false">Wählt den DS-Renderer. Vulkan ist Standard und unterstützt höhere interne Auflösungen; Software arbeitet mit nativen 1x und kann Grafik- oder Treiberprobleme beheben. DS-2D-Grafik kann weiterhin viel CPU benötigen, daher ist Vulkan nicht überall schneller. Beginne mit Vulkan und vergleiche Software bei konkreten Kompatibilitätsproblemen in derselben Szene.</string>
-        <string name="legacy_help_ds_upscale" formatted="false">Erhöht die interne Auflösung der DS-3D-Grafik unter Vulkan. Höhere Werte glätten 3D-Kanten, erhöhen aber GPU-Last, Speicherbedarf und Wärme; native 2D-Grafik gewinnt kaum Details. Software verwendet immer native 1x. Beginne mit den voreingestellten 2x, reduziere bei Einbrüchen auf 1x und erhöhe nur bei stabiler Leistung.</string>
+        <string name="legacy_help_ds_upscale" formatted="false">Erhöht die interne Auflösung der DS-3D-Grafik unter Vulkan. Höhere Werte glätten 3D-Kanten, erhöhen aber GPU-Last, Speicherbedarf und Wärme; native 2D-Grafik gewinnt kaum Details. Software verwendet immer native 1x. Beginne mit nativer Auflösung und erhöhe nur bei stabiler Leistung.</string>
         <string name="legacy_help_cover_style" formatted="false">Wählt flache Cover, 3D-Verpackungsbilder oder keine Cover in der Bibliothek. Das verändert Bibliotheksansicht, Bilddownloads und Cachebedarf, nicht Spielgrafik oder Emulationsgeschwindigkeit. Wähle deinen bevorzugten Stil oder schalte Cover aus, um Bildladen und Speicherbedarf zu reduzieren.</string>
         <string name="legacy_help_camera_flip" formatted="false">Spiegelt das ausgewählte Ersatzkamerabild horizontal, vertikal oder beides, bevor ein 3DS-Spiel es erhält. Das korrigiert die Ausrichtung, nicht Kameraqualität oder Spielgeschwindigkeit. Beginne mit Keine und spiegle nur bei verkehrt dargestelltem Bild.</string>
         <string name="legacy_help_background_dim" formatted="false">Verdunkelt den gewählten Hintergrund für lesbare Texte und Bedienelemente. Höhere Prozentwerte verdecken mehr Bild, verändern aber weder Spielhelligkeit noch Renderqualität. Erhöhe bis zur guten Lesbarkeit und reduziere für sichtbarere Hintergrundbilder.</string>
@@ -2139,7 +2139,7 @@
     <string name="onboarding_supported_consoles">Unterstützte Konsolen</string>
     <string name="console_n64">Nintendo 64</string>
     <string name="core_option_n64_resolution">Interne Auflösung</string>
-    <string name="core_option_help_n64_resolution">Eine höhere Auflösung macht 3D-Grafik schärfer, belastet aber die GPU stärker. Spiel neu starten.</string>
+    <string name="core_option_help_n64_resolution">Eine höhere Auflösung macht 3D-Grafik schärfer, belastet aber die GPU stärker. Spiel neu starten. Beginne bei 2× und erhöhe nur, solange das Spiel flüssig bleibt.</string>
     <string name="core_option_n64_framebuffer">Framebuffer-Emulation</string>
     <string name="core_option_help_n64_framebuffer">Aktiviert Effekte vieler Spiele. Nur zum Testen der Leistung deaktivieren; Neustart erforderlich.</string>
     <string name="core_option_n64_rsp">RSP-Modus</string>

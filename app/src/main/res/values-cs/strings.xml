@@ -2073,7 +2073,7 @@
         <string name="formats_executables_body">Spustitelné obrazy se rozpoznávají podle hlaviček a musí odpovídat konzoli.</string>
         <string name="formats_disc_parts_body">Všechny části rozděleného obrazu WBFS nebo ISO ponechte v jedné složce a povolte k ní přístup. Otevřete soubor WBFS nebo .part0.iso; další části nejsou samostatné hry.</string>
         <string name="legacy_help_ds_renderer" formatted="false">Vybírá vykreslovač DS. Vulkan je výchozí a podporuje vyšší vnitřní rozlišení, softwarový používá původní 1x a může vyřešit grafické či ovladačové chyby. DS 2D stále může značně zatěžovat CPU, takže Vulkan není rychlejší v každé hře. Začněte Vulkanem a softwarový porovnejte ve stejné scéně při konkrétním problému.</string>
-        <string name="legacy_help_ds_upscale" formatted="false">Zvyšuje vnitřní rozlišení 3D grafiky DS s Vulkanem. Vyšší hodnoty zlepšují hrany, ale zatěžují GPU, paměť a zahřívání, původní 2D grafice přidají málo detailů. Softwarový vždy používá původní 1x. Začněte na výchozím 2x, při zpomalení snižte na 1x a zvyšujte jen při stabilním výkonu.</string>
+        <string name="legacy_help_ds_upscale" formatted="false">Zvyšuje vnitřní rozlišení 3D grafiky DS s Vulkanem. Vyšší hodnoty zlepšují hrany, ale zatěžují GPU, paměť a zahřívání, původní 2D grafice přidají málo detailů. Softwarový vždy používá původní 1x. Začněte na nativním rozlišení a zvyšujte jen při stabilním výkonu.</string>
         <string name="legacy_help_cover_style" formatted="false">Vybírá ploché obaly, 3D krabičky nebo žádné obaly v knihovně. Mění vzhled knihovny, stahování a mezipaměť obrázků, nikoli grafiku či rychlost hry. Vyberte oblíbený styl nebo vypněte obaly pro omezení načítání a místa obrázků.</string>
         <string name="legacy_help_camera_flip" formatted="false">Zrcadlí vybraný náhradní obraz kamery vodorovně, svisle nebo oběma směry před předáním hře 3DS. Opravuje orientaci, nikoli kvalitu kamery či rychlost hry. Začněte volbou Žádné a otáčejte pouze převrácený obraz.</string>
         <string name="legacy_help_background_dim" formatted="false">Ztmavuje vybrané pozadí pro čitelné texty a ovládání. Vyšší procenta zakryjí více obrázku, ale nemění jas hry ani kvalitu vykreslování. Zvyšujte do snadné čitelnosti menu a snižujte pro viditelnější pozadí.</string>
@@ -2158,7 +2158,7 @@
     <string name="onboarding_supported_consoles">Podporované konzole</string>
     <string name="console_n64">Nintendo 64</string>
     <string name="core_option_n64_resolution">Interní rozlišení</string>
-    <string name="core_option_help_n64_resolution">Vyšší rozlišení zlepší ostrost 3D grafiky, ale více zatíží GPU. Restartujte hru.</string>
+    <string name="core_option_help_n64_resolution">Vyšší rozlišení zlepší ostrost 3D grafiky, ale více zatíží GPU. Restartujte hru. Začněte na 2× a zvyšujte jen tehdy, když hra zůstane plynulá.</string>
     <string name="core_option_n64_framebuffer">Emulace framebufferu</string>
     <string name="core_option_help_n64_framebuffer">Zapíná efekty používané mnoha hrami. Vypínejte pouze při testování výkonu; je nutný restart.</string>
     <string name="core_option_n64_rsp">Jádro RSP</string>

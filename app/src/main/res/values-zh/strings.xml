@@ -2053,7 +2053,7 @@
         <string name="formats_executables_body">可执行映像通过文件头识别，且必须与对应主机兼容。</string>
         <string name="formats_disc_parts_body">对于分卷WBFS或ISO映像，请将所有分卷保存在同一文件夹中，并授予文件夹访问权限。打开WBFS或.part0.iso文件；后续分卷不是独立游戏。</string>
         <string name="legacy_help_ds_renderer">选择 DS 的渲染方式。默认的 Vulkan 支持提高内部分辨率；软件渲染（Software）固定使用原生 1x，可能解决部分图形或驱动问题。DS 的 2D 渲染仍可能很依赖 CPU，因此 Vulkan 并非在每款游戏中都更快。先用 Vulkan，遇到具体兼容性问题时，再用软件渲染比较同一场景。</string>
-        <string name="legacy_help_ds_upscale">在 Vulkan 下提高 DS 3D 图形的内部分辨率。较高倍数让轮廓更清晰，但增加 GPU 负载、内存占用和发热；原生 2D 图像几乎不会增加细节。软件渲染固定使用原生 1x。先用默认 2x，游戏变慢时降至 1x，速度稳定后再提高。</string>
+        <string name="legacy_help_ds_upscale">在 Vulkan 下提高 DS 3D 图形的内部分辨率。较高倍数让轮廓更清晰，但增加 GPU 负载、内存占用和发热；原生 2D 图像几乎不会增加细节。软件渲染固定使用原生 1x。先使用原生分辨率，仅在速度稳定时再提高。</string>
         <string name="legacy_help_cover_style">选择平面封面、3D 包装盒封面，或不显示封面。改变的是游戏库外观以及图片下载和缓存用量，不影响游戏画面或模拟速度。按喜好选择；不想加载封面、希望减少图片存储时，可以关闭。</string>
         <string name="legacy_help_camera_flip">将替代 3DS 摄像头的所选图片水平、垂直或双向翻转，再传给游戏。用于修正方向，不会改善摄像头质量或游戏速度。先选无，只有图片在游戏中方向不正确时才翻转。</string>
         <string name="legacy_help_background_dim">调暗所选背景，让文字和控件保持清晰可读。百分比越高，背景图像越不明显；不会改变游戏亮度或渲染质量。逐步提高到菜单文字易于阅读，想看清更多背景时再降低。</string>
@@ -2138,7 +2138,7 @@
     <string name="onboarding_supported_consoles">支持的游戏机</string>
     <string name="console_n64">Nintendo 64</string>
     <string name="core_option_n64_resolution">内部渲染分辨率</string>
-    <string name="core_option_help_n64_resolution">提高分辨率可使 3D 画面更清晰，但会增加 GPU 负载。重启游戏后生效。</string>
+    <string name="core_option_help_n64_resolution">提高分辨率可使 3D 画面更清晰，但会增加 GPU 负载。重启游戏后生效。建议从 2× 开始，仅在游戏仍流畅时才提高。</string>
     <string name="core_option_n64_framebuffer">帧缓冲模拟</string>
     <string name="core_option_help_n64_framebuffer">启用许多游戏需要的效果。仅在测试性能时关闭；需要重启游戏。</string>
     <string name="core_option_n64_rsp">RSP 引擎</string>

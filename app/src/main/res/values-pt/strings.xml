@@ -2054,7 +2054,7 @@
         <string name="formats_executables_body">As imagens executáveis são identificadas pelos cabeçalhos e devem corresponder à consola.</string>
         <string name="formats_disc_parts_body">Mantenha todas as partes das imagens WBFS ou ISO divididas na mesma pasta e conceda acesso à pasta. Abra o ficheiro WBFS ou .part0.iso; as partes seguintes não são jogos separados.</string>
         <string name="legacy_help_ds_renderer" formatted="false">Escolhe o renderizador DS. Vulkan é o padrão e permite resoluções internas maiores; Software usa 1x nativo e pode resolver problemas gráficos ou de drivers. O desenho 2D DS ainda pode exigir muita CPU, então Vulkan não é sempre mais rápido. Comece com Vulkan e compare Software na mesma cena para um problema específico.</string>
-        <string name="legacy_help_ds_upscale" formatted="false">Aumenta a resolução interna 3D do DS com Vulkan. Valores altos melhoram bordas, mas aumentam GPU, memória e calor, com pouco detalhe extra para arte 2D nativa. Software sempre usa 1x nativo. Comece no padrão 2x, reduza a 1x se desacelerar e aumente só com desempenho estável.</string>
+        <string name="legacy_help_ds_upscale" formatted="false">Aumenta a resolução interna 3D do DS com Vulkan. Valores altos melhoram bordas, mas aumentam GPU, memória e calor, com pouco detalhe extra para arte 2D nativa. Software sempre usa 1x nativo. Comece em Nativo e aumente só com desempenho estável.</string>
         <string name="legacy_help_cover_style" formatted="false">Escolhe capas planas, caixas 3D ou nenhuma capa na biblioteca. Muda aparência, downloads e cache de imagens, não gráficos nem velocidade dos jogos. Use o estilo preferido ou desative para evitar carregamentos e reduzir armazenamento de imagens.</string>
         <string name="legacy_help_camera_flip" formatted="false">Espelha horizontalmente, verticalmente ou nos dois sentidos a câmera substituta antes do jogo 3DS. Corrige orientação, não qualidade da câmera ou velocidade do jogo. Comece com Nenhum e espelhe somente se a imagem parecer invertida.</string>
         <string name="legacy_help_background_dim" formatted="false">Escurece o fundo escolhido para manter textos e controles legíveis. Percentuais altos escondem mais imagem sem mudar brilho do jogo ou qualidade gráfica. Aumente até ler menus facilmente e reduza para ver mais do fundo.</string>
@@ -2139,7 +2139,7 @@
     <string name="onboarding_supported_consoles">Consoles compatíveis</string>
     <string name="console_n64">Nintendo 64</string>
     <string name="core_option_n64_resolution">Resolução interna</string>
-    <string name="core_option_help_n64_resolution">Uma resolução maior deixa os gráficos 3D mais nítidos, mas aumenta a carga da GPU. Reinicie o jogo.</string>
+    <string name="core_option_help_n64_resolution">Uma resolução maior deixa os gráficos 3D mais nítidos, mas aumenta a carga da GPU. Reinicie o jogo. Comece em 2× e aumente apenas se o jogo continuar fluido.</string>
     <string name="core_option_n64_framebuffer">Emulação do framebuffer</string>
     <string name="core_option_help_n64_framebuffer">Ativa efeitos usados por muitos jogos. Desative apenas para testar o desempenho; requer reinício.</string>
     <string name="core_option_n64_rsp">Motor RSP</string>
