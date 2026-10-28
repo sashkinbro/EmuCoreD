@@ -8,6 +8,7 @@ import android.util.Log
 import android.net.Uri
 import android.view.Surface
 import com.sbro.emucored.core.NdsGameMetadataReader
+import com.sbro.emucored.data.DsSettingsPolicy
 import com.sbro.emucored.data.GamePlatform
 import org.json.JSONObject
 import java.io.File
@@ -38,7 +39,7 @@ object DsSession {
     private val performanceSampler = GuestFrameRateSampler()
 
     private var renderScale: Int = 1
-    private var renderer: Int = 14
+    private var renderer: Int = DsSettingsPolicy.DEFAULT_RENDERER
 
     private var stateDirectory: File? = null
     private var stateGamePath: String? = null
@@ -59,7 +60,7 @@ object DsSession {
         path: String,
         identityPath: String = path,
         renderScale: Int = 1,
-        renderer: Int = 14,
+        renderer: Int = DsSettingsPolicy.DEFAULT_RENDERER,
         startPaused: Boolean = false,
         swapped: Boolean = false
     ): Boolean {
@@ -171,7 +172,7 @@ object DsSession {
 
     @Synchronized
     fun setRenderer(renderer: Int): Boolean {
-        val normalized = if (renderer == 13) 13 else 14
+        val normalized = DsSettingsPolicy.normalizeRenderer(renderer)
         if (!isActive) {
             this.renderer = normalized
             return true

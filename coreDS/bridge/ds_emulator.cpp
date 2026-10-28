@@ -304,7 +304,11 @@ void DsEmulator::Run() {
         const auto now = clock::now();
         if (next_frame > now) {
             std::this_thread::sleep_for(next_frame - now);
-        } else {
+        } else if (now - next_frame > std::chrono::milliseconds(250)) {
+            // A long stall (pause, load, or a missed window) must not create a
+            // catch-up burst. Normal late frames keep the original deadline so
+            // the scheduler recovers the lost time over the next few frames
+            // instead of permanently resetting to the late wake-up time.
             next_frame = now;
         }
     }

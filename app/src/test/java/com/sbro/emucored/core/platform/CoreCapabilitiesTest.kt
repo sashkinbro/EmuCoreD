@@ -4,10 +4,10 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class CoreCapabilitiesTest {
-    @Test fun dsKeepsVulkanDefaultAndSoftwareAtNativeInternalResolution() {
+    @Test fun dsKeepsSoftwareDefaultAndVulkanForUpscaling() {
         val ds = CoreCapabilities.forPlatform(ConsolePlatform.NDS)
-        assertEquals(listOf(14, 13), ds.rendererIds)
-        assertEquals(14, ds.defaultRenderer)
+        assertEquals(listOf(13, 14), ds.rendererIds)
+        assertEquals(13, ds.defaultRenderer)
         assertEquals(8, ds.maxInternalScale(14))
         assertEquals(1, ds.maxInternalScale(13))
         assertFalse(ds.supportsAzaharOptions)

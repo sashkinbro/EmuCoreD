@@ -19,8 +19,8 @@ class DsLaunchConfigurationTest {
     }
 
     @Test
-    fun unsupportedRendererUsesDsVulkanAndScaleIsBounded() {
-        assertEquals(14, dsLaunchConfiguration(renderer = 12, renderScale = 0).renderer)
+    fun unsupportedRendererUsesDsSoftwareAndScaleIsBounded() {
+        assertEquals(13, dsLaunchConfiguration(renderer = 12, renderScale = 0).renderer)
         assertEquals(1, dsLaunchConfiguration(renderer = 13, renderScale = 0).renderScale)
         assertEquals(8, dsLaunchConfiguration(renderer = 14, renderScale = 12).renderScale)
     }

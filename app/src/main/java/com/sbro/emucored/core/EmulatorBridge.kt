@@ -10,6 +10,7 @@ import android.os.SystemClock
 import android.util.Log
 import android.view.Surface
 import com.sbro.emucored.data.AppPreferences
+import com.sbro.emucored.data.DsSettingsPolicy
 import com.sbro.emucored.data.GamePlatform
 import com.sbro.emucored.core.ds.DsSession
 import com.sbro.emucored.core.platform.session.AdditionalConsoleSession
@@ -41,7 +42,7 @@ internal data class DsLaunchConfiguration(val renderer: Int, val renderScale: In
 
 internal fun dsLaunchConfiguration(renderer: Int, renderScale: Int) =
     DsLaunchConfiguration(
-        renderer = if (renderer == 13) 13 else 14,
+        renderer = DsSettingsPolicy.normalizeRenderer(renderer),
         renderScale = renderScale.coerceIn(1, 8)
     )
 
@@ -230,7 +231,7 @@ object EmulatorBridge {
         path: String,
         saveStateIdentityPath: String? = null,
         dsRenderScale: Int = 1,
-        dsRenderer: Int = 14,
+        dsRenderer: Int = DsSettingsPolicy.DEFAULT_RENDERER,
         dsSwapScreens: Boolean = false,
         platformOverride: GamePlatform? = null
     ): Boolean {

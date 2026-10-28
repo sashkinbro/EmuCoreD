@@ -7,10 +7,14 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class DsSettingsPolicyTest {
+    @Test fun softwareIsTheDefaultRenderer() {
+        assertEquals(DsSettingsPolicy.RENDERER_SOFTWARE, DsSettingsPolicy.DEFAULT_RENDERER)
+    }
+
     @Test fun freshDsDefaultsDoNotInheritThreeDsGraphics() {
         val settings = SettingsSnapshot(renderer = 12, upscaleMultiplier = 7f)
         val ds = settings.forPlatform(GamePlatform.NDS)
-        assertEquals(14, ds.renderer)
+        assertEquals(13, ds.renderer)
         assertEquals(1f, ds.upscaleMultiplier, 0f)
         assertSame(settings, settings.forPlatform(GamePlatform.N3DS))
     }
@@ -26,9 +30,10 @@ class DsSettingsPolicyTest {
     }
 
     @Test fun dsValuesAreBoundedWithoutAcceptingThreeDsOpenGl() {
-        assertEquals(14, DsSettingsPolicy.normalizeRenderer(12))
-        assertEquals(14, DsSettingsPolicy.normalizeRenderer(-1))
+        assertEquals(13, DsSettingsPolicy.normalizeRenderer(12))
+        assertEquals(13, DsSettingsPolicy.normalizeRenderer(-1))
         assertEquals(13, DsSettingsPolicy.normalizeRenderer(13))
+        assertEquals(14, DsSettingsPolicy.normalizeRenderer(14))
         assertEquals(1f, DsSettingsPolicy.normalizeUpscaleMultiplier(-10f), 0f)
         assertEquals(8f, DsSettingsPolicy.normalizeUpscaleMultiplier(100f), 0f)
         assertEquals(3f, DsSettingsPolicy.normalizeUpscaleMultiplier(2.6f), 0f)
@@ -40,7 +45,7 @@ class DsSettingsPolicyTest {
         val threeDsRenderer = intPreferencesKey("renderer")
         val threeDsUpscale = floatPreferencesKey("upscale_multiplier_v2")
         val prefs = mutablePreferencesOf(threeDsRenderer to 12, threeDsUpscale to 7f)
-        assertEquals(14, DsSettingsPolicy.readRenderer(prefs))
+        assertEquals(13, DsSettingsPolicy.readRenderer(prefs))
         assertEquals(1f, DsSettingsPolicy.readUpscaleMultiplier(prefs), 0f)
         DsSettingsPolicy.storeRenderer(prefs, 13)
         DsSettingsPolicy.storeUpscaleMultiplier(prefs, 4f)
@@ -51,7 +56,9 @@ class DsSettingsPolicyTest {
         assertEquals(7f, reloaded[threeDsUpscale]!!, 0f)
         DsSettingsPolicy.storeRenderer(prefs, 12)
         DsSettingsPolicy.storeUpscaleMultiplier(prefs, 50f)
-        assertEquals(14, DsSettingsPolicy.readRenderer(prefs))
+        assertEquals(13, DsSettingsPolicy.readRenderer(prefs))
         assertEquals(8f, DsSettingsPolicy.readUpscaleMultiplier(prefs), 0f)
+        DsSettingsPolicy.storeRenderer(prefs, 14)
+        assertEquals(14, DsSettingsPolicy.readRenderer(prefs))
     }
 }

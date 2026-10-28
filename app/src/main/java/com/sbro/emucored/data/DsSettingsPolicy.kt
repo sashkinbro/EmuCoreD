@@ -8,14 +8,17 @@ import kotlin.math.roundToInt
 
 /** DS values never pass through Azahar's renderer normalization or resolution limits. */
 object DsSettingsPolicy {
-    const val DEFAULT_RENDERER = 14
+    const val RENDERER_SOFTWARE = 13
+    const val RENDERER_VULKAN = 14
+    const val DEFAULT_RENDERER = RENDERER_SOFTWARE
     // Native resolution is the default; DS 2D artwork gains little from upscaling.
     const val DEFAULT_UPSCALE_MULTIPLIER = 1f
     const val MAX_UPSCALE_MULTIPLIER = 8
     private val rendererKey = intPreferencesKey("ds_renderer")
     private val upscaleKey = floatPreferencesKey("ds_upscale_multiplier")
 
-    fun normalizeRenderer(value: Int): Int = if (value == 13) 13 else DEFAULT_RENDERER
+    fun normalizeRenderer(value: Int): Int =
+        if (value == RENDERER_SOFTWARE || value == RENDERER_VULKAN) value else DEFAULT_RENDERER
 
     fun normalizeUpscaleMultiplier(value: Float): Float =
         if (value.isFinite()) value.coerceIn(1f, MAX_UPSCALE_MULTIPLIER.toFloat()).roundToInt().toFloat()

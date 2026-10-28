@@ -9,9 +9,9 @@ import org.junit.Test
 class PlatformUiCapabilitiesTest {
     @Test fun dsMenusUseDsRenderersAndResolutionLimitBeforeSessionStarts() {
         val capabilities = PlatformUiCapabilities.forGame("/games/Mario.NDS")
-        assertEquals(listOf(14, 13), capabilities.rendererIds)
+        assertEquals(listOf(13, 14), capabilities.rendererIds)
         assertEquals(13, capabilities.normalizeRenderer(13))
-        assertEquals(14, capabilities.normalizeRenderer(12))
+        assertEquals(13, capabilities.normalizeRenderer(12))
         assertEquals(8, capabilities.maxUpscaleMultiplier(10))
         assertFalse(capabilities.supportsAzaharOptions)
         assertFalse(capabilities.supportsAnalogControls)

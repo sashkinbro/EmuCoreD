@@ -49,7 +49,7 @@ class RuntimeGpuSettingsInstrumentedTest {
             assertTrue(DsSession.setRenderer(13))
             assertEquals(13, DsSession.currentRenderer())
             assertTrue(DsSession.setRenderer(-100))
-            assertEquals(14, DsSession.currentRenderer())
+            assertEquals(13, DsSession.currentRenderer())
         } finally {
             DsSession.setRenderScale(previousScale)
             DsSession.setRenderer(previousRenderer)

@@ -1116,7 +1116,7 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
 
             var finalLaunchPath: String? = null
             var dsRenderScale = 1
-            var dsRenderer = 14
+            var dsRenderer = DsSettingsPolicy.DEFAULT_RENDERER
             if (isShuttingDown) {
                 Log.i(TAG, "Waiting for the previous session teardown to finish")
                 while (isShuttingDown && !cancelPendingStart) delay(25.milliseconds)

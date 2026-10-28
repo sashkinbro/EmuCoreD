@@ -2075,8 +2075,8 @@ private fun SettingsContent(
                         ChoiceSection(
                             title = stringResource(R.string.settings_renderer),
                             options = listOf(
-                                14 to stringResource(R.string.settings_renderer_vulkan),
-                                13 to stringResource(R.string.settings_renderer_software)
+                                13 to stringResource(R.string.settings_renderer_software),
+                                14 to stringResource(R.string.settings_renderer_vulkan)
                             ),
                             selectedValue = uiState.dsRenderer,
                             onSelect = viewModel::setDsRenderer,
