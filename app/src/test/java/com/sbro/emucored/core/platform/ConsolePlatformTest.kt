@@ -6,7 +6,7 @@ import org.junit.Test
 class ConsolePlatformTest {
     @Test fun regionalAndEnhancedCatalogsResolveToTheirActualConsoleFamily() {
         val expected = mapOf(37 to ConsolePlatform.N3DS, 137 to ConsolePlatform.N3DS,
-            20 to ConsolePlatform.NDS, 159 to ConsolePlatform.NDS,
+            20 to ConsolePlatform.NDS, 159 to ConsolePlatform.NDS, 4 to ConsolePlatform.N64,
             21 to ConsolePlatform.GAMECUBE, 5 to ConsolePlatform.WII,
             24 to ConsolePlatform.GBA, 33 to ConsolePlatform.GB, 22 to ConsolePlatform.GBC,
             18 to ConsolePlatform.NES, 99 to ConsolePlatform.NES,
@@ -21,8 +21,8 @@ class ConsolePlatformTest {
         ConsolePlatform.entries.forEach { assertTrue(it.catalogPlatformId in it.catalogPlatformIds) }
     }
 
-    @Test fun stableIdsCoverAllNineIntegratedConsoles() {
-        assertEquals(setOf("3ds", "nds", "gamecube", "wii", "gba", "gb", "gbc", "nes", "snes"),
+    @Test fun stableIdsCoverAllIntegratedConsoles() {
+        assertEquals(setOf("3ds", "nds", "n64", "gamecube", "wii", "gba", "gb", "gbc", "nes", "snes"),
             ConsolePlatform.entries.map { it.id }.toSet())
         assertEquals(ConsolePlatform.entries.toSet(),
             ConsolePlatform.entries.filter { it.isLaunchable }.toSet())
@@ -37,11 +37,13 @@ class ConsolePlatformTest {
         assertEquals(CoreId.SAMEBOY, ConsolePlatform.GB.core)
         assertEquals(CoreId.SAMEBOY, ConsolePlatform.GBC.core)
         assertEquals(CoreId.MGBA, ConsolePlatform.GBA.core)
-        assertEquals(9, ConsolePlatform.entries.map { it.catalogPlatformId }.toSet().size)
+        assertEquals(10, ConsolePlatform.entries.map { it.catalogPlatformId }.toSet().size)
     }
 
     @Test fun fileCandidatesAreCaseInsensitiveAndDoNotGuessAmbiguousDiscIdentity() {
         assertEquals(setOf(ConsolePlatform.NDS), ConsolePlatform.candidatesForFileName("Contra.NDS"))
+        for (extension in listOf("z64", "n64", "v64"))
+            assertEquals(setOf(ConsolePlatform.N64), ConsolePlatform.candidatesForFileName("Game.$extension"))
         assertEquals(setOf(ConsolePlatform.GBA), ConsolePlatform.candidatesForFileName("Game.GBA"))
         assertEquals(setOf(ConsolePlatform.GBC), ConsolePlatform.candidatesForFileName("Game.gbc"))
         assertEquals(setOf(ConsolePlatform.GB), ConsolePlatform.candidatesForFileName("Game.gb"))

@@ -5,6 +5,11 @@ import org.junit.Test
 
 class ConsoleBackupPathsTest {
     private val hash = "a".repeat(64)
+    @Test fun includesNintendo64SavesButNotRomImages() {
+        assertTrue(ConsoleBackupPaths.allowed("console-data/n64/$hash/battery.srm"))
+        assertTrue(ConsoleBackupPaths.allowed("console-states/n64/$hash/n64_${hash}_slot1.ecs"))
+        assertFalse(ConsoleBackupPaths.allowed("console-data/n64/$hash/game.z64"))
+    }
     @Test fun includesRealUserStatesBatteriesAndDolphinGameSaves() {
         listOf("console-states/wii/$hash/wii_${hash}_slot0.ecs",
             "console-states/gba/$hash/gba_${hash}_slot10.ecs.png",

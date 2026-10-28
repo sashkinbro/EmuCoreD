@@ -2137,4 +2137,11 @@
     <string name="cheat_manager_delete_pack_confirm">Retirer « %1$s » de ce jeu ? Les autres packs installés seront conservés.</string>
     <string name="cheat_manager_delete_pack_failed">Impossible de supprimer ce pack de codes.</string>
     <string name="onboarding_supported_consoles">Consoles prises en charge</string>
+    <string name="console_n64">Nintendo 64</string>
+    <string name="core_option_n64_resolution">Résolution interne</string>
+    <string name="core_option_help_n64_resolution">Une résolution élevée rend les graphismes 3D plus nets, mais sollicite davantage le GPU. Redémarrez le jeu.</string>
+    <string name="core_option_n64_framebuffer">Émulation du tampon de trame</string>
+    <string name="core_option_help_n64_framebuffer">Active des effets utilisés par de nombreux jeux. Désactivez uniquement pour tester les performances ; redémarrage requis.</string>
+    <string name="core_option_n64_rsp">Moteur RSP</string>
+    <string name="core_option_help_n64_rsp">HLE est généralement plus rapide. ParaLLEl et CXD4 peuvent améliorer la compatibilité, mais utilisent davantage le CPU. Redémarrage requis.</string>
 </resources>

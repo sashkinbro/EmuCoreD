@@ -13,7 +13,7 @@ class ConsoleGameFormatsTest {
             assertEquals(SetupValidator.DocumentEntryKind.GAME_FILE,
                 SetupValidator.classifyDocumentEntry("application/octet-stream", name))
         }
-        assertEquals(9, ConsolePlatform.entries.size)
+        assertEquals(10, ConsolePlatform.entries.size)
     }
 
     @Test fun compressedCiaUsesInstallerAndCompressedCartridgeRemainsThreeDs() {

@@ -5,6 +5,7 @@ import com.sbro.emucored.core.dolphin.DolphinSessionEngine
 import com.sbro.emucored.core.gb.SameBoySessionEngine
 import com.sbro.emucored.core.gba.MgbaSessionEngine
 import com.sbro.emucored.core.nes.NestopiaSessionEngine
+import com.sbro.emucored.core.n64.Mupen64SessionEngine
 import com.sbro.emucored.core.snes.BsnesSessionEngine
 import com.sbro.emucored.core.platform.ConsolePlatform
 import com.sbro.emucored.core.platform.CoreId
@@ -17,6 +18,7 @@ object AndroidCoreEngineFactory : CoreEngineFactory {
         CoreId.SAMEBOY -> SameBoySessionEngine()
         CoreId.NESTOPIA -> NestopiaSessionEngine()
         CoreId.BSNES -> BsnesSessionEngine()
+        CoreId.MUPEN64 -> Mupen64SessionEngine()
         // The tested DS/3DS legacy bridge remains in use until its contract adapters are ready.
         CoreId.AZAHAR, CoreId.MELONDS -> null
     }

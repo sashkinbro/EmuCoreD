@@ -6,7 +6,7 @@ import org.junit.Test
 
 class ActiveCorePerformanceHeaderTest {
     @Test fun eachConsoleShowsItsActualEngineName() {
-        val expected = listOf("Azahar", "melonDS", "Dolphin", "Dolphin", "mGBA", "SameBoy", "SameBoy", "Nestopia JG", "bsnes")
+        val expected = listOf("Azahar", "melonDS", "Mupen64Plus-Next", "Dolphin", "Dolphin", "mGBA", "SameBoy", "SameBoy", "Nestopia JG", "bsnes")
         ConsolePlatform.entries.zip(expected).forEach { (console, engine) ->
             assertEquals("EmuCoreD 0.5 | $engine", performanceCoreHeader("0.5", console))
         }

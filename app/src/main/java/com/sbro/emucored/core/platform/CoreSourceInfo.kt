@@ -20,6 +20,7 @@ data class CoreSourceInfo(
             CoreId.SAMEBOY -> CoreSourceInfo(core, "SameBoy", "https://github.com/LIJI32/SameBoy", "Expat/MIT")
             CoreId.NESTOPIA -> CoreSourceInfo(core, "Nestopia JG", "https://gitlab.com/jgemu/nestopia", "GPL-2.0-or-later")
             CoreId.BSNES -> CoreSourceInfo(core, "bsnes", "https://github.com/bsnes-emu/bsnes", "GPL-3.0-or-later")
+            CoreId.MUPEN64 -> CoreSourceInfo(core, "Mupen64Plus-Next", "https://github.com/libretro/mupen64plus-libretro-nx", "GPL-2.0")
         }
     }
 }

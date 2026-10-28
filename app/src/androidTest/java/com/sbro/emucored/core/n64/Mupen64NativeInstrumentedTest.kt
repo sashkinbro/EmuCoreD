@@ -49,9 +49,14 @@ class Mupen64NativeInstrumentedTest {
         }
         assertTrue("Test surface unavailable", ready.await(15, TimeUnit.SECONDS))
         assertEquals(1, Mupen64Native.apiVersion())
-        val handle = Mupen64Native.nativeCreate(path, directory.path)
+        val handle = Mupen64Native.nativeCreate(path, directory.path,
+            arrayOf("n64_resolution", "cpu_backend", "n64_rsp", "n64_framebuffer", "audio_enabled", "aspect_ratio"),
+            arrayOf("320x240", "jit", "hle", "true", "false", "4:3"))
         assertNotEquals("N64 guest failed to start", 0L, handle)
         try {
+            assertFalse(Mupen64Native.nativeOption(handle, "n64_resolution", "invalid"))
+            assertTrue(Mupen64Native.nativeOption(handle, "aspect_ratio", "16:9"))
+            assertTrue(Mupen64Native.nativeOption(handle, "aspect_ratio", "4:3"))
             Mupen64Native.nativeSurface(handle, surface)
             repeat(390) { assertTrue("N64 guest stopped at frame $it", Mupen64Native.nativeFrame(handle)) }
             val state = File(directory, "state.bin")
@@ -84,7 +89,7 @@ class Mupen64NativeInstrumentedTest {
         val directory = File(context.cacheDir, "n64-restart-test-${System.nanoTime()}").apply { check(mkdirs()) }
         try {
             repeat(2) {
-                val handle = Mupen64Native.nativeCreate(path, directory.path)
+                val handle = Mupen64Native.nativeCreate(path, directory.path, emptyArray(), emptyArray())
                 assertNotEquals("N64 restart failed", 0L, handle)
                 try { repeat(120) { assertTrue(Mupen64Native.nativeFrame(handle)) } }
                 finally { Mupen64Native.nativeDestroy(handle) }

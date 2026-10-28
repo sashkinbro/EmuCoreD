@@ -35,10 +35,13 @@ class CoreCapabilities private constructor(
         private val gba = CoreCapabilities(listOf(13), 13, false, false, 1, emptyMap(), basicActions + setOf("l", "r"))
         private val gameBoy = CoreCapabilities(listOf(13), 13, false, false, 1, emptyMap(), basicActions)
         private val snes = CoreCapabilities(listOf(13), 13, false, false, 1, emptyMap(), basicActions + setOf("x", "y", "l", "r"))
+        private val n64 = CoreCapabilities(listOf(12), 12, false, true, 1, mapOf(12 to 4),
+            basicActions - "select" + analogActions + setOf("x", "y", "l", "r", "zl", "zr", "z"))
 
         fun forPlatform(platform: ConsolePlatform): CoreCapabilities = when (platform) {
             ConsolePlatform.N3DS -> azahar
             ConsolePlatform.NDS -> melonDs
+            ConsolePlatform.N64 -> n64
             ConsolePlatform.GAMECUBE -> gameCube
             ConsolePlatform.WII -> wii
             ConsolePlatform.GBA -> gba

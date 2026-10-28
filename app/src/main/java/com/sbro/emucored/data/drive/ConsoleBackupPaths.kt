@@ -2,7 +2,7 @@ package com.sbro.emucored.data.drive
 
 /** User saves only. ROMs, firmware, keys, caches and Dolphin NAND content are excluded. */
 internal object ConsoleBackupPaths {
-    private val framePlatforms = setOf("gba", "gb", "gbc", "nes", "snes")
+    internal val framePlatforms = setOf("n64", "gba", "gb", "gbc", "nes", "snes")
     private val platforms = framePlatforms + setOf("gamecube", "wii")
     private val hash = Regex("[0-9a-f]{64}")
     private val dsState = Regex("slot(\\d{1,2})\\.dss(?:\\.png|\\.json)?")
@@ -23,7 +23,8 @@ internal object ConsoleBackupPaths {
                 dsState.matchEntire(p[2])?.groupValues?.get(1)?.toIntOrNull()?.let { it in 0..10 } == true
             "ds-saves" -> p.size == 2 && p[1].matches(Regex("[A-Za-z0-9._-]{1,128}\\.sav"))
             "console-data" -> p.size == 4 && p[1] in framePlatforms && p[2].matches(hash) &&
-                p[3] in setOf("battery.sav", "battery.sav.fds.ups", "game.srm", "game.rtc", "game.sav", "game.ram")
+                (p[3] in setOf("battery.sav", "battery.sav.fds.ups", "game.srm", "game.rtc", "game.sav", "game.ram") ||
+                    (p[1] == "n64" && p[3] == "battery.srm"))
             "console-dolphin" -> when {
                 p.size >= 3 && p[1] == "GC" -> p.last().substringAfterLast('.').lowercase() in setOf("raw", "gci", "gcs")
                 p.size >= 7 && p[1] == "Wii" && p[2] == "title" &&

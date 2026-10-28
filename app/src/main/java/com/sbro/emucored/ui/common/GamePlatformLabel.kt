@@ -10,6 +10,7 @@ import com.sbro.emucored.data.GamePlatform
 fun gamePlatformLabelResource(platform: GamePlatform): Int = when (ConsolePlatform.valueOf(platform.name)) {
     ConsolePlatform.N3DS -> R.string.profile_platform_3ds
     ConsolePlatform.NDS -> R.string.profile_platform_ds
+    ConsolePlatform.N64 -> R.string.console_n64
     ConsolePlatform.GAMECUBE -> R.string.console_gamecube
     ConsolePlatform.WII -> R.string.console_wii
     ConsolePlatform.GBA -> R.string.console_gba

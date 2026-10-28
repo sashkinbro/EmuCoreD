@@ -57,6 +57,11 @@ abstract class ThreadedFrameSessionEngine : CoreSessionEngine {
     final override fun setButton(player: Int, button: EngineButton, pressed: Boolean) {
         worker.post { nativeSetButton(nativeHandle, player, button, pressed) }
     }
+    final override fun setAnalog(player: Int, x: Float, y: Float, secondary: Boolean): Boolean {
+        if (!nativeSupportsAnalog || player !in 0..3 || !x.isFinite() || !y.isFinite() || !worker.isRunning) return false
+        worker.post { nativeSetAnalog(nativeHandle, player, x.coerceIn(-1f, 1f), y.coerceIn(-1f, 1f), secondary) }
+        return true
+    }
     final override fun setSpeed(multiplier: Float): Boolean {
         if (!multiplier.isFinite() || multiplier !in 0.25f..4f) return false
         worker.speed = multiplier
@@ -82,6 +87,8 @@ abstract class ThreadedFrameSessionEngine : CoreSessionEngine {
     protected abstract fun nativeAttachSurface(handle: Long, surface: Surface?, width: Int, height: Int)
     protected abstract fun nativeSetPaused(handle: Long, paused: Boolean)
     protected abstract fun nativeSetButton(handle: Long, player: Int, button: EngineButton, pressed: Boolean)
+    protected open val nativeSupportsAnalog: Boolean get() = false
+    protected open fun nativeSetAnalog(handle: Long, player: Int, x: Float, y: Float, secondary: Boolean) = Unit
     protected abstract fun nativeState(handle: Long, path: File, save: Boolean): Boolean
     protected abstract fun nativeApplyOption(handle: Long, key: String, value: String): Boolean
     protected open fun nativeReplaceCheats(handle: Long, formats: Array<String>, codes: Array<String>): Boolean = codes.isEmpty()

@@ -34,6 +34,7 @@ object CoreOptionHelp {
     fun resourceName(platform: ConsolePlatform, key: String): String? {
         val available = when (platform) {
             ConsolePlatform.NDS, ConsolePlatform.N3DS -> emptySet()
+            ConsolePlatform.N64 -> setOf("n64_resolution", "n64_framebuffer", "n64_rsp", "aspect_ratio", "audio_enabled", "cpu_backend")
             ConsolePlatform.GAMECUBE -> dolphin + "gc_language"
             ConsolePlatform.WII -> dolphin + setOf("wii_profile", "wii_speaker")
             ConsolePlatform.GBA -> frame + gba

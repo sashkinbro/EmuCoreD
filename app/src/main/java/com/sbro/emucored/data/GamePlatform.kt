@@ -11,6 +11,7 @@ import java.util.concurrent.ConcurrentHashMap
 enum class GamePlatform {
     N3DS,
     NDS,
+    N64,
     GAMECUBE,
     WII,
     GBA,

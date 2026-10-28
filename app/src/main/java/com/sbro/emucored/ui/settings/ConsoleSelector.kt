@@ -29,6 +29,7 @@ internal fun ConsoleSelector(selected: ConsolePlatform, onSelected: (ConsolePlat
 internal fun consolePlatformLabel(platform: ConsolePlatform): String = stringResource(when (platform) {
     ConsolePlatform.NDS -> R.string.profile_platform_ds
     ConsolePlatform.N3DS -> R.string.profile_platform_3ds
+    ConsolePlatform.N64 -> R.string.console_n64
     ConsolePlatform.GAMECUBE -> R.string.console_gamecube
     ConsolePlatform.WII -> R.string.console_wii
     ConsolePlatform.GBA -> R.string.console_gba

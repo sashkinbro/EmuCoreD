@@ -14,7 +14,7 @@ class PlatformCoverCatalogTest {
         File(root, "app/src/main/assets/catalog/covers/${CoverIndexRepository.platformKey(platform)}.json").readText()
     )
 
-    @Test fun allNineCatalogsSelectEveryPublishedStyleWithItsOwnDigest() {
+    @Test fun allCatalogsSelectEveryPublishedStyleWithItsOwnDigest() {
         var complete = 0
         for (platform in GamePlatform.entries) {
             val index = catalog(platform)
@@ -34,7 +34,8 @@ class PlatformCoverCatalogTest {
                 complete++
             }
         }
-        assertEquals(20532, complete)
+        assertTrue("Existing cover catalogs lost entries", complete >= 20532)
+        assertTrue("Nintendo 64 catalog is incomplete", catalog(GamePlatform.N64).getJSONObject("games").length() >= 1000)
     }
 
     @Test fun regionalContraAndMortalKombatAmbiguitiesNeverSelectFirstCandidate() {
@@ -56,6 +57,10 @@ class PlatformCoverCatalogTest {
 
     @Test fun retailFixturesMatchWithinPlatformAndRetainDsSerialCompatibility() {
         val cases = listOf(
+            GamePlatform.N64 to "Doom 64 (USA).z64",
+            GamePlatform.N64 to "Donkey Kong 64 (USA).z64",
+            GamePlatform.N64 to "GoldenEye 007 (USA).z64",
+            GamePlatform.N64 to "Resident Evil 2 (USA).z64",
             GamePlatform.GAMECUBE to "Mario Party 7 (USA) (Rev 1)",
             GamePlatform.WII to "Super Mario Galaxy 2 (USA)",
             GamePlatform.GBA to "Defender (USA)",

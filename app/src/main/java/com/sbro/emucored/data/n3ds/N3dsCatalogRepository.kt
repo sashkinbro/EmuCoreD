@@ -15,7 +15,7 @@ class N3dsCatalogRepository(private val context: Context) {
         private const val TAG = "N3dsCatalogRepository"
         // Bumped whenever the bundled all-console catalog asset changes so an
         // installed app replaces its previous extracted database.
-        internal const val DB_NAME = "nintendo_games_v3.db"
+        internal const val DB_NAME = "nintendo_games_v4.db"
         private const val ASSET_PATH = "catalog/games.db"
 
         private val sharedCoverMatchCache =
@@ -290,7 +290,13 @@ class N3dsCatalogRepository(private val context: Context) {
         sharedFuzzyCandidates?.takeIf { it.first == db.path }?.let { return it.second }
         return runCatching {
             val candidates = ArrayList<FuzzyCandidate>(2400)
-            db.rawQuery("SELECT igdb_id, normalized_name, platform FROM games", null).use { cursor ->
+            db.rawQuery("""
+                SELECT igdb_id, normalized_name, platform FROM games
+                UNION ALL
+                SELECT games.igdb_id, games.normalized_name, 'N64'
+                FROM games JOIN n64_games ON n64_games.igdb_id = games.igdb_id
+                WHERE games.platform != 'N64'
+            """.trimIndent(), null).use { cursor ->
                 while (cursor.moveToNext()) {
                     candidates += FuzzyCandidate(cursor.getLong(0), catalogMatchTokens(cursor.getString(1).orEmpty()), cursor.getString(2).orEmpty())
                 }
@@ -467,14 +473,17 @@ class N3dsCatalogRepository(private val context: Context) {
             args += it.toString()
         }
         if (!platform.isNullOrBlank()) {
-            where += "platform = ?"
+            where += if (platform == "N64")
+                "(platform = ? OR igdb_id IN (SELECT igdb_id FROM n64_games))"
+            else "platform = ?"
             args += platform
         }
 
         val whereClause = if (where.isEmpty()) "" else "WHERE ${where.joinToString(" AND ")}"
         val limitClause = if (includeOffset) "LIMIT ? OFFSET ?" else "LIMIT ?"
         return """
-            SELECT igdb_id, name, normalized_name, year, rating, summary, storyline, cover_url, hero_url, platform
+            SELECT igdb_id, name, normalized_name, year, rating, summary, storyline, cover_url, hero_url,
+                ${if (platform == "N64") "'N64'" else "platform"} AS platform
             FROM games
             $whereClause
             ORDER BY $defaultSortOrder
@@ -759,5 +768,10 @@ internal fun catalogPlatformCodes(platform: GamePlatform?): Set<String>? = when 
     else -> setOf(platform.name)
 }
 
-private fun catalogPlatformClause(platform: GamePlatform?): String = catalogPlatformCodes(platform)
-    ?.joinToString(prefix = " AND platform IN (", postfix = ")") { "'$it'" }.orEmpty()
+private fun catalogPlatformClause(platform: GamePlatform?): String {
+    if (platform == GamePlatform.N64) {
+        return " AND (platform = 'N64' OR igdb_id IN (SELECT igdb_id FROM n64_games))"
+    }
+    return catalogPlatformCodes(platform)
+        ?.joinToString(prefix = " AND platform IN (", postfix = ")") { "'$it'" }.orEmpty()
+}

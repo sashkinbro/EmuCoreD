@@ -15,7 +15,19 @@ if(NOT revision_result EQUAL 0 OR NOT core_revision MATCHES "^[0-9a-f]+$")
     message(FATAL_ERROR "Cannot identify the Mupen64Plus-Next source revision")
 endif()
 string(SUBSTRING "${core_revision}" 0 8 core_revision)
-get_filename_component(n64_build "${CMAKE_CURRENT_SOURCE_DIR}/../build/n64/${CMAKE_BUILD_TYPE}/${ANDROID_ABI}/${core_revision}" ABSOLUTE)
+# NDK's Windows make can crash while traversing the much longer AGP paths.
+# Keep each build type isolated while using short output paths on all hosts.
+if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+    set(n64_configuration d)
+elseif(CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo")
+    set(n64_configuration r)
+elseif(CMAKE_BUILD_TYPE STREQUAL "Release")
+    set(n64_configuration o)
+else()
+    string(SHA256 n64_configuration "${CMAKE_BUILD_TYPE}")
+    string(SUBSTRING "${n64_configuration}" 0 8 n64_configuration)
+endif()
+get_filename_component(n64_build "${CMAKE_CURRENT_SOURCE_DIR}/../build/n64/${n64_configuration}/${core_revision}" ABSOLUTE)
 set(core_output "${n64_build}/libs/${ANDROID_ABI}/libretro.so")
 add_custom_command(OUTPUT "${core_output}"
     COMMAND "${ndk_build}"

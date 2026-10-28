@@ -2135,4 +2135,11 @@
     <string name="cheat_manager_delete_pack_confirm">इस गेम से “%1$s” हटाएँ? अन्य इंस्टॉल किए गए पैक रहेंगे।</string>
     <string name="cheat_manager_delete_pack_failed">यह चीट पैक हटाया नहीं जा सका।</string>
     <string name="onboarding_supported_consoles">समर्थित कंसोल</string>
+    <string name="console_n64">Nintendo 64</string>
+    <string name="core_option_n64_resolution">आंतरिक रिज़ॉल्यूशन</string>
+    <string name="core_option_help_n64_resolution">अधिक रिज़ॉल्यूशन 3D ग्राफ़िक्स को स्पष्ट बनाता है, लेकिन GPU पर अधिक भार डालता है। खेल को फिर शुरू करें।</string>
+    <string name="core_option_n64_framebuffer">फ़्रेमबफ़र एमुलेशन</string>
+    <string name="core_option_help_n64_framebuffer">कई खेलों में उपयोग होने वाले प्रभाव चालू करता है। प्रदर्शन जाँचने के लिए ही बंद करें; पुनः आरंभ आवश्यक है।</string>
+    <string name="core_option_n64_rsp">RSP इंजन</string>
+    <string name="core_option_help_n64_rsp">HLE आमतौर पर तेज़ है। ParaLLEl और CXD4 संगतता बढ़ा सकते हैं, लेकिन अधिक CPU उपयोग करते हैं। पुनः आरंभ आवश्यक है।</string>
 </resources>

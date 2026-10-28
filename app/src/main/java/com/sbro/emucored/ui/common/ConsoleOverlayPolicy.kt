@@ -21,7 +21,11 @@ data class ConsoleOverlayPolicy private constructor(
     fun inputAlias(id: String): String = when (id) {
         "up" -> "dpad_up"; "down" -> "dpad_down"; "left" -> "dpad_left"; "right" -> "dpad_right"
         "swap_screens" -> "swap_screen"
-        "z" -> if (platform == ConsolePlatform.GAMECUBE) "select" else "r"
+        "z" -> when (platform) {
+            ConsolePlatform.GAMECUBE -> "select"
+            ConsolePlatform.N64 -> "zl"
+            else -> "r"
+        }
         "c" -> "l"; "plus" -> "start"; "minus" -> "select"; "one" -> "x"; "two" -> "y"
         else -> id
     }
@@ -29,6 +33,7 @@ data class ConsoleOverlayPolicy private constructor(
     fun supportsAction(id: String): Boolean {
         if (id in setOf("z", "c", "one", "two", "plus", "minus")) {
             if (id == "z" && platform == ConsolePlatform.GAMECUBE) return true
+            if (id == "z" && platform == ConsolePlatform.N64) return true
             if (platform != ConsolePlatform.WII) return false
             if (id in setOf("c", "z") && wiiProfile != "nunchuk") return false
             if (id in setOf("one", "two") && wiiProfile == "classic") return false
@@ -57,6 +62,9 @@ data class ConsoleOverlayPolicy private constructor(
 
     /** Symbols printed on the console's physical buttons are language independent. */
     fun buttonLabel(id: String): String? = when {
+        platform == ConsolePlatform.N64 && id == "zl" -> "Z"
+        platform == ConsolePlatform.N64 && id == "x" -> "C↑"
+        platform == ConsolePlatform.N64 && id == "y" -> "C↓"
         platform == ConsolePlatform.GAMECUBE && id == "select" -> "Z"
         platform == ConsolePlatform.WII && id == "start" -> "+"
         platform == ConsolePlatform.WII && id == "select" -> "\u2212"

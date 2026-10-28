@@ -53,6 +53,12 @@ class ConsoleDriveBackupInstrumentedTest {
                 .put("slot", 1).put("sha256", SaveStateFileIntegrity.sha256(state)).toString())
             val battery = File(context.filesDir, "consoles/gba/${ConsoleSessionStorage.identityKey("owned-game")}/battery.sav")
                 .apply { parentFile!!.mkdirs(); writeBytes(byteArrayOf(12, 34, 56)) }
+            val n64State = ConsoleSessionStorage.stateFile(context.filesDir, ConsolePlatform.N64, "owned-n64", 1)
+                .apply { parentFile!!.mkdirs(); writeBytes(original) }
+            File("${n64State.path}.json").writeText(JSONObject().put("platform", "N64").put("gamePath", "owned-n64")
+                .put("slot", 1).put("sha256", SaveStateFileIntegrity.sha256(n64State)).toString())
+            val n64Battery = File(context.filesDir, "consoles/n64/${ConsoleSessionStorage.identityKey("owned-n64")}/battery.srm")
+                .apply { parentFile!!.mkdirs(); writeBytes(byteArrayOf(65, 66, 67)) }
             File(context.filesDir, "consoles/firmware/disksys.rom").apply { parentFile!!.mkdirs(); writeBytes(ByteArray(8192)) }
             val archive = DriveBackupArchive(context) { "isolated-test-device" }
             val snapshot = archive.create(includeTextures = false)
@@ -61,16 +67,22 @@ class ConsoleDriveBackupInstrumentedTest {
                 assertTrue(names.contains("core-options.json"))
                 assertTrue(names.any { it.startsWith("console-states/gba/") && it.endsWith(".ecs") })
                 assertTrue(names.any { it.startsWith("console-data/gba/") && it.endsWith("battery.sav") })
+                assertTrue(names.any { it.startsWith("console-states/n64/") && it.endsWith(".ecs") })
+                assertTrue(names.any { it.startsWith("console-data/n64/") && it.endsWith("battery.srm") })
                 assertFalse(names.any { it.contains("firmware") || it.endsWith(".rom") })
             }
             options.setGlobal(ConsolePlatform.GBA, "frameskip", "0")
             state.writeBytes(byteArrayOf(0))
             battery.writeBytes(byteArrayOf(99))
+            n64State.writeBytes(byteArrayOf(0))
+            n64Battery.writeBytes(byteArrayOf(0))
             val manifest = archive.extract(snapshot.file)
             archive.restore(manifest, setOf("settings", "save-states", "memory-cards"))
             assertEquals("3", options.effectiveOptions(ConsolePlatform.GBA)["frameskip"])
             assertArrayEquals(original, state.readBytes())
             assertArrayEquals(byteArrayOf(12, 34, 56), battery.readBytes())
+            assertArrayEquals(original, n64State.readBytes())
+            assertArrayEquals(byteArrayOf(65, 66, 67), n64Battery.readBytes())
             } finally { storeJob.cancelAndJoin() }
         }
     }

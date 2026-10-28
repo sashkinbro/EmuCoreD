@@ -2136,4 +2136,11 @@
     <string name="cheat_manager_delete_pack_confirm">要从本游戏移除“%1$s”吗？其他已安装的包将保留。</string>
     <string name="cheat_manager_delete_pack_failed">无法删除此金手指包。</string>
     <string name="onboarding_supported_consoles">支持的游戏机</string>
+    <string name="console_n64">Nintendo 64</string>
+    <string name="core_option_n64_resolution">内部渲染分辨率</string>
+    <string name="core_option_help_n64_resolution">提高分辨率可使 3D 画面更清晰，但会增加 GPU 负载。重启游戏后生效。</string>
+    <string name="core_option_n64_framebuffer">帧缓冲模拟</string>
+    <string name="core_option_help_n64_framebuffer">启用许多游戏需要的效果。仅在测试性能时关闭；需要重启游戏。</string>
+    <string name="core_option_n64_rsp">RSP 引擎</string>
+    <string name="core_option_help_n64_rsp">HLE 通常更快。ParaLLEl 和 CXD4 可能提高兼容性，但会增加 CPU 负载。需要重启游戏。</string>
 </resources>

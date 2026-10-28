@@ -2140,4 +2140,11 @@
     <string name="cheat_manager_delete_pack_confirm">Видалити «%1$s» з цієї гри? Інші встановлені паки залишаться.</string>
     <string name="cheat_manager_delete_pack_failed">Не вдалося видалити цей пак чітів.</string>
     <string name="onboarding_supported_consoles">Підтримувані консолі</string>
+    <string name="console_n64">Nintendo 64</string>
+    <string name="core_option_n64_resolution">Внутрішня роздільна здатність</string>
+    <string name="core_option_help_n64_resolution">Вища роздільна здатність робить 3D-графіку чіткішою, але збільшує навантаження на GPU. Перезапустіть гру. Почніть із 640x480 і підвищуйте значення, лише якщо гра працює плавно.</string>
+    <string name="core_option_n64_framebuffer">Емуляція буфера кадру</string>
+    <string name="core_option_help_n64_framebuffer">Вмикає ефекти, потрібні багатьом іграм. Вимикайте лише для перевірки швидкодії; потрібен перезапуск. Зазвичай залишайте цей параметр увімкненим для правильного зображення.</string>
+    <string name="core_option_n64_rsp">Ядро RSP</string>
+    <string name="core_option_help_n64_rsp">HLE зазвичай швидше. ParaLLEl і CXD4 можуть покращити сумісність, але більше навантажують CPU. Потрібен перезапуск. Почніть із HLE та змінюйте режим, лише якщо цього потребує конкретна гра.</string>
 </resources>

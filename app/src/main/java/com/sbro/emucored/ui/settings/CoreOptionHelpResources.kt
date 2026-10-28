@@ -6,6 +6,9 @@ import com.sbro.emucored.core.platform.CoreOptionHelp
 
 // Explicit R references keep help reachable under resource shrinking and R8.
 internal val coreOptionHelpResources = mapOf(
+    "core_option_help_n64_resolution" to R.string.core_option_help_n64_resolution,
+    "core_option_help_n64_framebuffer" to R.string.core_option_help_n64_framebuffer,
+    "core_option_help_n64_rsp" to R.string.core_option_help_n64_rsp,
     "core_option_help_video_filter" to R.string.core_option_help_video_filter,
     "core_option_help_audio_enabled" to R.string.core_option_help_audio_enabled,
     "core_option_help_aspect_ratio_frame" to R.string.core_option_help_aspect_ratio_frame,

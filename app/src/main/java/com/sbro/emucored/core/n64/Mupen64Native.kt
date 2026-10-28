@@ -8,7 +8,7 @@ internal object Mupen64Native {
     init { System.loadLibrary("emucored_n64") }
 
     external fun apiVersion(): Int
-    external fun nativeCreate(path: String, directory: String): Long
+    external fun nativeCreate(path: String, directory: String, keys: Array<String>, values: Array<String>): Long
     external fun nativeDestroy(handle: Long)
     external fun nativeFrame(handle: Long): Boolean
     external fun nativeRate(handle: Long): Double

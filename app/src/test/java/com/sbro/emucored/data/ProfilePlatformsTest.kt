@@ -5,12 +5,12 @@ import org.junit.Test
 
 class ProfilePlatformsTest {
     @Test fun everyConsoleHasItsOwnProfileFilter() {
-        assertEquals(setOf("ALL", "N3DS", "NDS", "GAMECUBE", "WII", "GBA", "GB", "GBC", "NES", "SNES", "UNKNOWN"),
+        assertEquals(GamePlatform.entries.map { it.name }.toSet() + setOf("ALL", "UNKNOWN"),
             ProfilePlatformFilter.entries.map { it.name }.toSet())
     }
 
     @Test fun allConsoleIdentitiesRoundTripAndFilterWithoutChangingLegacyFields() {
-        val names = listOf("N3DS", "NDS", "GAMECUBE", "WII", "GBA", "GB", "GBC", "NES", "SNES")
+        val names = GamePlatform.entries.map { it.name }
         val games = names.mapIndexed { index, name ->
             val platform = GamePlatform.valueOf(name)
             val record = mutableMapOf<String, Any>("s" to "IPKE", "ms" to index.toLong())

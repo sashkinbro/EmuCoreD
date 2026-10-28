@@ -2,7 +2,7 @@ package com.sbro.emucored.core.platform
 
 import com.sbro.emucored.data.GamePlatform
 
-enum class CoreId { AZAHAR, MELONDS, DOLPHIN, MGBA, SAMEBOY, NESTOPIA, BSNES }
+enum class CoreId { AZAHAR, MELONDS, DOLPHIN, MGBA, SAMEBOY, NESTOPIA, BSNES, MUPEN64 }
 
 /** Product identities are independent of engines: one engine can emulate several consoles. */
 enum class ConsolePlatform(
@@ -14,6 +14,7 @@ enum class ConsolePlatform(
 ) {
     N3DS("3ds", CoreId.AZAHAR, 37, true, setOf(37, 137)),
     NDS("nds", CoreId.MELONDS, 20, true, setOf(20, 159)),
+    N64("n64", CoreId.MUPEN64, 4, true),
     GAMECUBE("gamecube", CoreId.DOLPHIN, 21, true),
     WII("wii", CoreId.DOLPHIN, 5, true),
     GBA("gba", CoreId.MGBA, 24, true),

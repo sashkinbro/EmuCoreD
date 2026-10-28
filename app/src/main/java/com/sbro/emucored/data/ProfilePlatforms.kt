@@ -8,7 +8,7 @@ import kotlin.math.max
 internal const val PROFILE_GAME_PLATFORM_KEY = "p"
 
 enum class ProfilePlatformFilter {
-    ALL, NDS, N3DS, GAMECUBE, WII, GBA, GB, GBC, NES, SNES, UNKNOWN;
+    ALL, NDS, N3DS, N64, GAMECUBE, WII, GBA, GB, GBC, NES, SNES, UNKNOWN;
 
     val platform: GamePlatform?
         get() = GamePlatform.entries.firstOrNull { it.name == name }

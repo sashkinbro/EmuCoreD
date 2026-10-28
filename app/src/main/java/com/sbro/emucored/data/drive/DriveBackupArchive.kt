@@ -127,7 +127,7 @@ class DriveBackupArchive(
             if (prefix == "textures" && !includeTextures) return@forEach
             if (root.isDirectory) root.walkTopDown().onEnter { directory ->
                 !Files.isSymbolicLink(directory.toPath()) && (prefix != "console-data" || directory == root ||
-                    directory.relativeTo(root).invariantSeparatorsPath.substringBefore('/') in setOf("gba", "gb", "gbc", "nes", "snes"))
+                    directory.relativeTo(root).invariantSeparatorsPath.substringBefore('/') in ConsoleBackupPaths.framePlatforms)
             }.forEach { source ->
                 if (source.isFile && !Files.isSymbolicLink(source.toPath())) {
                     val name = "$prefix/${source.relativeTo(root).invariantSeparatorsPath}"

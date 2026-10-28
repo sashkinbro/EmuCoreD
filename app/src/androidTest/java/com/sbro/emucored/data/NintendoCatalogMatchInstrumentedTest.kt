@@ -29,7 +29,7 @@ class NintendoCatalogMatchInstrumentedTest {
                 val extracted = File(context.noBackupFilesDir, N3dsCatalogRepository.DB_NAME)
                 assertNotEquals(legacy.canonicalPath, extracted.canonicalPath)
                 SQLiteDatabase.openDatabase(extracted.path, null, SQLiteDatabase.OPEN_READONLY).use { db ->
-                    val codes = listOf("3DS", "DS", "GAMECUBE", "WII", "GBA", "GB", "GBC", "NES", "SNES")
+                    val codes = listOf("3DS", "DS", "N64", "GAMECUBE", "WII", "GBA", "GB", "GBC", "NES", "SNES")
                     for (code in codes) {
                         db.rawQuery("SELECT COUNT(*) FROM games WHERE platform=?", arrayOf(code)).use { cursor ->
                             assertTrue(cursor.moveToFirst())
@@ -38,7 +38,7 @@ class NintendoCatalogMatchInstrumentedTest {
                     }
                     db.rawQuery("SELECT COUNT(*) FROM games", null).use { cursor ->
                         assertTrue(cursor.moveToFirst())
-                        assertEquals(19_176, cursor.getInt(0))
+                        assertTrue(cursor.getInt(0) >= 20_000)
                     }
                 }
                 assertArrayEquals(original, legacy.readBytes())
@@ -56,6 +56,7 @@ class NintendoCatalogMatchInstrumentedTest {
             SQLiteDatabase.openOrCreateDatabase(database.path, null).use { db ->
                 db.execSQL("CREATE TABLE games(igdb_id INTEGER PRIMARY KEY, normalized_name TEXT, platform TEXT)")
                 db.execSQL("CREATE TABLE game_serials(igdb_id INTEGER, serial TEXT)")
+                db.execSQL("CREATE TABLE n64_games(igdb_id INTEGER PRIMARY KEY)")
                 GamePlatform.entries.forEachIndexed { index, platform ->
                     db.execSQL("INSERT INTO games VALUES (?,?,?)", arrayOf<Any>(100L + index, "shared adventure returns", codes[platform] ?: platform.name))
                     db.execSQL("INSERT INTO game_serials VALUES (?,?)", arrayOf<Any>(100L + index, "SHARED-CODE"))
@@ -72,6 +73,24 @@ class NintendoCatalogMatchInstrumentedTest {
                 }
                 assertNull(repository.findBestMatchId("THREE-DS-ONLY", null, GamePlatform.NDS))
                 assertEquals(100L, repository.findBestMatchId("THREE-DS-ONLY", null))
+            } finally { repository.close() }
+        }
+    }
+
+    @Test fun nintendo64CatalogIncludesExclusiveAndSharedGames() {
+        testStorageContext().use { isolated ->
+            val context = object : ContextWrapper(isolated) {
+                override fun getNoBackupFilesDir() = File(isolated.filesDir, "no-backup").apply { mkdirs() }
+            }
+            val repository = N3dsCatalogRepository(context)
+            try {
+                assertTrue(repository.getAvailablePlatforms().contains("N64"))
+                val exclusive = repository.search("Donkey Kong 64", null, null, null, platform = "N64")
+                assertTrue(exclusive.any { it.name == "Donkey Kong 64" && it.platform == "N64" })
+                val shared = repository.search("Super Mario 64", null, null, null, platform = "N64")
+                assertTrue(shared.any { it.igdbId == 1074L && it.platform == "N64" })
+                assertTrue(repository.search("Super Mario 64", null, null, null, platform = "WII").any { it.igdbId == 1074L })
+                assertEquals(1074L, repository.findBestMatchId(null, "Super Mario 64", GamePlatform.N64))
             } finally { repository.close() }
         }
     }

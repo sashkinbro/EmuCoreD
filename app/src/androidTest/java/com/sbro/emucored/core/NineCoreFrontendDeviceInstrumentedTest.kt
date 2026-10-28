@@ -95,6 +95,7 @@ class NineCoreFrontendDeviceInstrumentedTest {
                     val extension = when (platform) {
                         GamePlatform.GAMECUBE, GamePlatform.WII -> "rvz"
                         GamePlatform.N3DS -> "3ds"
+                        GamePlatform.N64 -> "z64"
                         GamePlatform.SNES -> "sfc"
                         else -> id
                     }
@@ -112,17 +113,17 @@ class NineCoreFrontendDeviceInstrumentedTest {
                 }
                 val view = createWindow()
                 attach(view)
-                val firstTour = listOf(GamePlatform.N3DS, GamePlatform.NDS, GamePlatform.GBA,
+                val firstTour = listOf(GamePlatform.N3DS, GamePlatform.NDS, GamePlatform.N64, GamePlatform.GBA,
                     GamePlatform.GB, GamePlatform.GBC, GamePlatform.NES, GamePlatform.SNES,
                     GamePlatform.GAMECUBE, GamePlatform.WII)
                 // A second ordering covers reverse and shared-engine handoffs,
                 // without claiming that this is all 72 possible directed edges.
                 val secondTour = listOf(GamePlatform.GAMECUBE, GamePlatform.WII, GamePlatform.SNES,
                     GamePlatform.GBC, GamePlatform.GB, GamePlatform.NES, GamePlatform.GBA,
-                    GamePlatform.NDS, GamePlatform.N3DS)
+                    GamePlatform.N64, GamePlatform.NDS, GamePlatform.N3DS)
                 val tour = if (args.getString("nineCoreAllTransitions") == "true") {
                     // Eulerian circuit: every ordered pair, including same-console
-                    // reopen, occurs exactly once in 82 boots instead of 162.
+                    // reopen, occurs exactly once in N² + 1 boots.
                     val remaining = GamePlatform.entries.associateWith { GamePlatform.entries.toMutableList() }
                     val stack = mutableListOf(firstTour.first())
                     val circuit = mutableListOf<GamePlatform>()

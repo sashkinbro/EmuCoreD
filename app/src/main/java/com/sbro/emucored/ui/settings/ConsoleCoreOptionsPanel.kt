@@ -80,6 +80,9 @@ internal fun coreOptionNumericValue(key: String, value: String): String = when {
 
 @Composable
 internal fun coreOptionTitle(option: CoreOptionDefinition): String = stringResource(when (option.key) {
+    "n64_resolution" -> R.string.core_option_n64_resolution
+    "n64_framebuffer" -> R.string.core_option_n64_framebuffer
+    "n64_rsp" -> R.string.core_option_n64_rsp
     "widescreen_hack" -> R.string.dolphin_option_widescreen_hack
     "msaa" -> R.string.dolphin_option_msaa
     "anisotropy" -> R.string.dolphin_option_anisotropy
@@ -204,6 +207,9 @@ private fun coreOptionChoiceValue(value: String): String = when (value) {
     "pixel" -> "1:1"
     "opengl" -> stringResource(R.string.settings_renderer_opengl)
     "jit" -> "JIT"
+    "hle" -> "HLE"
+    "parallel" -> "ParaLLEl RSP"
+    "cxd4" -> "CXD4"
     "interpreter" -> stringResource(R.string.core_option_interpreter)
     "nearest" -> stringResource(R.string.core_option_nearest)
     "linear" -> stringResource(R.string.core_option_linear)

@@ -2137,4 +2137,11 @@
     <string name="cheat_manager_delete_pack_confirm">„%1$s“ aus diesem Spiel entfernen? Andere installierte Pakete bleiben erhalten.</string>
     <string name="cheat_manager_delete_pack_failed">Dieses Cheat-Paket konnte nicht gelöscht werden.</string>
     <string name="onboarding_supported_consoles">Unterstützte Konsolen</string>
+    <string name="console_n64">Nintendo 64</string>
+    <string name="core_option_n64_resolution">Interne Auflösung</string>
+    <string name="core_option_help_n64_resolution">Eine höhere Auflösung macht 3D-Grafik schärfer, belastet aber die GPU stärker. Spiel neu starten.</string>
+    <string name="core_option_n64_framebuffer">Framebuffer-Emulation</string>
+    <string name="core_option_help_n64_framebuffer">Aktiviert Effekte vieler Spiele. Nur zum Testen der Leistung deaktivieren; Neustart erforderlich.</string>
+    <string name="core_option_n64_rsp">RSP-Modus</string>
+    <string name="core_option_help_n64_rsp">HLE ist meist schneller. ParaLLEl und CXD4 können die Kompatibilität verbessern, benötigen aber mehr CPU-Leistung. Neustart erforderlich.</string>
 </resources>

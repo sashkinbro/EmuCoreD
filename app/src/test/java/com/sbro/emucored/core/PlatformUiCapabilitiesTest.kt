@@ -39,7 +39,8 @@ class PlatformUiCapabilitiesTest {
         val ds = PlatformUiCapabilities.forGame("content://provider/document/Game%2Ends")
         val threeDs = PlatformUiCapabilities.forGame("/games/Game.3ds")
         for (platform in GamePlatform.entries) {
-            assertTrue(platform.name, PlatformUiCapabilities.forGame(null, platform).supportsGameMenuTab(GameMenuTabId.CHEATS))
+            assertEquals(platform.name, platform != GamePlatform.N64,
+                PlatformUiCapabilities.forGame(null, platform).supportsGameMenuTab(GameMenuTabId.CHEATS))
             assertTrue(platform.name, PlatformUiCapabilities.forGame(null, platform).supportsGameMenuSection(GameMenuSectionId.EMULATION_PERFORMANCE))
         }
         assertTrue(threeDs.supportsGameMenuTab(GameMenuTabId.CHEATS))

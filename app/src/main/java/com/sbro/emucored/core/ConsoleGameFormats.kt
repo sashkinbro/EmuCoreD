@@ -15,6 +15,7 @@ object ConsoleGameFormats {
             setOf("3dsx", "z3dsx", "elf", "axf")
         )
         ConsolePlatform.NDS -> Profile(NdsGameFormats.extensions)
+        ConsolePlatform.N64 -> Profile(setOf("n64", "z64", "v64"))
         ConsolePlatform.GAMECUBE -> Profile(setOf("gcm", "iso", "rvz", "wia", "gcz", "ciso", "tgc"), setOf("dol", "elf"))
         ConsolePlatform.WII -> Profile(setOf("iso", "rvz", "wia", "gcz", "ciso", "wbfs", "wad"), setOf("dol", "elf"))
         ConsolePlatform.GBA -> Profile(setOf("gba", "agb"))

@@ -82,6 +82,14 @@ object CoreOptionSchema {
     )
     fun options(platform: ConsolePlatform): List<CoreOptionDefinition> = when (platform) {
         ConsolePlatform.N3DS, ConsolePlatform.NDS -> emptyList()
+        ConsolePlatform.N64 -> listOf(
+            option("n64_resolution", SettingsCategory.Graphics, "640x480", "320x240", "640x480", "960x720", "1280x960", restart = true),
+            option("aspect_ratio", SettingsCategory.Graphics, "auto", "auto", "4:3", "16:9"),
+            toggle("n64_framebuffer", SettingsCategory.Graphics, restart = true),
+            option("cpu_backend", SettingsCategory.Emulation, "jit", "jit", "cached_interpreter", "interpreter", restart = true),
+            option("n64_rsp", SettingsCategory.Emulation, "hle", "hle", "parallel", "cxd4", restart = true),
+            audio
+        )
         ConsolePlatform.GAMECUBE -> dolphin + option("gc_language", SettingsCategory.Emulation, "english", "english", "german", "french", "spanish", "italian", "dutch", restart = true)
         ConsolePlatform.WII -> dolphin + listOf(
             option("wii_profile", SettingsCategory.Controls, "nunchuk", "remote", "nunchuk", "classic", restart = true),

@@ -31,6 +31,7 @@ object ConsoleControlsDefaults {
             ConsolePlatform.SNES -> basic + setOf("x", "y", "l", "r")
             ConsolePlatform.NDS -> basic - "dpad_cluster" +
                 setOf("x", "y", "l", "r", "dpad_up", "dpad_down", "dpad_left", "dpad_right")
+            ConsolePlatform.N64 -> basic - "select" + setOf("x", "y", "l", "r", "zl", "left_stick", "right_stick")
             ConsolePlatform.GAMECUBE -> basic + setOf("x", "y", "l", "r", "left_stick", "right_stick")
             ConsolePlatform.WII -> basic + setOf("x", "y", "home", "right_stick") + when (scope.normalizedWiiProfile) {
                 "remote" -> emptySet()

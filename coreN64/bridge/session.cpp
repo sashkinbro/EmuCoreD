@@ -28,6 +28,7 @@ struct Session {
     uint16_t buttons[4]{};
     int16_t axes[4][2][2]{};
     bool initialized = false, loaded = false, context_ready = false, options_changed = false;
+    double aspect = 4.0 / 3.0;
 
     EGLSurface currentSurface() const { return window_surface == EGL_NO_SURFACE ? pbuffer : window_surface; }
     bool makeCurrent() const {
@@ -87,7 +88,7 @@ struct Session {
         eglQuerySurface(display, window_surface, EGL_WIDTH, &screen_width);
         eglQuerySurface(display, window_surface, EGL_HEIGHT, &screen_height);
         if (screen_width <= 0 || screen_height <= 0) return;
-        const auto viewport = displayViewport(screen_width, screen_height, 4.0 / 3.0);
+        const auto viewport = displayViewport(screen_width, screen_height, aspect);
         glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
         glViewport(0, 0, screen_width, screen_height);
         glClearColor(0, 0, 0, 1); glClear(GL_COLOR_BUFFER_BIT);
@@ -122,6 +123,30 @@ struct Session {
 };
 Session* active = nullptr;
 std::mutex ownership;
+
+bool applyOption(Session& session, const std::string& key, const std::string& value, bool boot) {
+    if (key == "audio_enabled" && (value == "true" || value == "false")) {
+        session.audio.muted = value == "false"; return true;
+    }
+    if (key == "aspect_ratio" && (value == "auto" || value == "4:3" || value == "16:9")) {
+        session.aspect = value == "16:9" ? 16.0 / 9.0 : 4.0 / 3.0; return true;
+    }
+    std::string upstream, setting;
+    if (key == "n64_resolution" && (value == "320x240" || value == "640x480" ||
+        value == "960x720" || value == "1280x960")) {
+        upstream = "mupen64plus-43screensize"; setting = value;
+    } else if (key == "cpu_backend" && (value == "jit" || value == "cached_interpreter" || value == "interpreter")) {
+        upstream = "mupen64plus-cpucore";
+        setting = value == "jit" ? "dynamic_recompiler" : value == "interpreter" ? "pure_interpreter" : value;
+    } else if (key == "n64_rsp" && (value == "hle" || value == "parallel" || value == "cxd4")) {
+        upstream = "mupen64plus-rsp-plugin"; setting = value;
+    } else if (key == "n64_framebuffer" && (value == "true" || value == "false")) {
+        upstream = "mupen64plus-EnableFBEmulation"; setting = value == "true" ? "True" : "False";
+    } else return false;
+    // These options require a guest restart; do not change the active GPU or CPU mid-frame.
+    if (boot) session.options[upstream] = setting;
+    return true;
+}
 
 void logMessage(retro_log_level level, const char* format, ...) {
     va_list args; va_start(args, format);
@@ -195,11 +220,22 @@ int16_t input(unsigned player, unsigned device, unsigned index, unsigned id) {
 }
 
 #define JNI(type) extern "C" JNIEXPORT type JNICALL
-JNI(jlong) Java_com_sbro_emucored_core_n64_Mupen64Native_nativeCreate(JNIEnv* env, jobject, jstring path, jstring directory) {
+JNI(jlong) Java_com_sbro_emucored_core_n64_Mupen64Native_nativeCreate(JNIEnv* env, jobject, jstring path, jstring directory, jobjectArray keys, jobjectArray values) {
     std::scoped_lock lock(ownership);
     if (active) return 0;
     auto session = std::make_unique<Session>();
     session->path = utf(env, path); session->directory = utf(env, directory);
+    // The frontend's button assignments use the independent C-button layout.
+    session->options["mupen64plus-alt-map"] = "True";
+    if (!keys || !values || env->GetArrayLength(keys) != env->GetArrayLength(values)) return 0;
+    for (jsize index = 0; index < env->GetArrayLength(keys); ++index) {
+        auto key = static_cast<jstring>(env->GetObjectArrayElement(keys, index));
+        auto value = static_cast<jstring>(env->GetObjectArrayElement(values, index));
+        const bool valid = key && value && applyOption(*session, utf(env, key), utf(env, value), true);
+        if (key) env->DeleteLocalRef(key);
+        if (value) env->DeleteLocalRef(value);
+        if (!valid) return 0;
+    }
     session->rom = readBytes(session->path);
     if (session->rom.size() < 4096 || !session->initializeGraphics()) { session->close(); return 0; }
     session->rom_hash = hashBytes(session->rom.data(), session->rom.size());
@@ -251,7 +287,7 @@ JNI(void) Java_com_sbro_emucored_core_n64_Mupen64Native_nativePause(JNIEnv*, job
 }
 JNI(void) Java_com_sbro_emucored_core_n64_Mupen64Native_nativeButton(JNIEnv*, jobject, jlong handle, jint player, jint button, jboolean pressed) {
     auto* session = reinterpret_cast<Session*>(handle);
-    constexpr int mapping[] = {0, 1, 9, 8, 3, -1, 2, 13, 10, 11, 4, 5, 6, 7, 12};
+    constexpr int mapping[] = {0, 1, 9, 8, 3, -1, 2, 13, 12, 11, 4, 5, 6, 7, 12};
     if (!session || session != active || player < 0 || player >= 4 || button < 0 || button >= 15 || mapping[button] < 0) return;
     const uint16_t bit = 1u << mapping[button];
     if (pressed) session->buttons[player] |= bit; else session->buttons[player] &= ~bit;
@@ -279,9 +315,5 @@ JNI(jboolean) Java_com_sbro_emucored_core_n64_Mupen64Native_nativeStateFile(JNIE
 JNI(jboolean) Java_com_sbro_emucored_core_n64_Mupen64Native_nativeOption(JNIEnv* env, jobject, jlong handle, jstring key, jstring value) {
     auto* session = reinterpret_cast<Session*>(handle);
     if (!session || session != active) return false;
-    const auto option = utf(env, key), setting = utf(env, value);
-    if (option == "audio_enabled" && (setting == "true" || setting == "false")) {
-        session->audio.muted = setting == "false"; return true;
-    }
-    return false;
+    return applyOption(*session, utf(env, key), utf(env, value), false);
 }
