@@ -5,6 +5,7 @@ import android.net.Uri
 import android.provider.DocumentsContract
 import androidx.core.net.toUri
 import androidx.documentfile.provider.DocumentFile
+import com.sbro.emucored.data.GamePlatform
 import java.io.File
 
 object SetupValidator {
@@ -81,9 +82,10 @@ object SetupValidator {
         for (child in children) {
             if (child.isDirectory) {
                 findReadableLocalGame(context, child, budget)?.let { return it }
-            } else if (child.isFile && ConsoleGameFormats.isSupportedName(child.name)) {
+            } else if (child.isFile && (ConsoleGameFormats.isSupportedName(child.name) ||
+                        child.extension.equals("zip", ignoreCase = true))) {
                 if (!budget.tryCheckFile()) return null
-                if (isLaunchPathReadable(context, child.absolutePath)) return child.absolutePath
+                if (isSupportedGameReadable(context, child.absolutePath, child.name)) return child.absolutePath
             }
         }
         return null
@@ -108,12 +110,20 @@ object SetupValidator {
                 DocumentEntryKind.GAME_FILE -> {
                     if (!budget.tryCheckFile()) return null
                     val uriPath = child.uri.toString()
-                    if (isLaunchPathReadable(context, uriPath)) return uriPath
+                    if (isSupportedGameReadable(context, uriPath, displayName)) return uriPath
                 }
                 DocumentEntryKind.OTHER -> Unit
             }
         }
         return null
+    }
+
+    private fun isSupportedGameReadable(context: Context, path: String, name: String): Boolean {
+        if (!name.endsWith(".zip", ignoreCase = true)) return isLaunchPathReadable(context, path)
+        return runCatching {
+            val archive = ConsoleImageAccess.prepareArchiveForProbe(context, path) ?: return@runCatching false
+            archive.use { GameZipArchive.entries(File(it.path), supports = GamePlatform::isSupportedArchiveEntry).isNotEmpty() }
+        }.getOrDefault(false)
     }
 
     internal fun classifyDocumentEntry(mimeType: String?, displayName: String?): DocumentEntryKind {

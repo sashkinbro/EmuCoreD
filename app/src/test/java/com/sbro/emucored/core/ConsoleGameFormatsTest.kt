@@ -27,7 +27,10 @@ class ConsoleGameFormatsTest {
         assertEquals(setOf(ConsolePlatform.GAMECUBE, ConsolePlatform.WII), ConsoleGameFormats.candidatesForFileName("game.RVZ"))
         assertEquals(setOf(ConsolePlatform.N3DS, ConsolePlatform.GAMECUBE, ConsolePlatform.WII),
             ConsoleGameFormats.candidatesForFileName("original.ELF"))
-        for (name in listOf("game.zip", "game.7z", "game.rar", "game.nes.png", "disksys.rom", "")) {
+        assertFalse(ConsoleGameFormats.isSupportedName("game.zip"))
+        assertEquals(SetupValidator.DocumentEntryKind.GAME_FILE,
+            SetupValidator.classifyDocumentEntry("application/zip", "game.zip"))
+        for (name in listOf("game.7z", "game.rar", "game.nes.png", "disksys.rom", "")) {
             assertFalse(name, ConsoleGameFormats.isSupportedName(name))
             assertEquals(SetupValidator.DocumentEntryKind.OTHER,
                 SetupValidator.classifyDocumentEntry("application/octet-stream", name))

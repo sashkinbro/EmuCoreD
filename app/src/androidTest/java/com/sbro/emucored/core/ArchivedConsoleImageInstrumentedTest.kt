@@ -15,6 +15,24 @@ import org.junit.runner.RunWith
 
 @RunWith(AndroidJUnit4::class)
 class ArchivedConsoleImageInstrumentedTest {
+    @Test fun onboardingRecognizesOnlyZipArchivesWithSupportedGames() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val folder = File(context.cacheDir, "zip-setup-${java.util.UUID.randomUUID()}").apply { check(mkdirs()) }
+        val archive = File(folder, "games.zip")
+        try {
+            fun writeArchive(entry: String) {
+                ZipOutputStream(archive.outputStream()).use { zip ->
+                    zip.putNextEntry(ZipEntry(entry))
+                    zip.write(byteArrayOf(1, 2, 3))
+                    zip.closeEntry()
+                }
+            }
+            writeArchive("readme.txt")
+            assertFalse(SetupValidator.hasCoreReadableGameFile(context, folder.path))
+            writeArchive("games/example.sfc")
+            assertTrue(SetupValidator.hasCoreReadableGameFile(context, folder.path))
+        } finally { folder.deleteRecursively() }
+    }
     @Test fun selectedGameIsOwnedUntilCloseForLocalAndProviderArchives() = runBlocking {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         val folder = File(context.cacheDir, "shared/archive-${UUID.randomUUID()}").apply { check(mkdirs()) }

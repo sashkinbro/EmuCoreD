@@ -34,13 +34,14 @@ enum class GamePlatform {
 
         fun isSupportedName(name: String): Boolean = ConsolePlatform.candidatesForFileName(name).isNotEmpty()
 
+        internal fun isSupportedArchiveEntry(name: String): Boolean =
+            fromFileName(name) in setOf(GBA, GB, GBC, NES, SNES)
+
         fun remember(path: String, platform: GamePlatform) { discovered[path] = platform }
 
         /** Scanner/cache evidence takes precedence over a potentially ambiguous extension. */
         fun forPath(path: String): GamePlatform? = discovered[path] ?: ArchiveGameIdentity.parse(path)?.let {
-            fromFileName(it.entry)?.takeIf { platform ->
-                platform in setOf(GBA, GB, GBC, NES, SNES)
-            }
+            fromFileName(it.entry)?.takeIf { _ -> isSupportedArchiveEntry(it.entry) }
         } ?: fromFileName(path)
 
         fun fromPath(path: String): GamePlatform =

@@ -443,8 +443,7 @@ class GameRepository {
                 ?: return@runCatching emptyList()
             archive.use {
                 val names = GameZipArchive.entries(File(it.path), ::checkActive) { name ->
-                    GamePlatform.fromFileName(name) in setOf(GamePlatform.GBA, GamePlatform.GB,
-                        GamePlatform.GBC, GamePlatform.NES, GamePlatform.SNES)
+                    GamePlatform.isSupportedArchiveEntry(name)
                 }
                 val covers = CoverArtRepository(context)
                 val custom = CustomGameCoverRepository(context)
