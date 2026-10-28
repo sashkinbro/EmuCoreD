@@ -42,6 +42,8 @@ object EmuCoreDsNative {
     external fun nativeSetRenderScale(scale: Int)
     external fun nativeSetPaused(paused: Boolean)
     external fun nativeSetRenderer(renderer: Int)
+    external fun nativeConfigureGpuDriver(tmp: String?, hook: String?, directory: String?, name: String?)
+    external fun nativeIsCustomGpuDriverActive(): Boolean
     external fun nativeSaveState(path: String): Boolean
     external fun nativeLoadState(path: String): Boolean
     external fun nativeReplaceCheats(formats:Array<String>,codes:Array<String>):Boolean

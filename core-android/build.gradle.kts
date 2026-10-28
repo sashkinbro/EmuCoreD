@@ -49,7 +49,7 @@ android {
                     // warnings-as-errors mode was tuned for.
                     "-DCITRA_WARNINGS_AS_ERRORS=OFF"
                 )
-                targets += "citra-android"
+                targets += listOf("citra-android", "main_hook", "hook_impl", "file_redirect_hook", "gsl_alloc_hook")
             }
         }
     }

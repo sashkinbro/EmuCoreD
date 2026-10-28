@@ -187,13 +187,19 @@ fun PerGameSettingsManagerScreen(
     initialGamePath: String? = null,
     onOpenControlsLayoutEditor: (GameItem) -> Unit,
     onBackClick: () -> Unit,
-    onOpenTextureManager: ((GameItem) -> Unit)? = null
+    onOpenTextureManager: ((GameItem) -> Unit)? = null,
+    onOpenGpuDriver: ((GameItem) -> Unit)? = null
 ) {
     val context = LocalContext.current
+    val customDriversSupported = remember { com.sbro.emucored.core.GpuDriverSupport.deviceSupported() }
     val repository = remember(context) { PerGameSettingsRepository(context) }
     val coreOptionPreferences = remember(context) { CoreOptionPreferences(context) }
+    val gpuDriverPreferences = remember(context) { com.sbro.emucored.core.GpuDriverPreferences(context) }
     fun resetCoreOverrides(gameKey: String) {
-        ConsolePlatform.entries.forEach { coreOptionPreferences.resetGame(it, gameKey) }
+        ConsolePlatform.entries.forEach {
+            coreOptionPreferences.resetGame(it, gameKey)
+            gpuDriverPreferences.clearGame(it, gameKey)
+        }
     }
     fun syncCoreOverrides(profile: PerGameSettings) {
         val platform = PlatformUiCapabilities.forGame(profile.gameKey, profile.gamePlatform).platform.console
@@ -668,6 +674,31 @@ fun PerGameSettingsManagerScreen(
                                     }
                                 }
                             }
+                        } else null,
+                        onOpenGpuDriver = if (onOpenGpuDriver != null && com.sbro.emucored.core.GpuDriverSupport.canUse(
+                                game.platform.console,
+                                if (game.platform.console in setOf(ConsolePlatform.GAMECUBE, ConsolePlatform.WII))
+                                    com.sbro.emucored.core.platform.CoreOptionSchema.resolve(game.platform.console,
+                                        coreOptionPreferences.globalOptions(game.platform.console), draft.coreOptions)["graphics_backend"] == "vulkan"
+                                else draft.renderer == com.sbro.emucored.core.RendererDefaults.VULKAN,
+                                customDriversSupported
+                            )) {
+                            {
+                                if (!isOpeningGameTool) {
+                                    isOpeningGameTool = true
+                                    scope.launch {
+                                        try {
+                                            profiles = persistDraft(draft)
+                                            onOpenGpuDriver(game)
+                                        } catch (cancelled: kotlinx.coroutines.CancellationException) {
+                                            throw cancelled
+                                        } catch (_: Exception) {
+                                            isOpeningGameTool = false
+                                            toast(context.getString(R.string.game_settings_manager_save_failure))
+                                        }
+                                    }
+                                }
+                            }
                         } else null
                     )
                 }
@@ -918,7 +949,8 @@ private fun GameSettingsManagerEditorPanel(
     onRemoveShaderPresets: suspend (Set<String>) -> Boolean,
     onOpenControlsLayoutEditor: () -> Unit,
     onDraftChange: (PerGameSettings) -> Unit,
-    onOpenTextureManager: (() -> Unit)? = null
+    onOpenTextureManager: (() -> Unit)? = null,
+    onOpenGpuDriver: (() -> Unit)? = null
 ) {
     Column(
         modifier = Modifier.fillMaxWidth(),
@@ -951,6 +983,14 @@ private fun GameSettingsManagerEditorPanel(
                 icon = Icons.Rounded.FolderOpen,
                 title = stringResource(R.string.shell_texture_manager),
                 onClick = onOpenTextureManager
+            )
+        }
+        if (selectedTab == GameSettingsManagerTab.Core && onOpenGpuDriver != null) {
+            ManagerActionButton(
+                modifier = Modifier.fillMaxWidth(),
+                icon = Icons.Rounded.FolderOpen,
+                title = stringResource(R.string.settings_gpu_driver_manager_title),
+                onClick = onOpenGpuDriver
             )
         }
         if (selectedTab == GameSettingsManagerTab.Controls) {

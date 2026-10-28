@@ -322,6 +322,7 @@ internal object CoreRuntime {
         val path = currentGamePath ?: return@withLock false
         val active = context ?: return@withLock false
         val previousConfig = CoreConfig.currentValues() ?: return@withLock false
+        val identity = NativeApp.saveStatePathSource()
         val target = RendererDefaults.normalizeAndroidRenderer(renderer)
         if (EmuCoreNative.getActiveRenderer() == target) return@withLock true
         val wasPaused = paused
@@ -342,6 +343,7 @@ internal object CoreRuntime {
             shutdown()
             if (hasSession()) return@runCatching false
             CoreConfig.apply(config)
+            GpuDriverRuntime.configureAzahar(active, identity, config.renderer)
             if (!start(path, startPaused = true)) return@runCatching false
             if (EmuCoreNative.getActiveRenderer() != config.renderer) return@runCatching false
             if (!EmuCoreNative.loadTemporaryState(checkpoint.absolutePath)) return@runCatching false

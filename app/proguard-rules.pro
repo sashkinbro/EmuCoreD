@@ -54,6 +54,7 @@
     native <methods>;
 }
 -keep,includedescriptorclasses class com.sbro.emucored.core.EmuCoreNative { *; }
+-keep,includedescriptorclasses class com.sbro.emucored.core.GpuDriverHelper { *; }
 -keep,includedescriptorclasses class com.sbro.emucored.core.EmuCoreNative$* { *; }
 -keep,includedescriptorclasses class com.sbro.emucored.core.Cheat { *; }
 -keep,includedescriptorclasses class com.sbro.emucored.core.CheatEngine { *; }

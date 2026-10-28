@@ -56,6 +56,9 @@
 #include "VideoCommon/VideoBackendBase.h"
 #include "VideoCommon/VideoConfig.h"
 #include "VideoCommon/VideoEvents.h"
+#ifdef HAS_VULKAN
+#include "VideoBackends/Vulkan/VulkanContext.h"
+#endif
 #include "jni/AndroidCommon/AndroidCommon.h"
 
 namespace State {
@@ -82,6 +85,7 @@ struct Runtime {
   bool initialized = false;
   bool wii = false;
   bool user_paused = false;
+  std::string gpu_driver_name;
   int profile = 1;
   std::atomic<bool> alert{false};
 } runtime;
@@ -394,6 +398,7 @@ void HostRun(std::string path, std::string user, std::string sys, bool wii, bool
   Config::SetCurrent(Config::MAIN_ENABLE_SAVESTATES, true);
   Config::SetCurrent(Config::MAIN_WIIMOTE_CONTINUOUS_SCANNING, false);
   Config::SetCurrent(Config::GFX_SHOW_FPS, false);
+  Config::SetCurrent(Config::GFX_DRIVER_LIB_NAME, runtime.gpu_driver_name);
   Config::SetCurrent(Config::MAIN_OSD_MESSAGES, false);
   for (const auto& [key, value] : options) {
     if (!Option(key, value, true)) {
@@ -523,6 +528,27 @@ std::unique_ptr<GBAHostInterface> Host_CreateGBAHost(std::weak_ptr<HW::GBA::Core
 #define JNI_METHOD(name) Java_com_sbro_emucored_core_dolphin_DolphinNative_##name
 extern "C" {
 JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM* vm, void*) { return EmuCoreDInitializeAndroid(vm); }
+JNIEXPORT jint JNICALL JNI_METHOD(activeGpuDriverId)(JNIEnv*, jobject) {
+  int id = -1;
+#ifdef HAS_VULKAN
+  OnHost([&] {
+    if (Vulkan::g_vulkan_context) id = static_cast<int>(Vulkan::g_vulkan_context->GetDeviceInfo().driverID);
+    return true;
+  });
+#endif
+  return id;
+}
+JNIEXPORT jboolean JNICALL JNI_METHOD(configureGpuDriver)(JNIEnv* env, jobject, jstring root, jstring hook, jstring name) {
+  std::lock_guard api_lock(runtime.api_mutex);
+  if (runtime.active || runtime.host.joinable()) return false;
+  const auto directory = GetJString(env, root);
+  const auto hook_directory = GetJString(env, hook);
+  if (directory.empty() || hook_directory.empty()) return false;
+  static std::once_flag driver_once;
+  std::call_once(driver_once, [&] { File::SetGpuDriverDirectories(directory, hook_directory); });
+  runtime.gpu_driver_name = GetJString(env, name);
+  return true;
+}
 JNIEXPORT jint JNICALL JNI_METHOD(start)(JNIEnv* env, jobject, jstring path, jstring user, jstring sys,
                                        jboolean wii, jboolean paused, jobjectArray keys, jobjectArray values) {
   std::lock_guard api_lock(runtime.api_mutex);

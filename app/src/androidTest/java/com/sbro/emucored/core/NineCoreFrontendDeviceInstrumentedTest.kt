@@ -21,6 +21,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.sbro.emucored.core.ds.DsSession
 import com.sbro.emucored.core.ds.EmuCoreDsNative
+import com.sbro.emucored.core.dolphin.DolphinNative
 import com.sbro.emucored.core.platform.session.AdditionalConsoleSession
 import com.sbro.emucored.core.platform.session.CoreSessionHost
 import com.sbro.emucored.core.platform.session.EngineButton
@@ -63,6 +64,15 @@ class NineCoreFrontendDeviceInstrumentedTest {
     @Test(timeout = 2_700_000)
     fun allNineConsolesFailRecoverSaveLoadStopAndReopenThroughTheFrontend() = runBlocking {
         val args = InstrumentationRegistry.getArguments()
+        val driverPlatform = when (args.getString("gpuDriverPlatform")) {
+            "nds" -> GamePlatform.NDS
+            "gamecube" -> GamePlatform.GAMECUBE
+            "wii" -> GamePlatform.WII
+            else -> GamePlatform.N3DS
+        }
+        val driverPlatforms = if (args.getString("gpuDriverPlatform") == "all")
+            listOf(GamePlatform.N3DS, GamePlatform.NDS, GamePlatform.GAMECUBE, GamePlatform.WII)
+        else listOf(driverPlatform)
         assumeTrue("Opt in with nineCoreFrontend=true and owned ROM arguments", args.getString("nineCoreFrontend") == "true")
         assertFalse("Cannot replace a user's active game", EmulatorBridge.isVmActive())
         assertTrue("Packaged 3DS/DS libraries unavailable", EmuCoreNative.isLoaded && EmuCoreDsNative.isLoaded)
@@ -90,6 +100,11 @@ class NineCoreFrontendDeviceInstrumentedTest {
             try {
                 NativeApp.reloadDataRoot(File(context.filesDir, "azahar").apply { mkdirs() }.path)
                 EmulatorBridge.initializeOnce(context)
+                args.getString("gpuDriverArchive")?.takeIf { it.isNotBlank() }?.let { archive ->
+                    assertTrue("Device does not support custom Vulkan drivers", GpuDriverSupport.deviceSupported())
+                    val driver = GpuDriverManager(context).installFromArchive(File(archive), GpuDriverVendor.ADRENO)
+                    driverPlatforms.forEach { GpuDriverPreferences(context).setGlobal(it.console, driver) }
+                }
                 val games = GamePlatform.entries.associateWith { platform ->
                     val id = platform.console.id
                     val extension = when (platform) {
@@ -121,7 +136,10 @@ class NineCoreFrontendDeviceInstrumentedTest {
                 val secondTour = listOf(GamePlatform.GAMECUBE, GamePlatform.WII, GamePlatform.SNES,
                     GamePlatform.GBC, GamePlatform.GB, GamePlatform.NES, GamePlatform.GBA,
                     GamePlatform.N64, GamePlatform.NDS, GamePlatform.N3DS)
-                val tour = if (args.getString("nineCoreAllTransitions") == "true") {
+                val tour = if (args.getString("gpuDriverArchive") != null) {
+                    if (driverPlatforms.size == 1) listOf(driverPlatform, driverPlatform, driverPlatform)
+                    else driverPlatforms + driverPlatforms.reversed() + driverPlatforms
+                } else if (args.getString("nineCoreAllTransitions") == "true") {
                     // Eulerian circuit: every ordered pair, including same-console
                     // reopen, occurs exactly once in N² + 1 boots.
                     val remaining = GamePlatform.entries.associateWith { GamePlatform.entries.toMutableList() }
@@ -141,6 +159,10 @@ class NineCoreFrontendDeviceInstrumentedTest {
                 } else firstTour + secondTour
                 tour.forEachIndexed { step, platform ->
                     val game = games.getValue(platform)
+                    val systemStep = if (driverPlatforms.size == 1) 2 else 8
+                    if (args.getString("gpuDriverArchive") != null && step == systemStep) {
+                        driverPlatforms.forEach { GpuDriverPreferences(context).setGlobal(it.console, null) }
+                    }
                     phase = "step${step + 1}/$platform"
                     assertEquals(diagnostic("App process restarted"), pid, Process.myPid())
                     assertReleased()
@@ -159,7 +181,9 @@ class NineCoreFrontendDeviceInstrumentedTest {
                     // Config changes target only the disposable context. They do
                     // not write app settings or the user's preference namespace.
                     measured("runtime-config", 30_000) {
-                        EmulatorBridge.applyRuntimeConfig(renderer = RendererDefaults.VULKAN, upscaleMultiplier = 1f,
+                        val renderer = if (args.getString("gpuDriverSwitch") == "true" && step == 0 && platform == GamePlatform.N3DS)
+                            RendererDefaults.OPENGL else RendererDefaults.VULKAN
+                        EmulatorBridge.applyRuntimeConfig(renderer = renderer, upscaleMultiplier = 1f,
                             audioVolume = 0, audioMuted = true, textureReplacementsEnabled = false,
                             enableCheats = false, layoutOption = 0, swapScreens = false)
                     }
@@ -173,6 +197,12 @@ class NineCoreFrontendDeviceInstrumentedTest {
                     }
                     assertTrue(diagnostic("Valid $platform boot failed: ${EmulatorBridge.runtimeFailure.value}"), launched)
                     assertOwnership(platform)
+                    if (args.getString("gpuDriverSwitch") == "true" && step == 0 && platform == GamePlatform.N3DS) {
+                        awaitProgress(platform)
+                        assertTrue(diagnostic("OpenGL to Vulkan restart failed"), EmulatorBridge.setRenderer(RendererDefaults.VULKAN))
+                        assertEquals(RendererDefaults.VULKAN, EmuCoreNative.getActiveRenderer())
+                        awaitProgress(platform)
+                    }
                     val newHandle = AdditionalConsoleSession.session
                     // Delayed references from every previously retired additional
                     // console must not stop, write state, or control this guest.
@@ -188,6 +218,14 @@ class NineCoreFrontendDeviceInstrumentedTest {
                     }
                     assertOwnership(platform)
                     awaitProgress(platform)
+                    if (args.getString("gpuDriverArchive") != null && platform == GamePlatform.NDS) {
+                        assertEquals(diagnostic("DS loaded the wrong Vulkan driver"), step < systemStep,
+                            EmuCoreDsNative.nativeIsCustomGpuDriverActive())
+                    }
+                    if (args.getString("gpuDriverArchive") != null && platform in setOf(GamePlatform.GAMECUBE, GamePlatform.WII)) {
+                        val driverId = DolphinNative.activeGpuDriverId()
+                        assertEquals(diagnostic("Dolphin loaded the wrong Vulkan driver: $driverId"), step < systemStep, driverId == 18)
+                    }
                     if (newHandle != null) measured("actual-engine-statistics", 10_000) {
                         var snapshot = AdditionalConsoleSession.performanceMetricsSnapshot()
                         while (snapshot?.fps?.let { it.isFinite() && it > 0 } != true) {
@@ -253,7 +291,9 @@ class NineCoreFrontendDeviceInstrumentedTest {
                     }
                     println("NineCoreFrontend PASS $phase pid=$pid stateBytes=${stateFile.length()} timings=$timings")
                 }
-                assertEquals(diagnostic("Not every console completed state/reboot coverage"), GamePlatform.entries.toSet(), states.keys)
+                val expectedPlatforms = if (args.getString("gpuDriverArchive") != null) driverPlatforms.toSet()
+                    else GamePlatform.entries.toSet()
+                assertEquals(diagnostic("Not every console completed state/reboot coverage"), expectedPlatforms, states.keys)
                 assertEquals(diagnostic("Different consoles shared a state file"), states.size, states.values.map { it.path }.distinct().size)
             } finally {
                 withContext(NonCancellable) {

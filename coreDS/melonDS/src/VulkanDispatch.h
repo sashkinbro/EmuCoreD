@@ -20,6 +20,7 @@ struct DriverConfiguration
 
 void ConfigureDriver(const DriverConfiguration& configuration);
 bool Initialize();
+bool UsingCustomDriver();
 void LoadInstance(VkInstance instance);
 void LoadDevice(VkDevice device);
 

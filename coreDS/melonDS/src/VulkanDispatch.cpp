@@ -1111,6 +1111,12 @@ bool Initialize()
     return true;
 }
 
+bool UsingCustomDriver()
+{
+    std::scoped_lock guard(gLock);
+    return gInitialized && gUsingCustomDriver;
+}
+
 void LoadInstance(VkInstance instance)
 {
     std::scoped_lock guard(gLock);

@@ -8,6 +8,8 @@ import androidx.annotation.Keep
 @Keep
 internal object DolphinNative {
     val available: Boolean = runCatching { System.loadLibrary("emucored_dolphin") }.isSuccess
+    external fun configureGpuDriver(root: String, hook: String, name: String): Boolean
+    external fun activeGpuDriverId(): Int
     external fun start(path: String, user: String, sys: String, wii: Boolean, paused: Boolean,
                        keys: Array<String>, values: Array<String>): Int
     external fun requestStop()

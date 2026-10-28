@@ -286,7 +286,7 @@ object NativeApp {
 
     @JvmStatic fun getGameSerial(): String? = extractTitleIdentity(saveStatePathSource())
 
-    private fun saveStatePathSource(): String =
+    internal fun saveStatePathSource(): String =
         saveStateIdentityPath?.takeIf(String::isNotBlank) ?: currentGamePath
 
     @JvmStatic fun saveStateToSlot(slot: Int): Boolean = CoreRuntime.saveState(slot)

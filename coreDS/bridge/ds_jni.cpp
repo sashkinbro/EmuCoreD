@@ -2,9 +2,36 @@
 #include <android/native_window_jni.h>
 
 #include "ds_emulator.h"
+#include "VulkanDispatch.h"
 #include "../../core-common/typed_cheats.h"
 
+namespace {
+std::string gpuDriverString(JNIEnv* env, jstring value) {
+    if (!value) return {};
+    const char* chars = env->GetStringUTFChars(value, nullptr);
+    if (!chars) return {};
+    std::string result(chars);
+    env->ReleaseStringUTFChars(value, chars);
+    return result;
+}
+}
+
 extern "C" {
+JNIEXPORT jboolean JNICALL Java_com_sbro_emucored_core_ds_EmuCoreDsNative_nativeIsCustomGpuDriverActive(
+    JNIEnv*, jobject) {
+    return melonDS::VulkanDispatch::UsingCustomDriver() ? JNI_TRUE : JNI_FALSE;
+}
+JNIEXPORT void JNICALL Java_com_sbro_emucored_core_ds_EmuCoreDsNative_nativeConfigureGpuDriver(
+    JNIEnv* env, jobject, jstring tmp, jstring hook, jstring directory, jstring name) {
+    melonDS::VulkanDispatch::DriverConfiguration config;
+    config.TmpLibDir = gpuDriverString(env, tmp);
+    config.HookLibDir = gpuDriverString(env, hook);
+    config.CustomDriverDir = gpuDriverString(env, directory);
+    config.CustomDriverName = gpuDriverString(env, name);
+    config.DisplayName = config.CustomDriverName;
+    config.UseCustomDriver = !config.CustomDriverDir.empty() && !config.CustomDriverName.empty();
+    melonDS::VulkanDispatch::ConfigureDriver(config);
+}
 JNIEXPORT jboolean JNICALL Java_com_sbro_emucored_core_ds_EmuCoreDsNative_nativeReplaceCheats(JNIEnv* env,jobject,jobjectArray formats,jobjectArray codes) {
     std::vector<TypedCheatInput> inputs;if(!typedCheatInputs(env,formats,codes,inputs))return false;
     std::vector<std::vector<uint32_t>> words;

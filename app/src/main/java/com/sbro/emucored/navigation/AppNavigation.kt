@@ -84,6 +84,9 @@ import com.sbro.emucored.ui.settings.PerGameSettingsManagerScreen
 import com.sbro.emucored.ui.settings.SettingsScreen
 import com.sbro.emucored.ui.profile.ProfileScreen
 import com.sbro.emucored.ui.settings.SettingsViewModel
+import com.sbro.emucored.ui.settings.GpuDriverScreen
+import com.sbro.emucored.core.GpuDriverManager
+import com.sbro.emucored.core.GpuDriverPreferences
 import com.sbro.emucored.ui.theme.ThemeManagerScreen
 import com.sbro.emucored.ui.common.EmuCoreDLoadingAnimation
 import com.sbro.emucored.ui.common.ProvideGamepadUiNavigation
@@ -123,6 +126,9 @@ internal fun EmulationRoute.isMeaningfulReviewSession(): Boolean =
 
 @Serializable
 data class SettingsRoute(val tab: String = "general")
+
+@Serializable
+data class GpuDriverRoute(val platformId: String, val gamePath: String? = null)
 
 @Serializable
 object LanguageSettingsRoute
@@ -833,6 +839,9 @@ fun AppNavigation(
                         initialTab = route.tab,
                         onBackClick = { navController.popBackStack() },
                         onOpenMemoryCardManager = navigateMemoryCardManager,
+                        onOpenGpuDriver = { platform ->
+                            navController.navigate(GpuDriverRoute(platform.id)) { launchSingleTop = true }
+                        },
                         onOpenLanguageScreen = {
                             navController.navigate(LanguageSettingsRoute) {
                                 launchSingleTop = true
@@ -861,6 +870,27 @@ fun AppNavigation(
             composable<LanguageSettingsRoute> {
                 LanguageSettingsScreen(
                     onBackClick = { navController.popBackStack() }
+                )
+            }
+
+            composable<GpuDriverRoute> { backStackEntry ->
+                val route = backStackEntry.toRoute<GpuDriverRoute>()
+                val platform = ConsolePlatform.fromId(route.platformId) ?: ConsolePlatform.N3DS
+                val preferences = remember(context) { GpuDriverPreferences(context) }
+                val manager = remember(context) { GpuDriverManager(context) }
+                var selectedName by remember(route.platformId, route.gamePath) {
+                    mutableStateOf(preferences.effective(platform, route.gamePath))
+                }
+                GpuDriverScreen(
+                    onBackClick = { navController.popBackStack() },
+                    platform = platform,
+                    selectedDriverPathOverride = selectedName?.let(manager::readMainLibraryPath),
+                    onSelectDriverForGame = route.gamePath?.let { game ->
+                        { name -> preferences.setGame(platform, game, name); selectedName = name }
+                    },
+                    onUseGlobalForGame = route.gamePath?.let { game ->
+                        { preferences.clearGame(platform, game); selectedName = preferences.global(platform) }
+                    },
                 )
             }
 
@@ -915,6 +945,9 @@ fun AppNavigation(
                 val route = backStackEntry.toRoute<GameSettingsManagerRoute>()
                 PerGameSettingsManagerScreen(
                     initialGamePath = route.gamePath,
+                    onOpenGpuDriver = { game ->
+                        navController.navigate(GpuDriverRoute(game.platform.console.id, game.path)) { launchSingleTop = true }
+                    },
                     onOpenTextureManager = { game ->
                         navController.navigate(TextureManagerRoute(game.path)) { launchSingleTop = true }
                     },

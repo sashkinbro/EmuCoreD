@@ -308,6 +308,7 @@ fun SettingsScreen(
     onOpenLanguageScreen: (() -> Unit)? = null,
     onOpenMemoryCardManager: (() -> Unit)? = null,
     onOpenControlsLayoutEditor: ((ConsolePlatform) -> Unit)? = null,
+    onOpenGpuDriver: ((ConsolePlatform) -> Unit)? = null,
     onOpenThemeManager: (() -> Unit)? = null,
     onOpenTouchControlCreator: ((ConsolePlatform) -> Unit)? = null,
     viewModel: SettingsViewModel = viewModel()
@@ -634,6 +635,7 @@ fun SettingsScreen(
                 },
                 onOpenMemoryCardManager = onOpenMemoryCardManager,
                 onOpenControlsLayoutEditor = onOpenControlsLayoutEditor?.let { open -> { open(selectedPlatform) } },
+                onOpenGpuDriver = onOpenGpuDriver?.let { open -> { open(selectedPlatform) } },
                 onOpenThemeManager = onOpenThemeManager,
                 onOpenTouchControlCreator = onOpenTouchControlCreator?.let { open -> { open(selectedPlatform) } },
                 viewModel = viewModel,
@@ -1132,6 +1134,7 @@ private fun SettingsContent(
     onOpenMemoryCardManager: (() -> Unit)? = null,
     onOpenGameDbBrowser: (() -> Unit)? = null,
     onOpenControlsLayoutEditor: (() -> Unit)? = null,
+    onOpenGpuDriver: (() -> Unit)? = null,
     onOpenThemeManager: (() -> Unit)? = null,
     onOpenTouchControlCreator: (() -> Unit)? = null
 ) {
@@ -1202,6 +1205,19 @@ private fun SettingsContent(
                 selectedTab in setOf(SettingsTab.Graphics, SettingsTab.Audio)) {
                 ConsoleCoreOptionsPanel(platform, selectedTab, consoleCoreOptions,
                     onChange = { key, value -> viewModel.setConsoleCoreOption(platform, key, value) })
+                if (selectedTab == SettingsTab.Graphics && onOpenGpuDriver != null &&
+                    com.sbro.emucored.core.GpuDriverSupport.canUse(platform,
+                        consoleCoreOptions["graphics_backend"] == "vulkan",
+                        remember { com.sbro.emucored.core.GpuDriverSupport.deviceSupported() })) {
+                    SettingsSection(title = stringResource(R.string.settings_gpu_driver_manager_title)) {
+                        SettingsItem(
+                            icon = Icons.Rounded.SettingsSuggest,
+                            label = stringResource(R.string.settings_gpu_driver_manager_title),
+                            value = stringResource(R.string.settings_gpu_driver_catalog),
+                            onClick = onOpenGpuDriver
+                        )
+                    }
+                }
             } else when (selectedTab) {
                 SettingsTab.General -> {
                     SettingsSection(title = stringResource(R.string.settings_general_tab)) {
@@ -2068,6 +2084,17 @@ private fun SettingsContent(
                             helpText = stringResource(R.string.legacy_help_ds_renderer),
                             onResetToDefault = { viewModel.setDsRenderer(DsSettingsPolicy.DEFAULT_RENDERER) }
                         )
+                        if (onOpenGpuDriver != null && com.sbro.emucored.core.GpuDriverSupport.canUse(
+                                platform, uiState.dsRenderer == 14,
+                                remember { com.sbro.emucored.core.GpuDriverSupport.deviceSupported() }
+                            )) {
+                            SettingsItem(
+                                icon = Icons.Rounded.SettingsSuggest,
+                                label = stringResource(R.string.settings_gpu_driver_manager_title),
+                                value = stringResource(R.string.settings_gpu_driver_catalog),
+                                onClick = onOpenGpuDriver
+                            )
+                        }
                         if (uiState.dsRenderer == 14) ChoiceSection(
                             title = stringResource(R.string.settings_upscale),
                             options = buildUpscaleOptions(
@@ -2095,6 +2122,17 @@ private fun SettingsContent(
                             helpText = stringResource(R.string.settings_help_renderer),
                             onResetToDefault = { viewModel.setRenderer(defaults.renderer) }
                         )
+                        if (onOpenGpuDriver != null && com.sbro.emucored.core.GpuDriverSupport.canUse(
+                                platform, uiState.renderer == RendererDefaults.VULKAN,
+                                remember { com.sbro.emucored.core.GpuDriverSupport.deviceSupported() }
+                            )) {
+                            SettingsItem(
+                                icon = Icons.Rounded.SettingsSuggest,
+                                label = stringResource(R.string.settings_gpu_driver_manager_title),
+                                value = stringResource(R.string.settings_gpu_driver_catalog),
+                                onClick = onOpenGpuDriver
+                            )
+                        }
                         ChoiceSection(
                             title = stringResource(R.string.settings_aspect_ratio),
                             options = listOf(

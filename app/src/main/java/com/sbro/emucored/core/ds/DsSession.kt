@@ -95,6 +95,7 @@ object DsSession {
         stateGameSerial = metadata?.serial?.takeIf { it.isNotBlank() }
 
         this.renderScale = renderScale.coerceIn(1, 8)
+        com.sbro.emucored.core.GpuDriverRuntime.configureDs(appContext, identityPath, this.renderer == 14)
         EmuCoreDsNative.nativeSetRenderScale(this.renderScale)
         EmuCoreDsNative.nativeSetRenderer(if (this.renderer == 13) 0 else 1)
         swapScreens = swapped

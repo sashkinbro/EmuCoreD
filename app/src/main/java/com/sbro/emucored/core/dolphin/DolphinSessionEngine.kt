@@ -95,6 +95,8 @@ class DolphinSessionEngine : CoreSessionEngine {
                     return@withLock EngineStartResult.Failed("dolphin_platform_mismatch")
                 }
                 val options = request.options.toSortedMap()
+                check(com.sbro.emucored.core.GpuDriverRuntime.configureDolphin(request.context, request.platform,
+                    request.identityPath, options["graphics_backend"].orEmpty().let { it.isEmpty() || it == "vulkan" }))
                 DolphinNative.surface(surface, width, height)
                 val result = DolphinNative.start(request.launchPath, request.userDirectory.absolutePath,
                     sys.absolutePath, wii, request.startPaused, options.keys.toTypedArray(), options.values.toTypedArray())

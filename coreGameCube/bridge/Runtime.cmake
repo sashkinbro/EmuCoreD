@@ -29,7 +29,8 @@ target_sources(core PRIVATE "${CMAKE_CURRENT_BINARY_DIR}/EmuCoreDState.cpp")
 add_library(emucored_dolphin SHARED "${BRIDGE_DIR}/DolphinRuntime.cpp")
 target_compile_features(emucored_dolphin PRIVATE cxx_std_23)
 target_include_directories(emucored_dolphin PRIVATE
-  "${CMAKE_SOURCE_DIR}/Source/Core" "${CMAKE_SOURCE_DIR}/Source/Android")
+  "${CMAKE_SOURCE_DIR}/Source/Core" "${CMAKE_SOURCE_DIR}/Source/Android"
+  "${CMAKE_SOURCE_DIR}/Externals/VulkanMemoryAllocator/include")
 target_compile_definitions(emucored_dolphin PRIVATE ANDROID=1)
 target_link_libraries(emucored_dolphin PRIVATE uicommon core inputcommon androidcommon android log EGL)
 target_link_options(emucored_dolphin PRIVATE "-Wl,--no-undefined" "-Wl,--exclude-libs,ALL" "-Wl,-z,max-page-size=16384")

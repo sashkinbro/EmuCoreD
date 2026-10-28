@@ -302,6 +302,8 @@ object EmulatorBridge {
                 shutdownRequested = false
                 var result = try {
                     NativeApp.logCrashBreadcrumb("startEmulation entering the core")
+                    GpuDriverRuntime.configureAzahar(context, identity,
+                        CoreConfig.currentValues()?.renderer ?: RendererDefaults.DEFAULT)
                     NativeApp.runVMThread(path)
                 } catch (error: Exception) {
                     NativeApp.logCrashBreadcrumb("startEmulation failed before the core returned")

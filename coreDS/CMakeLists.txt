@@ -14,6 +14,9 @@ set(ENABLE_LTO OFF CACHE BOOL "" FORCE)
 add_compile_definitions(MELONDS_GL_HEADER=<GLES3/gl32.h>)
 add_compile_definitions(VK_NO_PROTOTYPES)
 
+add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../core/externals/libadrenotools ${CMAKE_CURRENT_BINARY_DIR}/adrenotools)
 add_subdirectory(melonDS)
+target_compile_definitions(core PRIVATE MELONDS_HAS_ADRENOTOOLS=1)
+target_link_libraries(core PRIVATE adrenotools)
 
 add_subdirectory(bridge)
