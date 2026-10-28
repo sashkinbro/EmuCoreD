@@ -22,6 +22,7 @@
 #include "core/hle/service/apt/apt_a.h"
 #include "core/hle/service/apt/apt_s.h"
 #include "core/hle/service/apt/apt_u.h"
+#include "core/hle/service/apt/wireless_reboot_info.h"
 #include "core/hle/service/apt/bcfnt/bcfnt.h"
 #include "core/hle/service/apt/ns.h"
 #include "core/hle/service/apt/ns_c.h"
@@ -343,13 +344,14 @@ void Module::APTInterface::GetSharedFont(Kernel::HLERequestContext& ctx) {
 
 void Module::APTInterface::GetWirelessRebootInfo(Kernel::HLERequestContext& ctx) {
     IPC::RequestParser rp(ctx);
-    const auto size = rp.Pop<u32>();
+    const auto size = std::min(rp.Pop<u32>(), max_wireless_reboot_info_size);
 
     LOG_WARNING(Service_APT, "called size={:08X}", size);
-
+    auto response = MakeWirelessRebootResponse(apt->wireless_reboot_info, size,
+                                               max_wireless_reboot_info_size);
     IPC::RequestBuilder rb = rp.MakeBuilder(1, 2);
     rb.Push(ResultSuccess);
-    rb.PushStaticBuffer(apt->wireless_reboot_info, 0);
+    rb.PushStaticBuffer(std::move(response), 0);
 }
 
 void Module::APTInterface::NotifyToWait(Kernel::HLERequestContext& ctx) {
