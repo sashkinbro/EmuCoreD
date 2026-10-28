@@ -2047,7 +2047,7 @@
         <string name="dolphin_choice_spanish">Spanisch</string>
         <string name="dolphin_choice_italian">Italienisch</string>
         <string name="dolphin_choice_dutch">Holländisch</string>
-        <string name="formats_images_body">Verwende entpackte Spielabbilder. Entpacke ZIP- und 7z-Archive vor dem Import.</string>
+        <string name="formats_images_body">ZIP-Archive werden für GB-, GBC-, GBA-, NES- und SNES-Spiele unterstützt. 7z- und RAR-Archive vor dem Import entpacken.</string>
         <string name="formats_3ds_body">CIA- und ZCIA-Pakete werden vor dem Start installiert. Verschlüsselte Spiele benötigen deine eigenen Systemschlüssel.</string>
         <string name="formats_ds_body">DS- und DSi-erweiterte Module laufen im DS-Modus. Reine DSi-Spiele benötigen eine DSi-Laufzeitumgebung.</string>
         <string name="formats_fds_body">FDS-Spiele benötigen ein 8 KiB großes disksys.rom-BIOS im Firmware-Ordner.</string>
@@ -2136,4 +2136,5 @@
     <string name="cheat_manager_delete_pack_title">Cheat-Paket löschen?</string>
     <string name="cheat_manager_delete_pack_confirm">„%1$s“ aus diesem Spiel entfernen? Andere installierte Pakete bleiben erhalten.</string>
     <string name="cheat_manager_delete_pack_failed">Dieses Cheat-Paket konnte nicht gelöscht werden.</string>
+    <string name="onboarding_supported_consoles">Unterstützte Konsolen</string>
 </resources>

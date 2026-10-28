@@ -2044,7 +2044,7 @@
         <string name="dolphin_choice_spanish">スペイン語</string>
         <string name="dolphin_choice_italian">イタリア語</string>
         <string name="dolphin_choice_dutch">オランダ語</string>
-        <string name="formats_images_body">展開済みのゲームイメージを使用してください。ZIP・7zアーカイブはインポート前に展開してください。</string>
+        <string name="formats_images_body">GB、GBC、GBA、NES、SNES のゲームは ZIP に対応しています。7z と RAR はインポート前に展開してください。</string>
         <string name="formats_3ds_body">CIA・ZCIAパッケージは起動前にインストールされます。暗号化されたゲームには、ご自身のシステムキーが必要です。</string>
         <string name="formats_ds_body">DSおよびDSi拡張対応カートリッジはDSモードで動作します。DSi専用ゲームにはDSi実行環境が必要です。</string>
         <string name="formats_fds_body">FDSゲームには、ファームウェアフォルダー内に8 KiBのdisksys.rom BIOSが必要です。</string>
@@ -2133,4 +2133,5 @@
     <string name="cheat_manager_delete_pack_title">チートパックを削除しますか？</string>
     <string name="cheat_manager_delete_pack_confirm">このゲームから「%1$s」を削除しますか？他のインストール済みパックは残ります。</string>
     <string name="cheat_manager_delete_pack_failed">このチートパックを削除できませんでした。</string>
+    <string name="onboarding_supported_consoles">対応コンソール</string>
 </resources>

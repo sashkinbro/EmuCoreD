@@ -2060,7 +2060,7 @@
         <string name="dolphin_choice_spanish">اسپانیایی</string>
         <string name="dolphin_choice_italian">ایتالیایی</string>
         <string name="dolphin_choice_dutch">هلندی</string>
-        <string name="formats_images_body">از تصویرهای بازی استخراج‌شده استفاده کنید. پیش از وارد کردن، بایگانی‌های ZIP و7z را استخراج کنید.</string>
+        <string name="formats_images_body">بایگانی ZIP برای بازی‌های GB، GBC، GBA، NES و SNES پشتیبانی می‌شود. بایگانی‌های 7z و RAR را پیش از ورود استخراج کنید.</string>
         <string name="formats_3ds_body">بسته‌های CIA وZCIA پیش از اجرا نصب می‌شوند. بازی‌های رمزگذاری‌شده به کلیدهای سیستم خودتان نیاز دارند.</string>
         <string name="formats_ds_body">کارتریج‌های DS و بهبودیافته برای DSi در حالت DS اجرا می‌شوند. بازی‌های اختصاصی DSi به محیط اجرای DSi نیاز دارند.</string>
         <string name="formats_fds_body">بازی‌های FDS به BIOS با نام disksys.rom و اندازهٔ 8 KiB در پوشهٔ میان‌افزار نیاز دارند.</string>
@@ -2149,4 +2149,5 @@
     <string name="cheat_manager_delete_pack_title">بسته تقلب حذف شود؟</string>
     <string name="cheat_manager_delete_pack_confirm">«%1$s» از این بازی حذف شود؟ بسته‌های نصب‌شدهٔ دیگر باقی می‌مانند.</string>
     <string name="cheat_manager_delete_pack_failed">حذف این بسته تقلب ممکن نشد.</string>
+    <string name="onboarding_supported_consoles">کنسول‌های پشتیبانی‌شده</string>
 </resources>

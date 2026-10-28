@@ -2050,7 +2050,7 @@
         <string name="dolphin_choice_spanish">Іспанська</string>
         <string name="dolphin_choice_italian">Італійська</string>
         <string name="dolphin_choice_dutch">Нідерландська</string>
-        <string name="formats_images_body">Використовуйте розпаковані образи ігор. Перед імпортом розпакуйте архіви ZIP і 7z.</string>
+        <string name="formats_images_body">Архіви ZIP підтримуються для ігор GB, GBC, GBA, NES і SNES. Архіви 7z та RAR потрібно розпакувати перед імпортом.</string>
         <string name="formats_3ds_body">Пакети CIA та ZCIA встановлюються перед запуском. Для зашифрованих ігор потрібні ваші системні ключі.</string>
         <string name="formats_ds_body">Картриджі DS та ігри з розширеннями DSi запускаються в режимі DS. Іграм лише для DSi потрібне середовище DSi.</string>
         <string name="formats_fds_body">Для ігор FDS потрібен BIOS disksys.rom розміром 8 КіБ у папці прошивок.</string>
@@ -2139,4 +2139,5 @@
     <string name="cheat_manager_delete_pack_title">Видалити пак чітів?</string>
     <string name="cheat_manager_delete_pack_confirm">Видалити «%1$s» з цієї гри? Інші встановлені паки залишаться.</string>
     <string name="cheat_manager_delete_pack_failed">Не вдалося видалити цей пак чітів.</string>
+    <string name="onboarding_supported_consoles">Підтримувані консолі</string>
 </resources>

@@ -2066,7 +2066,7 @@
         <string name="dolphin_choice_spanish">Hiszpański</string>
         <string name="dolphin_choice_italian">Włoski</string>
         <string name="dolphin_choice_dutch">Holenderski</string>
-        <string name="formats_images_body">Używaj rozpakowanych obrazów gier. Przed importem rozpakuj archiwa ZIP i 7z.</string>
+        <string name="formats_images_body">Archiwa ZIP są obsługiwane dla gier GB, GBC, GBA, NES i SNES. Archiwa 7z i RAR należy rozpakować przed importem.</string>
         <string name="formats_3ds_body">Pakiety CIA i ZCIA są instalowane przed uruchomieniem. Zaszyfrowane gry wymagają własnych kluczy systemowych.</string>
         <string name="formats_ds_body">Kartridże DS i z ulepszeniami DSi działają w trybie DS. Gry tylko dla DSi wymagają środowiska DSi.</string>
         <string name="formats_fds_body">Gry FDS wymagają BIOS-u disksys.rom o rozmiarze 8 KiB w folderze oprogramowania układowego.</string>
@@ -2155,4 +2155,5 @@
     <string name="cheat_manager_delete_pack_title">Usunąć paczkę kodów?</string>
     <string name="cheat_manager_delete_pack_confirm">Usunąć „%1$s” z tej gry? Pozostałe zainstalowane paczki zostaną.</string>
     <string name="cheat_manager_delete_pack_failed">Nie udało się usunąć tej paczki kodów.</string>
+    <string name="onboarding_supported_consoles">Obsługiwane konsole</string>
 </resources>

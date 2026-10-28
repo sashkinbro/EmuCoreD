@@ -2045,7 +2045,7 @@
         <string name="dolphin_choice_spanish">स्पेनिश</string>
         <string name="dolphin_choice_italian">इतालवी</string>
         <string name="dolphin_choice_dutch">डच</string>
-        <string name="formats_images_body">निकाली गई गेम इमेज का उपयोग करें। आयात करने से पहले ZIP और 7z संग्रह निकालें।</string>
+        <string name="formats_images_body">GB, GBC, GBA, NES और SNES गेम के लिए ZIP संग्रह समर्थित हैं। आयात करने से पहले 7z और RAR संग्रह निकालें।</string>
         <string name="formats_3ds_body">CIA और ZCIA पैकेज चलाने से पहले इंस्टॉल किए जाते हैं। एन्क्रिप्ट किए गए गेम के लिए आपकी अपनी सिस्टम कुंजियाँ चाहिए।</string>
         <string name="formats_ds_body">DS और DSi-संवर्धित कार्ट्रिज DS मोड में चलते हैं। केवल DSi वाले गेम के लिए DSi वातावरण चाहिए।</string>
         <string name="formats_fds_body">FDS गेम के लिए फ़र्मवेयर फ़ोल्डर में 8 KiB का disksys.rom BIOS चाहिए।</string>
@@ -2134,4 +2134,5 @@
     <string name="cheat_manager_delete_pack_title">चीट पैक हटाएँ?</string>
     <string name="cheat_manager_delete_pack_confirm">इस गेम से “%1$s” हटाएँ? अन्य इंस्टॉल किए गए पैक रहेंगे।</string>
     <string name="cheat_manager_delete_pack_failed">यह चीट पैक हटाया नहीं जा सका।</string>
+    <string name="onboarding_supported_consoles">समर्थित कंसोल</string>
 </resources>

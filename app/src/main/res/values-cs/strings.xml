@@ -2066,7 +2066,7 @@
         <string name="dolphin_choice_spanish">Španělština</string>
         <string name="dolphin_choice_italian">Italština</string>
         <string name="dolphin_choice_dutch">Nizozemština</string>
-        <string name="formats_images_body">Používejte rozbalené obrazy her. Archivy ZIP a 7z před importem rozbalte.</string>
+        <string name="formats_images_body">Archivy ZIP jsou podporovány pro hry GB, GBC, GBA, NES a SNES. Archivy 7z a RAR před importem rozbalte.</string>
         <string name="formats_3ds_body">Balíčky CIA a ZCIA se před spuštěním nainstalují. Šifrované hry vyžadují vaše vlastní systémové klíče.</string>
         <string name="formats_ds_body">Kazety DS a s vylepšeními DSi běží v režimu DS. Hry pouze pro DSi vyžadují prostředí DSi.</string>
         <string name="formats_fds_body">Hry FDS vyžadují BIOS disksys.rom o velikosti 8 KiB ve složce firmwaru.</string>
@@ -2155,4 +2155,5 @@
     <string name="cheat_manager_delete_pack_title">Smazat balíček cheatů?</string>
     <string name="cheat_manager_delete_pack_confirm">Odstranit „%1$s“ z této hry? Ostatní nainstalované balíčky zůstanou.</string>
     <string name="cheat_manager_delete_pack_failed">Tento balíček cheatů se nepodařilo smazat.</string>
+    <string name="onboarding_supported_consoles">Podporované konzole</string>
 </resources>

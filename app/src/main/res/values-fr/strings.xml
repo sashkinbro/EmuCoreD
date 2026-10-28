@@ -2047,7 +2047,7 @@
         <string name="dolphin_choice_spanish">Espagnol</string>
         <string name="dolphin_choice_italian">Italien</string>
         <string name="dolphin_choice_dutch">Néerlandais</string>
-        <string name="formats_images_body">Utilisez des images de jeux décompressées. Extrayez les archives ZIP et 7z avant de les importer.</string>
+        <string name="formats_images_body">Les archives ZIP sont prises en charge pour les jeux GB, GBC, GBA, NES et SNES. Extrayez les archives 7z et RAR avant importation.</string>
         <string name="formats_3ds_body">Les paquets CIA et ZCIA sont installés avant le lancement. Les jeux chiffrés nécessitent vos propres clés système.</string>
         <string name="formats_ds_body">Les cartouches DS et améliorées pour DSi fonctionnent en mode DS. Les jeux exclusifs DSi nécessitent un environnement DSi.</string>
         <string name="formats_fds_body">Les jeux FDS nécessitent un BIOS disksys.rom de 8 Kio dans le dossier des firmwares.</string>
@@ -2136,4 +2136,5 @@
     <string name="cheat_manager_delete_pack_title">Supprimer le pack de codes ?</string>
     <string name="cheat_manager_delete_pack_confirm">Retirer « %1$s » de ce jeu ? Les autres packs installés seront conservés.</string>
     <string name="cheat_manager_delete_pack_failed">Impossible de supprimer ce pack de codes.</string>
+    <string name="onboarding_supported_consoles">Consoles prises en charge</string>
 </resources>

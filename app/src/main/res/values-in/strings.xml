@@ -2059,7 +2059,7 @@
         <string name="dolphin_choice_spanish">Spanyol</string>
         <string name="dolphin_choice_italian">Italia</string>
         <string name="dolphin_choice_dutch">Belanda</string>
-        <string name="formats_images_body">Gunakan citra gim yang telah diekstrak. Ekstrak arsip ZIP dan 7z sebelum mengimpor.</string>
+        <string name="formats_images_body">Arsip ZIP didukung untuk gim GB, GBC, GBA, NES, dan SNES. Ekstrak arsip 7z dan RAR sebelum mengimpor.</string>
         <string name="formats_3ds_body">Paket CIA dan ZCIA dipasang sebelum dijalankan. Gim terenkripsi memerlukan kunci sistem milik Anda sendiri.</string>
         <string name="formats_ds_body">Kartrid DS dan yang ditingkatkan untuk DSi berjalan dalam mode DS. Gim khusus DSi memerlukan lingkungan DSi.</string>
         <string name="formats_fds_body">Gim FDS memerlukan BIOS disksys.rom berukuran 8 KiB di folder firmware.</string>
@@ -2148,4 +2148,5 @@
     <string name="cheat_manager_delete_pack_title">Hapus pak cheat?</string>
     <string name="cheat_manager_delete_pack_confirm">Hapus “%1$s” dari game ini? Pak lain yang terpasang akan tetap ada.</string>
     <string name="cheat_manager_delete_pack_failed">Pak cheat ini tidak dapat dihapus.</string>
+    <string name="onboarding_supported_consoles">Konsol yang didukung</string>
 </resources>

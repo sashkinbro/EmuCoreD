@@ -2045,7 +2045,7 @@
         <string name="dolphin_choice_spanish">İspanyolca</string>
         <string name="dolphin_choice_italian">İtalyanca</string>
         <string name="dolphin_choice_dutch">Flemenkçe</string>
-        <string name="formats_images_body">Çıkarılmış oyun görüntülerini kullanın. İçe aktarmadan önce ZIP ve 7z arşivlerini çıkarın.</string>
+        <string name="formats_images_body">GB, GBC, GBA, NES ve SNES oyunları için ZIP arşivleri desteklenir. 7z ve RAR arşivlerini içe aktarmadan önce çıkarın.</string>
         <string name="formats_3ds_body">CIA ve ZCIA paketleri başlatılmadan önce kurulur. Şifreli oyunlar kendi sistem anahtarlarınızı gerektirir.</string>
         <string name="formats_ds_body">DS ve DSi geliştirmeli kartuşlar DS modunda çalışır. Yalnızca DSi oyunları bir DSi çalışma ortamı gerektirir.</string>
         <string name="formats_fds_body">FDS oyunları, bellenim klasöründe 8 KiB boyutunda disksys.rom BIOS dosyası gerektirir.</string>
@@ -2134,4 +2134,5 @@
     <string name="cheat_manager_delete_pack_title">Hile paketi silinsin mi?</string>
     <string name="cheat_manager_delete_pack_confirm">“%1$s” bu oyundan kaldırılsın mı? Diğer yüklü paketler kalacak.</string>
     <string name="cheat_manager_delete_pack_failed">Bu hile paketi silinemedi.</string>
+    <string name="onboarding_supported_consoles">Desteklenen konsollar</string>
 </resources>

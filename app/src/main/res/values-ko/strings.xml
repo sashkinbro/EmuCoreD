@@ -2044,7 +2044,7 @@
         <string name="dolphin_choice_spanish">스페인어</string>
         <string name="dolphin_choice_italian">이탈리아어</string>
         <string name="dolphin_choice_dutch">네덜란드어</string>
-        <string name="formats_images_body">압축을 푼 게임 이미지를 사용하세요. ZIP 및 7z 파일은 가져오기 전에 압축을 풀어야 합니다.</string>
+        <string name="formats_images_body">GB, GBC, GBA, NES, SNES 게임은 ZIP을 지원합니다. 7z 및 RAR 파일은 가져오기 전에 압축을 푸세요.</string>
         <string name="formats_3ds_body">CIA 및 ZCIA 패키지는 실행 전에 설치됩니다. 암호화된 게임에는 본인의 시스템 키가 필요합니다.</string>
         <string name="formats_ds_body">DS 및 DSi 향상 카트리지는 DS 모드로 실행됩니다. DSi 전용 게임에는 DSi 실행 환경이 필요합니다.</string>
         <string name="formats_fds_body">FDS 게임에는 펌웨어 폴더에 8 KiB 크기의 disksys.rom BIOS가 필요합니다.</string>
@@ -2133,4 +2133,5 @@
     <string name="cheat_manager_delete_pack_title">치트 팩을 삭제할까요?</string>
     <string name="cheat_manager_delete_pack_confirm">이 게임에서 “%1$s”을(를) 제거할까요? 다른 설치된 팩은 유지됩니다.</string>
     <string name="cheat_manager_delete_pack_failed">이 치트 팩을 삭제하지 못했습니다.</string>
+    <string name="onboarding_supported_consoles">지원되는 콘솔</string>
 </resources>
