@@ -11,6 +11,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Box
@@ -47,6 +48,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -657,6 +659,82 @@ fun VectorDpadCluster(
                         .offset(x = rightOffset.x, y = rightOffset.y)
                 )
             }
+        }
+    }
+}
+
+/** Four independent C buttons, including multi-touch and dragging between buttons. */
+@Composable
+fun VectorN64CButtons(
+    size: Dp,
+    modifier: Modifier = Modifier,
+    alpha: Float = 1f,
+    selected: Boolean = false,
+    interactive: Boolean = true,
+    visualStyle: TouchControlVisualStyle = TouchControlVisualStyle.CLASSIC,
+    pressEffect: TouchControlPressEffect = TouchControlPressEffect.GROW,
+    onDirectionsChange: ((Set<OverlayDpadDirection>) -> Unit)? = null
+) {
+    var directions by remember { mutableStateOf(emptySet<OverlayDpadDirection>()) }
+    val currentDirections by rememberUpdatedState(directions)
+    val currentOnDirectionsChange by rememberUpdatedState(onDirectionsChange)
+    DisposableEffect(Unit) {
+        onDispose {
+            if (currentDirections.isNotEmpty()) currentOnDirectionsChange?.invoke(emptySet())
+        }
+    }
+    val buttonSize = size * 0.34f
+    val touch = if (interactive) Modifier.pointerInput(Unit) {
+        val pointerScope = this
+        fun directionAt(position: Offset): OverlayDpadDirection? {
+            val x = position.x / pointerScope.size.width.coerceAtLeast(1)
+            val y = position.y / pointerScope.size.height.coerceAtLeast(1)
+            return when {
+                abs(x - 0.5f) <= 0.17f && y in 0f..0.34f -> OverlayDpadDirection.Up
+                abs(x - 0.5f) <= 0.17f && y in 0.66f..1f -> OverlayDpadDirection.Down
+                x in 0f..0.34f && abs(y - 0.5f) <= 0.17f -> OverlayDpadDirection.Left
+                x in 0.66f..1f && abs(y - 0.5f) <= 0.17f -> OverlayDpadDirection.Right
+                else -> null
+            }
+        }
+        fun update(next: Set<OverlayDpadDirection>) {
+            if (next != directions) {
+                directions = next
+                currentOnDirectionsChange?.invoke(next)
+            }
+        }
+        awaitEachGesture {
+            val down = awaitFirstDown(requireUnconsumed = false)
+            down.consume()
+            update(setOfNotNull(directionAt(down.position)))
+            try {
+                do {
+                    val event = awaitPointerEvent()
+                    val pressed = event.changes.filter { it.pressed }
+                    update(pressed.mapNotNull { directionAt(it.position) }.toSet())
+                    event.changes.forEach { it.consume() }
+                } while (pressed.isNotEmpty())
+            } finally {
+                update(emptySet())
+            }
+        }
+    } else Modifier
+    Box(modifier = modifier.size(size).testTag("n64_c_buttons").graphicsLayer(alpha = alpha)
+        .then(if (selected) Modifier.border(1.5.dp, OverlaySelectedStroke, neonShape(22.dp)) else Modifier)
+        .then(touch)) {
+        listOf(
+            Triple(OverlayDpadDirection.Up, "C↑", Alignment.TopCenter),
+            Triple(OverlayDpadDirection.Down, "C↓", Alignment.BottomCenter),
+            Triple(OverlayDpadDirection.Left, "C←", Alignment.CenterStart),
+            Triple(OverlayDpadDirection.Right, "C→", Alignment.CenterEnd)
+        ).forEach { (direction, label, alignment) ->
+            VectorOverlayButton(
+                drawableRes = R.drawable.ic_controller_x_button,
+                labelOverride = label, width = buttonSize, height = buttonSize,
+                shape = CircleShape, pressed = direction in directions, interactive = false,
+                visualStyle = visualStyle, pressEffect = pressEffect,
+                modifier = Modifier.align(alignment)
+            )
         }
     }
 }

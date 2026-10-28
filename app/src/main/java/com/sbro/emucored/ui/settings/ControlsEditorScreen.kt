@@ -113,6 +113,7 @@ import com.sbro.emucored.ui.common.OverlayCanvasStickSpec
 import com.sbro.emucored.ui.common.OverlayDpadClusterArrowScale
 import com.sbro.emucored.ui.common.OverlayDpadDirection
 import com.sbro.emucored.ui.common.VectorAnalogStick
+import com.sbro.emucored.ui.common.VectorN64CButtons
 import com.sbro.emucored.ui.common.VectorDpadCluster
 import com.sbro.emucored.ui.common.VectorOverlayButton
 import com.sbro.emucored.ui.common.ConsoleOverlayPolicy
@@ -452,7 +453,8 @@ fun ControlsEditorScreen(
     }
     val selectedIsCustom = selectedCustomControl != null
     val selectedIsGroup = selectedControlId?.let { it in ControlGroupIds } == true
-    val selectedIsStick = selectedControlId == "left_stick" || selectedControlId == "right_stick"
+    val selectedIsStick = selectedControlId == "left_stick" ||
+        (selectedControlId == "right_stick" && consolePolicy.platform != com.sbro.emucored.core.platform.ConsolePlatform.N64)
     val selectedStickSurfaceMode = selectedIsStick && (selectedLayout?.surfaceOnly == true)
     val selectedStandardTitle = selectedControlId
         ?.takeUnless { it in ControlGroupIds || it.toCustomControlIdOrNull() != null }
@@ -1034,8 +1036,7 @@ fun ControlsEditorScreen(
                 if (showControlAdjustDialog) {
                     val scale = selectedLayout?.scale
                         ?: if (controlId.contains("stick")) state.stickScale else 100
-                    val isStickPanel = customControl == null &&
-                        (controlId == "left_stick" || controlId == "right_stick") &&
+                    val isStickPanel = customControl == null && selectedIsStick &&
                         (selectedLayout?.surfaceOnly == true)
                     val opacity = customControl?.opacity
                         ?: selectedLayout?.opacity
@@ -1803,6 +1804,7 @@ private fun PreviewLayout(
         }
 
         fun stickSurfaceMode(controlId: String): Boolean {
+            if (controlId == "right_stick" && consolePolicy.platform == com.sbro.emucored.core.platform.ConsolePlatform.N64) return false
             return (
                 controlLayouts[controlId]
                     ?: AppPreferences.defaultOverlayControlLayouts(state.stickScale)[controlId]
@@ -2038,7 +2040,8 @@ private fun PreviewLayout(
                 selected = selectedControlId == spec.id,
                 surfaceOnly = stickSurfaceMode(spec.id),
                 panelWidth = stickPanelWidth(spec),
-                panelX = stickPanelX(spec),
+                panelX = if (consolePolicy.platform == com.sbro.emucored.core.platform.ConsolePlatform.N64) spec.x else stickPanelX(spec),
+                n64CButtons = consolePolicy.platform == com.sbro.emucored.core.platform.ConsolePlatform.N64,
                 baseZIndex = if (spec.visible) 2f else 0.5f,
                 onSelectControl = onSelectControl,
                 onMoveControlBy = { id, delta -> moveStick(id, spec, delta) },
@@ -2360,6 +2363,7 @@ private fun PreviewCanvasStick(
     pressEffect: com.sbro.emucored.data.TouchControlPressEffect,
     selected: Boolean,
     surfaceOnly: Boolean = false,
+    n64CButtons: Boolean = false,
     panelWidth: Dp = spec.size,
     panelX: Dp = spec.x,
     baseZIndex: Float = 2f,
@@ -2381,7 +2385,13 @@ private fun PreviewCanvasStick(
         },
         baseZIndex = baseZIndex
     ) {
-        VectorAnalogStick(
+        if (n64CButtons) {
+            VectorN64CButtons(
+                size = spec.size, alpha = if (spec.visible) spec.opacity / 100f else 0.38f,
+                selected = selected, interactive = false, visualStyle = visualStyle,
+                pressEffect = pressEffect
+            )
+        } else VectorAnalogStick(
             analogSize = spec.size,
             analogWidth = panelWidth,
             analogHeight = spec.size,

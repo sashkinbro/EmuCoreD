@@ -13,6 +13,40 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class ConsoleOverlayCanvasLayoutTest {
+    @Test fun n64CButtonsIgnoreSavedAnalogSurfaceWidth() {
+        val policy = ConsoleOverlayPolicy.forPlatform(ConsolePlatform.N64)
+        val defaults = ConsoleControlsDefaults.layout(ConsoleControlsScope(ConsolePlatform.N64)).controlLayouts
+        val baseline = layout(policy, defaults).rightStick!!
+        val staleAnalogSettings = defaults + ("right_stick" to defaults.getValue("right_stick")
+            .copy(surfaceOnly = true, widthScale = 240))
+        val actual = layout(policy, staleAnalogSettings).rightStick!!
+        assertEquals(baseline.x.value, actual.x.value, 0.01f)
+        assertEquals(baseline.y.value, actual.y.value, 0.01f)
+        assertEquals(baseline.size.value, actual.size.value, 0.01f)
+    }
+    @Test fun n64FactoryControlsFitWithoutOverlappingInPortraitAndLandscape() {
+        val policy = ConsoleOverlayPolicy.forPlatform(ConsolePlatform.N64)
+        val controls = ConsoleControlsDefaults.layout(ConsoleControlsScope(ConsolePlatform.N64)).controlLayouts
+        for ((width, height) in listOf(360 to 800, 800 to 360, 1200 to 800, 800 to 1200)) {
+            val canvas = layout(policy, controls, width = width, height = height)
+            data class Rect(val name: String, val x: Float, val y: Float, val w: Float, val h: Float)
+            val rects = canvas.allButtons.filter { it.visible }.map {
+                Rect(it.id, it.x.value, it.y.value, it.width.value, it.height.value)
+            }.toMutableList()
+            canvas.leftStick?.let { rects += Rect(it.id, it.x.value, it.y.value, it.size.value, it.size.value) }
+            canvas.rightStick?.let { rects += Rect("C", it.x.value, it.y.value, it.size.value, it.size.value) }
+            canvas.dpadCluster?.let { rects += Rect(it.id, it.x.value, it.y.value, it.size.value, it.size.value) }
+            for (a in rects) {
+                assertTrue("$width x $height ${a.name} outside canvas: $a",
+                    a.x >= -0.01f && a.y >= -0.01f && a.x + a.w <= width + 0.01f && a.y + a.h <= height + 0.01f)
+                for (b in rects.drop(rects.indexOf(a) + 1)) {
+                    val overlapX = minOf(a.x + a.w, b.x + b.w) - maxOf(a.x, b.x)
+                    val overlapY = minOf(a.y + a.h, b.y + b.h) - maxOf(a.y, b.y)
+                    assertFalse("$width x $height overlap: ${a.name} and ${b.name}", overlapX > 0.01f && overlapY > 0.01f)
+                }
+            }
+        }
+    }
     @Test fun factoryLayoutsRenderBothSticksOnEveryAnalogConsole() {
         for (scope in ConsoleControlsScope.all) {
             val policy = ConsoleOverlayPolicy.forPlatform(scope.platform, scope.wiiProfile)
@@ -82,11 +116,17 @@ class ConsoleOverlayCanvasLayoutTest {
         policy: ConsoleOverlayPolicy,
         controls: Map<String, OverlayControlLayout> = AppPreferences.defaultOverlayControlLayouts(),
         preview: Boolean = false,
-        width: Int = 960
+        width: Int = 960,
+        height: Int = 540
     ) = buildOverlayCanvasLayout(
-        canvasWidth = width.dp, canvasHeight = 540.dp, density = Density(1f), scaleFactor = 1f, stickScaleFactor = 1f,
-        dpadOffset = 0f to 0f, lstickOffset = 0f to 0f, rstickOffset = 0f to 0f,
-        actionOffset = 0f to 0f, lbtnOffset = 0f to 0f, rbtnOffset = 0f to 0f, centerOffset = 0f to 0f,
+        canvasWidth = width.dp, canvasHeight = height.dp, density = Density(1f), scaleFactor = 1f, stickScaleFactor = 1f,
+        dpadOffset = AppPreferences.DEFAULT_DPAD_OFFSET_X to AppPreferences.DEFAULT_DPAD_OFFSET_Y,
+        lstickOffset = AppPreferences.DEFAULT_LSTICK_OFFSET_X to AppPreferences.DEFAULT_LSTICK_OFFSET_Y,
+        rstickOffset = AppPreferences.DEFAULT_RSTICK_OFFSET_X to AppPreferences.DEFAULT_RSTICK_OFFSET_Y,
+        actionOffset = AppPreferences.DEFAULT_ACTION_OFFSET_X to AppPreferences.DEFAULT_ACTION_OFFSET_Y,
+        lbtnOffset = AppPreferences.DEFAULT_LBTN_OFFSET_X to AppPreferences.DEFAULT_LBTN_OFFSET_Y,
+        rbtnOffset = AppPreferences.DEFAULT_RBTN_OFFSET_X to AppPreferences.DEFAULT_RBTN_OFFSET_Y,
+        centerOffset = AppPreferences.DEFAULT_CENTER_OFFSET_X to AppPreferences.DEFAULT_CENTER_OFFSET_Y,
         controlLayouts = controls, safeLeftInset = 0.dp, safeRightInset = 0.dp, safeTopInset = 0.dp, safeBottomInset = 0.dp,
         previewMode = preview, consolePolicy = policy
     )

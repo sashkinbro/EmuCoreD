@@ -25,7 +25,7 @@ class ConsoleControlsDefaultsTest {
             ConsolePlatform.SNES to basic + setOf("x", "y", "l", "r"),
             ConsolePlatform.NDS to basic - "dpad_cluster" +
                 setOf("x", "y", "l", "r", "dpad_up", "dpad_down", "dpad_left", "dpad_right"),
-            ConsolePlatform.N64 to basic - "select" + setOf("x", "y", "l", "r", "zl", "left_stick", "right_stick"),
+            ConsolePlatform.N64 to basic - "select" + setOf("l", "r", "zl", "left_stick", "right_stick"),
             ConsolePlatform.GAMECUBE to basic + setOf("x", "y", "l", "r", "left_stick", "right_stick"),
             ConsolePlatform.N3DS to basic +
                 setOf("x", "y", "home", "touch", "l", "r", "zl", "zr", "left_stick", "right_stick")

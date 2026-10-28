@@ -115,7 +115,13 @@ fun buildOverlayCanvasLayout(
     val leftStickLayout = layoutFor("left_stick", (stickScaleFactor * 100f).toInt())
         .let { if (dsMode) it.copy(visible = false) else it }
     val rightStickLayout = layoutFor("right_stick", (stickScaleFactor * 100f).toInt())
-        .let { if (dsMode) it.copy(visible = false) else it }
+        .let {
+            when {
+                dsMode -> it.copy(visible = false)
+                consolePolicy.platform == com.sbro.emucored.core.platform.ConsolePlatform.N64 -> it.copy(surfaceOnly = false)
+                else -> it
+            }
+        }
     val extraDpadLayout = layoutFor("dpad_cluster")
         .let { if (dsMode) it.copy(visible = false) else it }
     val responsiveScale = calculateOverlayResponsiveScale(

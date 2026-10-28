@@ -226,6 +226,7 @@ import com.sbro.emucored.ui.common.ProvideGamepadUiNavigation
 import com.sbro.emucored.ui.common.SettingHelpButton
 import com.sbro.emucored.ui.common.OverlayDpadDirection
 import com.sbro.emucored.ui.common.VectorAnalogStick
+import com.sbro.emucored.ui.common.VectorN64CButtons
 import com.sbro.emucored.ui.common.VectorDpadCluster
 import com.sbro.emucored.ui.common.VectorOverlayButton
 import com.sbro.emucored.ui.common.buildOverlayCanvasLayout
@@ -2187,7 +2188,7 @@ private fun GameMenuTabId.toEmulationMenuTab(): EmulationMenuTab = when (this) {
 }
 
 @Composable
-private fun OnScreenControls(
+internal fun OnScreenControls(
     modifier: Modifier = Modifier,
     scaleFactor: Float,
     stickScaleFactor: Float = 1.0f,
@@ -2354,6 +2355,7 @@ private fun OnScreenControls(
         var extraDpadDirections by remember { mutableStateOf(emptySet<OverlayDpadDirection>()) }
         val currentExtraDpadDirections by rememberUpdatedState(extraDpadDirections)
         var toggleDpadDirections by remember { mutableStateOf(emptySet<OverlayDpadDirection>()) }
+        var n64CDirections by remember { mutableStateOf(emptySet<OverlayDpadDirection>()) }
         val currentToggleDpadDirections by rememberUpdatedState(toggleDpadDirections)
 
         fun dpadKeyFor(direction: OverlayDpadDirection): Int = when (direction) {
@@ -2387,6 +2389,22 @@ private fun OnScreenControls(
             }
             pressed.forEach { direction -> currentOnPadInput(dpadKeyFor(direction), 0, true) }
             toggleDpadDirections = next
+        }
+
+        fun updateN64CDirections(next: Set<OverlayDpadDirection>) {
+            fun key(direction: OverlayDpadDirection): Int = when (direction) {
+                OverlayDpadDirection.Up -> PadKey.X
+                OverlayDpadDirection.Down -> PadKey.Y
+                OverlayDpadDirection.Left -> PadKey.RIGHT_STICK_LEFT
+                OverlayDpadDirection.Right -> PadKey.ZR
+            }
+            val released = n64CDirections - next
+            val pressed = next - n64CDirections
+            released.forEach { currentOnPadInput(key(it), 0, false) }
+            pressed.forEach { currentOnPadInput(key(it), 255, true) }
+            if (pressed.isNotEmpty()) performTouchHaptic(ButtonPhase.PRESS)
+            else if (released.isNotEmpty()) performTouchHaptic(ButtonPhase.RELEASE)
+            n64CDirections = next
         }
 
         DisposableEffect(Unit) {
@@ -2581,8 +2599,16 @@ private fun OnScreenControls(
         }
 
         layout.rightStick?.takeIf { it.visible }?.let { stick ->
-            val panelWidth = stickPanelWidth(stick)
-            VectorAnalogStick(
+            if (consolePolicy.platform == com.sbro.emucored.core.platform.ConsolePlatform.N64) {
+                VectorN64CButtons(
+                    size = stick.size, alpha = stick.opacity / 100f,
+                    visualStyle = visualStyle, pressEffect = pressEffect,
+                    onDirectionsChange = ::updateN64CDirections,
+                    modifier = Modifier.offset { IntOffset(stick.x.roundToPx(), stick.y.roundToPx()) }
+                )
+            } else {
+                val panelWidth = stickPanelWidth(stick)
+                VectorAnalogStick(
                 analogSize = stick.size,
                 analogWidth = panelWidth,
                 analogHeight = stick.size,
@@ -2602,7 +2628,8 @@ private fun OnScreenControls(
                 modifier = Modifier.offset {
                     IntOffset(stickPanelX(stick).roundToPx(), stick.y.roundToPx())
                 }
-            )
+                )
+            }
         }
 
     }

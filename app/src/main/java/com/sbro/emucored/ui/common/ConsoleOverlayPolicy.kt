@@ -63,6 +63,7 @@ data class ConsoleOverlayPolicy private constructor(
     /** Symbols printed on the console's physical buttons are language independent. */
     fun buttonLabel(id: String): String? = when {
         platform == ConsolePlatform.N64 && id == "zl" -> "Z"
+        platform == ConsolePlatform.N64 && id == "right_stick" -> "C"
         platform == ConsolePlatform.N64 && id == "x" -> "C↑"
         platform == ConsolePlatform.N64 && id == "y" -> "C↓"
         platform == ConsolePlatform.N64 && id == "zr" -> "C→"

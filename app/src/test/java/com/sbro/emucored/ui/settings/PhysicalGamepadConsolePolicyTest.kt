@@ -19,6 +19,7 @@ class PhysicalGamepadConsolePolicyTest {
         assertTrue("C-left must be bindable", "right_stick_left" in actions)
         assertEquals("C←", overlay.buttonLabel("right_stick_left"))
         assertEquals("C→", overlay.buttonLabel("zr"))
+        assertEquals("C", overlay.buttonLabel("right_stick"))
         assertFalse("N64 has no Select button", "select" in actions)
         assertTrue("N64 fast forward must remain bindable", "fast_forward" in actions)
         val gameCube = KeyboardMouseConsolePolicy(ConsoleOverlayPolicy.forPlatform(ConsolePlatform.GAMECUBE))

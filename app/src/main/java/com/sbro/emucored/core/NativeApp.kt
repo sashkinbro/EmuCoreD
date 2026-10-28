@@ -119,7 +119,11 @@ object NativeApp {
 
     @JvmStatic @Synchronized fun setPadButton(padIndex: Int, index: Int, range: Int, pressed: Boolean) {
         if (padIndex !in 0..1) return
-        if (index == PAD_START || index == PAD_SELECT || index == PAD_FAST_FORWARD || index == PAD_REWIND) {
+        val n64Start = index == PAD_START &&
+            com.sbro.emucored.core.platform.session.AdditionalConsoleSession.platform ==
+            com.sbro.emucored.core.platform.ConsolePlatform.N64
+        if ((!n64Start && (index == PAD_START || index == PAD_SELECT)) ||
+            index == PAD_FAST_FORWARD || index == PAD_REWIND) {
             handleTimeControlHold(padIndex, index, pressed)
             return
         }
