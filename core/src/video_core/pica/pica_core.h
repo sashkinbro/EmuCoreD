@@ -398,6 +398,7 @@ public:
         PAddr paddr;
         bool vp_heigh_found = false;
         bool paddr_found = false;
+        bool has_draw = false;
     };
 
     RenderPropertiesGuess GuessCmdRenderProperties(PAddr list, u32 size);

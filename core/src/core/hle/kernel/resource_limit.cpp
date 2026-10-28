@@ -137,10 +137,10 @@ void ResourceLimit::ApplyAppMaxCPUSetting(std::shared_ptr<Kernel::Process>& proc
             if (static_cast<u32>(time) > 100 && static_cast<u32>(time) < 200) {
                 // This code path is actually unused
                 final_mode = Core1ScheduleMode::Multi;
-                set_cpu_time = limit_cpu_time = static_cast<u32>(time) - 100;
+                set_cpu_time = static_cast<u32>(time) - 100;
             } else {
                 final_mode = Core1ScheduleMode::Single;
-                set_cpu_time = limit_cpu_time = time;
+                set_cpu_time = time;
             }
         }
     } else {

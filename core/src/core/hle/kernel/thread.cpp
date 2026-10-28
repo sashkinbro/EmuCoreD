@@ -643,9 +643,14 @@ void CpuLimiterMulti::UpdateAppCpuLimit() {
         return;
     }
 
-    app_cpu_time = static_cast<u32>(kernel.ResourceLimit()
-                                        .GetForCategory(Kernel::ResourceLimitCategory::Application)
-                                        ->GetCurrentValue(Kernel::ResourceLimitType::CpuTime));
+    const s32 new_cpu_time = kernel.ResourceLimit()
+                                 .GetForCategory(Kernel::ResourceLimitCategory::Application)
+                                 ->GetCurrentValue(Kernel::ResourceLimitType::CpuTime);
+    if (new_cpu_time >= 90) {
+        return;
+    }
+
+    app_cpu_time = new_cpu_time;
     if (app_cpu_time == Core1CpuTime::PREEMPTION_DISABLED) {
         // No preemption, disable event
         active = false;

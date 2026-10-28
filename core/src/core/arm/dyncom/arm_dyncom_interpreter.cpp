@@ -1706,7 +1706,8 @@ ADD_INST: {
     if (inst_base->cond == ConditionCode::AL || CondPassed(cpu, inst_base->cond)) {
         add_inst* const inst_cream = (add_inst*)inst_base->component;
 
-        u32 rn_val = CHECK_READ_REG15_WA(cpu, inst_cream->Rn);
+        u32 rn_val = inst_cream->I ? CHECK_READ_REG15_WA(cpu, inst_cream->Rn)
+                                   : CHECK_READ_REG15(cpu, inst_cream->Rn);
 
         bool carry;
         bool overflow;
