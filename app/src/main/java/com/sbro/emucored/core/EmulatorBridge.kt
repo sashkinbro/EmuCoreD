@@ -472,6 +472,9 @@ object EmulatorBridge {
      */
     fun getGameMetadata(path: String, readDiscMetadata: Boolean = true): GameMetadata {
         val inferredMetadata = when {
+            ArchiveGameIdentity.parse(path) != null -> parseMetadataFromName(
+                DocumentPathResolver.getFallbackDisplayName(path).substringBeforeLast('.')
+            )
             path.startsWith("content://") -> {
                 val context = getContext()
                 val displayName = context?.let { DocumentPathResolver.getDisplayName(it, path) } ?: path

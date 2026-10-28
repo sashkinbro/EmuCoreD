@@ -77,6 +77,7 @@ object DocumentPathResolver {
 
 
     fun getDisplayName(context: Context, rawPath: String): String {
+        ArchiveGameIdentity.parse(rawPath)?.let { return it.entry.substringAfterLast('/') }
         if (!rawPath.startsWith("content://")) return normalizeDisplayName(rawPath)
 
         val uri = rawPath.toUri()
@@ -108,6 +109,7 @@ object DocumentPathResolver {
      * Safe for Compose and other main-thread UI code where a provider query can block Binder.
      */
     fun getFallbackDisplayName(rawPath: String): String {
+        ArchiveGameIdentity.parse(rawPath)?.let { return it.entry.substringAfterLast('/') }
         if (!rawPath.startsWith("content://")) return normalizeDisplayName(rawPath)
         return normalizeDisplayName(rawPath, rawPath.toUri())
     }

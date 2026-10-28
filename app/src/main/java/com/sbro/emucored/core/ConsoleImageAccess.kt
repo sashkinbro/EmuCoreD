@@ -18,6 +18,7 @@ import kotlinx.coroutines.withContext
 
 /** Owns a seekable SAF image for the entire guest lifetime, avoiding multi-GB copies. */
 object ConsoleImageAccess {
+    private const val MAX_ARCHIVE_COPY_BYTES = 16L * 1024 * 1024 * 1024
     class Image internal constructor(
         val path: String,
         val displayName: String,
@@ -71,6 +72,9 @@ object ConsoleImageAccess {
         checkActive: () -> Unit = {}
     ): Image? = prepareBlocking(context, source, siblingDocuments, false, checkActive)
 
+    /** ZipFile cannot reliably reopen a DocumentsProvider descriptor via /proc/self/fd. */
+    internal fun prepareArchiveForProbe(context: Context, source: String, checkActive: () -> Unit = {}): Image? =
+        prepareSingle(context, source, true, checkActive, MAX_ARCHIVE_COPY_BYTES)
     private fun prepareBlocking(
         context: Context,
         source: String,
@@ -79,6 +83,23 @@ object ConsoleImageAccess {
         checkActive: () -> Unit
     ): Image? {
         checkActive()
+        val archivedGame = ArchiveGameIdentity.parse(source)
+        if (archivedGame != null) {
+            val archive = prepareSingle(context, archivedGame.archive, true, checkActive, MAX_ARCHIVE_COPY_BYTES) ?: return null
+            var retained = false
+            try {
+                val directory = File(context.cacheDir, "console-images").apply { mkdirs() }
+                val staged = GameZipArchive.extract(
+                    File(archive.path), archivedGame.entry, directory, 16L * 1024 * 1024 * 1024, checkActive
+                )
+                val result = Image(staged.path, archivedGame.entry.substringAfterLast('/'),
+                    temporary = staged, owners = listOf(archive))
+                retained = true
+                return result
+            } finally {
+                if (!retained) archive.close()
+            }
+        }
         val main = prepareSingle(context, source, materializeContent, checkActive) ?: return null
         val wbfsHeader = runCatching { File(main.path).inputStream().use { input ->
             val magic = ByteArray(4)
@@ -152,7 +173,8 @@ object ConsoleImageAccess {
         context: Context,
         source: String,
         materializeContent: Boolean,
-        checkActive: () -> Unit
+        checkActive: () -> Unit,
+        copyLimit: Long = Long.MAX_VALUE
     ): Image? {
         checkActive()
         val path = source.removePrefix("!").let { if (it.startsWith("file://")) it.toUri().path.orEmpty() else it }
@@ -190,7 +212,7 @@ object ConsoleImageAccess {
             val input = context.contentResolver.openInputStream(uri) ?: return null.also { temporary.delete() }
             input.use { stream ->
                 temporary.outputStream().use { output ->
-                    copy(stream, output, checkActive)
+                    copy(stream, output, checkActive, copyLimit)
                 }
             }
             if (temporary.length() == 0L) { temporary.delete(); null }
@@ -201,13 +223,17 @@ object ConsoleImageAccess {
         }
     }
 
-    private fun copy(input: java.io.InputStream, output: java.io.OutputStream, checkActive: () -> Unit) {
+    private fun copy(input: java.io.InputStream, output: java.io.OutputStream, checkActive: () -> Unit,
+                     maxBytes: Long = Long.MAX_VALUE) {
         val buffer = ByteArray(256 * 1024)
+        var copied = 0L
         while (true) {
             checkActive()
             val read = input.read(buffer)
             if (read < 0) return
+            require(read.toLong() <= maxBytes - copied) { "Image is too large" }
             output.write(buffer, 0, read)
+            copied += read
         }
     }
 

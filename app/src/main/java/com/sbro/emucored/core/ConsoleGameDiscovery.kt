@@ -16,6 +16,7 @@ object ConsoleGameDiscovery {
         checkActive: () -> Unit = {}
     ): GamePlatform? {
         checkActive()
+        if (ArchiveGameIdentity.parse(path) != null) return GamePlatform.forPath(path)
         val candidates = ConsoleGameFormats.candidatesForFileName(displayName)
         val hasDolphinCandidate = candidates.any { it.core == com.sbro.emucored.core.platform.CoreId.DOLPHIN }
         val detected = if (hasDolphinCandidate) probeDisc(context, path, displayName, siblingDocuments, checkActive) else null

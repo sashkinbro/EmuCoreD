@@ -6,6 +6,9 @@ import android.provider.DocumentsContract
 import android.util.Log
 import androidx.core.net.toUri
 import androidx.documentfile.provider.DocumentFile
+import com.sbro.emucored.core.ArchiveGameIdentity
+import com.sbro.emucored.core.ConsoleImageAccess
+import com.sbro.emucored.core.GameZipArchive
 import com.sbro.emucored.core.DocumentPathResolver
 import com.sbro.emucored.core.EmulatorBridge
 import com.sbro.emucored.core.PlatformUiCapabilities
@@ -219,6 +222,10 @@ class GameRepository {
                     )
                 }
 
+                file.isFile && file.extension.equals("zip", ignoreCase = true) -> {
+                    items.addAll(scanArchiveGames(context, file.absolutePath, file.length(),
+                        file.lastModified(), cachedGamesByPath, shouldAbort))
+                }
                 file.isFile && GamePlatform.isSupportedName(file.name) -> {
                     val platform = com.sbro.emucored.core.ConsoleGameDiscovery.identify(context, file.absolutePath, file.name,
                         checkActive = { if (shouldAbort()) throw kotlinx.coroutines.CancellationException("Library scan cancelled") }) ?: return@forEach
@@ -337,6 +344,12 @@ class GameRepository {
                     }
                 }
                 SetupValidator.DocumentEntryKind.GAME_FILE -> {
+                    if (name.endsWith(".zip", ignoreCase = true)) {
+                        items.addAll(scanArchiveGames(context, file.uri.toString(),
+                            runCatching { file.length() }.getOrDefault(0L),
+                            runCatching { file.lastModified() }.getOrDefault(0L), cachedGamesByPath, shouldAbort))
+                        continue
+                    }
                     val uriPath = file.uri.toString()
                     com.sbro.emucored.core.ConsoleImageAccess.rememberDocumentParent(context, uriPath, docFile.uri.toString(), name)
                     val platform = com.sbro.emucored.core.ConsoleGameDiscovery.identify(context, uriPath, name,
@@ -416,6 +429,46 @@ class GameRepository {
         return items
     }
 
+    /** A ZIP may contain several games; each keeps a separate stable identity and save namespace. */
+    private fun scanArchiveGames(
+        context: Context, source: String, sourceSize: Long, lastModified: Long,
+        cachedGamesByPath: Map<String, GameItem>, shouldAbort: () -> Boolean
+    ): List<GameItem> {
+        fun checkActive() {
+            if (shouldAbort()) throw kotlinx.coroutines.CancellationException("Library scan cancelled")
+        }
+        return runCatching {
+            checkActive()
+            val archive = ConsoleImageAccess.prepareArchiveForProbe(context, source, checkActive = ::checkActive)
+                ?: return@runCatching emptyList()
+            archive.use {
+                val names = GameZipArchive.entries(File(it.path), ::checkActive) { name ->
+                    GamePlatform.fromFileName(name) in setOf(GamePlatform.GBA, GamePlatform.GB,
+                        GamePlatform.GBC, GamePlatform.NES, GamePlatform.SNES)
+                }
+                val covers = CoverArtRepository(context)
+                val custom = CustomGameCoverRepository(context)
+                names.mapNotNull { name ->
+                    checkActive()
+                    val identity = runCatching { ArchiveGameIdentity(source, name).encode() }.getOrNull()
+                        ?: return@mapNotNull null
+                    val platform = GamePlatform.forPath(identity) ?: return@mapNotNull null
+                    val displayName = name.substringAfterLast('/')
+                    val title = EmulatorBridge.cleanGameDisplayTitle(displayName.substringBeforeLast('.'), displayName)
+                    val cached = cachedGamesByPath[identity]
+                    val cover = custom.findCustomCoverPath(identity)
+                        ?: covers.findCachedCoverPath(null, title = title, platform = platform)
+                        ?: cached?.coverArtPath
+                    GamePlatform.remember(identity, platform)
+                    GameItem(title, identity, displayName, sourceSize, lastModified, cover, platform = platform)
+                }
+            }
+        }.getOrElse { error ->
+            if (error is kotlinx.coroutines.CancellationException) throw error
+            Log.w(TAG, "Unable to scan game archive: $source", error)
+            emptyList()
+        }
+    }
     private fun readContainerMetadata(
         platform: GamePlatform,
         context: Context,

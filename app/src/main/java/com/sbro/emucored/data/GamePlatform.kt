@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: LicenseRef-EmuCoreD-Proprietary
 package com.sbro.emucored.data
 
+import com.sbro.emucored.core.ArchiveGameIdentity
 import com.sbro.emucored.core.N3dsGameFormats
 import com.sbro.emucored.core.platform.ConsolePlatform
 import java.util.Locale
@@ -36,7 +37,11 @@ enum class GamePlatform {
         fun remember(path: String, platform: GamePlatform) { discovered[path] = platform }
 
         /** Scanner/cache evidence takes precedence over a potentially ambiguous extension. */
-        fun forPath(path: String): GamePlatform? = discovered[path] ?: fromFileName(path)
+        fun forPath(path: String): GamePlatform? = discovered[path] ?: ArchiveGameIdentity.parse(path)?.let {
+            fromFileName(it.entry)?.takeIf { platform ->
+                platform in setOf(GBA, GB, GBC, NES, SNES)
+            }
+        } ?: fromFileName(path)
 
         fun fromPath(path: String): GamePlatform =
             requireNotNull(forPath(path)) { "Game console has not been identified" }

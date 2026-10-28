@@ -120,7 +120,8 @@ object SetupValidator {
         if (mimeType == DocumentsContract.Document.MIME_TYPE_DIR) {
             return DocumentEntryKind.DIRECTORY
         }
-        if (ConsoleGameFormats.isSupportedName(displayName.orEmpty())) {
+        if (ConsoleGameFormats.isSupportedName(displayName.orEmpty()) ||
+            displayName.orEmpty().endsWith(".zip", ignoreCase = true)) {
             return DocumentEntryKind.GAME_FILE
         }
         return if (mimeType == null) DocumentEntryKind.UNKNOWN else DocumentEntryKind.OTHER
