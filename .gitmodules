@@ -16,3 +16,7 @@
 [submodule "coreSNES/bsnes"]
 	path = coreSNES/bsnes
 	url = https://github.com/bsnes-emu/bsnes.git
+[submodule "coreN64/mupen64plus"]
+	path = coreN64/mupen64plus
+	url = https://github.com/libretro/mupen64plus-libretro-nx.git
+	branch = develop
