@@ -39,6 +39,7 @@
 -keepclasseswithmembers,includedescriptorclasses class com.sbro.emucored.core.gb.SameBoySessionEngine { native <methods>; }
 -keepclasseswithmembers,includedescriptorclasses class com.sbro.emucored.core.nes.NestopiaSessionEngine { native <methods>; }
 -keepclasseswithmembers,includedescriptorclasses class com.sbro.emucored.core.snes.BsnesSessionEngine { native <methods>; }
+-keepclasseswithmembers,includedescriptorclasses class com.sbro.emucored.core.n64.Mupen64Native { native <methods>; }
 -keepclasseswithmembers,includedescriptorclasses class com.sbro.emucored.core.dolphin.DolphinNative { native <methods>; }
 # Android audio/microphone callbacks are looked up by name in AndroidServices.cpp.
 -keep,includedescriptorclasses class com.sbro.emucored.core.dolphin.DolphinServices { *; }

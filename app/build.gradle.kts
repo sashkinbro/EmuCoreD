@@ -181,6 +181,7 @@ dependencies {
     implementation(project(":core-gb"))
     implementation(project(":core-nes"))
     implementation(project(":core-snes"))
+    implementation(project(":core-n64"))
     implementation(libs.androidx.credentials)
     implementation(libs.androidx.credentials.play.services)
     implementation(libs.google.identity)
