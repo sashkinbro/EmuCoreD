@@ -149,10 +149,15 @@ bool applyOption(Session& session, const std::string& key, const std::string& va
 }
 
 void logMessage(retro_log_level level, const char* format, ...) {
+#if EMUCORED_DIAGNOSTICS
     va_list args; va_start(args, format);
     __android_log_vprint(level == RETRO_LOG_ERROR ? ANDROID_LOG_ERROR : ANDROID_LOG_DEBUG,
                          "EmuCoreN64", format, args);
     va_end(args);
+#else
+    (void)level;
+    (void)format;
+#endif
 }
 uintptr_t currentFramebuffer() { return active ? active->framebuffer : 0; }
 retro_proc_address_t getProc(const char* name) {

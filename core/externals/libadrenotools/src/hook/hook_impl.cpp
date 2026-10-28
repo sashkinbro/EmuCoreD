@@ -13,7 +13,11 @@
 #include "hook_impl.h"
 
 #define TAG "hook_impl"
+#if defined(EMUCORED_DIAGNOSTICS) && !EMUCORED_DIAGNOSTICS
+#define LOGI(...) ((void)0)
+#else
 #define LOGI(fmt, ...) __android_log_print(ANDROID_LOG_INFO, TAG, fmt, ##__VA_ARGS__)
+#endif
 
 const HookImplParams *hook_params; //!< Bunch of info needed to load/patch the driver
 int (*gsl_memory_alloc_pure_sym)(uint32_t, uint32_t, void *);

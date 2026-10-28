@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 3.22)
 project(EmuCoreN64 LANGUAGES CXX)
 
+option(EMUCORED_DIAGNOSTICS "Enable development diagnostics" OFF)
+
 if(NOT ANDROID OR NOT ANDROID_ABI STREQUAL "arm64-v8a")
     message(FATAL_ERROR "Mupen64Plus-Next requires Android arm64-v8a")
 endif()
@@ -29,6 +31,17 @@ else()
 endif()
 get_filename_component(n64_build "${CMAKE_CURRENT_SOURCE_DIR}/../build/n64/${n64_configuration}/${core_revision}" ABSOLUTE)
 set(core_output "${n64_build}/libs/${ANDROID_ABI}/libretro.so")
+set(n64_diagnostics_args)
+set(n64_diagnostics_deps)
+if(NOT EMUCORED_DIAGNOSTICS)
+    # ParaLLEl has its own logcat fallback, independent of the libretro callback.
+    # Wrap only calls from this shared library; leave Android and GPU drivers alone.
+    add_library(n64_silent_logs OBJECT bridge/silent_logs.cpp)
+    set(n64_silent_object "$<TARGET_OBJECTS:n64_silent_logs>")
+    list(APPEND n64_diagnostics_args
+        "APP_LDFLAGS=-Wl,--wrap=__android_log_print -Wl,--wrap=__android_log_vprint -Wl,--wrap=__android_log_write \"${n64_silent_object}\"")
+    list(APPEND n64_diagnostics_deps n64_silent_logs "${n64_silent_object}")
+endif()
 add_custom_command(OUTPUT "${core_output}"
     COMMAND "${ndk_build}"
         "NDK_PROJECT_PATH=${CMAKE_CURRENT_SOURCE_DIR}/mupen64plus"
@@ -37,14 +50,16 @@ add_custom_command(OUTPUT "${core_output}"
         "NDK_OUT=${n64_build}/obj"
         "NDK_LIBS_OUT=${n64_build}/libs"
         "EMUCORED_CMAKE=${CMAKE_COMMAND}"
+        ${n64_diagnostics_args}
         "GLES3=1" "NDK_DEBUG=0" -j4
     WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/mupen64plus"
-    DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/Android.mk" "${CMAKE_CURRENT_SOURCE_DIR}/gen_offsets.cmake"
+    DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/CMakeLists.txt" "${CMAKE_CURRENT_SOURCE_DIR}/Android.mk" "${CMAKE_CURRENT_SOURCE_DIR}/gen_offsets.cmake" ${n64_diagnostics_deps}
     VERBATIM)
 add_custom_target(n64_retro_build DEPENDS "${core_output}")
 add_library(n64_retro SHARED IMPORTED GLOBAL)
 set_target_properties(n64_retro PROPERTIES IMPORTED_LOCATION "${core_output}")
 add_library(emucored_n64 SHARED bridge/bootstrap.cpp bridge/session.cpp)
+target_compile_definitions(emucored_n64 PRIVATE EMUCORED_DIAGNOSTICS=$<BOOL:${EMUCORED_DIAGNOSTICS}>)
 target_compile_features(emucored_n64 PRIVATE cxx_std_17)
 target_include_directories(emucored_n64 PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/mupen64plus/libretro-common/include" "${CMAKE_CURRENT_SOURCE_DIR}/../core-common")
 target_link_libraries(emucored_n64 PRIVATE n64_retro android aaudio EGL GLESv3 log)
