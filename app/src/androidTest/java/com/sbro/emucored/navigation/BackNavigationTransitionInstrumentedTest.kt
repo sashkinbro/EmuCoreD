@@ -45,7 +45,7 @@ class BackNavigationTransitionInstrumentedTest {
         compose.mainClock.autoAdvance = false
         val back = InstrumentationRegistry.getInstrumentation().targetContext.getString(R.string.back)
         compose.onNodeWithContentDescription(back).performClick()
-        compose.mainClock.advanceTimeBy(100)
+        compose.mainClock.advanceTimeBy(48)
         compose.onNodeWithTag("details").assertExists()
         compose.mainClock.advanceTimeBy(400)
         compose.onNodeWithTag("details").assertDoesNotExist()
