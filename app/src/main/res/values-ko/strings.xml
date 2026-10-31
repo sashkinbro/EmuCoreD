@@ -2134,6 +2134,12 @@
     <string name="cheat_manager_delete_pack_confirm">이 게임에서 “%1$s”을(를) 제거할까요? 다른 설치된 팩은 유지됩니다.</string>
     <string name="cheat_manager_delete_pack_failed">이 치트 팩을 삭제하지 못했습니다.</string>
     <string name="onboarding_supported_consoles">지원되는 콘솔</string>
+    <string name="game_picker_search_hint">게임 검색…</string>
+    <string name="game_picker_no_results">검색 결과와 일치하는 게임이 없습니다</string>
+    <string name="game_picker_tap_to_select">게임을 선택하려면 탭하세요</string>
+    <string name="game_picker_change_game">게임 변경</string>
+    <string name="game_picker_all_filter">전체</string>
+    <string name="game_picker_clear_search">검색 지우기</string>
     <string name="console_n64">Nintendo 64</string>
     <string name="core_option_n64_resolution">내부 해상도</string>
     <string name="core_option_help_n64_resolution">해상도를 높이면 3D 화면이 선명해지지만 GPU 부하가 늘어납니다. 게임을 다시 시작하세요. 2×에서 시작하고 게임이 부드럽게 유지될 때만 높이세요.</string>

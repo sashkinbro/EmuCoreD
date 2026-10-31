@@ -2135,6 +2135,12 @@
     <string name="cheat_manager_delete_pack_confirm">“%1$s” bu oyundan kaldırılsın mı? Diğer yüklü paketler kalacak.</string>
     <string name="cheat_manager_delete_pack_failed">Bu hile paketi silinemedi.</string>
     <string name="onboarding_supported_consoles">Desteklenen konsollar</string>
+    <string name="game_picker_search_hint">Oyun ara…</string>
+    <string name="game_picker_no_results">Aramanızla eşleşen oyun bulunamadı</string>
+    <string name="game_picker_tap_to_select">Oyun seçmek için dokunun</string>
+    <string name="game_picker_change_game">Oyunu değiştir</string>
+    <string name="game_picker_all_filter">Tümü</string>
+    <string name="game_picker_clear_search">Aramayı temizle</string>
     <string name="console_n64">Nintendo 64</string>
     <string name="core_option_n64_resolution">Dahili çözünürlük</string>
     <string name="core_option_help_n64_resolution">Daha yüksek çözünürlük 3D grafikleri netleştirir ancak GPU yükünü artırır. Oyunu yeniden başlatın. 2× ile başlayın ve yalnızca oyun akıcı kalırsa artırın.</string>

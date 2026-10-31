@@ -2136,6 +2136,12 @@
     <string name="cheat_manager_delete_pack_confirm">要从本游戏移除“%1$s”吗？其他已安装的包将保留。</string>
     <string name="cheat_manager_delete_pack_failed">无法删除此金手指包。</string>
     <string name="onboarding_supported_consoles">支持的游戏机</string>
+    <string name="game_picker_search_hint">搜索游戏…</string>
+    <string name="game_picker_no_results">未找到匹配的游戏</string>
+    <string name="game_picker_tap_to_select">点击选择游戏</string>
+    <string name="game_picker_change_game">更换游戏</string>
+    <string name="game_picker_all_filter">全部</string>
+    <string name="game_picker_clear_search">清除搜索</string>
     <string name="console_n64">Nintendo 64</string>
     <string name="core_option_n64_resolution">内部渲染分辨率</string>
     <string name="core_option_help_n64_resolution">提高分辨率可使 3D 画面更清晰，但会增加 GPU 负载。重启游戏后生效。建议从 2× 开始，仅在游戏仍流畅时才提高。</string>

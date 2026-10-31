@@ -2138,6 +2138,12 @@
     <string name="cheat_manager_delete_pack_confirm">Удалить «%1$s» из этой игры? Остальные установленные пакеты останутся.</string>
     <string name="cheat_manager_delete_pack_failed">Не удалось удалить этот пакет читов.</string>
     <string name="onboarding_supported_consoles">Поддерживаемые консоли</string>
+    <string name="game_picker_search_hint">Поиск игр…</string>
+    <string name="game_picker_no_results">Игр не найдено по вашему запросу</string>
+    <string name="game_picker_tap_to_select">Нажмите, чтобы выбрать игру</string>
+    <string name="game_picker_change_game">Сменить игру</string>
+    <string name="game_picker_all_filter">Все</string>
+    <string name="game_picker_clear_search">Очистить поиск</string>
     <string name="console_n64">Nintendo 64</string>
     <string name="core_option_n64_resolution">Внутреннее разрешение</string>
     <string name="core_option_help_n64_resolution">Более высокое разрешение делает 3D-графику чётче, но увеличивает нагрузку на GPU. Перезапустите игру. Начните с 2× и повышайте значение, только если игра остаётся плавной.</string>

@@ -2134,6 +2134,12 @@
     <string name="cheat_manager_delete_pack_confirm">このゲームから「%1$s」を削除しますか？他のインストール済みパックは残ります。</string>
     <string name="cheat_manager_delete_pack_failed">このチートパックを削除できませんでした。</string>
     <string name="onboarding_supported_consoles">対応コンソール</string>
+    <string name="game_picker_search_hint">ゲームを検索…</string>
+    <string name="game_picker_no_results">一致するゲームが見つかりません</string>
+    <string name="game_picker_tap_to_select">タップしてゲームを選択</string>
+    <string name="game_picker_change_game">ゲームを変更</string>
+    <string name="game_picker_all_filter">すべて</string>
+    <string name="game_picker_clear_search">検索をクリア</string>
     <string name="console_n64">Nintendo 64</string>
     <string name="core_option_n64_resolution">内部解像度</string>
     <string name="core_option_help_n64_resolution">解像度を上げると 3D 映像が鮮明になりますが、GPU の負荷が増えます。ゲームを再起動してください。2× から始め、ゲームが滑らかな場合のみ上げてください。</string>

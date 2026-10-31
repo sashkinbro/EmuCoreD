@@ -2137,6 +2137,12 @@
     <string name="cheat_manager_delete_pack_confirm">„%1$s“ aus diesem Spiel entfernen? Andere installierte Pakete bleiben erhalten.</string>
     <string name="cheat_manager_delete_pack_failed">Dieses Cheat-Paket konnte nicht gelöscht werden.</string>
     <string name="onboarding_supported_consoles">Unterstützte Konsolen</string>
+    <string name="game_picker_search_hint">Spiele suchen…</string>
+    <string name="game_picker_no_results">Keine Spiele gefunden, die Ihrer Suche entsprechen</string>
+    <string name="game_picker_tap_to_select">Tippen, um ein Spiel auszuwählen</string>
+    <string name="game_picker_change_game">Spiel ändern</string>
+    <string name="game_picker_all_filter">Alle</string>
+    <string name="game_picker_clear_search">Suche löschen</string>
     <string name="console_n64">Nintendo 64</string>
     <string name="core_option_n64_resolution">Interne Auflösung</string>
     <string name="core_option_help_n64_resolution">Eine höhere Auflösung macht 3D-Grafik schärfer, belastet aber die GPU stärker. Spiel neu starten. Beginne bei 2× und erhöhe nur, solange das Spiel flüssig bleibt.</string>

@@ -2137,6 +2137,12 @@
     <string name="cheat_manager_delete_pack_confirm">Retirer « %1$s » de ce jeu ? Les autres packs installés seront conservés.</string>
     <string name="cheat_manager_delete_pack_failed">Impossible de supprimer ce pack de codes.</string>
     <string name="onboarding_supported_consoles">Consoles prises en charge</string>
+    <string name="game_picker_search_hint">Rechercher des jeux…</string>
+    <string name="game_picker_no_results">Aucun jeu ne correspond à votre recherche</string>
+    <string name="game_picker_tap_to_select">Appuyez pour sélectionner un jeu</string>
+    <string name="game_picker_change_game">Changer de jeu</string>
+    <string name="game_picker_all_filter">Tous</string>
+    <string name="game_picker_clear_search">Effacer la recherche</string>
     <string name="console_n64">Nintendo 64</string>
     <string name="core_option_n64_resolution">Résolution interne</string>
     <string name="core_option_help_n64_resolution">Une résolution élevée rend les graphismes 3D plus nets, mais sollicite davantage le GPU. Redémarrez le jeu. Commencez à 2× et augmentez uniquement si le jeu reste fluide.</string>

@@ -53,7 +53,7 @@ import com.sbro.emucored.data.RemoteContentInstallState
 import com.sbro.emucored.data.RemoteTexturePack
 import com.sbro.emucored.data.textures.AndroidTexturePackRepository
 import com.sbro.emucored.data.textures.TexturePackTarget
-import com.sbro.emucored.ui.common.LibraryGamePicker
+import com.sbro.emucored.ui.common.ManagerGameSelector
 import com.sbro.emucored.ui.common.contentCatalogTitleKey
 import com.sbro.emucored.ui.common.rememberRetainedState
 import com.sbro.emucored.ui.theme.neon.neonButtonShape
@@ -186,7 +186,7 @@ internal fun TextureOnlineCatalogSection(
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
-            LibraryGamePicker(
+            ManagerGameSelector(
                 games = games,
                 selectedPath = selectedPath,
                 onSelected = { game ->

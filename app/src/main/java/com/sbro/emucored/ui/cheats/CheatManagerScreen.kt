@@ -78,7 +78,7 @@ import com.sbro.emucored.core.platform.session.CoreCheatCode
 import com.sbro.emucored.data.GamePlatform
 import com.sbro.emucored.data.SelectedGameIdentity
 import com.sbro.emucored.ui.common.AppAlertDialog
-import com.sbro.emucored.ui.common.LibraryGamePicker
+import com.sbro.emucored.ui.common.ManagerGameSelector
 import com.sbro.emucored.ui.common.ScreenTopBar
 import com.sbro.emucored.ui.common.appScreenTopPadding
 import com.sbro.emucored.ui.common.horizontalViewportBleed
@@ -406,7 +406,7 @@ internal fun CheatManagerContent(
                 }
             }
             item {
-                LibraryGamePicker(
+                ManagerGameSelector(
                     games = games,
                     selectedPath = selectedPath,
                     onSelected = { game ->

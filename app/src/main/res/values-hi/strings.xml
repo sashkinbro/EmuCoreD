@@ -2135,6 +2135,12 @@
     <string name="cheat_manager_delete_pack_confirm">इस गेम से “%1$s” हटाएँ? अन्य इंस्टॉल किए गए पैक रहेंगे।</string>
     <string name="cheat_manager_delete_pack_failed">यह चीट पैक हटाया नहीं जा सका।</string>
     <string name="onboarding_supported_consoles">समर्थित कंसोल</string>
+    <string name="game_picker_search_hint">गेम खोजें…</string>
+    <string name="game_picker_no_results">आपकी खोज से कोई गेम मेल नहीं खाता</string>
+    <string name="game_picker_tap_to_select">गेम चुनने के लिए टैप करें</string>
+    <string name="game_picker_change_game">गेम बदलें</string>
+    <string name="game_picker_all_filter">सभी</string>
+    <string name="game_picker_clear_search">खोज साफ़ करें</string>
     <string name="console_n64">Nintendo 64</string>
     <string name="core_option_n64_resolution">आंतरिक रिज़ॉल्यूशन</string>
     <string name="core_option_help_n64_resolution">अधिक रिज़ॉल्यूशन 3D ग्राफ़िक्स को स्पष्ट बनाता है, लेकिन GPU पर अधिक भार डालता है। खेल को फिर शुरू करें। 2× से शुरू करें और केवल तभी बढ़ाएँ जब खेल सुचारु रहे।</string>
