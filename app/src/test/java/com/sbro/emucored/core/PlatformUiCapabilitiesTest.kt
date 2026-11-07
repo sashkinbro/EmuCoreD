@@ -52,5 +52,9 @@ class PlatformUiCapabilitiesTest {
         assertTrue(ds.supportsGameMenuSection(GameMenuSectionId.EMULATION_CHEATS))
         assertTrue(ds.supportsGameMenuSection(GameMenuSectionId.SAVE_STATES))
         assertTrue(threeDs.supportsGameMenuSection(GameMenuSectionId.EMULATION_CPU))
+        assertTrue(threeDs.supportsGameMenuTab(GameMenuTabId.SHADERS))
+        assertTrue(threeDs.supportsGameMenuSection(GameMenuSectionId.SHADERS_LIBRARY))
+        assertFalse(ds.supportsGameMenuTab(GameMenuTabId.SHADERS))
+        assertFalse(ds.supportsGameMenuSection(GameMenuSectionId.SHADERS_LIBRARY))
     }
 }

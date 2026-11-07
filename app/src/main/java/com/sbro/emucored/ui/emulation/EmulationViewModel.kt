@@ -29,6 +29,7 @@ import com.sbro.emucored.core.MobileSocNameMapper
 import com.sbro.emucored.core.NativeApp
 import com.sbro.emucored.core.RuntimeFailure
 import com.sbro.emucored.core.AzaharCoreOptions
+import com.sbro.emucored.core.CoreConfig
 import com.sbro.emucored.core.CoreOptionStore
 import com.sbro.emucored.core.PerformanceProfiles
 import com.sbro.emucored.core.resolveAndroidGamePhase
@@ -66,7 +67,10 @@ import com.sbro.emucored.data.PlayTimeSyncCacheRepository
 import com.sbro.emucored.data.PlayerPlayTimeDelta
 import com.sbro.emucored.data.PlayerProfileRepository
 import com.sbro.emucored.data.RetroAchievementsRepository
+import com.sbro.emucored.data.RetroArchShaderRepository
 import com.sbro.emucored.data.SaveStateRepository
+import com.sbro.emucored.data.ShaderPackInstallProgress
+import com.sbro.emucored.data.ShaderPackInstallStage
 import com.sbro.emucored.data.resolveShaderChain
 import com.sbro.emucored.data.TouchControlsLayoutProfile
 import com.sbro.emucored.data.PER_GAME_CUSTOM_TOUCH_CONTROLS_KEY
@@ -323,6 +327,7 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
     private val preferences = AppPreferences(application)
     private val cheatRepository = CheatRepository(application)
     private val remoteContentCatalogRepository = RemoteContentCatalogRepository(application)
+    private val retroArchShaderRepository = RetroArchShaderRepository(application)
     private val perGameSettingsRepository = PerGameSettingsRepository(application)
     private val gameRepository = GameRepository()
     private val saveStateRepository = SaveStateRepository(application)
@@ -352,6 +357,15 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
     internal val cheatPackBrowser: StateFlow<CheatPackBrowserState> = _cheatPackBrowser.asStateFlow()
     private var cheatPackCatalogJob: Job? = null
     private var cheatPackInstallJob: Job? = null
+    // The in-game Shaders tab keeps its own state: effective selection is
+    // resolved from the per-game profile plus the app-wide preference, and
+    // pack downloads must survive the menu being closed.
+    private val _shaderBrowser = MutableStateFlow(ShaderBrowserState())
+    internal val shaderBrowser: StateFlow<ShaderBrowserState> = _shaderBrowser.asStateFlow()
+    private var shaderBrowserJob: Job? = null
+    private var shaderBrowserRefreshGeneration = 0L
+    private var shaderPackInstallJob: Job? = null
+    private val shaderSelectionMutex = Mutex()
     private val lifecycleMutex = Mutex()
     private var pausedForBackground = false
     @Volatile
@@ -2257,6 +2271,206 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
     }
 
     /**
+     * Loads the preset catalog and re-resolves the effective shader selection.
+     * Called when the in-game Shaders tab is opened so a shader changed in the
+     * game manager (or the app-wide setting) is shown immediately.
+     */
+    fun refreshShaderBrowser() {
+        if (shaderBrowserJob?.isActive == true || shaderPackInstallJob?.isActive == true) return
+        val generation = ++shaderBrowserRefreshGeneration
+        _shaderBrowser.update { it.copy(loading = true, message = null) }
+        shaderBrowserJob = viewModelScope.launch(Dispatchers.IO) {
+            val selection = loadShaderSelection()
+            val presets = runCatching { retroArchShaderRepository.listPresets() }.getOrDefault(emptyList())
+            val installed = runCatching { retroArchShaderRepository.hasInstalledPack() }.getOrDefault(false)
+            _shaderBrowser.update { current ->
+                if (current.busy || generation != shaderBrowserRefreshGeneration) {
+                    // A pack install started while the scan was running; do not
+                    // replace its progress with the pre-install catalog.
+                    current.copy(loading = false, selection = selection)
+                } else {
+                    current.copy(
+                        loading = false,
+                        presets = presets,
+                        installed = installed,
+                        selection = selection
+                    )
+                }
+            }
+        }
+    }
+
+    private suspend fun refreshShaderBrowserSelection() {
+        val selection = loadShaderSelection()
+        _shaderBrowser.update { it.copy(selection = selection) }
+    }
+
+    private suspend fun loadShaderSelection(): ShaderChainSelection {
+        val settings = preferences.settingsSnapshot.first()
+        val profile = activePerGameKey()?.let(perGameSettingsRepository::get)
+        return resolveShaderChainSelection(
+            globalEnabled = settings.shaderChainEnabled,
+            globalPreset = settings.shaderChainPreset,
+            profile = profile
+        )
+    }
+
+    /** Downloads the official RetroArch Slang shader pack from inside the game. */
+    fun downloadOfficialShaderPack() {
+        if (shaderPackInstallJob?.isActive == true || _shaderBrowser.value.busy) return
+        ++shaderBrowserRefreshGeneration
+        _shaderBrowser.update {
+            it.copy(
+                busy = true,
+                progress = ShaderPackInstallProgress(ShaderPackInstallStage.DOWNLOADING),
+                message = null
+            )
+        }
+        shaderPackInstallJob = viewModelScope.launch(Dispatchers.IO) {
+            val result = runCatching {
+                retroArchShaderRepository.downloadOfficialPack { progress ->
+                    _shaderBrowser.update { it.copy(progress = progress) }
+                }
+            }
+            finishShaderPackInstall(succeeded = result.isSuccess)
+        }
+    }
+
+    /** Imports a user-provided shader-pack archive while the game is running. */
+    fun importShaderPack(uri: Uri) {
+        if (shaderPackInstallJob?.isActive == true || _shaderBrowser.value.busy) return
+        ++shaderBrowserRefreshGeneration
+        _shaderBrowser.update {
+            it.copy(
+                busy = true,
+                progress = ShaderPackInstallProgress(ShaderPackInstallStage.INSTALLING),
+                message = null
+            )
+        }
+        shaderPackInstallJob = viewModelScope.launch(Dispatchers.IO) {
+            val result = runCatching { retroArchShaderRepository.importArchive(uri) }
+            finishShaderPackInstall(succeeded = result.isSuccess)
+        }
+    }
+
+    private suspend fun finishShaderPackInstall(succeeded: Boolean) {
+        val presets = runCatching { retroArchShaderRepository.listPresets() }.getOrDefault(emptyList())
+        val installed = runCatching { retroArchShaderRepository.hasInstalledPack() }.getOrDefault(false)
+        val selection = loadShaderSelection()
+        _shaderBrowser.update {
+            it.copy(
+                busy = false,
+                loading = false,
+                progress = null,
+                presets = presets,
+                installed = installed,
+                selection = selection,
+                message = if (succeeded) ShaderPackMessage.Installed else ShaderPackMessage.Failed
+            )
+        }
+    }
+
+    /**
+     * Selects a preset for the running game. The write always goes to the
+     * per-game profile; the app-wide shader preference stays untouched.
+     */
+    fun selectShaderPreset(path: String) {
+        val preset = path.trim()
+        applyShaderChainUpdate(
+            if (preset.isEmpty()) {
+                ShaderChainUpdate.GameDisabled
+            } else {
+                ShaderChainUpdate.gameEnabled(preset)
+            }
+        )
+    }
+
+    /** Restores inheritance from the app-wide shader setting for this game. */
+    fun useGlobalShaderSettings() {
+        applyShaderChainUpdate(ShaderChainUpdate.InheritGlobal)
+    }
+
+    /**
+     * Enables or disables the shader chain for the running game. Disabling
+     * writes a game-only override but keeps the game preset so enabling the
+     * switch again restores it; the global preference is never edited.
+     */
+    fun setInGameShadersEnabled(enabled: Boolean) {
+        val selection = _shaderBrowser.value.selection
+        if (!enabled) {
+            applyShaderChainUpdate(
+                ShaderChainUpdate(
+                    overrideEnabled = false,
+                    preset = selection.gamePreset
+                )
+            )
+            return
+        }
+        val targetPreset = when {
+            selection.usesGameProfile && selection.gamePreset.isNotEmpty() -> selection.gamePreset
+            selection.globalPreset.isNotEmpty() -> selection.globalPreset
+            selection.gamePreset.isNotEmpty() -> selection.gamePreset
+            else -> return
+        }
+        val inheritGlobal = selection.globalEnabled &&
+            selection.globalPreset.isNotEmpty() &&
+            !(selection.usesGameProfile && selection.gamePreset.isNotEmpty())
+        applyShaderChainUpdate(
+            if (inheritGlobal) {
+                ShaderChainUpdate.InheritGlobal
+            } else {
+                ShaderChainUpdate.gameEnabled(targetPreset)
+            }
+        )
+    }
+
+    private fun applyShaderChainUpdate(update: ShaderChainUpdate) {
+        viewModelScope.launch(Dispatchers.IO) {
+            shaderSelectionMutex.withLock {
+                runCatching {
+                    val gameKey = activePerGameKey()
+                    if (gameKey != null) {
+                        // Inheriting the global shader does not need a profile:
+                        // do not create one just for returning to the default.
+                        val hasProfile = perGameSettingsRepository.get(gameKey) != null
+                        if (hasProfile || update.overrideEnabled != null) {
+                            persistRuntimeState({ it }, shaderChainUpdate = update)
+                        }
+                    } else {
+                        // BIOS-only sessions have no per-game profile. The
+                        // app-wide value is the only scope that can persist.
+                        when (update.overrideEnabled) {
+                            null -> Unit
+                            true -> preferences.setShaderChain(true, update.preset)
+                            false -> preferences.setShaderChain(false, "")
+                        }
+                    }
+                    // Keep the app-wide "RetroArch shaders" switch in sync with
+                    // a game profile that just enabled shaders. The global
+                    // preset is intentionally left untouched: enabling it for
+                    // other games would change the app-wide selection. When a
+                    // global preset is already chosen but switched off, leave
+                    // that deliberate choice alone.
+                    if (gameKey != null && update.overrideEnabled == true) {
+                        val globalSettings = preferences.settingsSnapshot.first()
+                        if (!globalSettings.shaderChainEnabled && globalSettings.shaderChainPreset.isBlank()) {
+                            preferences.setShaderChain(enabled = true, preset = "")
+                        }
+                    }
+                    val selection = loadShaderSelection()
+                    _shaderBrowser.update { it.copy(selection = selection, message = null) }
+                    // The shader chain is a frontend pass over the presented
+                    // frame, so a new preset takes effect on the next present
+                    // without restarting the session.
+                    CoreConfig.setShaderChain(selection.effectiveEnabled, selection.effectivePreset)
+                }.onFailure { error ->
+                    Log.w(TAG, "Could not apply the in-game shader selection", error)
+                }
+            }
+        }
+    }
+
+    /**
      * Loads (or reuses) the online cheat catalog and selects the packs that match
      * the running game. Called when the Cheats tab is opened; [forceRefresh]
      * bypasses a previous result for the same game.
@@ -2634,6 +2848,7 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
 
     private suspend fun persistRuntimeState(
         transform: (EmulationUiState) -> EmulationUiState,
+        shaderChainUpdate: ShaderChainUpdate? = null,
         persistGlobal: suspend () -> Unit = {}
     ): EmulationUiState {
         val gameKey = activePerGameKey()
@@ -2663,6 +2878,20 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
                     profile.providedKeys.intersect(PER_GAME_AUDIO_KEYS)
                 }
             }.orEmpty()
+            // Shader fields are absent from EmulationUiState, so an unrelated
+            // in-game change preserves the stored selection. A shader action
+            // passes its new override explicitly and claims the matching keys.
+            val shaderProvidedKeys = setOf("shaderChainOverrideEnabled", "shaderChainPreset")
+            val resolvedShaderOverrideEnabled = if (shaderChainUpdate != null) {
+                shaderChainUpdate.overrideEnabled
+            } else {
+                existingProfile?.shaderChainOverrideEnabled
+            }
+            val resolvedShaderPreset = if (shaderChainUpdate != null) {
+                shaderChainUpdate.preset
+            } else {
+                existingProfile?.shaderChainPreset.orEmpty()
+            }
             val providedKeys = when {
                 runtimeProfile.providedKeys == null -> null
                 else -> buildSet<String> {
@@ -2673,6 +2902,10 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
                     if (existingProfile?.keyboardMouse != null) add("keyboardMouse")
                     if (touchControlsLayout != null) add(PER_GAME_TOUCH_CONTROLS_LAYOUT_KEY)
                     if (customTouchControls != null) add(PER_GAME_CUSTOM_TOUCH_CONTROLS_KEY)
+                    if (shaderChainUpdate != null) {
+                        removeAll(shaderProvidedKeys)
+                        if (shaderChainUpdate.overrideEnabled != null) addAll(shaderProvidedKeys)
+                    }
                 }
             }
             perGameSettingsRepository.save(
@@ -2685,8 +2918,8 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
                     touchControlPressEffect = pressEffectOverride,
                     coreOptions = existingProfile?.coreOptions ?: runtimeProfile.coreOptions,
                     mediatekAngleOpenGl = existingProfile?.mediatekAngleOpenGl ?: runtimeProfile.mediatekAngleOpenGl,
-                    shaderChainOverrideEnabled = existingProfile?.shaderChainOverrideEnabled,
-                    shaderChainPreset = existingProfile?.shaderChainPreset.orEmpty(),
+                    shaderChainOverrideEnabled = resolvedShaderOverrideEnabled,
+                    shaderChainPreset = resolvedShaderPreset,
                     audioVolume = if ("audioVolume" in audioOverrideKeys) {
                         existingProfile?.audioVolume ?: runtimeProfile.audioVolume
                     } else {
@@ -2772,6 +3005,8 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
                     gameSettingsProfileActive = false, perGameCoreOptions = global) }
             syncGamepadRuntimeSettings(_uiState.value)
             syncNativePerformanceOverlayState(_uiState.value)
+            // Dropping the profile restores the app-wide shader selection.
+            refreshShaderBrowserSelection()
             updateCrashContext()
             return
         }
@@ -2836,6 +3071,8 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
         EmulatorBridge.setSwapScreens(resetSwap)
         syncNativePerformanceOverlayState(_uiState.value)
         syncGamepadRuntimeSettings(_uiState.value)
+        // Dropping the profile restores the app-wide shader selection.
+        refreshShaderBrowserSelection()
         if (platform == GamePlatform.N3DS) withContext(Dispatchers.IO) { syncCheatsForCurrentGame() }
         updateCrashContext()
     }

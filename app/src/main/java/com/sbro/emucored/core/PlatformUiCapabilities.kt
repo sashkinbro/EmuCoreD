@@ -19,9 +19,14 @@ class PlatformUiCapabilities private constructor(val platform: GamePlatform) {
     val screenCount: Int get() = capabilities.screenCount
     val supportsScreenSwap: Boolean get() = capabilities.supportsScreenSwap
     val supportsAudioOptions: Boolean get() = platform != GamePlatform.NDS
+    /** The frontend shader chain renders through the Azahar GL presenter only. */
+    val supportsShaderChain: Boolean get() = platform == GamePlatform.N3DS
 
-    fun supportsGameMenuTab(tab: GameMenuTabId): Boolean =
-        tab != GameMenuTabId.CHEATS || com.sbro.emucored.core.platform.session.CoreCheatFormats.supportsCore(platform.console.core)
+    fun supportsGameMenuTab(tab: GameMenuTabId): Boolean = when (tab) {
+        GameMenuTabId.CHEATS -> com.sbro.emucored.core.platform.session.CoreCheatFormats.supportsCore(platform.console.core)
+        GameMenuTabId.SHADERS -> supportsShaderChain
+        else -> true
+    }
 
     fun supportsGameMenuSection(section: GameMenuSectionId): Boolean =
         supportsGameMenuTab(section.tab) && when (section) {
