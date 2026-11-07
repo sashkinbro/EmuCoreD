@@ -395,7 +395,15 @@
     <string name="settings_ee_cycle_moderate">Sedang</string>
     <string name="settings_ee_cycle_maximum">Maksimum</string>
     <string name="emulation_cheats_title">Cheat</string>
-    <string name="emulation_cheats_empty">Tidak ada cheat yang ditemukan untuk game ini.</string>
+    <string name="emulation_cheats_empty">Belum ada cheat yang terinstal untuk game ini.</string>
+    <string name="emulation_cheats_empty_hint">Instal pak cheat di atas atau impor file PNACH, lalu aktifkan cheat yang diinginkan.</string>
+    <string name="emulation_cheat_packs_title">Pak cheat</string>
+    <string name="emulation_cheat_packs_hint">Instal pak untuk game ini, lalu aktifkan cheat yang diinginkan di bawah.</string>
+    <string name="emulation_cheat_packs_import">Impor file PNACH</string>
+    <string name="emulation_cheat_packs_installing">Menginstal…</string>
+    <string name="emulation_cheat_packs_installed">Terinstal</string>
+    <string name="emulation_cheat_packs_show">Tampilkan pak cheat</string>
+    <string name="emulation_cheat_packs_hide">Sembunyikan pak cheat</string>
     <string name="emulation_cheats_group_enable">Aktifkan semua di grup</string>
     <string name="settings_disabled_short">Nonaktif</string>
     <string name="settings_more_options">Opsi lainnya</string>
@@ -857,6 +865,12 @@
     <string name="cheat_catalog_description">Unduh paket cheat terverifikasi untuk game yang dipilih dari katalog EmuCoreD. Paket yang dipasang digabungkan dengan cheat yang sudah tersimpan untuk game ini.</string>
     <string name="cheat_catalog_title">Cheat online</string>
     <string name="cheat_manager_installed">Cheat terpasang</string>
+    <string name="cheat_manager_installed_packs">Pak terinstal</string>
+    <string name="cheat_manager_pack_remove_failed">Pak tidak dapat dihapus. Instal ulang pak ini lalu coba lagi.</string>
+    <string name="cheat_manager_remove_pack_title">Hapus “%1$s”?</string>
+    <string name="cheat_manager_remove_pack_body">Hanya cheat dari pak ini yang dihapus. Pak lain yang terinstal dan cheat yang aktif tetap ada.</string>
+    <string name="cheat_manager_pack_meta">CRC %1$s • %2$d blok cheat</string>
+    <string name="cheat_manager_download_failed">File cheat tidak dapat diunduh atau tidak berisi blok PNACH yang didukung.</string>
     <string name="cheat_manager_delete">Hapus cheat untuk game ini</string>
     <string name="cheat_manager_delete_title">Hapus cheat yang terpasang?</string>
     <string name="cheat_manager_delete_confirm">File cheat yang diimpor dan pilihan cheat yang aktif akan dihapus.</string>
@@ -2144,7 +2158,6 @@
     <string name="texture_manager_delete_confirm">Hapus semua tekstur pengganti untuk %1$s?</string>
     <string name="texture_manager_empty_body">Impor paket tekstur ZIP untuk Nintendo 3DS, GameCube, atau Wii. Paket yang terpasang akan muncul di sini.</string>
     <string name="texture_manager_platform_note">Tekstur pengganti Nintendo 3DS berlaku global. Untuk GameCube dan Wii, aktifkan per game di pengaturan game.</string>
-    <string name="cheat_manager_installed_packs">Pak cheat terpasang</string>
     <string name="cheat_manager_delete_pack_title">Hapus pak cheat?</string>
     <string name="cheat_manager_delete_pack_confirm">Hapus “%1$s” dari game ini? Pak lain yang terpasang akan tetap ada.</string>
     <string name="cheat_manager_delete_pack_failed">Pak cheat ini tidak dapat dihapus.</string>

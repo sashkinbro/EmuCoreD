@@ -413,7 +413,15 @@
     <string name="settings_ee_cycle_moderate">Umiarkowane</string>
     <string name="settings_ee_cycle_maximum">Maksymalne</string>
     <string name="emulation_cheats_title">Kody</string>
-    <string name="emulation_cheats_empty">Nie znaleziono żadnych kodów dla tej gry.</string>
+    <string name="emulation_cheats_empty">Dla tej gry nie zainstalowano jeszcze żadnych kodów.</string>
+    <string name="emulation_cheats_empty_hint">Zainstaluj pak kodów powyżej lub zaimportuj plik PNACH, a następnie włącz wybrane kody.</string>
+    <string name="emulation_cheat_packs_title">Paki kodów</string>
+    <string name="emulation_cheat_packs_hint">Zainstaluj pakiet dla tej gry, a następnie włącz poniżej wybrane kody.</string>
+    <string name="emulation_cheat_packs_import">Importuj plik PNACH</string>
+    <string name="emulation_cheat_packs_installing">Instalowanie…</string>
+    <string name="emulation_cheat_packs_installed">Zainstalowano</string>
+    <string name="emulation_cheat_packs_show">Pokaż paki kodów</string>
+    <string name="emulation_cheat_packs_hide">Ukryj paki kodów</string>
     <string name="emulation_cheats_group_enable">Włącz wszystko w grupie</string>
     <string name="settings_disabled_short">Wył.</string>
     <string name="settings_more_options">Więcej opcji</string>
@@ -862,6 +870,12 @@
     <string name="cheat_catalog_description">Pobierz zweryfikowane paczki cheatów dla wybranej gry z katalogu EmuCoreD. Zainstalowane paczki są łączone z cheatami już zapisanymi dla tej gry.</string>
     <string name="cheat_catalog_title">Cheaty online</string>
     <string name="cheat_manager_installed">Zainstalowane kody</string>
+    <string name="cheat_manager_installed_packs">Zainstalowane paki</string>
+    <string name="cheat_manager_pack_remove_failed">Nie udało się usunąć pakietu. Zainstaluj go ponownie i spróbuj jeszcze raz.</string>
+    <string name="cheat_manager_remove_pack_title">Usunąć „%1$s”?</string>
+    <string name="cheat_manager_remove_pack_body">Usunięte zostaną tylko kody tego pakietu. Pozostałe zainstalowane paki i włączone kody zostaną zachowane.</string>
+    <string name="cheat_manager_pack_meta">CRC %1$s • %2$d linijek blokowych</string>
+    <string name="cheat_manager_download_failed">Kody nie zostały sprowadzone lub instalator nie posiadał powiązanych formacji PNACH.</string>
     <string name="cheat_manager_delete">Usuń kody przeznaczone dla tej gry</string>
     <string name="cheat_manager_delete_title">Usunąć wybrane kody?</string>
     <string name="cheat_manager_delete_confirm">Zaimportowany plik cheatów i wybrane włączone cheaty zostaną usunięte.</string>
@@ -2151,7 +2165,6 @@
     <string name="texture_manager_delete_confirm">Usunąć wszystkie tekstury zastępcze dla %1$s?</string>
     <string name="texture_manager_empty_body">Zaimportuj paczkę ZIP z teksturami dla Nintendo 3DS, GameCube lub Wii. Zainstalowane paczki pojawią się tutaj.</string>
     <string name="texture_manager_platform_note">Tekstury zastępcze Nintendo 3DS działają globalnie. Dla GameCube i Wii włącza się je osobno dla każdej gry w ustawieniach gry.</string>
-    <string name="cheat_manager_installed_packs">Zainstalowane paczki kodów</string>
     <string name="cheat_manager_delete_pack_title">Usunąć paczkę kodów?</string>
     <string name="cheat_manager_delete_pack_confirm">Usunąć „%1$s” z tej gry? Pozostałe zainstalowane paczki zostaną.</string>
     <string name="cheat_manager_delete_pack_failed">Nie udało się usunąć tej paczki kodów.</string>

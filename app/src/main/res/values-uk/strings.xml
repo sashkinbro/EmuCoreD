@@ -198,7 +198,15 @@
     <string name="settings_ee_cycle_moderate">Помірний</string>
     <string name="settings_ee_cycle_maximum">Максимальний</string>
     <string name="emulation_cheats_title">Чіти</string>
-    <string name="emulation_cheats_empty">Для цієї гри чітів не знайдено.</string>
+    <string name="emulation_cheats_empty">Для цієї гри чіти ще не встановлено.</string>
+    <string name="emulation_cheats_empty_hint">Встановіть пак читів вище або імпортуйте файл PNACH, а потім увімкніть потрібні чіти.</string>
+    <string name="emulation_cheat_packs_title">Паки читів</string>
+    <string name="emulation_cheat_packs_hint">Встановіть пак для цієї гри, а потім увімкніть потрібні чіти нижче.</string>
+    <string name="emulation_cheat_packs_import">Імпортувати файл PNACH</string>
+    <string name="emulation_cheat_packs_installing">Встановлення…</string>
+    <string name="emulation_cheat_packs_installed">Встановлено</string>
+    <string name="emulation_cheat_packs_show">Показати паки читів</string>
+    <string name="emulation_cheat_packs_hide">Сховати паки читів</string>
     <string name="emulation_cheats_group_enable">Увімкнути всі в групі</string>
     <string name="settings_disabled_short">Вимк.</string>
     <string name="settings_more_options">Додаткові дії</string>
@@ -888,6 +896,12 @@
     <string name="cheat_catalog_install_success">Чіти встановлено. Нижче увімкніть потрібні.</string>
     <string name="cheat_catalog_install_failed">Не вдалося встановити вибраний набір чітів.</string>
     <string name="cheat_manager_installed">Встановлені чіти</string>
+    <string name="cheat_manager_installed_packs">Встановлені паки</string>
+    <string name="cheat_manager_pack_remove_failed">Не вдалося видалити пак. Перевстановіть його й спробуйте ще раз.</string>
+    <string name="cheat_manager_remove_pack_title">Видалити «%1$s»?</string>
+    <string name="cheat_manager_remove_pack_body">Будуть видалені лише чіти цього паку. Інші встановлені паки та увімкнені чіти залишаться.</string>
+    <string name="cheat_manager_pack_meta">CRC %1$s • блоків чітів: %2$d</string>
+    <string name="cheat_manager_download_failed">Не вдалося завантажити файл чітів або він не містить підтримуваних блоків PNACH.</string>
     <string name="cheat_manager_delete">Видалити чіти для цієї гри</string>
     <string name="cheat_manager_delete_title">Видалити встановлені чіти?</string>
     <string name="cheat_manager_delete_confirm">Імпортований файл чітів і вибір увімкнених чітів буде видалено.</string>
@@ -2141,7 +2155,6 @@
     <string name="texture_manager_delete_confirm">Видалити всі текстури для заміни гри %1$s?</string>
     <string name="texture_manager_empty_body">Імпортуйте ZIP-пак текстур для Nintendo 3DS, GameCube або Wii. Встановлені паки з’являться тут.</string>
     <string name="texture_manager_platform_note">Для Nintendo 3DS заміна текстур діє глобально. Для GameCube і Wii вона вмикається окремо для кожної гри в налаштуваннях.</string>
-    <string name="cheat_manager_installed_packs">Встановлені паки чітів</string>
     <string name="cheat_manager_delete_pack_title">Видалити пак чітів?</string>
     <string name="cheat_manager_delete_pack_confirm">Видалити «%1$s» з цієї гри? Інші встановлені паки залишаться.</string>
     <string name="cheat_manager_delete_pack_failed">Не вдалося видалити цей пак чітів.</string>

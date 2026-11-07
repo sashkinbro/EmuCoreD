@@ -416,7 +416,15 @@
     <string name="settings_ee_cycle_moderate">Střední</string>
     <string name="settings_ee_cycle_maximum">Maximální</string>
     <string name="emulation_cheats_title">Cheaty</string>
-    <string name="emulation_cheats_empty">Nebyly nalezeny žádné cheaty pro tuto hru.</string>
+    <string name="emulation_cheats_empty">Pro tuto hru zatím nejsou nainstalovány žádné cheaty.</string>
+    <string name="emulation_cheats_empty_hint">Nainstalujte balíček cheatů výše nebo importujte soubor PNACH a poté zapněte požadované cheaty.</string>
+    <string name="emulation_cheat_packs_title">Balíčky cheatů</string>
+    <string name="emulation_cheat_packs_hint">Nainstalujte balíček pro tuto hru a níže zapněte požadované cheaty.</string>
+    <string name="emulation_cheat_packs_import">Importovat soubor PNACH</string>
+    <string name="emulation_cheat_packs_installing">Instalace…</string>
+    <string name="emulation_cheat_packs_installed">Nainstalováno</string>
+    <string name="emulation_cheat_packs_show">Zobrazit balíčky cheatů</string>
+    <string name="emulation_cheat_packs_hide">Skrýt balíčky cheatů</string>
     <string name="emulation_cheats_group_enable">Zapnout vše ve skupině</string>
     <string name="settings_disabled_short">Zakázáno</string>
     <string name="settings_more_options">Další možnosti</string>
@@ -864,6 +872,12 @@
     <string name="cheat_catalog_description">Stáhněte si ověřené sady cheatů pro vybranou hru z katalogu EmuCoreD. Nainstalované sady se sloučí s cheaty již uloženými pro tuto hru.</string>
     <string name="cheat_catalog_title">Online cheaty</string>
     <string name="cheat_manager_installed">Nainstalované cheaty</string>
+    <string name="cheat_manager_installed_packs">Nainstalované balíčky</string>
+    <string name="cheat_manager_pack_remove_failed">Balíček se nepodařilo odebrat. Nainstalujte jej znovu a zkuste to znovu.</string>
+    <string name="cheat_manager_remove_pack_title">Odebrat „%1$s“?</string>
+    <string name="cheat_manager_remove_pack_body">Odebrány budou pouze cheaty tohoto balíčku. Ostatní nainstalované balíčky a zapnuté cheaty zůstanou.</string>
+    <string name="cheat_manager_pack_meta">CRC %1$s • cheat bloků: %2$d</string>
+    <string name="cheat_manager_download_failed">Soubor s cheaty se nepodařilo stáhnout nebo neobsahoval podporované PNACH bloky.</string>
     <string name="cheat_manager_delete">Smazat cheaty pro tuto hru</string>
     <string name="cheat_manager_delete_title">Smazat nainstalované cheaty?</string>
     <string name="cheat_manager_delete_confirm">Importovaný soubor cheatů a jeho povolené volby budou odstraněny.</string>
@@ -2151,7 +2165,6 @@
     <string name="texture_manager_delete_confirm">Smazat všechny náhradní textury pro %1$s?</string>
     <string name="texture_manager_empty_body">Importujte ZIP balíček textur pro Nintendo 3DS, GameCube nebo Wii. Nainstalované balíčky se zobrazí zde.</string>
     <string name="texture_manager_platform_note">Náhradní textury pro Nintendo 3DS platí globálně. U GameCube a Wii se zapínají pro každou hru zvlášť v nastavení hry.</string>
-    <string name="cheat_manager_installed_packs">Nainstalované balíčky cheatů</string>
     <string name="cheat_manager_delete_pack_title">Smazat balíček cheatů?</string>
     <string name="cheat_manager_delete_pack_confirm">Odstranit „%1$s“ z této hry? Ostatní nainstalované balíčky zůstanou.</string>
     <string name="cheat_manager_delete_pack_failed">Tento balíček cheatů se nepodařilo smazat.</string>

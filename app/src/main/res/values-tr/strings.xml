@@ -321,7 +321,15 @@
     <string name="settings_ee_cycle_moderate">Orta</string>
     <string name="settings_ee_cycle_maximum">Maksimum</string>
     <string name="emulation_cheats_title">Hileler</string>
-    <string name="emulation_cheats_empty">Bu oyun için hiçbir hile bulunamadı.</string>
+    <string name="emulation_cheats_empty">Bu oyun için henüz hile yüklenmedi.</string>
+    <string name="emulation_cheats_empty_hint">Yukarıdan bir hile paketi kurun veya bir PNACH dosyası içe aktarın, ardından istediğiniz hileleri etkinleştirin.</string>
+    <string name="emulation_cheat_packs_title">Hile paketleri</string>
+    <string name="emulation_cheat_packs_hint">Bu oyun için bir paket kurun, ardından aşağıdan istediğiniz hileleri etkinleştirin.</string>
+    <string name="emulation_cheat_packs_import">PNACH dosyası içe aktar</string>
+    <string name="emulation_cheat_packs_installing">Kuruluyor…</string>
+    <string name="emulation_cheat_packs_installed">Kuruldu</string>
+    <string name="emulation_cheat_packs_show">Hile paketlerini göster</string>
+    <string name="emulation_cheat_packs_hide">Hile paketlerini gizle</string>
     <string name="emulation_cheats_group_enable">Gruptaki tümünü etkinleştir</string>
     <string name="settings_disabled_short">Devre Dışı</string>
     <string name="settings_more_options">Daha fazla seçenek</string>
@@ -843,6 +851,12 @@
     <string name="cheat_catalog_description">Seçili oyun için EmuCoreD kataloğundan doğrulanmış hile paketleri indirin. Yüklenen paketler, bu oyun için zaten kayıtlı hilelerle birleştirilir.</string>
     <string name="cheat_catalog_title">Çevrimiçi hileler</string>
     <string name="cheat_manager_installed">Yüklü hileler</string>
+    <string name="cheat_manager_installed_packs">Kurulu paketler</string>
+    <string name="cheat_manager_pack_remove_failed">Paket kaldırılamadı. Yeniden kurup tekrar deneyin.</string>
+    <string name="cheat_manager_remove_pack_title">“%1$s” kaldırılsın mı?</string>
+    <string name="cheat_manager_remove_pack_body">Yalnızca bu paketin hileleri kaldırılır. Diğer kurulu paketler ve etkin hileler kalır.</string>
+    <string name="cheat_manager_pack_meta">CRC %1$s • %2$d hile bloğu</string>
+    <string name="cheat_manager_download_failed">Hile dosyası indirilemedi veya desteklenen PNACH blokları içermiyor.</string>
     <string name="cheat_manager_delete">Bu oyunun hilelerini sil</string>
     <string name="cheat_manager_delete_title">Yüklü hileler silinsin mi?</string>
     <string name="cheat_manager_delete_confirm">İçe aktarılan hile dosyası ve etkin hile seçimleri kaldırılacak.</string>
@@ -2130,7 +2144,6 @@
     <string name="texture_manager_delete_confirm">%1$s için tüm değiştirme dokuları silinsin mi?</string>
     <string name="texture_manager_empty_body">Nintendo 3DS, GameCube veya Wii için ZIP doku paketi içe aktarın. Yüklenen paketler burada görünür.</string>
     <string name="texture_manager_platform_note">Nintendo 3DS doku değiştirme geneldir. GameCube ve Wii için oyun ayarlarından oyun başına etkinleştirilir.</string>
-    <string name="cheat_manager_installed_packs">Yüklü hile paketleri</string>
     <string name="cheat_manager_delete_pack_title">Hile paketi silinsin mi?</string>
     <string name="cheat_manager_delete_pack_confirm">“%1$s” bu oyundan kaldırılsın mı? Diğer yüklü paketler kalacak.</string>
     <string name="cheat_manager_delete_pack_failed">Bu hile paketi silinemedi.</string>

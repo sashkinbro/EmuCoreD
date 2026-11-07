@@ -282,7 +282,15 @@
     <string name="settings_ee_cycle_moderate">Moderato</string>
     <string name="settings_ee_cycle_maximum">Massimo</string>
     <string name="emulation_cheats_title">Trucchi</string>
-    <string name="emulation_cheats_empty">Nessun trucco trovato per questo gioco.</string>
+    <string name="emulation_cheats_empty">Nessun trucco è ancora installato per questo gioco.</string>
+    <string name="emulation_cheats_empty_hint">Installa un pacchetto di trucchi sopra o importa un file PNACH, poi attiva i trucchi che vuoi.</string>
+    <string name="emulation_cheat_packs_title">Pacchetti di trucchi</string>
+    <string name="emulation_cheat_packs_hint">Installa un pacchetto per questo gioco, poi attiva qui sotto i trucchi che vuoi.</string>
+    <string name="emulation_cheat_packs_import">Importa file PNACH</string>
+    <string name="emulation_cheat_packs_installing">Installazione…</string>
+    <string name="emulation_cheat_packs_installed">Installato</string>
+    <string name="emulation_cheat_packs_show">Mostra pacchetti di trucchi</string>
+    <string name="emulation_cheat_packs_hide">Nascondi pacchetti di trucchi</string>
     <string name="emulation_cheats_group_enable">Attiva tutti nel gruppo</string>
     <string name="settings_disabled_short">Disabilitato</string>
     <string name="settings_more_options">Altre opzioni</string>
@@ -843,6 +851,12 @@
     <string name="cheat_catalog_description">Scarica pacchetti di trucchi verificati per il gioco selezionato dal catalogo EmuCoreD. I pacchetti installati vengono uniti ai trucchi già salvati per questo gioco.</string>
     <string name="cheat_catalog_title">Trucchi online</string>
     <string name="cheat_manager_installed">Trucchi installati</string>
+    <string name="cheat_manager_installed_packs">Pacchetti installati</string>
+    <string name="cheat_manager_pack_remove_failed">Impossibile rimuovere il pacchetto. Reinstallalo e riprova.</string>
+    <string name="cheat_manager_remove_pack_title">Rimuovere «%1$s»?</string>
+    <string name="cheat_manager_remove_pack_body">Verranno rimossi solo i trucchi di questo pacchetto. Gli altri pacchetti installati e i trucchi attivati restano.</string>
+    <string name="cheat_manager_pack_meta">CRC %1$s • %2$d blocchi di trucchi</string>
+    <string name="cheat_manager_download_failed">Impossibile scaricare il file o il file non contiene blocchi PNACH supportati.</string>
     <string name="cheat_manager_delete">Elimina i trucchi per questo gioco</string>
     <string name="cheat_manager_delete_title">Eliminare i trucchi installati?</string>
     <string name="cheat_manager_delete_confirm">Il file trucchi importato e la selezione dei trucchi attivi verranno rimossi.</string>
@@ -2130,7 +2144,6 @@
     <string name="texture_manager_delete_confirm">Eliminare tutte le texture sostitutive per %1$s?</string>
     <string name="texture_manager_empty_body">Importa un pacchetto ZIP di texture per Nintendo 3DS, GameCube o Wii. I pacchetti installati appariranno qui.</string>
     <string name="texture_manager_platform_note">Le texture sostitutive per Nintendo 3DS sono globali. Per GameCube e Wii si attivano per singolo gioco nelle impostazioni del gioco.</string>
-    <string name="cheat_manager_installed_packs">Pacchetti trucchi installati</string>
     <string name="cheat_manager_delete_pack_title">Eliminare il pacchetto di trucchi?</string>
     <string name="cheat_manager_delete_pack_confirm">Rimuovere «%1$s» da questo gioco? Gli altri pacchetti installati rimarranno.</string>
     <string name="cheat_manager_delete_pack_failed">Impossibile eliminare questo pacchetto di trucchi.</string>

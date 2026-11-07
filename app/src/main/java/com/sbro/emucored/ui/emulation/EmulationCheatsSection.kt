@@ -34,6 +34,7 @@ internal fun EmulationCheatsSection(
     blocks: List<CheatBlock>,
     onCheatToggle: (String, Boolean) -> Unit,
     onGroupToggle: (List<String>, Boolean) -> Unit,
+    showInstallHint: Boolean = false,
     modifier: Modifier = Modifier
 ) {
     if (blocks.isEmpty()) {
@@ -43,12 +44,23 @@ internal fun EmulationCheatsSection(
             color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
             border = BorderStroke(1.dp, MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f))
         ) {
-            Text(
-                text = stringResource(R.string.emulation_cheats_empty),
+            Column(
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+                verticalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                Text(
+                    text = stringResource(R.string.emulation_cheats_empty),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                if (showInstallHint) {
+                    Text(
+                        text = stringResource(R.string.emulation_cheats_empty_hint),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
         }
         return
     }

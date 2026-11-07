@@ -321,7 +321,15 @@
     <string name="settings_ee_cycle_moderate">معتدل</string>
     <string name="settings_ee_cycle_maximum">أقصى</string>
     <string name="emulation_cheats_title">الشفرات</string>
-    <string name="emulation_cheats_empty">لم يتم العثور على شفرات لهذه اللعبة.</string>
+    <string name="emulation_cheats_empty">لم تُثبَّت أي شفرات لهذه اللعبة بعد.</string>
+    <string name="emulation_cheats_empty_hint">ثبّت حزمة شفرات أعلاه أو استورد ملف PNACH ثم فعّل الشفرات المطلوبة.</string>
+    <string name="emulation_cheat_packs_title">حزم الشفرات</string>
+    <string name="emulation_cheat_packs_hint">ثبّت حزمة لهذه اللعبة ثم فعّل الشفرات المطلوبة أدناه.</string>
+    <string name="emulation_cheat_packs_import">استيراد ملف PNACH</string>
+    <string name="emulation_cheat_packs_installing">جارٍ التثبيت…</string>
+    <string name="emulation_cheat_packs_installed">تم التثبيت</string>
+    <string name="emulation_cheat_packs_show">إظهار حزم الشفرات</string>
+    <string name="emulation_cheat_packs_hide">إخفاء حزم الشفرات</string>
     <string name="emulation_cheats_group_enable">تفعيل الكل في المجموعة</string>
     <string name="settings_disabled_short">معطل</string>
     <string name="settings_more_options">خيارات إضافية</string>
@@ -847,6 +855,12 @@
     <string name="cheat_catalog_description">نزّل حزم رموز الغش الموثّقة للعبة المحددة من كتالوج EmuCoreD. تُدمج الحزم المثبّتة مع الرموز المحفوظة مسبقًا لهذه اللعبة.</string>
     <string name="cheat_catalog_title">رموز الغش عبر الإنترنت</string>
     <string name="cheat_manager_installed">رموز الغش المثبتة</string>
+    <string name="cheat_manager_installed_packs">الحزم المثبّتة</string>
+    <string name="cheat_manager_pack_remove_failed">تعذّرت إزالة الحزمة. أعد تثبيتها ثم حاول مرة أخرى.</string>
+    <string name="cheat_manager_remove_pack_title">إزالة «%1$s»؟</string>
+    <string name="cheat_manager_remove_pack_body">ستتم إزالة شفرات هذه الحزمة فقط. ستبقى الحزم الأخرى المثبّتة والشفرات المفعّلة.</string>
+    <string name="cheat_manager_pack_meta">CRC %1$s • %2$d كتلة غش</string>
+    <string name="cheat_manager_download_failed">تعذر تنزيل ملف الغش أو لا يحتوي على كتل PNACH مدعومة.</string>
     <string name="cheat_manager_delete">حذف رموز الغش لهذه اللعبة</string>
     <string name="cheat_manager_delete_title">حذف رموز الغش المثبتة؟</string>
     <string name="cheat_manager_delete_confirm">سيتم حذف ملف الغش المستورد والرموز المفعّلة.</string>
@@ -2138,7 +2152,6 @@
     <string name="texture_manager_delete_confirm">هل تريد حذف جميع إكساءات الاستبدال لـ %1$s؟</string>
     <string name="texture_manager_empty_body">استورد حزمة إكساءات ZIP لـ Nintendo 3DS أو GameCube أو Wii. ستظهر الحزم المثبتة هنا.</string>
     <string name="texture_manager_platform_note">إكساءات الاستبدال في Nintendo 3DS عامة. أما GameCube وWii فتُفعّل لكل لعبة من إعدادات اللعبة.</string>
-    <string name="cheat_manager_installed_packs">حزم الغش المثبتة</string>
     <string name="cheat_manager_delete_pack_title">حذف حزمة الغش؟</string>
     <string name="cheat_manager_delete_pack_confirm">إزالة «%1$s» من هذه اللعبة؟ ستبقى الحزم الأخرى المثبتة.</string>
     <string name="cheat_manager_delete_pack_failed">تعذر حذف حزمة الغش هذه.</string>

@@ -183,7 +183,15 @@
     <string name="settings_ee_cycle_moderate">Modéré</string>
     <string name="settings_ee_cycle_maximum">Maximum</string>
     <string name="emulation_cheats_title">Codes de triche</string>
-    <string name="emulation_cheats_empty">Aucun code de triche n\'a été trouvé pour ce jeu.</string>
+    <string name="emulation_cheats_empty">Les cheats ne sont pas encore installés pour ce jeu.</string>
+    <string name="emulation_cheats_empty_hint">Installez un pack de cheats ci-dessus ou importez un fichier PNACH, puis activez les cheats souhaités.</string>
+    <string name="emulation_cheat_packs_title">Packs de cheats</string>
+    <string name="emulation_cheat_packs_hint">Installez un pack pour ce jeu, puis activez ci-dessous les cheats souhaités.</string>
+    <string name="emulation_cheat_packs_import">Importer un fichier PNACH</string>
+    <string name="emulation_cheat_packs_installing">Installation…</string>
+    <string name="emulation_cheat_packs_installed">Installé</string>
+    <string name="emulation_cheat_packs_show">Afficher les packs de cheats</string>
+    <string name="emulation_cheat_packs_hide">Masquer les packs de cheats</string>
     <string name="emulation_cheats_group_enable">Activer tout dans le groupe</string>
     <string name="settings_disabled_short">Désactivé</string>
     <string name="settings_more_options">Plus d\'options</string>
@@ -845,6 +853,12 @@
     <string name="cheat_catalog_description">Téléchargez des packs de triche vérifiés pour le jeu sélectionné depuis le catalogue EmuCoreD. Les packs installés sont fusionnés avec les codes déjà enregistrés pour ce jeu.</string>
     <string name="cheat_catalog_title">Codes de triche en ligne</string>
     <string name="cheat_manager_installed">Codes installés</string>
+    <string name="cheat_manager_installed_packs">Packs installés</string>
+    <string name="cheat_manager_pack_remove_failed">Impossible de supprimer ce pack. Réinstallez-le et réessayez.</string>
+    <string name="cheat_manager_remove_pack_title">Supprimer « %1$s » ?</string>
+    <string name="cheat_manager_remove_pack_body">Seuls les cheats de ce pack seront supprimés. Les autres packs installés et vos cheats activés restent.</string>
+    <string name="cheat_manager_pack_meta">CRC %1$s • %2$d blocs de codes</string>
+    <string name="cheat_manager_download_failed">Le fichier n’a pas pu être téléchargé ou ne contient aucun bloc PNACH compatible.</string>
     <string name="cheat_manager_delete">Supprimer les codes de ce jeu</string>
     <string name="cheat_manager_delete_title">Supprimer les codes installés ?</string>
     <string name="cheat_manager_delete_confirm">Le fichier de triche importé et la sélection des codes activés seront supprimés.</string>
@@ -2132,7 +2146,6 @@
     <string name="texture_manager_delete_confirm">Supprimer toutes les textures de remplacement pour %1$s ?</string>
     <string name="texture_manager_empty_body">Importez un pack de textures ZIP pour Nintendo 3DS, GameCube ou Wii. Les packs installés apparaîtront ici.</string>
     <string name="texture_manager_platform_note">Les textures de remplacement Nintendo 3DS sont globales. Pour GameCube et Wii, elles s’activent par jeu dans les paramètres du jeu.</string>
-    <string name="cheat_manager_installed_packs">Packs de codes installés</string>
     <string name="cheat_manager_delete_pack_title">Supprimer le pack de codes ?</string>
     <string name="cheat_manager_delete_pack_confirm">Retirer « %1$s » de ce jeu ? Les autres packs installés seront conservés.</string>
     <string name="cheat_manager_delete_pack_failed">Impossible de supprimer ce pack de codes.</string>
