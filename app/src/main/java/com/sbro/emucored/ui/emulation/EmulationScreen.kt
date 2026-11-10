@@ -222,6 +222,7 @@ import com.sbro.emucored.ui.common.actionDrawableRes
 import com.sbro.emucored.ui.common.composeShape
 import com.sbro.emucored.ui.common.BitmapPathImage
 import com.sbro.emucored.ui.common.EmulationSideArtworkOverlay
+import com.sbro.emucored.ui.common.invalidateCoverImage
 import com.sbro.emucored.ui.common.GameCoverArt
 import com.sbro.emucored.ui.common.ProvideGamepadMenuAction
 import com.sbro.emucored.ui.common.ProvideGamepadShoulderActions
@@ -3248,7 +3249,10 @@ internal suspend fun captureSaveStatePreview(
     val width = surfaceView.width
     val height = surfaceView.height
     if (width <= 0 || height <= 0 || !surfaceView.holder.surface.isValid) return false
-    val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+    val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888).apply {
+        // The game surface is opaque, even when shader output leaves alpha at zero.
+        setHasAlpha(false)
+    }
     val result = suspendCancellableCoroutine { continuation ->
         try {
             PixelCopy.request(
@@ -3290,6 +3294,7 @@ internal suspend fun captureSaveStatePreview(
             if (!temporary.renameTo(target)) {
                 temporary.copyTo(target, overwrite = true)
             }
+            invalidateCoverImage(target.absolutePath)
             true
         } catch (_: Throwable) {
             false
@@ -3374,12 +3379,14 @@ private fun SaveSlotPreview(
             )
     ) {
         if (previewPath != null) {
-            GameCoverArt(
-                coverPath = previewPath,
-                fallbackTitle = gameTitle,
-                modifier = Modifier.fillMaxSize(),
-                contentScale = ContentScale.Fit
-            )
+            key(previewPath, lastModified) {
+                GameCoverArt(
+                    coverPath = previewPath,
+                    fallbackTitle = gameTitle,
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Fit
+                )
+            }
         } else {
             Box(
                 modifier = Modifier.fillMaxSize(),
@@ -3468,12 +3475,14 @@ private fun SaveSlotThumbnail(
         contentAlignment = Alignment.Center
     ) {
         if (previewPath != null) {
-            GameCoverArt(
-                coverPath = previewPath,
-                fallbackTitle = contentDescription,
-                modifier = Modifier.fillMaxSize(),
-                contentScale = ContentScale.Fit
-            )
+            key(previewPath, lastModified) {
+                GameCoverArt(
+                    coverPath = previewPath,
+                    fallbackTitle = contentDescription,
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Fit
+                )
+            }
         } else {
             Icon(
                 imageVector = Icons.Rounded.Save,
