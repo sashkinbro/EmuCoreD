@@ -181,6 +181,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.sbro.emucored.R
 import com.sbro.emucored.core.AudioDefaults
 import com.sbro.emucored.core.AndroidTouchHaptics
+import com.sbro.emucored.core.UiSoundManager
 import com.sbro.emucored.core.AndroidGyroscopeInput
 import com.sbro.emucored.core.AndroidTouchHaptics.ButtonPhase
 import com.sbro.emucored.core.CoreOptionStore
@@ -1709,6 +1710,12 @@ fun EmulationScreen(
         // saveable state (selected tab and per-tab scroll positions) so opening
         // it again resumes exactly where the player left it.
         val gameMenuStateHolder = rememberSaveableStateHolder()
+
+        // Game menu open/close sound (no-op unless enabled in Settings -> Customization).
+        val gameMenuVisible = uiState.showMenu && !showControlsEditor
+        LaunchedEffect(gameMenuVisible) {
+            UiSoundManager.setGameMenuOpen(gameMenuVisible)
+        }
 
         // Sidebar Menu
         AnimatedVisibility(
@@ -5210,7 +5217,10 @@ private fun EmulationMenuRailButton(
             .clickable(
                 interactionSource = interactionSource,
                 indication = null,
-                onClick = onClick
+                onClick = {
+                    UiSoundManager.onUiInteraction()
+                    onClick()
+                }
             )
             .focusable(interactionSource = interactionSource),
         shape = shape,
