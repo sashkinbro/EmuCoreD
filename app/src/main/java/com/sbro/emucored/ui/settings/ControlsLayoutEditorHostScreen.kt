@@ -220,6 +220,7 @@ fun ControlsLayoutEditorHostScreen(
         state = state,
         subtitle = subtitle,
         manageActivityOrientation = !dsMode,
+        matchGameSystemBars = true,
         dsMode = dsMode,
         consolePolicy = consolePolicy,
         onBackClick = ::finishEditor,

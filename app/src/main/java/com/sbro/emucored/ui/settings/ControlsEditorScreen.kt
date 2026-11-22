@@ -3,6 +3,9 @@ package com.sbro.emucored.ui.settings
 import android.annotation.SuppressLint
 import android.app.Activity
 import android.content.pm.ActivityInfo
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.WindowInsetsControllerCompat
 import android.content.res.Configuration
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.BorderStroke
@@ -409,6 +412,9 @@ fun ControlsEditorScreen(
     onBackClick: () -> Unit,
     subtitle: String? = null,
     manageActivityOrientation: Boolean = true,
+    // The standalone editor hides the system bars like the game does, also in DS mode
+    // where it leaves the orientation alone. The in-game editor already runs immersive.
+    matchGameSystemBars: Boolean = manageActivityOrientation,
     overlayLeftSafeInset: Dp? = null,
     overlayRightSafeInset: Dp? = null,
     overlayTopSafeInset: Dp? = null,
@@ -723,6 +729,25 @@ fun ControlsEditorScreen(
     }
 
     BackHandler(onBack = onBackClick)
+
+    if (matchGameSystemBars) {
+        // The standalone editor must lay controls out on the same canvas as the game,
+        // which runs with the system bars hidden. With the navigation bar showing, its
+        // inset pulled right-anchored controls (R1/R2, action pad) inward while
+        // left-anchored ones kept their place, so a layout arranged here came out
+        // differently in game (e.g. L moved next to R overlapped it in the editor).
+        DisposableEffect(activity) {
+            val window = activity?.window
+            val controller = window?.let { WindowCompat.getInsetsController(it, it.decorView) }
+            controller?.systemBarsBehavior =
+                WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+            controller?.hide(WindowInsetsCompat.Type.systemBars())
+            onDispose {
+                // The app shell keeps the status bar hidden and the navigation bar shown.
+                controller?.show(WindowInsetsCompat.Type.navigationBars())
+            }
+        }
+    }
 
     if (manageActivityOrientation) {
         LaunchedEffect(activity) {
