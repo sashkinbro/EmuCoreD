@@ -1,0 +1,42 @@
+[
+{
+  "message": "Start JSON generation. Platform version: 26 min SDK version: arm64-v8a",
+  "file": "C:\\Users\\SBRO\\AndroidStudioProjects\\EmuCoreD\\native-ui\\android\\src\\main\\cpp\\CMakeLists.txt",
+  "tag": "debug|arm64-v8a"
+},
+{
+  "message": "rebuilding JSON C:\\Users\\SBRO\\AndroidStudioProjects\\EmuCoreD\\native-ui\\android\\.cxx\\Debug\\5f2b3535\\arm64-v8a\\android_gradle_build.json due to:",
+  "file": "C:\\Users\\SBRO\\AndroidStudioProjects\\EmuCoreD\\native-ui\\android\\src\\main\\cpp\\CMakeLists.txt",
+  "tag": "debug|arm64-v8a"
+},
+{
+  "message": "- no fingerprint file, will remove stale configuration folder",
+  "file": "C:\\Users\\SBRO\\AndroidStudioProjects\\EmuCoreD\\native-ui\\android\\src\\main\\cpp\\CMakeLists.txt",
+  "tag": "debug|arm64-v8a"
+},
+{
+  "message": "removing stale contents from \u0027C:\\Users\\SBRO\\AndroidStudioProjects\\EmuCoreD\\native-ui\\android\\.cxx\\Debug\\5f2b3535\\arm64-v8a\u0027",
+  "file": "C:\\Users\\SBRO\\AndroidStudioProjects\\EmuCoreD\\native-ui\\android\\src\\main\\cpp\\CMakeLists.txt",
+  "tag": "debug|arm64-v8a"
+},
+{
+  "message": "created folder \u0027C:\\Users\\SBRO\\AndroidStudioProjects\\EmuCoreD\\native-ui\\android\\.cxx\\Debug\\5f2b3535\\arm64-v8a\u0027",
+  "file": "C:\\Users\\SBRO\\AndroidStudioProjects\\EmuCoreD\\native-ui\\android\\src\\main\\cpp\\CMakeLists.txt",
+  "tag": "debug|arm64-v8a"
+},
+{
+  "message": "executing cmake @echo off\n\"C:\\\\Users\\\\SBRO\\\\AppData\\\\Local\\\\Android\\\\Sdk\\\\cmake\\\\3.30.5\\\\bin\\\\cmake.exe\" ^\n  \"-HC:\\\\Users\\\\SBRO\\\\AndroidStudioProjects\\\\EmuCoreD\\\\native-ui\\\\android\\\\src\\\\main\\\\cpp\" ^\n  \"-DCMAKE_SYSTEM_NAME\u003dAndroid\" ^\n  \"-DCMAKE_EXPORT_COMPILE_COMMANDS\u003dON\" ^\n  \"-DCMAKE_SYSTEM_VERSION\u003d26\" ^\n  \"-DANDROID_PLATFORM\u003dandroid-26\" ^\n  \"-DANDROID_ABI\u003darm64-v8a\" ^\n  \"-DCMAKE_ANDROID_ARCH_ABI\u003darm64-v8a\" ^\n  \"-DANDROID_NDK\u003dC:\\\\Users\\\\SBRO\\\\AppData\\\\Local\\\\Android\\\\Sdk\\\\ndk\\\\29.0.14206865\" ^\n  \"-DCMAKE_ANDROID_NDK\u003dC:\\\\Users\\\\SBRO\\\\AppData\\\\Local\\\\Android\\\\Sdk\\\\ndk\\\\29.0.14206865\" ^\n  \"-DCMAKE_TOOLCHAIN_FILE\u003dC:\\\\Users\\\\SBRO\\\\AppData\\\\Local\\\\Android\\\\Sdk\\\\ndk\\\\29.0.14206865\\\\build\\\\cmake\\\\android.toolchain.cmake\" ^\n  \"-DCMAKE_MAKE_PROGRAM\u003dC:\\\\Users\\\\SBRO\\\\AppData\\\\Local\\\\Android\\\\Sdk\\\\cmake\\\\3.30.5\\\\bin\\\\ninja.exe\" ^\n  \"-DCMAKE_CXX_FLAGS\u003d-std\u003dc++20 -fexceptions -fno-rtti\" ^\n  \"-DCMAKE_LIBRARY_OUTPUT_DIRECTORY\u003dC:\\\\Users\\\\SBRO\\\\AndroidStudioProjects\\\\EmuCoreD\\\\native-ui\\\\android\\\\build\\\\intermediates\\\\cxx\\\\Debug\\\\5f2b3535\\\\obj\\\\arm64-v8a\" ^\n  \"-DCMAKE_RUNTIME_OUTPUT_DIRECTORY\u003dC:\\\\Users\\\\SBRO\\\\AndroidStudioProjects\\\\EmuCoreD\\\\native-ui\\\\android\\\\build\\\\intermediates\\\\cxx\\\\Debug\\\\5f2b3535\\\\obj\\\\arm64-v8a\" ^\n  \"-DCMAKE_BUILD_TYPE\u003dDebug\" ^\n  \"-BC:\\\\Users\\\\SBRO\\\\AndroidStudioProjects\\\\EmuCoreD\\\\native-ui\\\\android\\\\.cxx\\\\Debug\\\\5f2b3535\\\\arm64-v8a\" ^\n  -GNinja ^\n  \"-DANDROID_STL\u003dc++_shared\" ^\n  \"-DEMUCORED_DIAGNOSTICS\u003dON\" ^\n  \"-DCMAKE_C_FLAGS_DEBUG\u003d-O3 -g\" ^\n  \"-DCMAKE_CXX_FLAGS_DEBUG\u003d-O3 -g\"\n",
+  "file": "C:\\Users\\SBRO\\AndroidStudioProjects\\EmuCoreD\\native-ui\\android\\src\\main\\cpp\\CMakeLists.txt",
+  "tag": "debug|arm64-v8a"
+},
+{
+  "message": "@echo off\n\"C:\\\\Users\\\\SBRO\\\\AppData\\\\Local\\\\Android\\\\Sdk\\\\cmake\\\\3.30.5\\\\bin\\\\cmake.exe\" ^\n  \"-HC:\\\\Users\\\\SBRO\\\\AndroidStudioProjects\\\\EmuCoreD\\\\native-ui\\\\android\\\\src\\\\main\\\\cpp\" ^\n  \"-DCMAKE_SYSTEM_NAME\u003dAndroid\" ^\n  \"-DCMAKE_EXPORT_COMPILE_COMMANDS\u003dON\" ^\n  \"-DCMAKE_SYSTEM_VERSION\u003d26\" ^\n  \"-DANDROID_PLATFORM\u003dandroid-26\" ^\n  \"-DANDROID_ABI\u003darm64-v8a\" ^\n  \"-DCMAKE_ANDROID_ARCH_ABI\u003darm64-v8a\" ^\n  \"-DANDROID_NDK\u003dC:\\\\Users\\\\SBRO\\\\AppData\\\\Local\\\\Android\\\\Sdk\\\\ndk\\\\29.0.14206865\" ^\n  \"-DCMAKE_ANDROID_NDK\u003dC:\\\\Users\\\\SBRO\\\\AppData\\\\Local\\\\Android\\\\Sdk\\\\ndk\\\\29.0.14206865\" ^\n  \"-DCMAKE_TOOLCHAIN_FILE\u003dC:\\\\Users\\\\SBRO\\\\AppData\\\\Local\\\\Android\\\\Sdk\\\\ndk\\\\29.0.14206865\\\\build\\\\cmake\\\\android.toolchain.cmake\" ^\n  \"-DCMAKE_MAKE_PROGRAM\u003dC:\\\\Users\\\\SBRO\\\\AppData\\\\Local\\\\Android\\\\Sdk\\\\cmake\\\\3.30.5\\\\bin\\\\ninja.exe\" ^\n  \"-DCMAKE_CXX_FLAGS\u003d-std\u003dc++20 -fexceptions -fno-rtti\" ^\n  \"-DCMAKE_LIBRARY_OUTPUT_DIRECTORY\u003dC:\\\\Users\\\\SBRO\\\\AndroidStudioProjects\\\\EmuCoreD\\\\native-ui\\\\android\\\\build\\\\intermediates\\\\cxx\\\\Debug\\\\5f2b3535\\\\obj\\\\arm64-v8a\" ^\n  \"-DCMAKE_RUNTIME_OUTPUT_DIRECTORY\u003dC:\\\\Users\\\\SBRO\\\\AndroidStudioProjects\\\\EmuCoreD\\\\native-ui\\\\android\\\\build\\\\intermediates\\\\cxx\\\\Debug\\\\5f2b3535\\\\obj\\\\arm64-v8a\" ^\n  \"-DCMAKE_BUILD_TYPE\u003dDebug\" ^\n  \"-BC:\\\\Users\\\\SBRO\\\\AndroidStudioProjects\\\\EmuCoreD\\\\native-ui\\\\android\\\\.cxx\\\\Debug\\\\5f2b3535\\\\arm64-v8a\" ^\n  -GNinja ^\n  \"-DANDROID_STL\u003dc++_shared\" ^\n  \"-DEMUCORED_DIAGNOSTICS\u003dON\" ^\n  \"-DCMAKE_C_FLAGS_DEBUG\u003d-O3 -g\" ^\n  \"-DCMAKE_CXX_FLAGS_DEBUG\u003d-O3 -g\"\n",
+  "file": "C:\\Users\\SBRO\\AndroidStudioProjects\\EmuCoreD\\native-ui\\android\\src\\main\\cpp\\CMakeLists.txt",
+  "tag": "debug|arm64-v8a"
+},
+{
+  "message": "JSON generation completed with problem. Exception: com.android.ide.common.process.ProcessException: -- The CXX compiler identification is Clang 21.0.0\n-- Detecting CXX compiler ABI info\n-- Detecting CXX compiler ABI info - done\n-- Check for working CXX compiler: C:/Users/SBRO/AppData/Local/Android/Sdk/ndk/29.0.14206865/toolchains/llvm/prebuilt/windows-x86_64/bin/clang++.exe - skipped\n-- Detecting CXX compile features\n-- Detecting CXX compile features - done\n-- Configuring done (0.3s)\n\nC++ build system [configure] failed while executing:\n    @echo off\n    \"C:\\\\Users\\\\SBRO\\\\AppData\\\\Local\\\\Android\\\\Sdk\\\\cmake\\\\3.30.5\\\\bin\\\\cmake.exe\" ^\n      \"-HC:\\\\Users\\\\SBRO\\\\AndroidStudioProjects\\\\EmuCoreD\\\\native-ui\\\\android\\\\src\\\\main\\\\cpp\" ^\n      \"-DCMAKE_SYSTEM_NAME\u003dAndroid\" ^\n      \"-DCMAKE_EXPORT_COMPILE_COMMANDS\u003dON\" ^\n      \"-DCMAKE_SYSTEM_VERSION\u003d26\" ^\n      \"-DANDROID_PLATFORM\u003dandroid-26\" ^\n      \"-DANDROID_ABI\u003darm64-v8a\" ^\n      \"-DCMAKE_ANDROID_ARCH_ABI\u003darm64-v8a\" ^\n      \"-DANDROID_NDK\u003dC:\\\\Users\\\\SBRO\\\\AppData\\\\Local\\\\Android\\\\Sdk\\\\ndk\\\\29.0.14206865\" ^\n      \"-DCMAKE_ANDROID_NDK\u003dC:\\\\Users\\\\SBRO\\\\AppData\\\\Local\\\\Android\\\\Sdk\\\\ndk\\\\29.0.14206865\" ^\n      \"-DCMAKE_TOOLCHAIN_FILE\u003dC:\\\\Users\\\\SBRO\\\\AppData\\\\Local\\\\Android\\\\Sdk\\\\ndk\\\\29.0.14206865\\\\build\\\\cmake\\\\android.toolchain.cmake\" ^\n      \"-DCMAKE_MAKE_PROGRAM\u003dC:\\\\Users\\\\SBRO\\\\AppData\\\\Local\\\\Android\\\\Sdk\\\\cmake\\\\3.30.5\\\\bin\\\\ninja.exe\" ^\n      \"-DCMAKE_CXX_FLAGS\u003d-std\u003dc++20 -fexceptions -fno-rtti\" ^\n      \"-DCMAKE_LIBRARY_OUTPUT_DIRECTORY\u003dC:\\\\Users\\\\SBRO\\\\AndroidStudioProjects\\\\EmuCoreD\\\\native-ui\\\\android\\\\build\\\\intermediates\\\\cxx\\\\Debug\\\\5f2b3535\\\\obj\\\\arm64-v8a\" ^\n      \"-DCMAKE_RUNTIME_OUTPUT_DIRECTORY\u003dC:\\\\Users\\\\SBRO\\\\AndroidStudioProjects\\\\EmuCoreD\\\\native-ui\\\\android\\\\build\\\\intermediates\\\\cxx\\\\Debug\\\\5f2b3535\\\\obj\\\\arm64-v8a\" ^\n      \"-DCMAKE_BUILD_TYPE\u003dDebug\" ^\n      \"-BC:\\\\Users\\\\SBRO\\\\AndroidStudioProjects\\\\EmuCoreD\\\\native-ui\\\\android\\\\.cxx\\\\Debug\\\\5f2b3535\\\\arm64-v8a\" ^\n      -GNinja ^\n      \"-DANDROID_STL\u003dc++_shared\" ^\n      \"-DEMUCORED_DIAGNOSTICS\u003dON\" ^\n      \"-DCMAKE_C_FLAGS_DEBUG\u003d-O3 -g\" ^\n      \"-DCMAKE_CXX_FLAGS_DEBUG\u003d-O3 -g\"\n  from C:\\Users\\SBRO\\AndroidStudioProjects\\EmuCoreD\\native-ui\\android\nCMake Error at CMakeLists.txt:6 (add_library):\n  Cannot find source file:\n\n    nintendo_jni.cpp\n\n\nCMake Error at CMakeLists.txt:6 (add_library):\n  No SOURCES given to target: emucored_nintendoui\n\n\nCMake Generate step failed.  Build files cannot be regenerated correctly.",
+  "file": "C:\\Users\\SBRO\\AndroidStudioProjects\\EmuCoreD\\native-ui\\android\\src\\main\\cpp\\CMakeLists.txt",
+  "tag": "debug|arm64-v8a"
+}
+]

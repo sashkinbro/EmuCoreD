@@ -25,8 +25,9 @@ android {
                 cmake {
                     arguments += "-DEMUCORED_DIAGNOSTICS=OFF"
                     arguments += listOf(
-                        "-DCMAKE_C_FLAGS_RELWITHDEBINFO=-O3 -g -DNDEBUG",
-                        "-DCMAKE_CXX_FLAGS_RELWITHDEBINFO=-O3 -g -DNDEBUG"
+                        "-DCMAKE_C_FLAGS_RELWITHDEBINFO=-O3 -g -DNDEBUG -flto=thin",
+                        "-DCMAKE_CXX_FLAGS_RELWITHDEBINFO=-O3 -g -DNDEBUG -flto=thin",
+                        "-DCMAKE_SHARED_LINKER_FLAGS_RELWITHDEBINFO=-flto=thin"
                     )
                 }
             }

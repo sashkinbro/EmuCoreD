@@ -42,6 +42,7 @@ import com.sbro.emucored.data.AppFontChoice
 import com.sbro.emucored.data.CustomFontRepository
 import com.sbro.emucored.data.CustomThemeConfig
 import com.sbro.emucored.navigation.AppNavigation
+import com.sbro.emucored.nintendoui.NintendoShellHost
 import com.sbro.emucored.ui.common.GamepadUiInputRouter
 import com.sbro.emucored.ui.theme.EmuCoreDTheme
 import com.sbro.emucored.ui.theme.ThemeMode
@@ -402,11 +403,16 @@ open class MainActivity : ComponentActivity() {
                 if (GamepadUiInputRouter.handleEmulationOverlayKeyEvent(event)) return true
                 if (GamepadManager.handleKeyEvent(event)) return true
             } else {
+                if (NintendoShellHost.handleKeyEvent(event)) return true
                 if (GamepadUiInputRouter.handleKeyEvent(event)) return true
                 if (GamepadUiInputRouter.shouldMapToPrimaryClick(event)) {
                     return super.dispatchKeyEvent(event.withKeyCode(KeyEvent.KEYCODE_DPAD_CENTER))
                 }
             }
+        }
+
+        if (!GamepadManager.isEmulationInputEnabled() && NintendoShellHost.handleKeyEvent(event)) {
+            return true
         }
 
         if (GamepadManager.isEmulationInputEnabled() && KeyboardMouseManager.handleKeyEvent(event)) {
@@ -425,6 +431,9 @@ open class MainActivity : ComponentActivity() {
     }
 
     override fun onGenericMotionEvent(event: MotionEvent?): Boolean {
+        if (event != null && !GamepadManager.isEmulationInputEnabled()) {
+            if (NintendoShellHost.handleMotionEvent(event)) return true
+        }
         if (event != null && GamepadManager.isGameController(event.device) && !GamepadManager.isEmulationInputEnabled()) {
             if (GamepadUiInputRouter.handleMotionEvent(event)) return true
         }

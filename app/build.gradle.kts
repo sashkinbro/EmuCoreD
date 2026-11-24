@@ -52,7 +52,9 @@ val releaseSigningConfigured = listOf(
 android {
     namespace = "com.sbro.emucored"
     compileSdk {
-        version = release(37)
+        version = release(37) {
+            minorApiLevel = 2
+        }
     }
     ndkVersion = "29.0.14206865"
 
@@ -60,8 +62,8 @@ android {
         applicationId = "com.sbro.emucored"
         minSdk = 26
         targetSdk = 37
-        versionCode = 25
-        versionName = "0.0.2"
+        versionCode = 29
+        versionName = "0.0.3"
 
         buildConfigField("String", "FEEDBACK_ENDPOINT", buildConfigString(feedbackEndpoint))
         buildConfigField("String", "FEEDBACK_API_KEY", buildConfigString(feedbackApiKey))
@@ -129,8 +131,9 @@ android {
                 cmake {
                     arguments += "-DEMUCORED_DIAGNOSTICS=OFF"
                     arguments += listOf(
-                        "-DCMAKE_C_FLAGS_RELWITHDEBINFO=-O3 -g -DNDEBUG",
-                        "-DCMAKE_CXX_FLAGS_RELWITHDEBINFO=-O3 -g -DNDEBUG"
+                        "-DCMAKE_C_FLAGS_RELWITHDEBINFO=-O3 -g -DNDEBUG -flto=thin",
+                        "-DCMAKE_CXX_FLAGS_RELWITHDEBINFO=-O3 -g -DNDEBUG -flto=thin",
+                        "-DCMAKE_SHARED_LINKER_FLAGS_RELWITHDEBINFO=-flto=thin"
                     )
                 }
             }
@@ -183,6 +186,7 @@ dependencies {
     implementation(project(":core-nes"))
     implementation(project(":core-snes"))
     implementation(project(":core-n64"))
+    implementation(project(":native-ui:android"))
     implementation(libs.androidx.credentials)
     implementation(libs.androidx.credentials.play.services)
     implementation(libs.google.identity)

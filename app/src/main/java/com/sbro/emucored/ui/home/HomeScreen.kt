@@ -170,6 +170,7 @@ import com.sbro.emucored.ui.common.rememberDebouncedClick
 import com.sbro.emucored.ui.common.skipGamepadTextFieldFocus
 import com.sbro.emucored.ui.common.appScreenTopPadding
 import com.sbro.emucored.ui.customization.HomeBackgroundMedia
+import com.sbro.emucored.ui.nintendoshell.NintendoShellScreen
 import com.sbro.emucored.ui.theme.GradientEnd
 import com.sbro.emucored.ui.theme.GradientStart
 import com.sbro.emucored.ui.theme.ScreenHorizontalPadding
@@ -195,6 +196,7 @@ fun HomeScreen(
     onLoadSaveClick: (GameItem) -> Unit,
     onManageGameClick: (GameItem) -> Unit,
     onCreateShortcutClick: (GameItem) -> Unit,
+    onLaunchSaveSlot: (String, Int) -> Unit = { _, _ -> },
     onMenuClick: (() -> Unit)? = null,
     onShelfModeChanged: (Boolean) -> Unit = {},
     viewModel: HomeViewModel = viewModel()
@@ -505,86 +507,17 @@ fun HomeScreen(
                 topInset = topInset
             )
         } else {
-            AnimatedContent(
-                targetState = isShelfView,
-                transitionSpec = {
-                    if (targetState) {
-                        (
-                            slideInHorizontally(
-                                initialOffsetX = { it / 5 },
-                                animationSpec = tween(440, easing = EaseOut)
-                            ) +
-                                fadeIn(animationSpec = tween(360, easing = EaseOut)) +
-                                scaleIn(
-                                    initialScale = 0.97f,
-                                    animationSpec = tween(440, easing = EaseOut)
-                                )
-                            ) togetherWith
-                            (
-                                slideOutHorizontally(
-                                    targetOffsetX = { -it / 8 },
-                                    animationSpec = tween(300, easing = EaseIn)
-                                ) +
-                                    fadeOut(animationSpec = tween(260, easing = EaseIn)) +
-                                    scaleOut(
-                                        targetScale = 0.985f,
-                                        animationSpec = tween(300, easing = EaseIn)
-                                    )
-                                )
-                    } else {
-                        (
-                            slideInHorizontally(
-                                initialOffsetX = { -it / 5 },
-                                animationSpec = tween(420, easing = EaseOut)
-                            ) +
-                                fadeIn(animationSpec = tween(350, easing = EaseOut)) +
-                                scaleIn(
-                                    initialScale = 0.985f,
-                                    animationSpec = tween(420, easing = EaseOut)
-                                )
-                            ) togetherWith
-                            (
-                                slideOutHorizontally(
-                                    targetOffsetX = { it / 5 },
-                                    animationSpec = tween(340, easing = EaseIn)
-                                ) +
-                                    fadeOut(animationSpec = tween(290, easing = EaseIn)) +
-                                    scaleOut(
-                                        targetScale = 0.97f,
-                                        animationSpec = tween(340, easing = EaseIn)
-                                    )
-                                )
-                    }
-                },
-                label = "home-library-mode"
-            ) { shelfMode ->
-                if (shelfMode) {
-                    Column(Modifier.fillMaxSize()) {
-                    HomeShelfMode(
-                        games = uiState.games,
-                        recentGames = uiState.recentGames,
-                        isCoverArtDisabled = uiState.isCoverArtDisabled,
-                        // Keep the outgoing shelf edge-to-edge until its exit animation finishes.
-                        // The parent state already points at the standard Home layout at that time.
-                        topInset = 0.dp,
-                        bottomInset = 0.dp,
-                        horizontalInset = horizontalInset,
-                        modifier = Modifier.weight(1f),
-                        onExitShelfMode = viewModel::toggleShelfMode,
-                        onEnable3dCoverArt = viewModel::enable3dCoverArt,
-                        onGameClick = launchGame,
-                        onLongClickStart = launchGame,
-                        onLongClickContinue = onContinueGame,
-                        onLongClickLoadSave = onLoadSaveClick,
-                        onLongClickManage = onManageGameClick,
-                        onLongClickCreateShortcut = onCreateShortcutClick,
-                        onLongClickCustomCover = { game ->
-                            gameAwaitingPickerLaunch = game
-                        },
-                        onLongClickRestoreCover = { game -> restoreCustomCover(game) }
-                    )
-                    }
-                } else {
+            if (isShelfView) {
+                NintendoShellScreen(
+                    games = uiState.games,
+                    recentGames = uiState.recentGames,
+                    isCoverArtDisabled = uiState.isCoverArtDisabled,
+                    onExitShelfMode = viewModel::toggleShelfMode,
+                    onLaunchGame = launchGame,
+                    onLaunchSaveSlot = onLaunchSaveSlot,
+                    modifier = Modifier.fillMaxSize()
+                )
+            } else {
                     val columns = if (isListView) GridCells.Fixed(1) else GridCells.Fixed(columnsCount)
 
                     Box(
@@ -817,7 +750,6 @@ fun HomeScreen(
                         )
                     }
                 }
-            }
         }
     }
     val canShowWelcomeDialog = !uiState.isBootstrapping &&

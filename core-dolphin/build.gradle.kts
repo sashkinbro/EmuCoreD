@@ -19,7 +19,14 @@ android {
     }
     buildTypes {
         debug { externalNativeBuild { cmake { arguments += "-DEMUCORED_DIAGNOSTICS=ON" } } }
-        release { externalNativeBuild { cmake { arguments += "-DEMUCORED_DIAGNOSTICS=OFF" } } }
+        release { externalNativeBuild { cmake {
+            arguments += "-DEMUCORED_DIAGNOSTICS=OFF"
+            arguments += listOf(
+                "-DCMAKE_C_FLAGS_RELEASE=-O3 -DNDEBUG -flto=thin",
+                "-DCMAKE_CXX_FLAGS_RELEASE=-O3 -DNDEBUG -flto=thin",
+                "-DCMAKE_SHARED_LINKER_FLAGS_RELEASE=-flto=thin"
+            )
+        } } }
     }
     externalNativeBuild { cmake { path = file("../coreGameCube/dolphin/CMakeLists.txt"); version = "3.30.5" } }
     compileOptions { sourceCompatibility = JavaVersion.VERSION_17; targetCompatibility = JavaVersion.VERSION_17 }

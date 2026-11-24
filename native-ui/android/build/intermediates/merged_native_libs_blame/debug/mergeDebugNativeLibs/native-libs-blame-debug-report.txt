@@ -1,0 +1,2 @@
+lib/arm64-v8a\libc++_shared.so->Project
+lib/arm64-v8a\libemucored_nintendoui.so->Project

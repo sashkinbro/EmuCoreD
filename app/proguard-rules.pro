@@ -103,14 +103,17 @@
     public static ** INSTANCE;
 }
 
-# The release APK does not emit application logcat diagnostics. R8 also drops
-# message construction for these calls when its result has no other consumer.
+# --- JNI: Nintendo native GLES UI shell -------------------------------------
+-keepclasseswithmembernames,includedescriptorclasses class com.sbro.emucored.nintendoui.** {
+    native <methods>;
+}
+-keep,includedescriptorclasses class com.sbro.emucored.nintendoui.** { *; }
+
+# The release APK strips debug/verbose/info logs while preserving warnings,
+# errors, and crash diagnostics.
 -assumenosideeffects class android.util.Log {
     public static int v(...);
     public static int d(...);
     public static int i(...);
-    public static int w(...);
-    public static int e(...);
-    public static int wtf(...);
     public static int println(...);
 }

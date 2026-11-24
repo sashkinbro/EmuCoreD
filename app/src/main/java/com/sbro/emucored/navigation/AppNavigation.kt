@@ -531,6 +531,11 @@ fun AppNavigation(
                         onCreateShortcutClick = { game ->
                             GameLaunchShortcut.requestPinnedShortcut(context, game)
                         },
+                        onLaunchSaveSlot = { path, slot ->
+                            navController.navigate(EmulationRoute(gamePath = path, saveSlot = slot)) {
+                                launchSingleTop = true
+                            }
+                        },
                         onMenuClick = openDrawer,
                         onShelfModeChanged = { isShelfMode ->
                             homeDrawerEnabled = !isShelfMode
