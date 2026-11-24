@@ -34,7 +34,7 @@ object CoreOptionSchema {
         option("msaa", SettingsCategory.Graphics, "1", "1", "2", "4", "8"),
         option("anisotropy", SettingsCategory.Graphics, "default", "default", "1", "2", "4", "8", "16"),
         option("texture_filtering", SettingsCategory.Graphics, "default", "default", "nearest", "linear"),
-        option("shader_compilation", SettingsCategory.Graphics, "specialized", "specialized", "hybrid", "exclusive", "skip", restart = true),
+        option("shader_compilation", SettingsCategory.Graphics, "hybrid", "specialized", "hybrid", "exclusive", "skip", restart = true),
         toggle("shader_cache", SettingsCategory.Graphics, restart = true),
         toggle("wait_for_shaders", SettingsCategory.Graphics, false, restart = true),
         toggle("vsync", SettingsCategory.Graphics, false),

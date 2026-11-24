@@ -743,43 +743,102 @@ void DsEmulator::ReleaseTouch() {
     touch_dirty_ = true;
 }
 
-void DsEmulator::StartAudio() {
-    std::lock_guard audio_lock(audio_mutex_);
-    if (audio_stream_ != nullptr) return;
+aaudio_data_callback_result_t DsEmulator::AudioCallback(
+    AAudioStream*, void* user, void* buffer, int32_t count) {
+    auto* self = static_cast<DsEmulator*>(user);
+    auto* out = static_cast<int16_t*>(buffer);
+    if (self->audio_flushing_.load(std::memory_order_acquire) ||
+        self->paused_.load(std::memory_order_relaxed)) {
+        self->audio_last_sample_[0] = 0;
+        self->audio_last_sample_[1] = 0;
+        std::fill(out, out + count * 2, 0);
+        return AAUDIO_CALLBACK_RESULT_CONTINUE;
+    }
+    const uint32_t r = self->audio_read_.load(std::memory_order_relaxed);
+    const uint32_t w = self->audio_write_.load(std::memory_order_acquire);
+    const uint32_t avail = w - r;
+    const uint32_t n = std::min<uint32_t>(static_cast<uint32_t>(std::max(0, count)), avail);
+    for (uint32_t i = 0; i < n; i++) {
+        const uint32_t idx = ((r + i) % kAudioCapacity) * 2;
+        const int16_t l = self->audio_ring_[idx];
+        const int16_t rch = self->audio_ring_[idx + 1];
+        out[i * 2] = l;
+        out[i * 2 + 1] = rch;
+        self->audio_last_sample_[0] = l;
+        self->audio_last_sample_[1] = rch;
+    }
+    for (uint32_t i = n; i < static_cast<uint32_t>(count); i++) {
+        self->audio_last_sample_[0] = static_cast<int16_t>((self->audio_last_sample_[0] * 240) / 256);
+        self->audio_last_sample_[1] = static_cast<int16_t>((self->audio_last_sample_[1] * 240) / 256);
+        out[i * 2] = self->audio_last_sample_[0];
+        out[i * 2 + 1] = self->audio_last_sample_[1];
+    }
+    self->audio_read_.store(r + n, std::memory_order_release);
+    return AAUDIO_CALLBACK_RESULT_CONTINUE;
+}
 
+void DsEmulator::FlushAudioRing() {
+    audio_flushing_.store(true, std::memory_order_release);
+    const uint32_t w = audio_write_.load(std::memory_order_acquire);
+    audio_read_.store(w, std::memory_order_release);
+    audio_last_sample_[0] = 0;
+    audio_last_sample_[1] = 0;
+    audio_flushing_.store(false, std::memory_order_release);
+}
+
+bool DsEmulator::OpenAudioStreamLocked() {
     AAudioStreamBuilder* builder = nullptr;
-    if (AAudio_createStreamBuilder(&builder) != AAUDIO_OK || builder == nullptr) return;
+    if (AAudio_createStreamBuilder(&builder) != AAUDIO_OK || builder == nullptr) return false;
     AAudioStreamBuilder_setDirection(builder, AAUDIO_DIRECTION_OUTPUT);
     AAudioStreamBuilder_setSampleRate(builder, 48000);
     AAudioStreamBuilder_setChannelCount(builder, 2);
     AAudioStreamBuilder_setFormat(builder, AAUDIO_FORMAT_PCM_I16);
     AAudioStreamBuilder_setSharingMode(builder, AAUDIO_SHARING_MODE_SHARED);
     AAudioStreamBuilder_setPerformanceMode(builder, AAUDIO_PERFORMANCE_MODE_LOW_LATENCY);
-    AAudioStreamBuilder_setBufferCapacityInFrames(builder, 2048);
+    AAudioStreamBuilder_setDataCallback(builder, AudioCallback, this);
     const aaudio_result_t result = AAudioStreamBuilder_openStream(builder, &audio_stream_);
     AAudioStreamBuilder_delete(builder);
     if (result != AAUDIO_OK || audio_stream_ == nullptr) {
         audio_stream_ = nullptr;
         EMUCORED_DIAGNOSTIC_LOG(__android_log_print(ANDROID_LOG_WARN, "EmuCoreDS", "AAudio stream open failed: %d",
                             static_cast<int>(result)));
-        return;
+        return false;
+    }
+    const int32_t burst = AAudioStream_getFramesPerBurst(audio_stream_);
+    const int32_t cap = AAudioStream_getBufferCapacityInFrames(audio_stream_);
+    if (burst > 0 && cap > 0) {
+        AAudioStream_setBufferSizeInFrames(audio_stream_, std::min(cap, burst * 2));
     }
     if (paused_.load(std::memory_order_relaxed)) {
         AAudioStream_requestPause(audio_stream_);
     } else {
         AAudioStream_requestStart(audio_stream_);
     }
-    EMUCORED_DIAGNOSTIC_LOG(__android_log_print(ANDROID_LOG_INFO, "EmuCoreDS", "AAudio stream %d Hz %d ch",
+    EMUCORED_DIAGNOSTIC_LOG(__android_log_print(ANDROID_LOG_INFO, "EmuCoreDS", "AAudio callback stream %d Hz %d ch",
                         AAudioStream_getSampleRate(audio_stream_),
                         AAudioStream_getChannelCount(audio_stream_)));
+    return true;
+}
+
+void DsEmulator::StartAudio() {
+    std::lock_guard audio_lock(audio_mutex_);
+    if (audio_stream_ != nullptr) return;
+    audio_read_.store(0, std::memory_order_relaxed);
+    audio_write_.store(0, std::memory_order_relaxed);
+    audio_last_sample_[0] = 0;
+    audio_last_sample_[1] = 0;
+    audio_flushing_.store(false, std::memory_order_release);
+    OpenAudioStreamLocked();
 }
 
 void DsEmulator::StopAudio() {
     std::lock_guard audio_lock(audio_mutex_);
-    if (audio_stream_ == nullptr) return;
-    AAudioStream_requestStop(audio_stream_);
-    AAudioStream_close(audio_stream_);
-    audio_stream_ = nullptr;
+    if (audio_stream_ != nullptr) {
+        AAudioStream_requestStop(audio_stream_);
+        AAudioStream_close(audio_stream_);
+        audio_stream_ = nullptr;
+    }
+    FlushAudioRing();
 }
 
 void DsEmulator::DrainAudio() {
@@ -796,34 +855,27 @@ void DsEmulator::DrainAudio() {
             audio_buffer_[i] = static_cast<int16_t>(audio_buffer_[i] * volume);
         }
     }
-    std::lock_guard audio_lock(audio_mutex_);
-    if (audio_stream_ == nullptr) return;
-    if (AAudioStream_getState(audio_stream_) == AAUDIO_STREAM_STATE_DISCONNECTED) {
-        AAudioStream_close(audio_stream_);
-        audio_stream_ = nullptr;
-        AAudioStreamBuilder* builder = nullptr;
-        if (AAudio_createStreamBuilder(&builder) == AAUDIO_OK && builder != nullptr) {
-            AAudioStreamBuilder_setDirection(builder, AAUDIO_DIRECTION_OUTPUT);
-            AAudioStreamBuilder_setSampleRate(builder, 48000);
-            AAudioStreamBuilder_setChannelCount(builder, 2);
-            AAudioStreamBuilder_setFormat(builder, AAUDIO_FORMAT_PCM_I16);
-            AAudioStreamBuilder_setSharingMode(builder, AAUDIO_SHARING_MODE_SHARED);
-            AAudioStreamBuilder_setPerformanceMode(builder, AAUDIO_PERFORMANCE_MODE_LOW_LATENCY);
-            AAudioStreamBuilder_setBufferCapacityInFrames(builder, 2048);
-            if (AAudioStreamBuilder_openStream(builder, &audio_stream_) == AAUDIO_OK && audio_stream_ != nullptr) {
-                AAudioStream_requestStart(audio_stream_);
-            } else {
+    {
+        std::lock_guard audio_lock(audio_mutex_);
+        if (audio_stream_ == nullptr ||
+            AAudioStream_getState(audio_stream_) == AAUDIO_STREAM_STATE_DISCONNECTED) {
+            if (audio_stream_ != nullptr) {
+                AAudioStream_close(audio_stream_);
                 audio_stream_ = nullptr;
             }
-            AAudioStreamBuilder_delete(builder);
+            if (!OpenAudioStreamLocked()) return;
         }
-        if (audio_stream_ == nullptr) return;
     }
-    const aaudio_result_t written = AAudioStream_write(audio_stream_, audio_buffer_.data(), read, 2'000'000);
-    if (written == AAUDIO_ERROR_DISCONNECTED) {
-        AAudioStream_close(audio_stream_);
-        audio_stream_ = nullptr;
+    const uint32_t w = audio_write_.load(std::memory_order_relaxed);
+    const uint32_t r = audio_read_.load(std::memory_order_acquire);
+    const uint32_t free_frames = kAudioCapacity - (w - r);
+    const uint32_t to_copy = std::min<uint32_t>(static_cast<uint32_t>(read), free_frames);
+    for (uint32_t i = 0; i < to_copy; i++) {
+        const uint32_t idx = ((w + i) % kAudioCapacity) * 2;
+        audio_ring_[idx] = audio_buffer_[i * 2];
+        audio_ring_[idx + 1] = audio_buffer_[i * 2 + 1];
     }
+    audio_write_.store(w + to_copy, std::memory_order_release);
 }
 
 void DsEmulator::SetRenderer(int renderer) {
@@ -834,10 +886,15 @@ void DsEmulator::SetPaused(bool paused) {
     paused_.store(paused, std::memory_order_relaxed);
     std::lock_guard audio_lock(audio_mutex_);
     if (audio_stream_ == nullptr) return;
+    const aaudio_stream_state_t state = AAudioStream_getState(audio_stream_);
     if (paused) {
-        AAudioStream_requestPause(audio_stream_);
+        if (state == AAUDIO_STREAM_STATE_STARTED || state == AAUDIO_STREAM_STATE_STARTING) {
+            AAudioStream_requestPause(audio_stream_);
+        }
+        FlushAudioRing();
         AAudioStream_requestFlush(audio_stream_);
-    } else {
+    } else if (state != AAUDIO_STREAM_STATE_STARTED && state != AAUDIO_STREAM_STATE_STARTING &&
+               state != AAUDIO_STREAM_STATE_DISCONNECTED && state != AAUDIO_STREAM_STATE_CLOSED) {
         AAudioStream_requestStart(audio_stream_);
     }
 }

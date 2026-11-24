@@ -188,6 +188,11 @@ internal object CoreConfig {
         put("Layout", "upright_screen", "false")
         val volumeFloat = if (values.audioMuted) 0f else (values.audioVolume.coerceIn(0, 100) / 100f)
         put("Audio", "volume", String.format(java.util.Locale.US, "%.2f", volumeFloat))
+        put(
+            "Audio",
+            "enable_audio_stretching",
+            CoreOptionStore.value("enable_audio_stretching") ?: "true"
+        )
         put("System", "is_new_3ds", "true")
         put("System", "region_value", "-1")
         put("Data Storage", "use_virtual_sd", "true")

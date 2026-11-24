@@ -34,10 +34,11 @@ struct AndroidOutput {
     else return false;
     return true;
   }
-  static constexpr uint32_t audioCapacity = 4096;
+  static constexpr uint32_t audioCapacity = 8192;
   int audioChannels = 2;
   int audioRate = 48000;
   int16_t audioQueue[audioCapacity * 2]{};
+  int16_t audioLastSample[2]{0, 0};
   std::atomic<uint32_t> audioRead{0}, audioWritten{0};
   std::atomic<bool> audioFlushing{false};
   static aaudio_data_callback_result_t
@@ -45,17 +46,29 @@ struct AndroidOutput {
     auto *s = (AndroidOutput *)user;
     auto *out = (int16_t *)buffer;
     if (s->audioFlushing.load(std::memory_order_acquire)) {
+      s->audioLastSample[0] = 0;
+      s->audioLastSample[1] = 0;
       std::fill(out, out + count * s->audioChannels, 0);
       return AAUDIO_CALLBACK_RESULT_CONTINUE;
     }
     auto r = s->audioRead.load(std::memory_order_relaxed),
          w = s->audioWritten.load(std::memory_order_acquire);
+    const int channels = std::clamp(s->audioChannels, 1, 2);
     uint32_t n = std::min<uint32_t>(count, w - r);
-    for (uint32_t i = 0; i < n; i++)
-      for (int c = 0; c < s->audioChannels; c++)
-        out[i * s->audioChannels + c] =
-            s->audioQueue[((r + i) % audioCapacity) * s->audioChannels + c];
-    std::fill(out + n * s->audioChannels, out + count * s->audioChannels, 0);
+    for (uint32_t i = 0; i < n; i++) {
+      for (int c = 0; c < channels; c++) {
+        const int16_t sample = s->audioQueue[((r + i) % audioCapacity) * channels + c];
+        out[i * channels + c] = sample;
+        s->audioLastSample[c] = sample;
+      }
+    }
+    // Smooth exponential decay on underrun to avoid audible clicks/pops.
+    for (uint32_t i = n; i < static_cast<uint32_t>(count); i++) {
+      for (int c = 0; c < channels; c++) {
+        s->audioLastSample[c] = static_cast<int16_t>((s->audioLastSample[c] * 240) / 256);
+        out[i * channels + c] = s->audioLastSample[c];
+      }
+    }
     s->audioRead.store(r + n, std::memory_order_release);
     return AAUDIO_CALLBACK_RESULT_CONTINUE;
   }
@@ -98,6 +111,8 @@ struct AndroidOutput {
     audioFlushing.store(true, std::memory_order_release);
     const uint32_t w = audioWritten.load(std::memory_order_acquire);
     audioRead.store(w, std::memory_order_release);
+    audioLastSample[0] = 0;
+    audioLastSample[1] = 0;
     if (audio) {
       AAudioStream_requestFlush(audio);
     }
@@ -108,10 +123,12 @@ struct AndroidOutput {
       AAudioStream_close(audio);
       audio = nullptr;
     }
-    audioChannels = channels;
+    audioChannels = std::clamp(channels, 1, 2);
     audioRate = rate;
     audioRead = 0;
     audioWritten = 0;
+    audioLastSample[0] = 0;
+    audioLastSample[1] = 0;
     audioFlushing = false;
     AAudioStreamBuilder *b = nullptr;
     if (AAudio_createStreamBuilder(&b) != AAUDIO_OK)
@@ -119,15 +136,20 @@ struct AndroidOutput {
     AAudioStreamBuilder_setDirection(b, AAUDIO_DIRECTION_OUTPUT);
     AAudioStreamBuilder_setFormat(b, AAUDIO_FORMAT_PCM_I16);
     AAudioStreamBuilder_setSampleRate(b, rate);
-    AAudioStreamBuilder_setChannelCount(b, channels);
+    AAudioStreamBuilder_setChannelCount(b, audioChannels);
     AAudioStreamBuilder_setPerformanceMode(b,
                                            AAUDIO_PERFORMANCE_MODE_LOW_LATENCY);
     AAudioStreamBuilder_setDataCallback(b, audioCallback, this);
     auto r = AAudioStreamBuilder_openStream(b, &audio);
     AAudioStreamBuilder_delete(b);
-    if (r != AAUDIO_OK) {
+    if (r != AAUDIO_OK || !audio) {
       audio = nullptr;
       return false;
+    }
+    const int32_t burst = AAudioStream_getFramesPerBurst(audio);
+    const int32_t cap = AAudioStream_getBufferCapacityInFrames(audio);
+    if (burst > 0 && cap > 0) {
+      AAudioStream_setBufferSizeInFrames(audio, std::min(cap, burst * 2));
     }
     return AAudioStream_requestStart(audio) == AAUDIO_OK;
   }
@@ -152,11 +174,16 @@ struct AndroidOutput {
     audioWritten.store(w + n, std::memory_order_release);
   }
   void pause(bool p) {
-    if (audio) {
-      if (p) {
+    if (!audio) return;
+    const aaudio_stream_state_t state = AAudioStream_getState(audio);
+    if (p) {
+      if (state == AAUDIO_STREAM_STATE_STARTED || state == AAUDIO_STREAM_STATE_STARTING) {
         AAudioStream_requestPause(audio);
-        flushAudio();
-      } else {
+      }
+      flushAudio();
+    } else {
+      if (state != AAUDIO_STREAM_STATE_STARTED && state != AAUDIO_STREAM_STATE_STARTING &&
+          state != AAUDIO_STREAM_STATE_DISCONNECTED && state != AAUDIO_STREAM_STATE_CLOSED) {
         AAudioStream_requestStart(audio);
       }
     }

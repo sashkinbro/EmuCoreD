@@ -1,5 +1,7 @@
 #pragma once
 
+#include <aaudio/AAudio.h>
+#include <array>
 #include <atomic>
 #include <condition_variable>
 #include <cstdint>
@@ -11,8 +13,6 @@
 #include "ds_frame_trace.h"
 
 struct ANativeWindow;
-struct AAudioStreamStruct;
-using AAudioStream = AAudioStreamStruct;
 
 namespace melonDS {
 class NDS;
@@ -58,8 +58,11 @@ public:
     void SetUserDirectory(const std::string& path);
 
 private:
+    static aaudio_data_callback_result_t AudioCallback(AAudioStream* stream, void* user, void* buffer, int32_t count);
     void Run();
     void StartAudio();
+    bool OpenAudioStreamLocked();
+    void FlushAudioRing();
     void StopAudio();
     void DrainAudio();
     void ApplyDefaultBios();
@@ -82,6 +85,12 @@ private:
     std::vector<uint32_t> vulkan_readback_;
     AAudioStream* audio_stream_ = nullptr;
     std::vector<int16_t> audio_buffer_;
+    static constexpr uint32_t kAudioCapacity = 8192;
+    int16_t audio_ring_[kAudioCapacity * 2]{};
+    int16_t audio_last_sample_[2]{0, 0};
+    std::atomic<uint32_t> audio_read_{0};
+    std::atomic<uint32_t> audio_write_{0};
+    std::atomic<bool> audio_flushing_{false};
     std::atomic<float> audio_volume_{1.0f};
     std::unique_ptr<DsPresenter> presenter_;
     std::unique_ptr<DsPresenter> secondary_presenter_;
