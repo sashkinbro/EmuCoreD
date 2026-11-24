@@ -36,7 +36,9 @@ private:
     GLuint program_ = 0;
     GLint format_uniform_ = -1;
     GLuint texture_ = 0;
+    GLuint vbo_ = 0;
     GLint texture_size_[2] = {0, 0};
+    bool surface_dirty_ = false;
 };
 
 } // namespace EmuCoreDS

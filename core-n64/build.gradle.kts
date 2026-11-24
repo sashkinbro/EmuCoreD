@@ -16,8 +16,28 @@ android {
     }
     externalNativeBuild { cmake { path = file("../coreN64/CMakeLists.txt"); version = "3.30.5" } }
     buildTypes {
-        debug { externalNativeBuild { cmake { arguments += "-DEMUCORED_DIAGNOSTICS=ON" } } }
-        release { externalNativeBuild { cmake { arguments += "-DEMUCORED_DIAGNOSTICS=OFF" } } }
+        debug {
+            externalNativeBuild {
+                cmake {
+                    arguments += "-DEMUCORED_DIAGNOSTICS=ON"
+                    arguments += listOf(
+                        "-DCMAKE_C_FLAGS_DEBUG=-O3 -g",
+                        "-DCMAKE_CXX_FLAGS_DEBUG=-O3 -g"
+                    )
+                }
+            }
+        }
+        release {
+            externalNativeBuild {
+                cmake {
+                    arguments += "-DEMUCORED_DIAGNOSTICS=OFF"
+                    arguments += listOf(
+                        "-DCMAKE_C_FLAGS_RELWITHDEBINFO=-O3 -g -DNDEBUG",
+                        "-DCMAKE_CXX_FLAGS_RELWITHDEBINFO=-O3 -g -DNDEBUG"
+                    )
+                }
+            }
+        }
     }
     compileOptions { sourceCompatibility = JavaVersion.VERSION_17; targetCompatibility = JavaVersion.VERSION_17 }
 }

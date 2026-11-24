@@ -27,4 +27,5 @@ class Mupen64SessionEngine : ThreadedFrameSessionEngine() {
         Mupen64Native.nativeAnalog(handle, player, x, y, secondary)
     override fun nativeState(handle: Long, path: File, save: Boolean) = Mupen64Native.nativeStateFile(handle, path.absolutePath, save)
     override fun nativeApplyOption(handle: Long, key: String, value: String) = Mupen64Native.nativeOption(handle, key, value)
+    override fun nativeFlushSave(handle: Long) = Mupen64Native.nativeFlushSave(handle)
 }

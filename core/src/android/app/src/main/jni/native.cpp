@@ -406,9 +406,9 @@ static Core::System::ResultStatus RunCitra(const std::string& filepath, bool sta
             // (initial boot) this never actually blocks, since surfaceChanged/surfaceDestroyed
             // cannot run concurrently here, this same thread still holds surface_lock above
             // for the whole boot sequence.
-            if (!s_surface) {
+            if (!s_surface && !stop_run && !stop_requested) {
                 std::unique_lock<std::recursive_mutex> wait_lock(surface_mutex, std::adopt_lock);
-                surface_cv.wait(wait_lock, [] { return s_surface != nullptr; });
+                surface_cv.wait(wait_lock, [] { return s_surface != nullptr || stop_run.load() || stop_requested.load(); });
                 wait_lock.release();
             }
         } else {
@@ -570,7 +570,11 @@ static Core::System::ResultStatus RunCitra(const std::string& filepath, bool sta
         } else {
             // Ensure no audio bleeds out while game is paused
             const float volume = Settings::values.volume.GetValue();
-            SCOPE_EXIT({ Settings::values.volume = volume; });
+            SCOPE_EXIT({
+                if (Settings::values.volume.GetValue() == 0.0f) {
+                    Settings::values.volume = volume;
+                }
+            });
             Settings::values.volume = 0;
 
             std::unique_lock pause_lock{paused_mutex};
@@ -720,9 +724,9 @@ void Java_com_sbro_emucored_core_EmuCoreNative_surfaceDestroyed([[maybe_unused]]
 
 void Java_com_sbro_emucored_core_EmuCoreNative_doFrame([[maybe_unused]] JNIEnv* env,
                                                      [[maybe_unused]] jobject obj) {
-    std::scoped_lock surface_lock(surface_mutex);
-    if (stop_run || pause_emulation || !window || !window->NeedsFrameCallbacks() ||
-        !s_surface) {
+    std::unique_lock<std::recursive_mutex> surface_lock(surface_mutex, std::try_to_lock);
+    if (!surface_lock.owns_lock() || stop_run || pause_emulation || !window ||
+        !window->NeedsFrameCallbacks() || !s_surface) {
         return;
     }
     if (window) {
@@ -1066,8 +1070,10 @@ void Java_com_sbro_emucored_core_EmuCoreNative_pauseEmulation([[maybe_unused]] J
 void Java_com_sbro_emucored_core_EmuCoreNative_stopEmulation([[maybe_unused]] JNIEnv* env,
                                                            [[maybe_unused]] jobject obj) {
     stop_requested = true;
+    surface_cv.notify_all();
     if (stop_run.exchange(true)) {
         // stop_run was already true
+        running_cv.notify_all();
         return;
     }
     pause_emulation = false;
@@ -1151,7 +1157,9 @@ jboolean Java_com_sbro_emucored_core_EmuCoreNative_onTouchEvent([[maybe_unused]]
 void Java_com_sbro_emucored_core_EmuCoreNative_onTouchMoved([[maybe_unused]] JNIEnv* env,
                                                           [[maybe_unused]] jobject obj, jfloat x,
                                                           jfloat y) {
-    window->OnTouchMoved((int)x, (int)y);
+    if (window) {
+        window->OnTouchMoved((int)x, (int)y);
+    }
 }
 
 jboolean Java_com_sbro_emucored_core_EmuCoreNative_onSecondaryTouchEvent([[maybe_unused]] JNIEnv* env,

@@ -3,6 +3,11 @@
 // acknowledgement: retro_load_game alone does not report a failed core load.
 #include "target-libretro/libretro.cpp"
 extern "C" bool emucored_bsnes_loaded() { return emulator && emulator->loaded(); }
+extern "C" void emucored_bsnes_save_sram() {
+    if (emulator && emulator->loaded() && program) {
+        program->save();
+    }
+}
 extern "C" bool emucored_bsnes_valid_cheat(const char* code) {
     string decoded(code); return decodeSNES(decoded);
 }

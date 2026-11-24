@@ -42,10 +42,10 @@ DsPresenter::~DsPresenter() {
 bool DsPresenter::SetSurface(ANativeWindow* window) {
     std::lock_guard lock(mutex_);
     if (window_ == window) return true;
-    DestroyContextLocked();
     if (window_) ANativeWindow_release(window_);
     window_ = window;
     if (window_) ANativeWindow_acquire(window_);
+    surface_dirty_ = true;
     return true;
 }
 
@@ -54,11 +54,13 @@ void DsPresenter::Release() {
     DestroyContextLocked();
     if (window_) ANativeWindow_release(window_);
     window_ = nullptr;
+    surface_dirty_ = false;
 }
 
 void DsPresenter::ReleaseGraphicsContext() {
     std::lock_guard lock(mutex_);
     DestroyContextLocked();
+    surface_dirty_ = false;
 }
 
 bool DsPresenter::CreateContextLocked() {
@@ -105,11 +107,21 @@ bool DsPresenter::CreateContextLocked() {
         DestroyContextLocked();
         return false;
     }
+    eglSwapInterval(display_, 0);
     return true;
 }
 
 void DsPresenter::DestroyContextLocked() {
     if (display_ != EGL_NO_DISPLAY) {
+        if (vbo_ != 0 && eglGetCurrentContext() == context_) {
+            glDeleteBuffers(1, &vbo_);
+        }
+        if (texture_ != 0 && eglGetCurrentContext() == context_) {
+            glDeleteTextures(1, &texture_);
+        }
+        if (program_ != 0 && eglGetCurrentContext() == context_) {
+            glDeleteProgram(program_);
+        }
         eglMakeCurrent(display_, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT);
         if (surface_ != EGL_NO_SURFACE) eglDestroySurface(display_, surface_);
         if (context_ != EGL_NO_CONTEXT) eglDestroyContext(display_, context_);
@@ -122,6 +134,7 @@ void DsPresenter::DestroyContextLocked() {
     program_ = 0;
     format_uniform_ = -1;
     texture_ = 0;
+    vbo_ = 0;
     texture_size_[0] = 0;
     texture_size_[1] = 0;
 }
@@ -160,6 +173,18 @@ bool DsPresenter::EnsureProgramLocked() {
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    if (vbo_ == 0) {
+        const GLfloat vertices[] = {
+            -1.0f, -1.0f, 0.0f, 1.0f,
+             1.0f, -1.0f, 1.0f, 1.0f,
+            -1.0f,  1.0f, 0.0f, 0.0f,
+             1.0f,  1.0f, 1.0f, 0.0f,
+        };
+        glGenBuffers(1, &vbo_);
+        glBindBuffer(GL_ARRAY_BUFFER, vbo_);
+        glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
+    }
     return true;
 }
 
@@ -169,7 +194,9 @@ void DsPresenter::DrawLocked(const uint32_t* pixels, int width, int height, DsPi
         return;
     }
     if (!pixels || width <= 0 || height <= 0) return;
-    if (!eglMakeCurrent(display_, surface_, surface_, context_)) return;
+    if (eglGetCurrentContext() != context_ || eglGetCurrentSurface(EGL_DRAW) != surface_) {
+        if (!eglMakeCurrent(display_, surface_, surface_, context_)) return;
+    }
     if (!EnsureProgramLocked()) return;
     glUseProgram(program_);
     // Match the producer's byte order. Software and the faithful Vulkan
@@ -210,16 +237,7 @@ void DsPresenter::DrawLocked(const uint32_t* pixels, int width, int height, DsPi
     glDisable(GL_DEPTH_TEST);
     glDisable(GL_BLEND);
 
-    const GLfloat vertices[] = {
-        -1.0f, -1.0f, 0.0f, 1.0f,
-         1.0f, -1.0f, 1.0f, 1.0f,
-        -1.0f,  1.0f, 0.0f, 0.0f,
-         1.0f,  1.0f, 1.0f, 0.0f,
-    };
-    GLuint vbo = 0;
-    glGenBuffers(1, &vbo);
-    glBindBuffer(GL_ARRAY_BUFFER, vbo);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STREAM_DRAW);
+    glBindBuffer(GL_ARRAY_BUFFER, vbo_);
     glEnableVertexAttribArray(0);
     glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(GLfloat),
                           reinterpret_cast<void*>(0));
@@ -230,13 +248,15 @@ void DsPresenter::DrawLocked(const uint32_t* pixels, int width, int height, DsPi
     glDisableVertexAttribArray(0);
     glDisableVertexAttribArray(1);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
-    glDeleteBuffers(1, &vbo);
     eglSwapBuffers(display_, surface_);
-    eglMakeCurrent(display_, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT);
 }
 
 void DsPresenter::Present(const uint32_t* pixels, int width, int height, DsPixelFormat format) {
     std::lock_guard lock(mutex_);
+    if (surface_dirty_) {
+        DestroyContextLocked();
+        surface_dirty_ = false;
+    }
     if (!window_) return;
     if (display_ == EGL_NO_DISPLAY || context_ == EGL_NO_CONTEXT ||
         surface_ == EGL_NO_SURFACE) {

@@ -35,6 +35,7 @@ public:
     ~DsEmulator();
 
     bool Start(const std::string& rom_path, const std::string& sram_path, bool start_paused = false);
+    void RequestStopAsync();
     void Stop();
     void Reset();
 
@@ -87,6 +88,8 @@ private:
     std::thread thread_;
     std::mutex surface_mutex_;
     std::mutex vulkan_present_mutex_;
+    std::mutex audio_mutex_;
+    std::mutex input_mutex_;
     ANativeWindow* window_ = nullptr;
     ANativeWindow* secondary_window_ = nullptr;
     int vulkan_surface_id_ = 0;
@@ -114,7 +117,11 @@ private:
     std::string sram_path_;
     std::string user_dir_;
     std::vector<uint32_t> composite_;
-    uint32_t pending_key_mask_ = 0xFFF;
+    std::atomic<uint32_t> pending_key_mask_{0xFFF};
+    bool touch_dirty_ = false;
+    bool pending_touch_active_ = false;
+    uint16_t pending_touch_x_ = 0;
+    uint16_t pending_touch_y_ = 0;
 };
 
 DsEmulator& Emulator();

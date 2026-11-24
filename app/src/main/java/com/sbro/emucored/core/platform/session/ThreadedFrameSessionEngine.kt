@@ -3,20 +3,31 @@ package com.sbro.emucored.core.platform.session
 import android.view.Surface
 import java.io.File
 import java.security.MessageDigest
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
 
 /** Common lifecycle for framebuffer cores; all native operations use one owner. */
 abstract class ThreadedFrameSessionEngine : CoreSessionEngine {
     protected var nativeHandle = 0L; private set
     @Volatile private var surface: Surface? = null
-    private var width = 0
-    private var height = 0
+    @Volatile private var width = 0
+    @Volatile private var height = 0
     @Volatile private var actualFrameRate: Double? = null
+    private var framesSinceSaveFlush = 0
     private val metrics = CorePerformanceSampler()
-    private val worker = OwnedCoreThread("EmuCore-frame", { nativeRunFrame(nativeHandle) },
+    private val worker = OwnedCoreThread("EmuCore-frame", {
+        val ok = nativeRunFrame(nativeHandle)
+        if (ok && ++framesSinceSaveFlush >= 1800) {
+            framesSinceSaveFlush = 0
+            nativeFlushSave(nativeHandle)
+        }
+        ok
+    },
         { nativeFrameRate(nativeHandle).also { actualFrameRate = it.takeIf { rate -> rate.isFinite() && rate > 0 } } }, {
             if (nativeHandle != 0L) nativeClose(nativeHandle)
             nativeHandle = 0L
             actualFrameRate = null
+            framesSinceSaveFlush = 0
             metrics.reset()
         })
     final override val isRunning: Boolean get() = worker.isRunning
@@ -25,6 +36,7 @@ abstract class ThreadedFrameSessionEngine : CoreSessionEngine {
     final override suspend fun start(request: EngineLaunchRequest): EngineStartResult {
         metrics.reset()
         actualFrameRate = null
+        framesSinceSaveFlush = 0
         if (request.platform.core != coreId) return EngineStartResult.Failed("unsupported_platform")
         var failureReason = "core_load_failed"
         val started = worker.start({
@@ -46,13 +58,34 @@ abstract class ThreadedFrameSessionEngine : CoreSessionEngine {
         }, request.startPaused)
         return if (started) EngineStartResult.Started else EngineStartResult.Failed(failureReason)
     }
-    final override suspend fun pause() = worker.pause { metrics.reset(); nativeSetPaused(nativeHandle, true) }
+    final override suspend fun pause() = worker.pause {
+        metrics.reset()
+        nativeSetPaused(nativeHandle, true)
+        nativeFlushSave(nativeHandle)
+        framesSinceSaveFlush = 0
+    }
     final override suspend fun resume() = worker.resume { metrics.reset(); nativeSetPaused(nativeHandle, false) }
     final override fun requestStop() { metrics.reset(); worker.requestStop() }
     final override suspend fun stop() = worker.stop()
     final override fun attachSurface(surface: Surface?, width: Int, height: Int) {
         this.surface = surface; this.width = width; this.height = height
-        worker.post { nativeAttachSurface(nativeHandle, surface, width, height) }
+        if (surface == null && worker.isRunning) {
+            val latch = CountDownLatch(1)
+            val queued = worker.post {
+                try {
+                    if (nativeHandle != 0L) nativeAttachSurface(nativeHandle, null, 0, 0)
+                } finally {
+                    latch.countDown()
+                }
+            }
+            if (queued) {
+                runCatching { latch.await(500L, TimeUnit.MILLISECONDS) }
+            }
+        } else {
+            worker.post {
+                if (nativeHandle != 0L) nativeAttachSurface(nativeHandle, surface, width, height)
+            }
+        }
     }
     final override fun setButton(player: Int, button: EngineButton, pressed: Boolean) {
         worker.post { nativeSetButton(nativeHandle, player, button, pressed) }
@@ -91,5 +124,6 @@ abstract class ThreadedFrameSessionEngine : CoreSessionEngine {
     protected open fun nativeSetAnalog(handle: Long, player: Int, x: Float, y: Float, secondary: Boolean) = Unit
     protected abstract fun nativeState(handle: Long, path: File, save: Boolean): Boolean
     protected abstract fun nativeApplyOption(handle: Long, key: String, value: String): Boolean
+    protected open fun nativeFlushSave(handle: Long) = Unit
     protected open fun nativeReplaceCheats(handle: Long, formats: Array<String>, codes: Array<String>): Boolean = codes.isEmpty()
 }

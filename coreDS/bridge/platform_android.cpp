@@ -8,6 +8,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <ctime>
 #include <functional>
 #include <string>
 
@@ -268,8 +269,13 @@ bool Semaphore_TryWait(Semaphore* sema, int timeout_ms) {
         result = true;
     } else if (timeout_ms > 0) {
         timespec timeout{};
-        timeout.tv_sec = timeout_ms / 1000;
-        timeout.tv_nsec = static_cast<long>(timeout_ms % 1000) * 1000000;
+        clock_gettime(CLOCK_REALTIME, &timeout);
+        timeout.tv_sec += timeout_ms / 1000;
+        timeout.tv_nsec += static_cast<long>(timeout_ms % 1000) * 1000000L;
+        if (timeout.tv_nsec >= 1000000000L) {
+            timeout.tv_sec += 1;
+            timeout.tv_nsec -= 1000000000L;
+        }
         int wait_result = 0;
         while (semaphore->val == 0 && wait_result == 0) {
             wait_result = pthread_cond_timedwait(&semaphore->cond, &semaphore->mutex, &timeout);

@@ -51,19 +51,41 @@ struct Session {
     }
     bool initializeFramebuffer() {
         if (!makeCurrent()) return false;
-        glGenTextures(1, &color);
+        if (!color) glGenTextures(1, &color);
         glBindTexture(GL_TEXTURE_2D, color);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
-        glGenRenderbuffers(1, &depth);
+        if (!depth) glGenRenderbuffers(1, &depth);
         glBindRenderbuffer(GL_RENDERBUFFER, depth);
         glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, width, height);
-        glGenFramebuffers(1, &framebuffer);
+        if (!framebuffer) glGenFramebuffers(1, &framebuffer);
         glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
         glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, color, 0);
         glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, depth);
         return glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE;
+    }
+    bool resizeFramebuffer(int newWidth, int newHeight) {
+        newWidth = std::clamp(newWidth, 1, 4096);
+        newHeight = std::clamp(newHeight, 1, 4096);
+        if (newWidth == width && newHeight == height && framebuffer != 0) return true;
+        width = newWidth;
+        height = newHeight;
+        if (!makeCurrent()) return false;
+        GLint prevTex = 0, prevRb = 0, prevFb = 0;
+        glGetIntegerv(GL_TEXTURE_BINDING_2D, &prevTex);
+        glGetIntegerv(GL_RENDERBUFFER_BINDING, &prevRb);
+        glGetIntegerv(GL_FRAMEBUFFER_BINDING, &prevFb);
+        glBindTexture(GL_TEXTURE_2D, color);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+        glBindRenderbuffer(GL_RENDERBUFFER, depth);
+        glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, width, height);
+        glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
+        const bool ok = glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE;
+        glBindTexture(GL_TEXTURE_2D, static_cast<GLuint>(prevTex));
+        glBindRenderbuffer(GL_RENDERBUFFER, static_cast<GLuint>(prevRb));
+        glBindFramebuffer(GL_FRAMEBUFFER, static_cast<GLuint>(prevFb));
+        return ok;
     }
     void attach(JNIEnv* env, jobject surface) {
         if (display == EGL_NO_DISPLAY) return;
@@ -82,28 +104,52 @@ struct Session {
         }
         if (makeCurrent()) eglSwapInterval(display, 0);
     }
-    void present() {
+    void present(unsigned frameWidth, unsigned frameHeight) {
         if (window_surface == EGL_NO_SURFACE || !makeCurrent()) return;
         EGLint screen_width = 0, screen_height = 0;
         eglQuerySurface(display, window_surface, EGL_WIDTH, &screen_width);
         eglQuerySurface(display, window_surface, EGL_HEIGHT, &screen_height);
         if (screen_width <= 0 || screen_height <= 0) return;
+        const int src_width = std::clamp<int>(static_cast<int>(frameWidth), 1, width);
+        const int src_height = std::clamp<int>(static_cast<int>(frameHeight), 1, height);
         const auto viewport = displayViewport(screen_width, screen_height, aspect);
+        if (viewport.width <= 0 || viewport.height <= 0) return;
+
+        GLboolean scissor_was_enabled = glIsEnabled(GL_SCISSOR_TEST);
+        GLint prev_viewport[4]{};
+        GLfloat prev_clear[4]{};
+        GLint prev_draw_fb = 0, prev_read_fb = 0;
+        glGetIntegerv(GL_VIEWPORT, prev_viewport);
+        glGetFloatv(GL_COLOR_CLEAR_VALUE, prev_clear);
+        glGetIntegerv(GL_DRAW_FRAMEBUFFER_BINDING, &prev_draw_fb);
+        glGetIntegerv(GL_READ_FRAMEBUFFER_BINDING, &prev_read_fb);
+
+        if (scissor_was_enabled) glDisable(GL_SCISSOR_TEST);
         glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
         glViewport(0, 0, screen_width, screen_height);
-        glClearColor(0, 0, 0, 1); glClear(GL_COLOR_BUFFER_BIT);
+        glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+        glClear(GL_COLOR_BUFFER_BIT);
         glBindFramebuffer(GL_READ_FRAMEBUFFER, framebuffer);
-        glBlitFramebuffer(0, 0, width, height, viewport.x, viewport.y,
+        glBlitFramebuffer(0, 0, src_width, src_height, viewport.x, viewport.y,
             viewport.x + viewport.width, viewport.y + viewport.height, GL_COLOR_BUFFER_BIT, GL_LINEAR);
         eglSwapBuffers(display, window_surface);
-        glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
+
+        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, static_cast<GLuint>(prev_draw_fb));
+        glBindFramebuffer(GL_READ_FRAMEBUFFER, static_cast<GLuint>(prev_read_fb));
+        glViewport(prev_viewport[0], prev_viewport[1], prev_viewport[2], prev_viewport[3]);
+        glClearColor(prev_clear[0], prev_clear[1], prev_clear[2], prev_clear[3]);
+        if (scissor_was_enabled) glEnable(GL_SCISSOR_TEST);
+    }
+    void flushSave() {
+        if (!loaded) return;
+        void* ram = retro_get_memory_data(RETRO_MEMORY_SAVE_RAM);
+        const size_t size = retro_get_memory_size(RETRO_MEMORY_SAVE_RAM);
+        if (ram && size && size <= 16 * 1024 * 1024) writeBytes(directory + "/battery.srm", ram, size);
     }
     void close() {
         makeCurrent();
         if (loaded) {
-            void* ram = retro_get_memory_data(RETRO_MEMORY_SAVE_RAM);
-            const size_t size = retro_get_memory_size(RETRO_MEMORY_SAVE_RAM);
-            if (ram && size && size <= 16 * 1024 * 1024) writeBytes(directory + "/battery.srm", ram, size);
+            flushSave();
             if (context_ready && hw.context_destroy) hw.context_destroy();
             retro_unload_game(); loaded = false;
         }
@@ -197,6 +243,20 @@ bool environment(unsigned command, void* data) {
         *static_cast<bool*>(data) = active->options_changed; active->options_changed = false; return true;
     case RETRO_ENVIRONMENT_GET_CAN_DUPE: *static_cast<bool*>(data) = true; return true;
     case RETRO_ENVIRONMENT_SET_PIXEL_FORMAT: return true;
+    case RETRO_ENVIRONMENT_SET_SYSTEM_AV_INFO: {
+        const auto* info = static_cast<const retro_system_av_info*>(data);
+        if (!info) return false;
+        active->av = *info;
+        active->resizeFramebuffer(info->geometry.base_width, info->geometry.base_height);
+        return true;
+    }
+    case RETRO_ENVIRONMENT_SET_GEOMETRY: {
+        const auto* geom = static_cast<const retro_game_geometry*>(data);
+        if (!geom) return false;
+        active->av.geometry = *geom;
+        active->resizeFramebuffer(geom->base_width, geom->base_height);
+        return true;
+    }
     case RETRO_ENVIRONMENT_SET_HW_RENDER: {
         auto* callback = static_cast<retro_hw_render_callback*>(data);
         if (callback->context_type != RETRO_HW_CONTEXT_OPENGLES3 &&
@@ -209,7 +269,7 @@ bool environment(unsigned command, void* data) {
     }
 }
 void video(const void* data, unsigned width, unsigned height, size_t) {
-    if (active && data == RETRO_HW_FRAME_BUFFER_VALID && width && height) active->present();
+    if (active && data == RETRO_HW_FRAME_BUFFER_VALID && width && height) active->present(width, height);
 }
 size_t audio(const int16_t* samples, size_t frames) {
     if (active && samples && frames <= 65536) active->audio.audioWrite(samples, static_cast<int>(frames));
@@ -251,6 +311,8 @@ JNI(jlong) Java_com_sbro_emucored_core_n64_Mupen64Native_nativeCreate(JNIEnv* en
     if (!retro_load_game(&game) || !session->hw.context_reset) {
         session->close(); active = nullptr; return 0;
     }
+    session->rom.clear();
+    session->rom.shrink_to_fit();
     session->loaded = true;
     retro_get_system_av_info(&session->av);
     session->width = std::clamp<int>(session->av.geometry.base_width, 1, 4096);
@@ -315,7 +377,23 @@ JNI(jboolean) Java_com_sbro_emucored_core_n64_Mupen64Native_nativeStateFile(JNIE
         return retro_serialize(state.data(), state.size()) && saveEnvelope(file, session->rom_hash, state);
     }
     const auto state = loadEnvelope(file, session->rom_hash);
-    return !state.empty() && retro_unserialize(state.data(), state.size());
+    if (state.empty()) return false;
+    const size_t size = retro_serialize_size();
+    std::vector<uint8_t> previous;
+    if (size > 0 && size <= 64 * 1024 * 1024) {
+        previous.resize(size);
+        if (!retro_serialize(previous.data(), previous.size())) previous.clear();
+    }
+    if (retro_unserialize(state.data(), state.size())) {
+        session->audio.flushAudio();
+        return true;
+    }
+    if (!previous.empty()) retro_unserialize(previous.data(), previous.size());
+    return false;
+}
+JNI(void) Java_com_sbro_emucored_core_n64_Mupen64Native_nativeFlushSave(JNIEnv*, jobject, jlong handle) {
+    auto* session = reinterpret_cast<Session*>(handle);
+    if (session && session == active) session->flushSave();
 }
 JNI(jboolean) Java_com_sbro_emucored_core_n64_Mupen64Native_nativeOption(JNIEnv* env, jobject, jlong handle, jstring key, jstring value) {
     auto* session = reinterpret_cast<Session*>(handle);

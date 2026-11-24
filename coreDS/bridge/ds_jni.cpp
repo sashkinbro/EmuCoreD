@@ -61,12 +61,17 @@ Java_com_sbro_emucored_core_ds_EmuCoreDsNative_nativeStart(JNIEnv* env, jobject,
     const char* rom = env->GetStringUTFChars(rom_path, nullptr);
     const char* sram = env->GetStringUTFChars(sram_path, nullptr);
     const char* user = env->GetStringUTFChars(user_dir, nullptr);
+    EmuCoreDS::Emulator().SetUserDirectory(user ? user : "");
     const bool result = EmuCoreDS::Emulator().Start(rom, sram, start_paused == JNI_TRUE);
-    if (result) EmuCoreDS::Emulator().SetUserDirectory(user);
     env->ReleaseStringUTFChars(rom_path, rom);
     env->ReleaseStringUTFChars(sram_path, sram);
     env->ReleaseStringUTFChars(user_dir, user);
     return result ? JNI_TRUE : JNI_FALSE;
+}
+
+JNIEXPORT void JNICALL
+Java_com_sbro_emucored_core_ds_EmuCoreDsNative_nativeRequestStop(JNIEnv*, jobject) {
+    EmuCoreDS::Emulator().RequestStopAsync();
 }
 
 JNIEXPORT void JNICALL

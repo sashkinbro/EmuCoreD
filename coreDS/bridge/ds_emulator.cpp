@@ -56,12 +56,28 @@ bool ReadFile(const std::string& path, std::vector<u8>& out, size_t max_size) {
     return file.good() || file.eof();
 }
 
+bool ReadFileSized(const std::string& path, std::unique_ptr<u8[]>& out, size_t& out_size, size_t max_size) {
+    std::ifstream file(path, std::ios::binary | std::ios::ate);
+    if (!file) return false;
+    const auto size = file.tellg();
+    if (size <= 0 || static_cast<size_t>(size) > max_size) return false;
+    out_size = static_cast<size_t>(size);
+    out = std::make_unique<u8[]>(out_size);
+    file.seekg(0, std::ios::beg);
+    file.read(reinterpret_cast<char*>(out.get()), size);
+    return file.good() || file.eof();
+}
+
 void WriteSaveFile(const std::string& path, const u8* data, u32 length) {
     if (path.empty() || !data || length == 0) return;
     std::lock_guard lock(g_save_mutex);
-    std::ofstream file(path, std::ios::binary | std::ios::trunc);
+    const std::string tmp = path + ".tmp";
+    std::FILE* file = std::fopen(tmp.c_str(), "wb");
     if (!file) return;
-    file.write(reinterpret_cast<const char*>(data), length);
+    bool ok = std::fwrite(data, 1, length, file) == length && std::fflush(file) == 0 && fsync(fileno(file)) == 0;
+    ok = std::fclose(file) == 0 && ok;
+    if (ok) ok = std::rename(tmp.c_str(), path.c_str()) == 0;
+    if (!ok) std::remove(tmp.c_str());
 }
 
 } // namespace
@@ -103,14 +119,13 @@ bool DsEmulator::Start(const std::string& rom_path, const std::string& sram_path
     g_stop_requested = false;
     frame_trace_.reset();
 
-    std::vector<u8> rom;
-    if (!ReadFile(rom_path, rom, kMaxRomSize)) {
+    std::unique_ptr<u8[]> rom_data;
+    size_t rom_size = 0;
+    if (!ReadFileSized(rom_path, rom_data, rom_size, kMaxRomSize)) {
         EMUCORED_DIAGNOSTIC_LOG(__android_log_print(ANDROID_LOG_ERROR, "EmuCoreDS", "Failed to read ROM: %s",
                             rom_path.c_str()));
         return false;
     }
-    auto rom_data = std::make_unique<u8[]>(rom.size());
-    std::memcpy(rom_data.get(), rom.data(), rom.size());
 
     melonDS::NDSCart::NDSCartArgs cart_args;
     std::vector<u8> save;
@@ -133,7 +148,7 @@ bool DsEmulator::Start(const std::string& rom_path, const std::string& sram_path
     frame_count_ = 0;
 
     nds_ = std::make_unique<melonDS::NDS>(std::move(args), this);
-    auto cart = melonDS::NDSCart::ParseROM(std::move(rom_data), static_cast<u32>(rom.size()), this,
+    auto cart = melonDS::NDSCart::ParseROM(std::move(rom_data), static_cast<u32>(rom_size), this,
                                            std::move(cart_args));
     if (!cart) {
         EMUCORED_DIAGNOSTIC_LOG(__android_log_print(ANDROID_LOG_ERROR, "EmuCoreDS", "Failed to parse ROM"));
@@ -188,8 +203,20 @@ bool DsEmulator::Start(const std::string& rom_path, const std::string& sram_path
     running_ = true;
     state_pending_ = 0;
     pending_cheats_.clear();
+    pending_key_mask_.store(0xFFF, std::memory_order_relaxed);
+    {
+        std::lock_guard input_lock(input_mutex_);
+        touch_dirty_ = false;
+        pending_touch_active_ = false;
+    }
     thread_ = std::thread(&DsEmulator::Run, this);
     return true;
+}
+
+void DsEmulator::RequestStopAsync() {
+    stop_requested_.store(true, std::memory_order_release);
+    g_stop_requested.store(true, std::memory_order_release);
+    state_cv_.notify_all();
 }
 
 void DsEmulator::Stop() {
@@ -276,6 +303,15 @@ void DsEmulator::Run() {
             continue;
         }
         if (nds_ && nds_->IsRunning()) {
+            nds_->SetKeyMask(pending_key_mask_.load(std::memory_order_relaxed));
+            {
+                std::lock_guard input_lock(input_mutex_);
+                if (touch_dirty_) {
+                    touch_dirty_ = false;
+                    if (pending_touch_active_) nds_->TouchScreen(pending_touch_x_, pending_touch_y_);
+                    else nds_->ReleaseScreen();
+                }
+            }
             if (vulkan_output_) {
                 if (auto* renderer2d =
                         dynamic_cast<melonDS::GPU2D::SoftRenderer*>(&nds_->GPU.GetRenderer2D())) {
@@ -300,7 +336,7 @@ void DsEmulator::Run() {
                 PresentFrame();
             }
         }
-        next_frame += std::chrono::microseconds(16683);
+        next_frame += std::chrono::microseconds(16715);
         const auto now = clock::now();
         if (next_frame > now) {
             std::this_thread::sleep_for(next_frame - now);
@@ -483,9 +519,11 @@ void DsEmulator::PresentVulkanFrame() {
     }
 
     bool presented = false;
+    bool using_vulkan_presenter = false;
     {
         std::unique_lock present_lock(vulkan_present_mutex_, std::try_to_lock);
-        if (present_lock.owns_lock() && surface_presenter_ && vulkan_surface_id_ != 0) {
+        using_vulkan_presenter = surface_presenter_ && vulkan_surface_id_ != 0;
+        if (present_lock.owns_lock() && using_vulkan_presenter) {
             const auto wait_runner = [](const char*,
                                         const MelonDSAndroid::VulkanCausalWaitOperation& operation) {
                 return operation() ? MelonDSAndroid::VulkanCausalWaitResult::Ready
@@ -506,7 +544,8 @@ void DsEmulator::PresentVulkanFrame() {
             }
         }
     }
-    if (presented) return;
+    // Never fall through to GLES DsPresenter while Vulkan owns this ANativeWindow.
+    if (presented || using_vulkan_presenter) return;
 
     if (!presenter_) return;
     const size_t readback_size = static_cast<size_t>(frame_width) * frame_height;
@@ -569,6 +608,7 @@ void DsEmulator::AttachVulkanSurfaceLocked() {
     const uint32_t height = static_cast<uint32_t>(std::max(1, ANativeWindow_getHeight(window_)));
     vulkan_surface_id_ = surface_presenter_->attachSurface(window_, width, height);
     if (vulkan_surface_id_ == 0) {
+        ANativeWindow_release(window_);
         EMUCORED_DIAGNOSTIC_LOG(__android_log_print(ANDROID_LOG_WARN, "EmuCoreDS", "Vulkan presenter surface attach failed"));
         return;
     }
@@ -591,28 +631,56 @@ void DsEmulator::ConfigureVulkanSurfaceLocked() {
 
     const int window_width = std::max(1, ANativeWindow_getWidth(window_));
     const int window_height = std::max(1, ANativeWindow_getHeight(window_));
-    const float content_aspect = 256.0f / 386.0f;
+    const int layout = screen_layout_.load(std::memory_order_relaxed);
+    const bool swap = swap_screens_.load(std::memory_order_relaxed);
     const float window_aspect = static_cast<float>(window_width) / static_cast<float>(window_height);
 
-    int content_width = window_width;
-    int content_height = window_height;
-    if (window_aspect > content_aspect) {
-        content_width = static_cast<int>(static_cast<float>(window_height) * content_aspect + 0.5f);
-    } else {
-        content_height = static_cast<int>(static_cast<float>(window_width) / content_aspect + 0.5f);
-    }
-    content_width = std::max(2, content_width);
-    content_height = std::max(2, content_height);
-    const int left = (window_width - content_width) / 2;
-    const int top = (window_height - content_height) / 2;
-    const int top_height = content_height / 2;
-    const int bottom_height = content_height - top_height;
-
     MelonDSAndroid::VulkanSurfaceConfig config{};
-    config.bottomScreen = {true, left, top, content_width, top_height};
-    config.topScreen = {true, left, top + top_height, content_width, bottom_height};
-    // Retain the existing bottom-above-top layout when the user has not swapped.
-    if (swap_screens_.load()) std::swap(config.topScreen, config.bottomScreen);
+    auto fitRect = [&](float aspect, int& out_x, int& out_y, int& out_w, int& out_h) {
+        out_w = window_width;
+        out_h = window_height;
+        if (window_aspect > aspect) {
+            out_w = static_cast<int>(static_cast<float>(window_height) * aspect + 0.5f);
+        } else {
+            out_h = static_cast<int>(static_cast<float>(window_width) / aspect + 0.5f);
+        }
+        out_w = std::max(2, out_w);
+        out_h = std::max(2, out_h);
+        out_x = (window_width - out_w) / 2;
+        out_y = (window_height - out_h) / 2;
+    };
+
+    if (layout == 1 || layout == 2 || layout == 3) {
+        // 1 = Separate (main shows primary), 2 = Top/Primary only, 3 = Bottom/Secondary only
+        int x = 0, y = 0, w = 2, h = 2;
+        fitRect(256.0f / 192.0f, x, y, w, h);
+        const bool show_bottom = (layout == 3) ^ swap;
+        if (show_bottom) {
+            config.bottomScreen = {true, x, y, w, h};
+            config.topScreen = {false, 0, 0, 0, 0};
+        } else {
+            config.topScreen = {true, x, y, w, h};
+            config.bottomScreen = {false, 0, 0, 0, 0};
+        }
+    } else if (layout == 4) {
+        // Side-by-side
+        int x = 0, y = 0, w = 2, h = 2;
+        fitRect(512.0f / 192.0f, x, y, w, h);
+        const int first_w = w / 2;
+        const int second_w = w - first_w;
+        config.topScreen = {true, x, y, first_w, h};
+        config.bottomScreen = {true, x + first_w, y, second_w, h};
+        if (swap) std::swap(config.topScreen, config.bottomScreen);
+    } else {
+        // Default stacked layout
+        int x = 0, y = 0, w = 2, h = 2;
+        fitRect(256.0f / 386.0f, x, y, w, h);
+        const int top_height = h / 2;
+        const int bottom_height = h - top_height;
+        config.bottomScreen = {true, x, y, w, top_height};
+        config.topScreen = {true, x, y + top_height, w, bottom_height};
+        if (swap) std::swap(config.topScreen, config.bottomScreen);
+    }
     config.filtering = MelonDSAndroid::VulkanFilterMode::Linear;
     const MelonDSAndroid::VulkanBackgroundImage background{};
     surface_presenter_->configureSurface(vulkan_surface_id_, config, background);
@@ -628,7 +696,8 @@ void DsEmulator::SetSurface(ANativeWindow* window) {
     AttachVulkanSurfaceLocked();
 
     if (!presenter_) presenter_ = std::make_unique<DsPresenter>();
-    presenter_->SetSurface(window);
+    // Never bind GLES onto a window owned by VulkanSurfacePresenter.
+    presenter_->SetSurface(vulkan_surface_id_ == 0 ? window : nullptr);
 
     if (previous) ANativeWindow_release(previous);
 }
@@ -642,7 +711,11 @@ void DsEmulator::SetSwapScreens(bool swap) {
 }
 
 void DsEmulator::SetScreenLayout(int mode) {
-    screen_layout_ = mode;
+    if (screen_layout_.exchange(mode) == mode) return;
+    std::lock_guard surface_lock(surface_mutex_);
+    std::lock_guard present_lock(vulkan_present_mutex_);
+    ConfigureVulkanSurfaceLocked();
+    presentation_dirty_.store(true, std::memory_order_relaxed);
 }
 
 void DsEmulator::SetSecondarySurface(ANativeWindow* window) {
@@ -653,19 +726,25 @@ void DsEmulator::SetSecondarySurface(ANativeWindow* window) {
 }
 
 void DsEmulator::SetKeyMask(uint32_t mask) {
-    pending_key_mask_ = mask;
-    if (nds_) nds_->SetKeyMask(mask);
+    pending_key_mask_.store(mask, std::memory_order_relaxed);
 }
 
 void DsEmulator::TouchScreen(uint16_t x, uint16_t y) {
-    if (nds_) nds_->TouchScreen(x, y);
+    std::lock_guard input_lock(input_mutex_);
+    pending_touch_x_ = x;
+    pending_touch_y_ = y;
+    pending_touch_active_ = true;
+    touch_dirty_ = true;
 }
 
 void DsEmulator::ReleaseTouch() {
-    if (nds_) nds_->ReleaseScreen();
+    std::lock_guard input_lock(input_mutex_);
+    pending_touch_active_ = false;
+    touch_dirty_ = true;
 }
 
 void DsEmulator::StartAudio() {
+    std::lock_guard audio_lock(audio_mutex_);
     if (audio_stream_ != nullptr) return;
 
     AAudioStreamBuilder* builder = nullptr;
@@ -676,7 +755,7 @@ void DsEmulator::StartAudio() {
     AAudioStreamBuilder_setFormat(builder, AAUDIO_FORMAT_PCM_I16);
     AAudioStreamBuilder_setSharingMode(builder, AAUDIO_SHARING_MODE_SHARED);
     AAudioStreamBuilder_setPerformanceMode(builder, AAUDIO_PERFORMANCE_MODE_LOW_LATENCY);
-    AAudioStreamBuilder_setBufferCapacityInFrames(builder, 1024);
+    AAudioStreamBuilder_setBufferCapacityInFrames(builder, 2048);
     const aaudio_result_t result = AAudioStreamBuilder_openStream(builder, &audio_stream_);
     AAudioStreamBuilder_delete(builder);
     if (result != AAUDIO_OK || audio_stream_ == nullptr) {
@@ -685,13 +764,18 @@ void DsEmulator::StartAudio() {
                             static_cast<int>(result)));
         return;
     }
-    AAudioStream_requestStart(audio_stream_);
+    if (paused_.load(std::memory_order_relaxed)) {
+        AAudioStream_requestPause(audio_stream_);
+    } else {
+        AAudioStream_requestStart(audio_stream_);
+    }
     EMUCORED_DIAGNOSTIC_LOG(__android_log_print(ANDROID_LOG_INFO, "EmuCoreDS", "AAudio stream %d Hz %d ch",
                         AAudioStream_getSampleRate(audio_stream_),
                         AAudioStream_getChannelCount(audio_stream_)));
 }
 
 void DsEmulator::StopAudio() {
+    std::lock_guard audio_lock(audio_mutex_);
     if (audio_stream_ == nullptr) return;
     AAudioStream_requestStop(audio_stream_);
     AAudioStream_close(audio_stream_);
@@ -699,7 +783,7 @@ void DsEmulator::StopAudio() {
 }
 
 void DsEmulator::DrainAudio() {
-    if (audio_stream_ == nullptr || !nds_) return;
+    if (!nds_) return;
     const int available = nds_->SPU.GetOutputSize();
     if (available <= 0) return;
     const int frames = std::min(available, 2048);
@@ -712,7 +796,34 @@ void DsEmulator::DrainAudio() {
             audio_buffer_[i] = static_cast<int16_t>(audio_buffer_[i] * volume);
         }
     }
-    AAudioStream_write(audio_stream_, audio_buffer_.data(), read, 2'000'000);
+    std::lock_guard audio_lock(audio_mutex_);
+    if (audio_stream_ == nullptr) return;
+    if (AAudioStream_getState(audio_stream_) == AAUDIO_STREAM_STATE_DISCONNECTED) {
+        AAudioStream_close(audio_stream_);
+        audio_stream_ = nullptr;
+        AAudioStreamBuilder* builder = nullptr;
+        if (AAudio_createStreamBuilder(&builder) == AAUDIO_OK && builder != nullptr) {
+            AAudioStreamBuilder_setDirection(builder, AAUDIO_DIRECTION_OUTPUT);
+            AAudioStreamBuilder_setSampleRate(builder, 48000);
+            AAudioStreamBuilder_setChannelCount(builder, 2);
+            AAudioStreamBuilder_setFormat(builder, AAUDIO_FORMAT_PCM_I16);
+            AAudioStreamBuilder_setSharingMode(builder, AAUDIO_SHARING_MODE_SHARED);
+            AAudioStreamBuilder_setPerformanceMode(builder, AAUDIO_PERFORMANCE_MODE_LOW_LATENCY);
+            AAudioStreamBuilder_setBufferCapacityInFrames(builder, 2048);
+            if (AAudioStreamBuilder_openStream(builder, &audio_stream_) == AAUDIO_OK && audio_stream_ != nullptr) {
+                AAudioStream_requestStart(audio_stream_);
+            } else {
+                audio_stream_ = nullptr;
+            }
+            AAudioStreamBuilder_delete(builder);
+        }
+        if (audio_stream_ == nullptr) return;
+    }
+    const aaudio_result_t written = AAudioStream_write(audio_stream_, audio_buffer_.data(), read, 2'000'000);
+    if (written == AAUDIO_ERROR_DISCONNECTED) {
+        AAudioStream_close(audio_stream_);
+        audio_stream_ = nullptr;
+    }
 }
 
 void DsEmulator::SetRenderer(int renderer) {
@@ -721,6 +832,7 @@ void DsEmulator::SetRenderer(int renderer) {
 
 void DsEmulator::SetPaused(bool paused) {
     paused_.store(paused, std::memory_order_relaxed);
+    std::lock_guard audio_lock(audio_mutex_);
     if (audio_stream_ == nullptr) return;
     if (paused) {
         AAudioStream_requestPause(audio_stream_);

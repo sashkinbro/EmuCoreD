@@ -6,6 +6,7 @@
 #include <memory>
 #include <mutex>
 extern "C" bool emucored_bsnes_loaded();
+extern "C" void emucored_bsnes_save_sram();
 extern "C" bool emucored_bsnes_valid_cheat(const char*);
 extern "C" bool emucored_bsnes_load_game(const char* path);
 namespace {
@@ -21,6 +22,7 @@ struct Session {
 };
 Session* active = nullptr;
 std::mutex ownership;
+bool applyOptionValue(Session& s, const std::string& k, const std::string& v);
 bool environment(unsigned command, void* data) {
     if (!active) return false;
     switch (command) {
@@ -40,21 +42,24 @@ bool environment(unsigned command, void* data) {
     }
     case RETRO_ENVIRONMENT_GET_VARIABLE_UPDATE:
         *static_cast<bool*>(data) = active->optionsChanged; active->optionsChanged = false; return true;
+    case RETRO_ENVIRONMENT_SET_GEOMETRY: return true;
     case RETRO_ENVIRONMENT_GET_FASTFORWARDING: *static_cast<bool*>(data) = false; return true;
     default: return false;
     }
 }
 void video(const void* data, unsigned width, unsigned height, size_t pitch) {
     if (!active || !data || data == RETRO_HW_FRAME_BUFFER_VALID || !width || !height || width > 4096 || height > 4096) return;
-    active->rgba.resize(size_t(width)*height);
-    for (unsigned y=0; y<height; ++y) {
-        auto* row = reinterpret_cast<const uint32_t*>(static_cast<const uint8_t*>(data)+y*pitch);
-        for (unsigned x=0; x<width; ++x) {
-            const uint32_t p=row[x];
-            active->rgba[y*width+x] = 0xFF000000u | ((p&255)<<16) | (p&0xFF00) | ((p>>16)&255);
-        }
+    if (pitch == size_t(width) * sizeof(uint32_t)) {
+        active->output.present(static_cast<const uint32_t*>(data), static_cast<int>(width), static_cast<int>(height), true);
+        return;
     }
-    active->output.present(active->rgba.data(), width, height);
+    active->rgba.resize(size_t(width) * height);
+    for (unsigned y = 0; y < height; ++y) {
+        std::memcpy(active->rgba.data() + size_t(y) * width,
+                    static_cast<const uint8_t*>(data) + y * pitch,
+                    size_t(width) * sizeof(uint32_t));
+    }
+    active->output.present(active->rgba.data(), static_cast<int>(width), static_cast<int>(height), true);
 }
 size_t audio(const int16_t* samples, size_t frames) { if(active) active->output.audioWrite(samples,frames); return frames; }
 void poll() {}
@@ -79,12 +84,24 @@ JNI(jboolean) Java_com_sbro_emucored_core_snes_BsnesSessionEngine_nativeCheats(J
     for(const auto& line:staged)retro_cheat_set(index++,true,line.c_str());
     return true;
 }
-JNI(jlong) Java_com_sbro_emucored_core_snes_BsnesSessionEngine_nativeCreate(JNIEnv* env,jobject,jstring path,jstring directory) {
+JNI(jlong) Java_com_sbro_emucored_core_snes_BsnesSessionEngine_nativeCreate(JNIEnv* env,jobject,jstring path,jstring directory,jobjectArray keys,jobjectArray values) {
     std::scoped_lock lock(ownership);
     if(active) return 0;
     auto rom=readBytes(utf(env,path)); if(rom.size()<32768) return 0;
     auto session=std::make_unique<Session>(); session->directory=utf(env,directory);
-    session->romHash=hashBytes(rom.data(),rom.size()); active=session.get();
+    session->romHash=hashBytes(rom.data(),rom.size());
+    if (keys && values && env->GetArrayLength(keys) == env->GetArrayLength(values)) {
+        const jsize count = env->GetArrayLength(keys);
+        for (jsize i = 0; i < count; ++i) {
+            auto key = static_cast<jstring>(env->GetObjectArrayElement(keys, i));
+            auto value = static_cast<jstring>(env->GetObjectArrayElement(values, i));
+            const bool ok = key && value && applyOptionValue(*session, utf(env, key), utf(env, value));
+            if (key) env->DeleteLocalRef(key);
+            if (value) env->DeleteLocalRef(value);
+            if (!ok) return 0;
+        }
+    }
+    active=session.get();
     retro_set_environment(environment); retro_set_video_refresh(video); retro_set_audio_sample_batch(audio);
     retro_set_input_poll(poll); retro_set_input_state(input); retro_init();
     const auto source=utf(env,path);
@@ -124,14 +141,30 @@ JNI(jboolean) Java_com_sbro_emucored_core_snes_BsnesSessionEngine_nativeStateFil
     const auto file=utf(env,path);
     if(save) { const auto size=retro_serialize_size(); if(size==0 || size>64*1024*1024) return false;
         std::vector<uint8_t> bytes(size); return retro_serialize(bytes.data(),bytes.size()) && saveEnvelope(file,s->romHash,bytes); }
-    auto bytes=loadEnvelope(file,s->romHash); return !bytes.empty() && retro_unserialize(bytes.data(),bytes.size());
+    auto bytes=loadEnvelope(file,s->romHash);
+    if(bytes.empty()) return false;
+    const auto size=retro_serialize_size();
+    std::vector<uint8_t> previous;
+    if(size>0 && size<=64*1024*1024) {
+        previous.resize(size);
+        if(!retro_serialize(previous.data(),previous.size())) previous.clear();
+    }
+    if(retro_unserialize(bytes.data(),bytes.size())) {
+        s->output.flushAudio();
+        return true;
+    }
+    if(!previous.empty()) retro_unserialize(previous.data(),previous.size());
+    return false;
 }
-JNI(jboolean) Java_com_sbro_emucored_core_snes_BsnesSessionEngine_nativeOption(JNIEnv* env,jobject,jlong handle,jstring key,jstring value) {
-    auto* s=reinterpret_cast<Session*>(handle); if(!s || s!=active) return false;
-    const auto k=utf(env,key),v=utf(env,value);
-    if(k=="aspect_ratio") return s->output.setAspectOption(v);
-    if(k=="audio_enabled" && (v=="true" || v=="false")) { s->output.muted=v=="false"; return true; }
-    if(k=="video_filter" && (v=="nearest" || v=="linear")) { s->output.linear=v=="linear"; return true; }
+JNI(void) Java_com_sbro_emucored_core_snes_BsnesSessionEngine_nativeFlushBattery(JNIEnv*,jobject,jlong handle) {
+    auto* s=reinterpret_cast<Session*>(handle);
+    if(s && s==active) emucored_bsnes_save_sram();
+}
+namespace {
+bool applyOptionValue(Session& s, const std::string& k, const std::string& v) {
+    if(k=="aspect_ratio") return s.output.setAspectOption(v);
+    if(k=="audio_enabled" && (v=="true" || v=="false")) { s.output.muted=v=="false"; return true; }
+    if(k=="video_filter" && (v=="nearest" || v=="linear")) { s.output.linear=v=="linear"; return true; }
     static const std::map<std::string,std::vector<std::string>> allowed={
         {"bsnes_ppu_fast",{"ON","OFF"}},
         {"bsnes_dsp_fast",{"ON","OFF"}},
@@ -157,5 +190,10 @@ JNI(jboolean) Java_com_sbro_emucored_core_snes_BsnesSessionEngine_nativeOption(J
         {"bsnes_run_ahead_frames",{"OFF","1","2","3","4"}},
         {"bsnes_video_filter",{"None","NTSC (RF)","NTSC (Composite)","NTSC (S-Video)","NTSC (RGB)"}}};
     auto found=allowed.find(k); if(found==allowed.end() || std::find(found->second.begin(),found->second.end(),v)==found->second.end()) return false;
-    s->options[k]=v; s->optionsChanged=true; return true;
+    s.options[k]=v; s.optionsChanged=true; return true;
+}
+}
+JNI(jboolean) Java_com_sbro_emucored_core_snes_BsnesSessionEngine_nativeOption(JNIEnv* env,jobject,jlong handle,jstring key,jstring value) {
+    auto* s=reinterpret_cast<Session*>(handle); if(!s || s!=active) return false;
+    return applyOptionValue(*s, utf(env,key), utf(env,value));
 }

@@ -874,7 +874,16 @@ fun EmulationScreen(
     LaunchedEffect(isNds, effectiveSecondScreenMode, uiState.swapScreens, uiState.isRunning) {
         if (!uiState.isRunning || singleScreenConsole) return@LaunchedEffect
         if (isNds) {
-            EmulatorBridge.setDsScreenLayout(DsSession.LAYOUT_STACKED)
+            val dsLayout = if (effectiveSecondScreenMode != AppPreferences.SECOND_SCREEN_MODE_INTEGRATED) {
+                DsSession.LAYOUT_SEPARATE
+            } else {
+                when (CoreOptionStore.value("layout_option")?.toIntOrNull() ?: 0) {
+                    1 -> DsSession.LAYOUT_TOP_ONLY
+                    3 -> DsSession.LAYOUT_SIDE_BY_SIDE
+                    else -> DsSession.LAYOUT_STACKED
+                }
+            }
+            EmulatorBridge.setDsScreenLayout(dsLayout)
             DsSession.setSwapScreens(uiState.swapScreens)
             return@LaunchedEffect
         }

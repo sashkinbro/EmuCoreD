@@ -21,6 +21,9 @@ struct AndroidOutput {
   EGLContext context = EGL_NO_CONTEXT;
   bool displayInitialized = false;
   GLuint program = 0, texture = 0;
+  GLint uBgra = -1;
+  int texWidth = 0, texHeight = 0;
+  int lastLinear = -1;
   bool muted = false, linear = false;
   double defaultAspect = 0, displayAspect = 0;
   bool setAspectOption(const std::string& value) {
@@ -31,15 +34,20 @@ struct AndroidOutput {
     else return false;
     return true;
   }
-  static constexpr uint32_t audioCapacity = 16384;
+  static constexpr uint32_t audioCapacity = 4096;
   int audioChannels = 2;
   int audioRate = 48000;
   int16_t audioQueue[audioCapacity * 2]{};
   std::atomic<uint32_t> audioRead{0}, audioWritten{0};
+  std::atomic<bool> audioFlushing{false};
   static aaudio_data_callback_result_t
   audioCallback(AAudioStream *, void *user, void *buffer, int32_t count) {
     auto *s = (AndroidOutput *)user;
     auto *out = (int16_t *)buffer;
+    if (s->audioFlushing.load(std::memory_order_acquire)) {
+      std::fill(out, out + count * s->audioChannels, 0);
+      return AAUDIO_CALLBACK_RESULT_CONTINUE;
+    }
     auto r = s->audioRead.load(std::memory_order_relaxed),
          w = s->audioWritten.load(std::memory_order_acquire);
     uint32_t n = std::min<uint32_t>(count, w - r);
@@ -71,6 +79,9 @@ struct AndroidOutput {
     context = EGL_NO_CONTEXT;
     displayInitialized = false;
     program = texture = 0;
+    uBgra = -1;
+    texWidth = texHeight = 0;
+    lastLinear = -1;
   }
   void detach() {
     resetGraphics();
@@ -83,6 +94,15 @@ struct AndroidOutput {
     if (s)
       window = ANativeWindow_fromSurface(e, s);
   }
+  void flushAudio() {
+    audioFlushing.store(true, std::memory_order_release);
+    const uint32_t w = audioWritten.load(std::memory_order_acquire);
+    audioRead.store(w, std::memory_order_release);
+    if (audio) {
+      AAudioStream_requestFlush(audio);
+    }
+    audioFlushing.store(false, std::memory_order_release);
+  }
   bool initAudio(int rate, int channels = 2) {
     if (audio) {
       AAudioStream_close(audio);
@@ -92,6 +112,7 @@ struct AndroidOutput {
     audioRate = rate;
     audioRead = 0;
     audioWritten = 0;
+    audioFlushing = false;
     AAudioStreamBuilder *b = nullptr;
     if (AAudio_createStreamBuilder(&b) != AAUDIO_OK)
       return false;
@@ -111,11 +132,13 @@ struct AndroidOutput {
     return AAudioStream_requestStart(audio) == AAUDIO_OK;
   }
   void audioWrite(const int16_t *data, int frames) {
-    if (!audio)
+    if (!data || frames <= 0)
       return;
+    if (!audio) {
+      if (!initAudio(audioRate, audioChannels)) return;
+    }
     if (AAudioStream_getState(audio) == AAUDIO_STREAM_STATE_DISCONNECTED) {
-      initAudio(audioRate, audioChannels);
-      return;
+      if (!initAudio(audioRate, audioChannels)) return;
     }
     if (muted)
       return;
@@ -130,10 +153,12 @@ struct AndroidOutput {
   }
   void pause(bool p) {
     if (audio) {
-      if (p)
+      if (p) {
         AAudioStream_requestPause(audio);
-      else
+        flushAudio();
+      } else {
         AAudioStream_requestStart(audio);
+      }
     }
   }
   GLuint shader(GLenum type, const char *source) {
@@ -181,8 +206,8 @@ struct AndroidOutput {
                       "main(){gl_Position=vec4(p,0.,1.);uv=t;}");
     GLuint f = shader(
         GL_FRAGMENT_SHADER,
-        "precision mediump float;varying vec2 uv;uniform sampler2D image;void "
-        "main(){gl_FragColor=vec4(texture2D(image,uv).rgb,1.);}");
+        "precision mediump float;varying vec2 uv;uniform sampler2D image;uniform int u_bgra;void "
+        "main(){vec4 c=texture2D(image,uv);gl_FragColor=vec4(u_bgra!=0?c.bgr:c.rgb,1.);}");
     if (!v || !f) { if(v) glDeleteShader(v); if(f) glDeleteShader(f); return fail(); }
     program = glCreateProgram();
     glAttachShader(program, v);
@@ -195,20 +220,29 @@ struct AndroidOutput {
     GLint linked = GL_FALSE;
     glGetProgramiv(program, GL_LINK_STATUS, &linked);
     if (linked != GL_TRUE) return fail();
+    uBgra = glGetUniformLocation(program, "u_bgra");
     glGenTextures(1, &texture);
+    glBindTexture(GL_TEXTURE_2D, texture);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
     return true;
   }
-  void present(const uint32_t *pixels, int w, int h) {
+  void present(const uint32_t *pixels, int w, int h, bool bgra = false) {
     if (!window || !pixels || w <= 0 || h <= 0)
       return;
     if (display == EGL_NO_DISPLAY && !initGL())
       return;
-    if (!eglMakeCurrent(display, surface, surface, context)) {
-      resetGraphics(); return;
+    if (eglGetCurrentContext() != context || eglGetCurrentSurface(EGL_DRAW) != surface) {
+      if (!eglMakeCurrent(display, surface, surface, context)) {
+        resetGraphics();
+        return;
+      }
     }
     EGLint sw = 0, sh = 0;
     eglQuerySurface(display, surface, EGL_WIDTH, &sw);
     eglQuerySurface(display, surface, EGL_HEIGHT, &sh);
+    if (sw <= 0 || sh <= 0)
+      return;
     glViewport(0, 0, sw, sh);
     glClearColor(0, 0, 0, 1);
     glClear(GL_COLOR_BUFFER_BIT);
@@ -218,16 +252,23 @@ struct AndroidOutput {
     if (!viewport.width || !viewport.height) return;
     glViewport(viewport.x, viewport.y, viewport.width, viewport.height);
     glUseProgram(program);
+    if (uBgra >= 0) glUniform1i(uBgra, bgra ? 1 : 0);
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, texture);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER,
-                    linear ? GL_LINEAR : GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER,
-                    linear ? GL_LINEAR : GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE,
-                 pixels);
+    const int wantLinear = linear ? 1 : 0;
+    if (lastLinear != wantLinear) {
+      const GLint filter = linear ? GL_LINEAR : GL_NEAREST;
+      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, filter);
+      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, filter);
+      lastLinear = wantLinear;
+    }
+    if (texWidth != w || texHeight != h) {
+      glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
+      texWidth = w;
+      texHeight = h;
+    } else {
+      glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, w, h, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
+    }
     const GLfloat p[] = {-1, -1, 1, -1, -1, 1, 1, 1},
                   uv[] = {0, 1, 1, 1, 0, 0, 1, 0};
     glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 0, p);
@@ -236,7 +277,6 @@ struct AndroidOutput {
     glEnableVertexAttribArray(1);
     glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
     if (!eglSwapBuffers(display, surface)) { resetGraphics(); return; }
-    eglMakeCurrent(display, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT);
   }
 };
 static std::string utf(JNIEnv *e, jstring s) {

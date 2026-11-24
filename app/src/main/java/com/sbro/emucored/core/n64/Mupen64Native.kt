@@ -18,4 +18,5 @@ internal object Mupen64Native {
     external fun nativeAnalog(handle: Long, player: Int, x: Float, y: Float, secondary: Boolean)
     external fun nativeStateFile(handle: Long, path: String, save: Boolean): Boolean
     external fun nativeOption(handle: Long, key: String, value: String): Boolean
+    external fun nativeFlushSave(handle: Long)
 }

@@ -17,6 +17,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.yield
 
 /** Native fibers and EGL contexts must stay on the thread that created them. */
 internal class OwnedCoreThread(
@@ -66,6 +67,7 @@ internal class OwnedCoreThread(
                         }
                         if (!runFrame()) break
                         frames++
+                        yield()
                         val rate = frameRate().takeIf { it.isFinite() && it > 0 } ?: 60.0
                         val period = (1_000_000_000.0 / (rate * speed)).toLong().coerceAtLeast(1L)
                         nextFrameAt += period
@@ -110,11 +112,13 @@ internal class OwnedCoreThread(
         }
     }
 
-    fun post(action: () -> Unit) {
-        val lane = dispatcher ?: return
-        scope?.launch {
+    fun post(action: () -> Unit): Boolean {
+        val lane = dispatcher ?: return false
+        val owner = scope ?: return false
+        owner.launch {
             if (dispatcher === lane && isRunning && !stopping) action()
         }
+        return true
     }
 
     suspend fun pause(action: () -> Unit) = call(Unit) { isPaused = true; action() }

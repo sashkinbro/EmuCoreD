@@ -152,7 +152,8 @@ internal object CoreConfig {
         put("Renderer", "use_vsync", values.vSyncEnabled.toString())
         put("Renderer", "use_frame_limit", values.frameLimitEnabled.toString())
         put("Renderer", "frame_limit", "100")
-        put("Renderer", "turbo_limit", values.fastForwardSpeed.coerceIn(1f, 5f).toInt().toString())
+        val turboPercent = Math.round(values.fastForwardSpeed.coerceIn(1f, 5f) * 100f).coerceIn(100, 500)
+        put("Renderer", "turbo_limit", turboPercent.toString())
         put("Renderer", "async_shader_compilation", "true")
         put("Renderer", "spirv_shader_gen", "true")
         // Per-title compatibility defaults. A global user choice wins; a
@@ -185,7 +186,8 @@ internal object CoreConfig {
         )
         put("Layout", "aspect_ratio", aspectRatioValue(values.aspectRatio))
         put("Layout", "upright_screen", "false")
-        put("Audio", "volume", values.audioVolume.toString())
+        val volumeFloat = if (values.audioMuted) 0f else (values.audioVolume.coerceIn(0, 100) / 100f)
+        put("Audio", "volume", String.format(java.util.Locale.US, "%.2f", volumeFloat))
         put("System", "is_new_3ds", "true")
         put("System", "region_value", "-1")
         put("Data Storage", "use_virtual_sd", "true")
@@ -196,10 +198,7 @@ internal object CoreConfig {
         CoreOptionStore.persistedEntries().forEach { (key, value) ->
             if (key in appOwnedKeys) return@forEach
             val section = storedSectionByKey[key] ?: return@forEach
-            val sectionValues = overrides.getOrPut(section) { linkedMapOf() }
-            if (key !in sectionValues) {
-                sectionValues[key] = value
-            }
+            overrides.getOrPut(section) { linkedMapOf() }[key] = value
         }
 
         // Per-game options win for the running session only.
@@ -219,6 +218,7 @@ internal object CoreConfig {
             File(root, CONFIG_FILE_NAME).takeIf { it.isFile }?.delete()
         }
         runCatching { EmuCoreNative.reloadSettings() }
+        setShaderChain(values.shaderChainEnabled, values.shaderChainPreset)
     }
 
     /** Rewrites the core config after a runtime option change. */

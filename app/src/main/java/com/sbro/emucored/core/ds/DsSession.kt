@@ -30,6 +30,8 @@ object DsSession {
     @Volatile
     private var secondarySurface: Surface? = null
 
+    private val inputLock = Any()
+    @Volatile
     private var keyMask: Int = 0xFFF
 
     private var swapScreens: Boolean = false
@@ -117,6 +119,11 @@ object DsSession {
         surface?.let { EmuCoreDsNative.nativeSurfaceChanged(it) }
         secondarySurface?.let { EmuCoreDsNative.nativeSecondarySurfaceChanged(it) }
         return true
+    }
+
+    fun requestStop() {
+        if (!isActive) return
+        runCatching { EmuCoreDsNative.nativeRequestStop() }
     }
 
     @Synchronized
@@ -286,8 +293,10 @@ object DsSession {
     }
 
     fun resetKeys() {
-        keyMask = 0xFFF
-        if (isActive) EmuCoreDsNative.nativeSetKeyMask(keyMask)
+        synchronized(inputLock) {
+            keyMask = 0xFFF
+            if (isActive) EmuCoreDsNative.nativeSetKeyMask(keyMask)
+        }
     }
 
     fun statePath(slot: Int): String? {
@@ -328,8 +337,10 @@ object DsSession {
     fun setPadButton(index: Int, pressed: Boolean) {
         if (!isActive) return
         val bit = ndsButtonBit(index) ?: return
-        keyMask = if (pressed) keyMask and (1 shl bit).inv() else keyMask or (1 shl bit)
-        EmuCoreDsNative.nativeSetKeyMask(keyMask)
+        synchronized(inputLock) {
+            keyMask = if (pressed) keyMask and (1 shl bit).inv() else keyMask or (1 shl bit)
+            EmuCoreDsNative.nativeSetKeyMask(keyMask)
+        }
     }
 
     fun touch(x: Int, y: Int, pressed: Boolean) {

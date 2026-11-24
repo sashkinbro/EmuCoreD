@@ -15,14 +15,19 @@ struct Session {
   uint64_t rom = 0;
   bool batteryReady = false;
   ~Session() {
+    flushSave();
     if (gb) {
+      GB_dealloc(gb);
+    }
+  }
+  void flushSave() {
+    if (gb && batteryReady) {
       int n = GB_save_battery_size(gb);
-      if (batteryReady && n > 0) {
+      if (n > 0) {
         std::vector<uint8_t> b(n);
         if (!GB_save_battery_to_buffer(gb, b.data(), b.size()))
           writeBytes(battery, b.data(), b.size());
       }
-      GB_dealloc(gb);
     }
   }
 };
@@ -88,17 +93,28 @@ static bool loadValidatedBattery(Session *s) {
   if (ramSize > bytes.size())
     return false;
   const size_t extra = bytes.size() - ramSize;
-  const uint8_t *rtc = bytes.data() + ramSize;
   auto timestamp = [](const uint8_t *p) {
     uint64_t value = 0;
     for (int i = 7; i >= 0; i--)
       value = (value << 8) | p[i];
     return value;
   };
-  auto validTimestamp = [&](const uint8_t *p) {
+  auto validTimestamp = [&](uint8_t *p) {
     auto t = timestamp(p);
-    return t >= 852076800ULL && t <= static_cast<uint64_t>(time(nullptr));
+    if (t < 852076800ULL)
+      return false;
+    const uint64_t now = static_cast<uint64_t>(time(nullptr));
+    if (t > now) {
+      // Clamp future RTC timestamp (e.g. clock skew or imported save) instead of rejecting launch.
+      uint64_t clamped = now;
+      for (int i = 0; i < 8; i++) {
+        p[i] = static_cast<uint8_t>(clamped & 0xFFu);
+        clamped >>= 8;
+      }
+    }
+    return true;
   };
+  uint8_t *rtc = bytes.data() + ramSize;
   if (extra == 48) {
     // VBA64: two five-register RTC banks padded to 32-bit words, then LE64
     // time.
@@ -259,8 +275,23 @@ extern "C" JNIEXPORT jboolean JNICALL JNI(nativeStateFile)(JNIEnv *e, jobject,
     return saveEnvelope(utf(e, path), s->rom, b);
   }
   b = loadEnvelope(utf(e, path), s->rom);
-  return !b.empty() &&
-         GB_load_state_from_buffer(s->gb, b.data(), b.size()) == 0;
+  if (b.empty())
+    return false;
+  std::vector<uint8_t> previous(GB_get_save_state_size(s->gb));
+  if (!previous.empty()) {
+    GB_save_state_to_buffer(s->gb, previous.data());
+  }
+  if (GB_load_state_from_buffer(s->gb, b.data(), b.size()) == 0) {
+    s->output.flushAudio();
+    return true;
+  }
+  if (!previous.empty())
+    GB_load_state_from_buffer(s->gb, previous.data(), previous.size());
+  return false;
+}
+extern "C" JNIEXPORT void JNICALL JNI(nativeFlushBattery)(JNIEnv *, jobject, jlong h) {
+  auto *s = (Session *)h;
+  if (s) s->flushSave();
 }
 extern "C" JNIEXPORT jboolean JNICALL JNI(nativeOption)(JNIEnv *e, jobject,
                                                         jlong h, jstring key,

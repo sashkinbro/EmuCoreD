@@ -3990,7 +3990,7 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
         DiscordIntegration.clearGame()
         androidGamePerformance.update(AndroidGamePhase.Idle)
         NativeApp.setPerformanceMetricsEnabled(visible = false, detailed = false)
-        if (_uiState.value.isRunning && !isShuttingDown) {
+        if ((_uiState.value.isRunning || _uiState.value.isStarting) && !isShuttingDown) {
             EmulatorBridge.resetKeyStatus()
             runCatching {
                 kotlinx.coroutines.runBlocking(Dispatchers.IO) {

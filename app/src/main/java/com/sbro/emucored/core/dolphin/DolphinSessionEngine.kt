@@ -82,6 +82,7 @@ class DolphinSessionEngine : CoreSessionEngine {
             claimed(lease)
             sessionLease = lease
             starting = true
+            touchPressedA = false
             try {
                 request.userDirectory.mkdirs()
                 val sys = installSystemData(request.context.applicationContext)
@@ -188,11 +189,18 @@ class DolphinSessionEngine : CoreSessionEngine {
     override fun setTouch(x: Int, y: Int, pressed: Boolean): Boolean = owned(false) {
         setOwnedTouch(x, y, pressed)
     }
+    private var touchPressedA = false
     private fun setOwnedTouch(x: Int, y: Int, pressed: Boolean): Boolean {
         if (!wii || profile == "classic" || width <= 0 || height <= 0) return false
         DolphinNative.control(0, 29, (2.0 * x / width - 1.0).coerceIn(-1.0, 1.0))
         DolphinNative.control(0, 30, (1.0 - 2.0 * y / height).coerceIn(-1.0, 1.0))
-        DolphinNative.control(0, 18, if (pressed) 1.0 else 0.0)
+        if (pressed) {
+            touchPressedA = true
+            DolphinNative.control(0, 18, 1.0)
+        } else if (touchPressedA) {
+            touchPressedA = false
+            DolphinNative.control(0, 18, 0.0)
+        }
         return true
     }
     override fun setSpeed(multiplier: Float): Boolean = owned(false) { DolphinNative.speed(multiplier) }

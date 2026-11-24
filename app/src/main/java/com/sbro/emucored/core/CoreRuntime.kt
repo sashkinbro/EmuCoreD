@@ -111,10 +111,10 @@ internal object CoreRuntime {
         return completed.await(5, TimeUnit.SECONDS)
     }
 
-    private val desiredPadButtons = AtomicIntegerArray(IntArray(2) { 0xFFFF })
-    private val appliedPadButtons = AtomicIntegerArray(IntArray(2) { 0xFFFF })
-    private val desiredPadAnalog = AtomicIntegerArray(IntArray(2) { 0x80808080.toInt() })
-    private val appliedPadAnalog = AtomicIntegerArray(IntArray(2) { 0x80808080.toInt() })
+    private val desiredPadButtons = AtomicIntegerArray(IntArray(4) { 0xFFFF })
+    private val appliedPadButtons = AtomicIntegerArray(IntArray(4) { 0xFFFF })
+    private val desiredPadAnalog = AtomicIntegerArray(IntArray(4) { 0x80808080.toInt() })
+    private val appliedPadAnalog = AtomicIntegerArray(IntArray(4) { 0x80808080.toInt() })
 
     // 3DS pad bit (active low) -> core button id.
     private val padButtonMap = mapOf(
@@ -461,17 +461,17 @@ internal object CoreRuntime {
     // ---------------------------------------------------------------------
 
     fun setPadButtons(port: Int, buttons: Int) {
-        if (port !in 0..1) return
+        if (port !in 0..3) return
         desiredPadButtons.set(port, buttons and 0xFFFF)
         if (AdditionalConsoleSession.isActive) { AdditionalConsoleSession.setPadButtons(port, buttons); return }
-        flushPadButtons(port)
+        if (port == 0) flushPadButtons(port)
     }
 
     fun setPadAnalog(port: Int, lx: Int, ly: Int, rx: Int, ry: Int) {
-        if (port !in 0..1) return
+        if (port !in 0..3) return
         desiredPadAnalog.set(port, packedAnalog(lx, ly, rx, ry))
         if (AdditionalConsoleSession.isActive) { AdditionalConsoleSession.setPadAnalog(port, lx, ly, rx, ry); return }
-        flushPadAnalog(port)
+        if (port == 0) flushPadAnalog(port)
     }
 
     fun setTouchState(x: Int, y: Int, pressed: Boolean) {
@@ -492,7 +492,7 @@ internal object CoreRuntime {
     }
 
     internal fun replayAdditionalInput() {
-        for (port in 0..1) {
+        for (port in 0..3) {
             AdditionalConsoleSession.setPadButtons(port, desiredPadButtons.get(port))
             val axes = desiredPadAnalog.get(port)
             AdditionalConsoleSession.setPadAnalog(port, axes and 255, (axes ushr 8) and 255,
@@ -553,7 +553,7 @@ internal object CoreRuntime {
     }
 
     private fun resetPadState() {
-        for (port in 0..1) {
+        for (port in 0..3) {
             desiredPadButtons.set(port, 0xFFFF)
             appliedPadButtons.set(port, 0xFFFF)
             desiredPadAnalog.set(port, 0x80808080.toInt())
@@ -615,7 +615,10 @@ internal object CoreRuntime {
         else EmuCoreNative.getRunningTitleId()
         if (titleId == 0L) return
         runCatching {
-            CheatEngine.getCheats()?.forEachIndexed { index, _ -> CheatEngine.removeCheat(index) }
+            val count = CheatEngine.getCheats()?.size ?: 0
+            for (index in (count - 1) downTo 0) {
+                CheatEngine.removeCheat(index)
+            }
             CheatEngine.saveCheatFile(titleId)
         }.onFailure { Log.w(TAG, "Unable to clear the core cheat file", it) }
     }
@@ -643,19 +646,22 @@ internal object CoreRuntime {
     fun setAudioGain(volume: Int, muted: Boolean) {
         CoreOptionStore.set("volume", volume.toString())
         CoreOptionStore.set("audio_muted", muted.toString())
+        CoreConfig.currentValues()?.let { current ->
+            CoreConfig.apply(current.copy(audioVolume = volume, audioMuted = muted))
+        }
     }
 
     fun setTimeControl(mode: Int) {
+        val rawTurbo = CoreOptionStore.optional("turbo_limit")?.toDoubleOrNull() ?: 2.0
+        val multiplier = (if (rawTurbo > 10.0) rawTurbo / 100.0 else rawTurbo).coerceIn(1.0, 5.0)
         if (AdditionalConsoleSession.isActive) {
-            AdditionalConsoleSession.setTimeControl(mode, CoreOptionStore.optional("turbo_limit")?.toFloatOrNull() ?: 2f)
+            AdditionalConsoleSession.setTimeControl(mode, multiplier.toFloat())
             return
         }
         // 0 normal, 1 fast forward, 2 rewind (the core has no rewind).
         if (!running) return
-        val speed = if (mode == 1) CoreOptionStore.optional("turbo_limit")?.toDoubleOrNull() ?: 2.0
-        else 0.0
         runCatching {
-            if (mode == 1) EmuCoreNative.setTemporaryFrameLimit(speed)
+            if (mode == 1) EmuCoreNative.setTemporaryFrameLimit(multiplier * 100.0)
             else EmuCoreNative.disableTemporaryFrameLimit()
         }
     }

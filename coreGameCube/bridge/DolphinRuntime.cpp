@@ -81,7 +81,9 @@ struct Runtime {
   std::atomic<int> backend{0};
   int start_result = -1;
   ANativeWindow* surface = nullptr;
-  std::vector<ANativeWindow*> retained_windows;
+  ANativeWindow* presented_surface = nullptr;
+  uint64_t surface_seq = 0;
+  uint64_t applied_surface_seq = 0;
   bool initialized = false;
   bool wii = false;
   bool user_paused = false;
@@ -309,15 +311,40 @@ std::string ReadOption(std::string key) {
 }
 
 void ApplySurface() {
-  std::lock_guard lock(runtime.mutex);
-  if (!runtime.active || !g_presenter) return;
+  ANativeWindow* next_window = nullptr;
+  ANativeWindow* prev_window = nullptr;
+  uint64_t seq = 0;
+  bool active = false;
+  bool user_paused = false;
+  {
+    std::lock_guard lock(runtime.mutex);
+    active = runtime.active && g_presenter != nullptr;
+    next_window = runtime.surface;
+    if (next_window) ANativeWindow_acquire(next_window);
+    seq = runtime.surface_seq;
+    user_paused = runtime.user_paused;
+  }
+  if (!active) {
+    if (next_window) ANativeWindow_release(next_window);
+    return;
+  }
   auto& system = Core::System::GetInstance();
-  if (!runtime.surface && Core::GetState(system) == Core::State::Running)
+  if (!next_window && Core::GetState(system) == Core::State::Running)
     Core::SetState(system, Core::State::Paused);
-  g_presenter->ChangeSurface(runtime.surface);
+  g_presenter->ChangeSurface(next_window);
   g_presenter->ResizeSurface();
-  if (runtime.surface && !runtime.user_paused && Core::GetState(system) == Core::State::Paused)
+  if (next_window && !user_paused && Core::GetState(system) == Core::State::Paused)
     Core::SetState(system, Core::State::Running);
+  {
+    std::lock_guard lock(runtime.mutex);
+    prev_window = runtime.presented_surface;
+    runtime.presented_surface = next_window;
+    if (seq > runtime.applied_surface_seq) {
+      runtime.applied_surface_seq = seq;
+    }
+  }
+  if (prev_window) ANativeWindow_release(prev_window);
+  runtime.changed.notify_all();
 }
 std::unique_ptr<BootParameters> BootFromImage(const std::string& path) {
   // SAF descriptors deliberately have no extension. Let real container headers
@@ -406,7 +433,7 @@ void HostRun(std::string path, std::string user, std::string sys, bool wii, bool
     }
   }
   for (int i = 0; i < 4; ++i)
-    Config::SetCurrent(Config::GetInfoForWiimoteSource(i), wii && i == 0 ? WiimoteSource::Emulated : WiimoteSource::None);
+    Config::SetCurrent(Config::GetInfoForWiimoteSource(i), wii ? WiimoteSource::Emulated : WiimoteSource::None);
   VideoBackendBase::ActivateBackend(Config::Get(Config::MAIN_GFX_BACKEND));
   UICommon::InitControllers(WindowSystemInfo(WindowSystemType::Android, nullptr, nullptr, nullptr));
   {
@@ -436,11 +463,14 @@ void HostRun(std::string path, std::string user, std::string sys, bool wii, bool
   SConfig::GetInstance().bBootToPause = paused;
   auto boot = BootFromImage(path);
   bool booted = false, unsupported_hardware_option = false;
+  ANativeWindow* boot_window = nullptr;
   {
     std::unique_lock lock(runtime.mutex);
     runtime.changed.wait_for(lock, 20s, [] { return runtime.surface || runtime.stop; });
     if (boot && runtime.surface && !runtime.stop) {
-      WindowSystemInfo wsi(WindowSystemType::Android, nullptr, runtime.surface, runtime.surface);
+      boot_window = runtime.surface;
+      ANativeWindow_acquire(boot_window);
+      WindowSystemInfo wsi(WindowSystemType::Android, nullptr, boot_window, boot_window);
       lock.unlock();
       // Query this selected backend before starting CPU/video emulation. A
       // requested hardware feature must not silently become a different value.
@@ -464,6 +494,22 @@ void HostRun(std::string path, std::string user, std::string sys, bool wii, bool
   }
   booted = booted && Core::IsRunning(system) && !runtime.stop;
   runtime.active = booted;
+  if (booted) {
+    ANativeWindow* current_surface = nullptr;
+    {
+      std::lock_guard lock(runtime.mutex);
+      current_surface = runtime.surface;
+      runtime.presented_surface = boot_window;
+      boot_window = nullptr;
+    }
+    if (current_surface != runtime.presented_surface) {
+      ApplySurface();
+    }
+  }
+  if (boot_window) {
+    ANativeWindow_release(boot_window);
+    boot_window = nullptr;
+  }
   if (booted && g_video_backend) {
     const auto name = g_video_backend->GetConfigName();
     runtime.backend = name == "Vulkan" ? 1 : name == "OGL" ? 2 : 0;
@@ -586,10 +632,12 @@ JNIEXPORT void JNICALL JNI_METHOD(stop)(JNIEnv*, jobject) {
 #endif
   std::lock_guard lock(runtime.mutex);
   runtime.commands.clear();
-  for (auto* window : runtime.retained_windows) ANativeWindow_release(window);
-  runtime.retained_windows.clear();
+  if (runtime.presented_surface) ANativeWindow_release(runtime.presented_surface);
+  runtime.presented_surface = nullptr;
   if (runtime.surface) ANativeWindow_release(runtime.surface);
   runtime.surface = nullptr;
+  runtime.surface_seq = 0;
+  runtime.applied_surface_seq = 0;
 }
 JNIEXPORT jint JNICALL JNI_METHOD(status)(JNIEnv*, jobject) { return runtime.active ? (runtime.paused ? 2 : 1) : 0; }
 JNIEXPORT jboolean JNICALL JNI_METHOD(pause)(JNIEnv*, jobject, jboolean pause) {
@@ -603,13 +651,25 @@ JNIEXPORT jboolean JNICALL JNI_METHOD(pause)(JNIEnv*, jobject, jboolean pause) {
 }
 JNIEXPORT void JNICALL JNI_METHOD(surface)(JNIEnv* env, jobject, jobject surface, jint, jint) {
   auto* window = surface ? ANativeWindow_fromSurface(env, surface) : nullptr;
+  ANativeWindow* superseded = nullptr;
   {
-    std::lock_guard lock(runtime.mutex);
-    if (runtime.surface) runtime.retained_windows.push_back(runtime.surface);
+    std::unique_lock lock(runtime.mutex);
+    superseded = runtime.surface;
     runtime.surface = window;
-    if (runtime.active) runtime.commands.emplace_back(ApplySurface);
-    runtime.changed.notify_all();
+    const uint64_t target_seq = ++runtime.surface_seq;
+    if (runtime.active) {
+      runtime.commands.emplace_back(ApplySurface);
+      runtime.changed.notify_all();
+      if (window == nullptr) {
+        runtime.changed.wait_for(lock, 500ms, [target_seq] {
+          return runtime.applied_surface_seq >= target_seq || !runtime.active || runtime.stop;
+        });
+      }
+    } else {
+      runtime.changed.notify_all();
+    }
   }
+  if (superseded) ANativeWindow_release(superseded);
 }
 JNIEXPORT void JNICALL JNI_METHOD(control)(JNIEnv*, jobject, jint player, jint control, jdouble value) {
   if (!runtime.active || player < 0 || player > 3 || control < 0 || control >= ciface::Touch::NUMBER_OF_CONTROLS) return;

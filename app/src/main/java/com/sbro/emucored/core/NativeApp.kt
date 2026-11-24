@@ -40,24 +40,24 @@ object NativeApp {
     // the writer and every listing agree even when the core needs a prepared
     // (materialized) launch path.
     @Volatile private var saveStateIdentityPath: String? = null
-    private val padButtons = intArrayOf(0xFFFF, 0xFFFF)
-    private val derivedDpadButtons = intArrayOf(0xFFFF, 0xFFFF)
-    private val padAnalogHalfAxes = Array(2) { IntArray(8) }
+    private val padButtons = intArrayOf(0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF)
+    private val derivedDpadButtons = intArrayOf(0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF)
+    private val padAnalogHalfAxes = Array(4) { IntArray(8) }
     // Keyboard and mouse keep their own active-low masks and analog axes. The core
     // receives the merged state, so releasing one source cannot clear another.
-    private val padSourceButtons = Array(2) {
+    private val padSourceButtons = Array(4) {
         IntArray(KEYBOARD_MOUSE_SOURCE_COUNT) { 0xFFFF }
     }
-    private val padSourceAnalogHalfAxes = Array(2) {
+    private val padSourceAnalogHalfAxes = Array(4) {
         Array(KEYBOARD_MOUSE_SOURCE_COUNT) { IntArray(8) }
     }
-    private val sourceTimeControlHeld = Array(2) {
+    private val sourceTimeControlHeld = Array(4) {
         Array(KEYBOARD_MOUSE_SOURCE_COUNT) { BooleanArray(2) }
     }
     private val combinedAnalogHalfAxes = IntArray(8)
     private val timeControlHandler = android.os.Handler(android.os.Looper.getMainLooper())
-    private val timeControlButtons = Array(2) { Array(4) { HoldButton() } }
-    private val timeControlTapPulse = Array(2) { BooleanArray(2) }
+    private val timeControlButtons = Array(4) { Array(4) { HoldButton() } }
+    private val timeControlTapPulse = Array(4) { BooleanArray(2) }
     private val _timeControlMode = MutableStateFlow(0)
     val timeControlMode: StateFlow<Int> = _timeControlMode.asStateFlow()
 
@@ -118,12 +118,8 @@ object NativeApp {
     }
 
     @JvmStatic @Synchronized fun setPadButton(padIndex: Int, index: Int, range: Int, pressed: Boolean) {
-        if (padIndex !in 0..1) return
-        val n64Start = index == PAD_START &&
-            com.sbro.emucored.core.platform.session.AdditionalConsoleSession.platform ==
-            com.sbro.emucored.core.platform.ConsolePlatform.N64
-        if ((!n64Start && (index == PAD_START || index == PAD_SELECT)) ||
-            index == PAD_FAST_FORWARD || index == PAD_REWIND) {
+        if (padIndex !in 0..3) return
+        if (index == PAD_FAST_FORWARD || index == PAD_REWIND) {
             handleTimeControlHold(padIndex, index, pressed)
             return
         }
@@ -146,7 +142,7 @@ object NativeApp {
         pressed: Boolean,
         source: Int
     ) {
-        if (padIndex !in 0..1) return
+        if (padIndex !in 0..3) return
         val sourceSlot = keyboardMouseSourceSlot(source)
         if (sourceSlot == null) {
             setPadButton(padIndex, index, range, pressed)
@@ -189,10 +185,10 @@ object NativeApp {
     @JvmStatic fun onHostMouseButton(button: Int, pressed: Boolean) = Unit
     @JvmStatic fun onHostMouseWheel(deltaX: Float, deltaY: Float) = Unit
 
-    @JvmStatic fun resetKeyStatus() { resetPadState(0); resetPadState(1) }
+    @JvmStatic fun resetKeyStatus() { for (i in 0..3) resetPadState(i) }
 
     @JvmStatic @Synchronized fun resetPadState(padIndex: Int) {
-        if (padIndex !in 0..1) return
+        if (padIndex !in 0..3) return
         timeControlButtons[padIndex].forEach { it.reset() }
         timeControlTapPulse[padIndex].fill(false)
         sourceTimeControlHeld[padIndex].forEach { it.fill(false) }
@@ -427,12 +423,12 @@ object NativeApp {
     }
 
     private fun updateTimeControl() {
-        val rewind = (0..1).any { pad ->
+        val rewind = (0..3).any { pad ->
             timeControlButtons[pad][1].active ||
                 timeControlButtons[pad][3].active ||
                 sourceTimeControlHeld[pad].any { it[1] }
         }
-        val fastForward = (0..1).any { pad ->
+        val fastForward = (0..3).any { pad ->
             timeControlButtons[pad][0].active ||
                 timeControlButtons[pad][2].active ||
                 sourceTimeControlHeld[pad].any { it[0] }

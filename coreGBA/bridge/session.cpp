@@ -23,19 +23,22 @@ struct Session {
   VFile *saveFile = nullptr;
   bool batteryReady = false;
   ~Session() {
+    flushSave();
     if (core) {
-      if (batteryReady && saveFile) {
-        GBASavedataRTCWrite(&((GBA *)core->board)->memory.savedata);
-        auto n = saveFile->size(saveFile);
-        if (n > 0) {
-          std::vector<uint8_t> data(n);
-          saveFile->seek(saveFile, 0, SEEK_SET);
-          if (saveFile->read(saveFile, data.data(), n) == n)
-            writeBytes(battery, data.data(), n);
-        }
-      }
       mCoreConfigDeinit(&core->config);
       core->deinit(core);
+    }
+  }
+  void flushSave() {
+    if (core && batteryReady && saveFile) {
+      GBASavedataRTCWrite(&((GBA *)core->board)->memory.savedata);
+      auto n = saveFile->size(saveFile);
+      if (n > 0) {
+        std::vector<uint8_t> data(n);
+        saveFile->seek(saveFile, 0, SEEK_SET);
+        if (saveFile->read(saveFile, data.data(), n) == n)
+          writeBytes(battery, data.data(), n);
+      }
     }
   }
 };
@@ -99,6 +102,10 @@ static Session *createSession(const std::string &path,
   auto save = readBytes(s->battery);
   s->saveFile = VFileMemChunk(save.data(), save.size());
   if (!s->saveFile || !s->core->loadSave(s->core, s->saveFile)) {
+    if (s->saveFile) {
+      s->saveFile->close(s->saveFile);
+      s->saveFile = nullptr;
+    }
     delete s;
     return 0;
   }
@@ -205,7 +212,21 @@ extern "C" JNIEXPORT jboolean JNICALL JNI(nativeStateFile)(JNIEnv *e, jobject,
            saveEnvelope(utf(e, path), s->rom, b);
   }
   b = loadEnvelope(utf(e, path), s->rom);
-  return b.size() == n && s->core->loadState(s->core, b.data());
+  if (b.size() != n)
+    return false;
+  std::vector<uint8_t> previous(n);
+  const bool havePrevious = s->core->saveState(s->core, previous.data());
+  if (s->core->loadState(s->core, b.data())) {
+    s->output.flushAudio();
+    return true;
+  }
+  if (havePrevious)
+    s->core->loadState(s->core, previous.data());
+  return false;
+}
+extern "C" JNIEXPORT void JNICALL JNI(nativeFlushBattery)(JNIEnv *, jobject, jlong h) {
+  auto *s = (Session *)h;
+  if (s) s->flushSave();
 }
 extern "C" JNIEXPORT jboolean JNICALL JNI(nativeOption)(JNIEnv *e, jobject,
                                                         jlong h, jstring key,

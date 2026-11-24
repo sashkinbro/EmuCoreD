@@ -273,15 +273,18 @@ object EmulatorBridge {
             if (isVmActive()) return false
             val context = getContext() ?: return false
             val dsConfig = dsLaunchConfiguration(dsRenderer, dsRenderScale)
-            return withContext(Dispatchers.IO) {
-                DsSession.start(
-                    context,
-                    path,
-                    saveStateIdentityPath ?: path,
-                    renderScale = dsConfig.renderScale,
-                    renderer = dsConfig.renderer,
-                    swapped = dsSwapScreens
-                )
+            lastSurface?.takeIf { it.isValid }?.let { DsSession.setSurface(it) }
+            return BackupSessionGate.start(active = { DsSession.isActive }) {
+                withContext(Dispatchers.IO) {
+                    DsSession.start(
+                        context,
+                        path,
+                        saveStateIdentityPath ?: path,
+                        renderScale = dsConfig.renderScale,
+                        renderer = dsConfig.renderer,
+                        swapped = dsSwapScreens
+                    )
+                }
             }
         }
         awaitPendingShutdown()
@@ -389,7 +392,7 @@ object EmulatorBridge {
     fun requestShutdown() {
         if (AdditionalConsoleSession.isActive) { AdditionalConsoleSession.requestStop(); return }
         if (DsSession.isActive) {
-            DsSession.stop()
+            DsSession.requestStop()
             return
         }
         if (!isNativeLoaded) return
@@ -410,10 +413,15 @@ object EmulatorBridge {
                 job.invokeOnCompletion { synchronized(shutdownLock) { if (shutdownJob === job) shutdownJob = null } }
             }
         }
-        if (DsSession.isActive) {
-            return serialScope.launch {
+        if (DsSession.isActive) return synchronized(shutdownLock) {
+            shutdownJob?.takeIf { it.isActive }?.let { return@synchronized it }
+            serialScope.launch {
+                resetKeyStatus()
                 DsSession.stop()
                 BackupSessionGate.stopped()
+            }.also { job ->
+                shutdownJob = job
+                job.invokeOnCompletion { synchronized(shutdownLock) { if (shutdownJob === job) shutdownJob = null } }
             }
         }
         return synchronized(shutdownLock) {

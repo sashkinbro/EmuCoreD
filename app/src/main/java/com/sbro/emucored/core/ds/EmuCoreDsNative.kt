@@ -26,6 +26,7 @@ object EmuCoreDsNative {
 
     external fun nativeGetVersion(): String
     external fun nativeStart(romPath: String, sramPath: String, userDir: String, startPaused: Boolean = false): Boolean
+    external fun nativeRequestStop()
     external fun nativeStop()
     external fun nativeReset()
     external fun nativeIsRunning(): Boolean

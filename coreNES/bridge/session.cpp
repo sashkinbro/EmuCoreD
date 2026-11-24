@@ -255,8 +255,10 @@ extern "C" JNIEXPORT jboolean JNICALL JNI(nativeStateFile)(JNIEnv *e, jobject,
   if (b.empty())
     return false;
   auto previous = state(s);
-  if (restore(s, b))
+  if (restore(s, b)) {
+    s->output.flushAudio();
     return true;
+  }
   if (!previous.empty())
     restore(s, previous);
   return false;
