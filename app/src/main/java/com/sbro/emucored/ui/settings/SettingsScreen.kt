@@ -1,5 +1,11 @@
 package com.sbro.emucored.ui.settings
 
+import com.sbro.emucored.ui.theme.style.HeaderSurface
+import androidx.compose.ui.platform.LocalConfiguration
+import com.sbro.emucored.data.theme.ThemePackageRepository
+import com.sbro.emucored.data.theme.InstalledThemePackage
+import com.sbro.emucored.ui.theme.LocalThemeExtras
+import com.sbro.emucored.ui.store.StoreEntryButton
 import androidx.compose.material3.Checkbox
 import androidx.compose.foundation.layout.FlowRow
 import android.app.Activity
@@ -125,25 +131,25 @@ import androidx.compose.material.icons.rounded.OndemandVideo
 import androidx.compose.material.icons.rounded.ColorLens
 import androidx.compose.material.icons.rounded.ZoomOutMap
 import androidx.compose.material.icons.rounded.Timelapse
-import androidx.compose.material3.Button
+import com.sbro.emucored.ui.theme.style.Button
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.DropdownMenu
+import com.sbro.emucored.ui.theme.style.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
+import com.sbro.emucored.ui.theme.style.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
+import com.sbro.emucored.ui.theme.style.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Slider
+import com.sbro.emucored.ui.common.SyncedSlider
 import androidx.compose.material3.SliderDefaults
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Switch
+import com.sbro.emucored.ui.theme.style.Surface
+import com.sbro.emucored.ui.theme.style.Switch
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
+import com.sbro.emucored.ui.theme.style.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -292,10 +298,6 @@ import kotlinx.coroutines.withContext
 import kotlin.math.roundToInt
 import com.sbro.emucored.ui.common.AppAlertDialog as AlertDialog
 import com.sbro.emucored.ui.theme.neon.LocalNeonTheme
-import com.sbro.emucored.ui.theme.neon.NeonBlack
-import com.sbro.emucored.ui.theme.neon.NeonBlue
-import com.sbro.emucored.ui.theme.neon.NeonRed
-import com.sbro.emucored.ui.theme.neon.NeonYellow
 import com.sbro.emucored.ui.theme.neon.neonAccentColor
 import com.sbro.emucored.ui.theme.neon.neonChipShape
 import com.sbro.emucored.ui.theme.neon.neonCornerAccent
@@ -1020,7 +1022,7 @@ private fun SettingsCompactTopBar(
     onSearchEnabledChange: (Boolean) -> Unit,
     onSearchQueryChange: (String) -> Unit
 ) {
-    Surface(
+    HeaderSurface(
         modifier = Modifier
             .fillMaxWidth()
             .padding(
@@ -1069,7 +1071,7 @@ private fun SettingsCompactTopBar(
                     )
                 } else {
                     Text(
-                        text = title,
+                        text = com.sbro.emucored.ui.theme.style.themedTitleCase(title),
                         style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
                         color = MaterialTheme.colorScheme.onSurface,
                         maxLines = 1,
@@ -1295,11 +1297,24 @@ private fun SettingsContent(
                                 viewModel.setOrientationLock(AppPreferences.ORIENTATION_LOCK_AUTO)
                             }
                         )
+                        val installedThemePackages by remember {
+                            ThemePackageRepository.getInstance(context)
+                        }.installed.collectAsState()
+                        val themePackageId by viewModel.themePackageId.collectAsState(initial = null)
                         ThemeSelector(
                             selected = uiState.themeMode,
                             isProUnlocked = uiState.isProUnlocked,
                             customThemeLibrary = uiState.customThemeLibrary,
+                            themePackages = installedThemePackages,
+                            activeThemePackageId = themePackageId,
                             onSelected = viewModel::setThemeMode,
+                            onThemePackageSelected = { pkg ->
+                                if (pkg.spec.requiresPro && !uiState.isProUnlocked) {
+                                    (context as? Activity)?.let { viewModel.purchasePro(it) }
+                                } else {
+                                    viewModel.applyThemePackage(pkg.id, pkg.spec.requiresPro)
+                                }
+                            },
                             onCustomThemeSelected = { themeId ->
                                 viewModel.saveCustomThemeLibrary(
                                     uiState.customThemeLibrary.copy(activeThemeId = themeId),
@@ -1310,6 +1325,7 @@ private fun SettingsContent(
                                 (context as? Activity)?.let(viewModel::purchasePro)
                             }
                         )
+                        StoreEntryButton(tab = "themes")
                         SettingsItem(
                             icon = Icons.Rounded.Palette,
                             label = stringResource(R.string.settings_theme_manager),
@@ -2602,7 +2618,7 @@ private fun CustomizationSettingsTab(
                             overflow = TextOverflow.Ellipsis
                         )
                         Surface(
-                            shape = RoundedCornerShape(50),
+                            shape = neonShape(999.dp),
                             color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.9f),
                             border = BorderStroke(
                                 1.dp,
@@ -2765,6 +2781,7 @@ private fun CustomizationSettingsTab(
                 }
             }
         }
+        StoreEntryButton(tab = "wallpapers")
         SettingsItem(
             icon = Icons.Rounded.Wallpaper,
             label = stringResource(R.string.settings_customization_background),
@@ -3017,6 +3034,7 @@ private fun CustomizationSettingsTab(
             helpText = stringResource(R.string.settings_customization_touch_controls_help),
             onResetToDefault = { viewModel.setTouchControlVisualStyle(TouchControlVisualStyle.CLASSIC) }
         )
+        StoreEntryButton(tab = "controls")
         ChoiceSection(
             title = stringResource(R.string.settings_customization_touch_press_effect),
             options = listOf(
@@ -3088,6 +3106,7 @@ private fun CustomizationSettingsTab(
             onClick = onPickCustomFont,
             helpText = stringResource(R.string.settings_customization_import_font_help)
         )
+        StoreEntryButton(tab = "fonts")
         if (uiState.customFontName != null) {
             SettingsItem(
                 icon = Icons.Rounded.DeleteOutline,
@@ -3200,6 +3219,7 @@ private fun UiSoundSettingsSection(
             helpText = stringResource(R.string.settings_customization_sound_file_help),
             onResetToDefault = { viewModel.selectUiSoundPreset(kind, UiSoundPresets.DEFAULT_ID) }
         )
+        StoreEntryButton(tab = "sounds")
         if (setting.usesCustom) {
             SettingsItem(
                 icon = Icons.Rounded.FolderOpen,
@@ -3925,13 +3945,19 @@ private fun ThemeSelector(
     selected: ThemeMode,
     isProUnlocked: Boolean,
     customThemeLibrary: CustomThemeLibrary,
+    themePackages: List<InstalledThemePackage>,
+    activeThemePackageId: String?,
     onSelected: (ThemeMode) -> Unit,
+    onThemePackageSelected: (InstalledThemePackage) -> Unit,
     onCustomThemeSelected: (String) -> Unit,
     onProLockedSelected: () -> Unit
 ) {
     val customThemes = customThemeLibrary.sanitized().themes
     val customThemeOptionStart = 100
     val neonThemeOptionValue = 50
+    val packageOptionStart = 1000
+    val supportedPackages = themePackages.filter { it.isSupported }
+    val localeTag = LocalConfiguration.current.locales[0]?.language ?: "en"
     val defaultThemeName = stringResource(R.string.theme_manager_default_name)
     val options = buildList {
         add(0 to stringResource(R.string.settings_theme_system))
@@ -3950,6 +3976,10 @@ private fun ThemeSelector(
                 .takeUnless { it == CustomThemeConfig.DEFAULT_NAME }
                 ?: defaultThemeName
             add((customThemeOptionStart + index) to name)
+        }
+        supportedPackages.forEachIndexed { index, pkg ->
+            val name = pkg.spec.displayName(localeTag)
+            add((packageOptionStart + index) to if (pkg.spec.requiresPro && !isProUnlocked) "$name (Pro)" else name)
         }
     }
     val activeCustomThemeIndex = customThemes.indexOfFirst {
@@ -3971,6 +4001,8 @@ private fun ThemeSelector(
             } else {
                 -1
             }
+            ThemeMode.PACKAGE -> supportedPackages.indexOfFirst { it.id == activeThemePackageId }
+                .let { index -> if (index >= 0) packageOptionStart + index else -1 }
         },
         onResetToDefault = { onSelected(ThemeMode.SYSTEM) },
         onSelect = { value ->
@@ -3985,6 +4017,9 @@ private fun ThemeSelector(
                     } else {
                         onProLockedSelected()
                     }
+                }
+                in packageOptionStart until packageOptionStart + supportedPackages.size -> {
+                    onThemePackageSelected(supportedPackages[value - packageOptionStart])
                 }
                 else -> onSelected(ThemeMode.SYSTEM)
             }
@@ -4069,7 +4104,7 @@ internal fun SettingsSection(
                 fontWeight = FontWeight.SemiBold,
                 letterSpacing = if (neon) 1.2.sp else MaterialTheme.typography.titleLarge.letterSpacing
             ),
-            color = if (neon) NeonYellow else MaterialTheme.colorScheme.onBackground,
+            color = if (neon) LocalThemeExtras.current.accent1 else MaterialTheme.colorScheme.onBackground,
             modifier = Modifier.padding(horizontal = horizontalPadding)
         )
         if (neon) {
@@ -4080,7 +4115,7 @@ internal fun SettingsSection(
                     .height(1.dp)
                     .background(
                         Brush.horizontalGradient(
-                            listOf(NeonRed, NeonYellow, Color.Transparent)
+                            listOf(LocalThemeExtras.current.accent3, LocalThemeExtras.current.accent1, Color.Transparent)
                         )
                     )
             ) {
@@ -4096,7 +4131,7 @@ internal fun SettingsSection(
                 color = MaterialTheme.colorScheme.surface,
                 tonalElevation = 2.dp,
                 border = if (neon) {
-                    BorderStroke(1.dp, NeonYellow.copy(alpha = 0.14f))
+                    BorderStroke(1.dp, LocalThemeExtras.current.accent1.copy(alpha = 0.14f))
                 } else {
                     null
                 }
@@ -4176,17 +4211,20 @@ internal fun SettingsItem(
             Row(
                 verticalAlignment = Alignment.CenterVertically
             ) {
+                val iconShape = com.sbro.emucored.ui.theme.style.themedIconContainerShape(neonShape(12.dp))
                 Box(
                     modifier = Modifier
                         .size(38.dp)
-                        .clip(neonShape(12.dp))
+                        .clip(iconShape ?: androidx.compose.ui.graphics.RectangleShape)
                         .then(
-                            if (LocalNeonTheme.current) {
+                            if (iconShape == null) {
                                 Modifier
-                                    .background(if (enabled) NeonBlack else NeonBlack.copy(alpha = 0.6f))
+                            } else if (LocalNeonTheme.current) {
+                                Modifier
+                                    .background(if (enabled) MaterialTheme.colorScheme.background else MaterialTheme.colorScheme.background.copy(alpha = 0.6f))
                                     .border(
                                         1.dp,
-                                        NeonBlue.copy(alpha = if (enabled) 0.35f else 0.18f),
+                                        LocalThemeExtras.current.accent2.copy(alpha = if (enabled) 0.35f else 0.18f),
                                         neonShape(12.dp)
                                     )
                             } else {
@@ -4201,7 +4239,7 @@ internal fun SettingsItem(
                         imageVector = icon,
                         contentDescription = null,
                         tint = if (LocalNeonTheme.current) {
-                            NeonBlue.copy(alpha = if (enabled) 1f else 0.5f)
+                            LocalThemeExtras.current.accent2.copy(alpha = if (enabled) 1f else 0.5f)
                         } else {
                             MaterialTheme.colorScheme.primary.copy(alpha = if (enabled) 1f else 0.5f)
                         },
@@ -4867,7 +4905,7 @@ internal fun SliderItem(
                     )
                 }
             }
-            Slider(
+            SyncedSlider(
                 value = sliderValue,
                 onValueChange = {
                     sliderValue = it
@@ -5425,7 +5463,7 @@ private fun ShaderPresetCategoryCard(
                 color = MaterialTheme.colorScheme.onSurface
             )
             Surface(
-                shape = RoundedCornerShape(50),
+                shape = neonShape(999.dp),
                 color = MaterialTheme.colorScheme.surface.copy(alpha = 0.72f),
                 border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.62f))
             ) {
@@ -6311,7 +6349,7 @@ private fun LanguageOptionCard(
                 Box(
                     modifier = Modifier
                         .size(10.dp)
-                        .clip(RoundedCornerShape(999.dp))
+                        .clip(neonShape(999.dp))
                         .background(MaterialTheme.colorScheme.primary)
                 )
             }

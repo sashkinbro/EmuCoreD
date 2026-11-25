@@ -1,5 +1,6 @@
 package com.sbro.emucored.ui.settings
 
+import kotlinx.coroutines.flow.Flow
 import android.app.Activity
 import android.app.Application
 import android.net.Uri
@@ -460,6 +461,12 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
     fun restoreProPurchases() { proPurchaseManager.restorePurchases(showMessage = true) }
 
     fun clearProPurchaseMessage() { proPurchaseManager.clearMessage() }
+
+    val themePackageId: Flow<String?> = preferences.themePackageId
+
+    fun applyThemePackage(id: String, requiresPro: Boolean) = viewModelScope.launch {
+        preferences.applyThemePackage(id, requiresPro)
+    }
 
     fun saveCustomTheme(config: CustomThemeConfig, activate: Boolean) = viewModelScope.launch {
         if (!_uiState.value.isProUnlocked) return@launch
