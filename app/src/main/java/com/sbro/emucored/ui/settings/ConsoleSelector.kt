@@ -20,7 +20,8 @@ internal fun ConsoleSelector(selected: ConsolePlatform, onSelected: (ConsolePlat
         key = { it.id },
         label = { platform -> consolePlatformLabel(platform) },
         icon = { Icons.Rounded.Gamepad },
-        verticalPadding = 0.dp,
+        // Sits right above the Settings tab row: without its own gap the two chip rows touch in compact styles.
+        verticalPadding = 6.dp,
         modifier = Modifier.testTag("settings-console-tabs")
     )
 }

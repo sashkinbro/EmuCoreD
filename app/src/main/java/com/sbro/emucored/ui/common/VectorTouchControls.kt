@@ -178,21 +178,67 @@ class ControlSkinBitmaps(
     val pressed: Map<String, ImageBitmap>,
     val opacity: Float,
     val tintFilter: ColorFilter?,
-    val pressEffect: TouchControlPressEffect?
+    val pressEffect: TouchControlPressEffect?,
+    /** Label ink per blank part ("cross", "l1", ...), from the skin's own symbol colours. */
+    val labelColors: Map<String, Color> = emptyMap()
 )
 
 /** Applied skin for the emulation overlay; null (default) keeps the built-in style art. */
 val LocalControlSkin = staticCompositionLocalOf<ControlSkinBitmaps?> { null }
 
 private val SkinControlIds = listOf(
-    "triangle", "cross", "square", "circle",
-    "dpad_up", "dpad_down", "dpad_left", "dpad_right",
-    "l1", "l2", "r1", "r2", "select", "start", "l3", "r3",
-    "left_input_toggle", "pressure"
+    "dpad_up", "dpad_down", "dpad_left", "dpad_right", "select", "start"
 )
 
+private const val SkinBlankPrefix = "blank_"
+
+/** Store skin art that drops in as is: the d-pad arrows and, without a console label, Select/Start. */
 private val drawableControlIds: Map<Int, String> by lazy {
     SkinControlIds.mapNotNull { id -> overlayDrawableForControl(id)?.let { it to id } }.toMap()
+}
+
+/**
+ * Store skins are drawn for a PlayStation pad. Every other button uses the skin's label-free art of the
+ * PlayStation button at the same spot (A on the right = circle, B at the bottom = cross, X on top = triangle,
+ * Y on the left = square) and this app draws its own label on it, so console labels (1/2, +/−, C/Z, C↑...) work.
+ */
+private val blankSkinParts: Map<Int, Pair<String, String>> = mapOf(
+    R.drawable.ic_controller_a_button to ("circle" to "A"),
+    R.drawable.ic_controller_b_button to ("cross" to "B"),
+    R.drawable.ic_controller_x_button to ("triangle" to "X"),
+    R.drawable.ic_controller_y_button to ("square" to "Y"),
+    R.drawable.ic_controller_l1_button to ("l1" to "L"),
+    R.drawable.ic_controller_l2_button to ("l2" to "ZL"),
+    R.drawable.ic_controller_r1_button to ("r1" to "R"),
+    R.drawable.ic_controller_r2_button to ("r2" to "ZR"),
+    R.drawable.ic_controller_l3_button to ("l3" to "HOME"),
+    R.drawable.ic_controller_r3_button to ("r3" to "TOUCH"),
+    R.drawable.ic_controller_select_button to ("select" to "SELECT"),
+    R.drawable.ic_controller_start_button to ("start" to "START")
+)
+
+/** Which skin image a button shows and, on blank art, the label drawn over it. */
+private class SkinArt(val id: String, val label: String?, val labelColor: Color)
+
+/** A shoulder button placed in a square slot takes round face art instead of a squashed pill. */
+private val roundPartForShoulder = mapOf("l1" to "square", "r1" to "circle", "l2" to "triangle", "r2" to "cross")
+
+private fun ControlSkinBitmaps.artFor(
+    @DrawableRes drawableRes: Int,
+    labelOverride: String?,
+    wide: Boolean
+): SkinArt? {
+    val direct = drawableControlIds[drawableRes]
+    if (direct != null && images[direct] != null &&
+        (labelOverride == null || direct.startsWith("dpad_"))
+    ) {
+        return SkinArt(direct, null, Color.Unspecified)
+    }
+    val (naturalPart, label) = blankSkinParts[drawableRes] ?: return null
+    val part = if (wide) naturalPart else roundPartForShoulder[naturalPart] ?: naturalPart
+    val id = SkinBlankPrefix + part
+    if (images[id] == null) return null
+    return SkinArt(id, labelOverride ?: label, labelColors[part] ?: Color.White)
 }
 
 private fun decodeSkinBitmap(file: java.io.File, targetPx: Int): ImageBitmap? = runCatching {
@@ -226,7 +272,7 @@ fun rememberAppliedControlSkin(): ControlSkinBitmaps? {
                     val out = HashMap<String, ImageBitmap>()
                     files.forEach { (controlId, file) ->
                         val isAnalog = controlId == "analog_base" || controlId == "analog_stick"
-                        if (!isAnalog && controlId !in SkinControlIds) return@forEach
+                        if (!isAnalog && controlId !in SkinControlIds && !controlId.startsWith(SkinBlankPrefix)) return@forEach
                         decodeSkinBitmap(file, if (isAnalog) analogPx else controlPx)
                             ?.let { out[controlId] = it }
                     }
@@ -241,7 +287,8 @@ fun rememberAppliedControlSkin(): ControlSkinBitmaps? {
                         pressed = decodeAll(pack.pressed),
                         opacity = pack.opacity,
                         tintFilter = pack.tint?.let { ColorFilter.tint(Color(it), BlendMode.Modulate) },
-                        pressEffect = pack.pressEffect
+                        pressEffect = pack.pressEffect,
+                        labelColors = pack.labelColors.mapValues { (_, argb) -> Color(argb) }
                     )
                 }
             }
@@ -273,7 +320,8 @@ fun VectorOverlayButton(
     val isPressed by interactionSource.collectIsPressedAsState()
     val isActivelyPressed = pressed || (interactive && isPressed)
     val skin = LocalControlSkin.current
-    val skinControlId = if (skin != null) drawableControlIds[drawableRes] else null
+    val skinArt = skin?.artFor(drawableRes, labelOverride, wide = width > height * 1.2f)
+    val skinControlId = skinArt?.id
     val skinImage = skinControlId?.let { skin?.images?.get(it) }
     val skinPressedImage = skinControlId?.let { skin?.pressed?.get(it) }
     val skinShown = if (isActivelyPressed && skinPressedImage != null) skinPressedImage else skinImage
@@ -452,6 +500,15 @@ fun VectorOverlayButton(
                 colorFilter = skin?.tintFilter,
                 filterQuality = FilterQuality.Medium
             )
+            val skinLabel = skinArt?.label
+            if (skinLabel != null) {
+                SkinButtonLabel(
+                    text = skinLabel,
+                    color = skinArt.labelColor,
+                    width = width,
+                    height = height
+                )
+            }
         } else if (visualStyle == TouchControlVisualStyle.CLASSIC) {
             Image(
                 painter = painterResource(
@@ -485,6 +542,35 @@ fun VectorOverlayButton(
                 modifier = Modifier.fillMaxSize(if (isShoulderButton) 0.7f else 0.54f)
             )
         }
+    }
+}
+
+/** This app's button label drawn on a Store skin's label-free art, in the skin's own label colour. */
+@Composable
+private fun SkinButtonLabel(text: String, color: Color, width: Dp, height: Dp) {
+    val wide = width > height * 1.2f
+    // Sized to the button art, not the user's font scale: the art does not grow with it either.
+    val base = if (wide) height * 0.36f else minOf(width, height) * 0.4f
+    val lengthFactor = 1f + (text.length - 1).coerceAtLeast(0) * if (wide) 0.18f else 0.38f
+    val fontSize = with(LocalDensity.current) { (base / lengthFactor).toSp() }
+    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+        Text(
+            text = text,
+            // The button's layer already carries the skin opacity.
+            color = color,
+            fontSize = fontSize,
+            fontWeight = FontWeight.ExtraBold,
+            textAlign = TextAlign.Center,
+            maxLines = 1,
+            softWrap = false,
+            style = androidx.compose.ui.text.TextStyle(
+                shadow = androidx.compose.ui.graphics.Shadow(
+                    color = Color.Black.copy(alpha = 0.35f),
+                    offset = Offset(0f, 1.5f),
+                    blurRadius = 3f
+                )
+            )
+        )
     }
 }
 
