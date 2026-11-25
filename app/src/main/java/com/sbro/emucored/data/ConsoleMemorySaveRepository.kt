@@ -18,7 +18,7 @@ data class ConsoleMemorySaveItem(
     val lastModified: Long
 ) {
     fun formattedSize(): String = when {
-        sizeBytes < 1024L -> "${sizeBytes} B"
+        sizeBytes < 1024L -> "$sizeBytes B"
         sizeBytes < 1024L * 1024L -> String.format(Locale.US, "%.1f KB", sizeBytes / 1024.0)
         else -> String.format(Locale.US, "%.2f MB", sizeBytes / (1024.0 * 1024.0))
     }
@@ -31,31 +31,39 @@ data class ConsoleMemorySaveItem(
 
 object ConsoleMemorySaveRepository {
 
-    private val consoleExtensions = setOf(
-        "sav", "srm", "eep", "fla", "sra", "mpk", "mcr", "raw", "gci", "gcp", "bin", "dsv"
-    )
+    private val cartridgeExtensions = setOf("sav", "srm", "eep", "fla", "sra", "mpk")
     private val dsExtensions = setOf("sav", "dsv")
     private val gcExtensions = setOf("raw", "gci", "gcp")
-    private val wiiNames = setOf("data.bin")
+    private val wiiSaveNames = setOf("data.bin", "banner.bin")
     private val n3dsSaveNames = setOf("00000001.sav", "main", "system.dat")
 
     fun listAll(context: Context): List<ConsoleMemorySaveItem> {
         val filesDir = context.filesDir
         val items = ArrayList<ConsoleMemorySaveItem>()
 
-        // 1. Unified console cores battery saves (NES, SNES, GB, GBC, GBA, N64) under files/consoles/
+        // 1. Unified console cartridge battery saves (NES, SNES, GB, GBC, GBA, N64)
         val consolesDir = File(filesDir, "consoles")
-        val statesPrefix = File(consolesDir, "states").canonicalPath
+        val excludedPrefixes = listOf(
+            File(consolesDir, "states").canonicalPath,
+            File(consolesDir, "dolphin").canonicalPath
+        )
         if (consolesDir.isDirectory) {
             consolesDir.walkTopDown()
-                .onEnter { dir -> runCatching { !dir.canonicalPath.startsWith(statesPrefix) }.getOrDefault(true) }
-                .filter { it.isFile && it.length() > 0L && it.extension.lowercase(Locale.ROOT) in consoleExtensions }
+                .onEnter { dir ->
+                    val cp = runCatching { dir.canonicalPath }.getOrNull() ?: return@onEnter true
+                    excludedPrefixes.none { cp == it || cp.startsWith(it + File.separator) }
+                }
+                .filter {
+                    it.isFile &&
+                        it.length() > 0L &&
+                        it.extension.lowercase(Locale.ROOT) in cartridgeExtensions
+                }
                 .forEach { file ->
                     val (cid, cshort) = inferConsoleFromPath(file.absolutePath)
                     items += ConsoleMemorySaveItem(
                         id = file.absolutePath,
                         filePath = file.absolutePath,
-                        title = formatTitle(file.nameWithoutExtension.ifBlank { file.name }),
+                        title = "$cshort ${formatTitle(file.nameWithoutExtension)}",
                         consoleId = cid,
                         consoleShort = cshort,
                         sizeBytes = file.length(),
@@ -82,16 +90,17 @@ object ConsoleMemorySaveRepository {
                 }
         }
 
-        // 3. Dolphin GameCube memory cards & GCI folders under files/dolphin/GC/
-        val gcDir = File(filesDir, "dolphin/GC")
-        if (gcDir.isDirectory) {
+        // 3. Dolphin GameCube memory cards & GCI folders (files/consoles/dolphin/GC or files/dolphin/GC)
+        for (rel in listOf("consoles/dolphin/GC", "dolphin/GC")) {
+            val gcDir = File(filesDir, rel)
+            if (!gcDir.isDirectory) continue
             gcDir.walkTopDown()
                 .filter { it.isFile && it.length() > 0L && it.extension.lowercase(Locale.ROOT) in gcExtensions }
                 .forEach { file ->
                     items += ConsoleMemorySaveItem(
                         id = file.absolutePath,
                         filePath = file.absolutePath,
-                        title = formatTitle(file.name),
+                        title = "GameCube ${formatTitle(file.nameWithoutExtension)}",
                         consoleId = "gamecube",
                         consoleShort = "GC",
                         sizeBytes = file.length(),
@@ -100,15 +109,17 @@ object ConsoleMemorySaveRepository {
                 }
         }
 
-        // 4. Dolphin Wii title save data under files/dolphin/Wii/title/
-        val wiiDir = File(filesDir, "dolphin/Wii/title")
-        if (wiiDir.isDirectory) {
+        // 4. Dolphin Wii title save data ONLY under title/<tid>/<tid>/data/
+        for (rel in listOf("consoles/dolphin/Wii/title", "dolphin/Wii/title")) {
+            val wiiDir = File(filesDir, rel)
+            if (!wiiDir.isDirectory) continue
             wiiDir.walkTopDown()
                 .filter { file ->
                     if (!file.isFile || file.length() <= 0L) return@filter false
                     val lower = file.name.lowercase(Locale.ROOT)
                     val parentName = file.parentFile?.name?.lowercase(Locale.ROOT)
-                    parentName == "data" && (lower in wiiNames || file.extension.lowercase(Locale.ROOT) in setOf("sav", "bin"))
+                    parentName == "data" &&
+                        (lower in wiiSaveNames || file.extension.lowercase(Locale.ROOT) == "sav")
                 }
                 .forEach { file ->
                     val titleId = file.parentFile?.parentFile?.name ?: file.name

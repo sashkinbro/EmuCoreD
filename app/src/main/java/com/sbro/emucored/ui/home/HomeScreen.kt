@@ -527,6 +527,7 @@ fun HomeScreen(
                     onExitShelfMode = viewModel::toggleShelfMode,
                     onLaunchGame = launchGame,
                     onLaunchSaveSlot = onLaunchSaveSlot,
+                    onOpenGameSettings = onManageGameClick,
                     modifier = Modifier.fillMaxSize()
                 )
             } else {

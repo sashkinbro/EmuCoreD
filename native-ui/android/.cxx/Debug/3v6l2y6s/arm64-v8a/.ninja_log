@@ -1,4 +1,0 @@
-# ninja log v5
-0	18798	8172361372139634	CMakeFiles/emucored_nintendoui.dir/nintendo_jni.cpp.o	c0c7d9eca9198b85
-20	25065	8172361433235872	CMakeFiles/emucored_nintendoui.dir/nintendo_renderer.cpp.o	c996adbf057f9d2f
-25065	26321	8172361442957596	C:/Users/SBRO/AndroidStudioProjects/EmuCoreD/native-ui/android/build/intermediates/cxx/Debug/3v6l2y6s/obj/arm64-v8a/libemucored_nintendoui.so	42bc539777cb6246

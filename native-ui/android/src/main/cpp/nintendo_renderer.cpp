@@ -1,69 +1,147 @@
 #include "nintendo_renderer.h"
 #include "nintendo_shaders.h"
+#include "nintendo_utils.h"
 
-#include <GLES3/gl3.h>
-#include <android/keycodes.h>
 #include <android/log.h>
 #include <algorithm>
-#include <array>
 #include <cmath>
-#include <sstream>
+#include <cstdio>
+#include <ctime>
+#include <vector>
 
 #if defined(EMUCORED_DIAGNOSTICS) && EMUCORED_DIAGNOSTICS
-#define NUI_LOGD(...) __android_log_print(ANDROID_LOG_DEBUG, "NintendoUI", __VA_ARGS__)
+#define NUI_LOGI(...) __android_log_print(ANDROID_LOG_INFO, "NintendoRenderer", __VA_ARGS__)
 #else
-#define NUI_LOGD(...) ((void)0)
+#define NUI_LOGI(...) ((void)0)
 #endif
-#define NUI_LOGE(...) __android_log_print(ANDROID_LOG_ERROR, "NintendoUI", __VA_ARGS__)
-
-namespace nintendoui::bridge {
-bool rasterizeTextBitmap(const std::string& text, float fontPx, int maxWidthPx, bool bold, int align,
-                         int& outW, int& outH, std::vector<uint8_t>& outRgba);
-}
+#define NUI_LOGE(...) __android_log_print(ANDROID_LOG_ERROR, "NintendoRenderer", __VA_ARGS__)
 
 namespace nintendoui {
 
 namespace {
 
-constexpr int kTouchDown = 0;
-constexpr int kTouchUp = 1;
-constexpr int kTouchMove = 2;
-constexpr int kTouchCancel = 3;
+constexpr size_t kMaxTextCache = 320;
+constexpr size_t kMaxImageCache = 64;
 
-enum HitAction : int {
-    HIT_HUB_CARD = 1,
-    HIT_BACK = 2,
-    HIT_GAME_TAB = 3,
-    HIT_GAME_CARD = 4,
-    HIT_SAVE_SUBTAB = 5,
-    HIT_SAVE_PRIMARY = 6,
-    HIT_SAVE_DELETE = 7,
-    HIT_SETTING_ROW = 8,
-    HIT_FOOTER_THEME = 9,
-    HIT_FOOTER_STANDARD = 10,
-    HIT_SKIP_INTRO = 11,
-};
-
-GLuint compileShader(GLenum type, const char* src) {
-    GLuint sh = glCreateShader(type);
-    if (!sh) return 0;
-    glShaderSource(sh, 1, &src, nullptr);
-    glCompileShader(sh);
-    GLint ok = GL_FALSE;
-    glGetShaderiv(sh, GL_COMPILE_STATUS, &ok);
-    if (!ok) {
-        char logBuf[512];
-        glGetShaderInfoLog(sh, sizeof(logBuf), nullptr, logBuf);
-        NUI_LOGE("Shader compile error: %s", logBuf);
-        glDeleteShader(sh);
-        return 0;
-    }
-    return sh;
+std::string MakeTextCacheKey(
+    const std::string& text,
+    float fontSize,
+    int style,
+    float maxWidth,
+    int maxLines,
+    int align,
+    int shadowMode) {
+    char buf[96];
+    std::snprintf(
+        buf, sizeof(buf), "|%.1f|%d|%.0f|%d|%d|%d",
+        fontSize, style, maxWidth, maxLines, align, shadowMode);
+    return text + buf;
 }
 
-GLuint linkProgram(const char* vertSrc, const char* fragSrc) {
-    GLuint vs = compileShader(GL_VERTEX_SHADER, vertSrc);
-    GLuint fs = compileShader(GL_FRAGMENT_SHADER, fragSrc);
+} // namespace
+
+bool NintendoRenderer::Init() {
+    if (gl_ready_) {
+        Shutdown();
+    }
+    if (!CompileShaders()) {
+        NUI_LOGE("Failed to compile Nintendo UI shaders");
+        return false;
+    }
+
+    glGenVertexArrays(1, &vao_);
+    glGenBuffers(1, &vbo_);
+    glBindVertexArray(vao_);
+    glBindBuffer(GL_ARRAY_BUFFER, vbo_);
+    glBufferData(GL_ARRAY_BUFFER, 4096 * sizeof(Vertex), nullptr, GL_STREAM_DRAW);
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), reinterpret_cast<void*>(0));
+    glEnableVertexAttribArray(1);
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), reinterpret_cast<void*>(2 * sizeof(float)));
+    glEnableVertexAttribArray(2);
+    glVertexAttribPointer(2, 4, GL_FLOAT, GL_FALSE, sizeof(Vertex), reinterpret_cast<void*>(4 * sizeof(float)));
+
+    const float fsQuad[8] = {
+        -1.0f, -1.0f,
+         1.0f, -1.0f,
+        -1.0f,  1.0f,
+         1.0f,  1.0f,
+    };
+    glGenVertexArrays(1, &fs_vao_);
+    glGenBuffers(1, &fs_vbo_);
+    glBindVertexArray(fs_vao_);
+    glBindBuffer(GL_ARRAY_BUFFER, fs_vbo_);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(fsQuad), fsQuad, GL_STATIC_DRAW);
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), nullptr);
+    glBindVertexArray(0);
+
+    const uint8_t whitePx[4] = {255, 255, 255, 255};
+    glGenTextures(1, &white_tex_);
+    glBindTexture(GL_TEXTURE_2D, white_tex_);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, 1, 1, 0, GL_RGBA, GL_UNSIGNED_BYTE, whitePx);
+
+    has_frame_tp_ = false;
+    static_idle_frames_ = 0;
+    prev_screen_ = -1;
+    screen_fade_t_ = 1.0f;
+    last_overlay_ = OVERLAY_NONE;
+    overlay_fade_t_ = 1.0f;
+    exiting_shell_ = false;
+    exit_t_ = 0.0f;
+    gl_ready_ = true;
+    NUI_LOGI("Nintendo GLES3 renderer initialized");
+    return true;
+}
+
+void NintendoRenderer::Shutdown() {
+    ClearTextCache();
+    ClearImageCache();
+    {
+        std::lock_guard<std::mutex> lock(decoded_mutex_);
+        pending_decoded_.clear();
+    }
+    if (white_tex_) { glDeleteTextures(1, &white_tex_); white_tex_ = 0; }
+    if (vbo_) { glDeleteBuffers(1, &vbo_); vbo_ = 0; }
+    if (vao_) { glDeleteVertexArrays(1, &vao_); vao_ = 0; }
+    if (fs_vbo_) { glDeleteBuffers(1, &fs_vbo_); fs_vbo_ = 0; }
+    if (fs_vao_) { glDeleteVertexArrays(1, &fs_vao_); fs_vao_ = 0; }
+
+    auto delProg = [](GLuint& p) {
+        if (p) { glDeleteProgram(p); p = 0; }
+    };
+    delProg(prog_quad_);
+    delProg(prog_bg_);
+    delProg(prog_prism_);
+    delProg(prog_panel_);
+    delProg(prog_icon_);
+    delProg(prog_scan_);
+    gl_ready_ = false;
+}
+
+GLuint NintendoRenderer::CompileProgram(const char* vsSrc, const char* fsSrc) {
+    auto compileShader = [](GLenum type, const char* src) -> GLuint {
+        GLuint s = glCreateShader(type);
+        glShaderSource(s, 1, &src, nullptr);
+        glCompileShader(s);
+        GLint ok = 0;
+        glGetShaderiv(s, GL_COMPILE_STATUS, &ok);
+        if (!ok) {
+            char logBuf[1024] = {};
+            glGetShaderInfoLog(s, sizeof(logBuf), nullptr, logBuf);
+            NUI_LOGE("Shader compile error: %s", logBuf);
+            glDeleteShader(s);
+            return 0;
+        }
+        return s;
+    };
+
+    GLuint vs = compileShader(GL_VERTEX_SHADER, vsSrc);
+    GLuint fs = compileShader(GL_FRAGMENT_SHADER, fsSrc);
     if (!vs || !fs) {
         if (vs) glDeleteShader(vs);
         if (fs) glDeleteShader(fs);
@@ -75,10 +153,11 @@ GLuint linkProgram(const char* vertSrc, const char* fragSrc) {
     glLinkProgram(prog);
     glDeleteShader(vs);
     glDeleteShader(fs);
-    GLint ok = GL_FALSE;
+
+    GLint ok = 0;
     glGetProgramiv(prog, GL_LINK_STATUS, &ok);
     if (!ok) {
-        char logBuf[512];
+        char logBuf[1024] = {};
         glGetProgramInfoLog(prog, sizeof(logBuf), nullptr, logBuf);
         NUI_LOGE("Program link error: %s", logBuf);
         glDeleteProgram(prog);
@@ -87,561 +166,270 @@ GLuint linkProgram(const char* vertSrc, const char* fragSrc) {
     return prog;
 }
 
-Color4 rgbaHex(uint32_t hex, float alpha = 1.f) {
-    return {
-        ((hex >> 16) & 0xFF) / 255.f,
-        ((hex >> 8) & 0xFF) / 255.f,
-        (hex & 0xFF) / 255.f,
-        alpha,
-    };
-}
+bool NintendoRenderer::CompileShaders() {
+    prog_quad_ = CompileProgram(kQuadVertexShader, kQuadFragmentShader);
+    prog_bg_ = CompileProgram(kFullQuadVertexShader, kNintendoBgFragmentShader);
+    prog_prism_ = CompileProgram(kRectVertexShader, kNintendoPrismFragmentShader);
+    prog_panel_ = CompileProgram(kRectVertexShader, kNintendoPanelFragmentShader);
+    prog_icon_ = CompileProgram(kRectVertexShader, kNintendoIconFragmentShader);
+    prog_scan_ = CompileProgram(kFullQuadVertexShader, kNintendoScanlineFragmentShader);
 
-float clampf(float v, float lo, float hi) {
-    return std::max(lo, std::min(hi, v));
-}
-
-float lerpf(float a, float b, float t) {
-    return a + (b - a) * clampf(t, 0.f, 1.f);
-}
-
-const std::array<const char*, 10> kConsoleOrder = {
-    "3ds", "nds", "wii", "gamecube", "n64", "snes", "nes", "gba", "gbc", "gb"
-};
-
-} // namespace
-
-NintendoRenderer::NintendoRenderer() = default;
-
-NintendoRenderer::~NintendoRenderer() {
-    releaseGlResources();
-}
-
-void NintendoRenderer::initShaders() {
-    if (progBackdrop_ && progRounded_ && progTextured_ && quadVao_) return;
-
-    progBackdrop_ = linkProgram(shaders::kQuadVert, shaders::kBackdropFrag);
-    progRounded_ = linkProgram(shaders::kQuadVert, shaders::kRoundedRectFrag);
-    progTextured_ = linkProgram(shaders::kQuadVert, shaders::kTexturedRectFrag);
-
-    static constexpr float kQuadVerts[] = {
-        0.f, 0.f, 0.f, 0.f,
-        1.f, 0.f, 1.f, 0.f,
-        0.f, 1.f, 0.f, 1.f,
-        1.f, 1.f, 1.f, 1.f,
-    };
-    glGenVertexArrays(1, &quadVao_);
-    glGenBuffers(1, &quadVbo_);
-    glBindVertexArray(quadVao_);
-    glBindBuffer(GL_ARRAY_BUFFER, quadVbo_);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(kQuadVerts), kQuadVerts, GL_STATIC_DRAW);
-    glEnableVertexAttribArray(0);
-    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), reinterpret_cast<void*>(0));
-    glEnableVertexAttribArray(1);
-    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float),
-                          reinterpret_cast<void*>(2 * sizeof(float)));
-    glBindVertexArray(0);
-}
-
-void NintendoRenderer::destroyShaders() {
-    if (progBackdrop_) { glDeleteProgram(progBackdrop_); progBackdrop_ = 0; }
-    if (progRounded_) { glDeleteProgram(progRounded_); progRounded_ = 0; }
-    if (progTextured_) { glDeleteProgram(progTextured_); progTextured_ = 0; }
-    if (quadVbo_) { glDeleteBuffers(1, &quadVbo_); quadVbo_ = 0; }
-    if (quadVao_) { glDeleteVertexArrays(1, &quadVao_); quadVao_ = 0; }
-}
-
-void NintendoRenderer::releaseGlResources() {
-    std::lock_guard lock(dataMutex_);
-    for (auto& [k, tex] : textTextures_) {
-        if (tex.texId) glDeleteTextures(1, &tex.texId);
-    }
-    textTextures_.clear();
-    for (auto& [k, tex] : imageTextures_) {
-        if (tex.texId) glDeleteTextures(1, &tex.texId);
-    }
-    imageTextures_.clear();
-    pendingUploads_.clear();
-    destroyShaders();
-}
-
-void NintendoRenderer::onSurfaceCreated() {
-    std::lock_guard lock(dataMutex_);
-    // Previous GL context may have been lost across surface recreation; zero stale IDs safely.
-    textTextures_.clear();
-    imageTextures_.clear();
-    progBackdrop_ = progRounded_ = progTextured_ = quadVao_ = quadVbo_ = 0;
-    initShaders();
-    glDisable(GL_DEPTH_TEST);
-    glDisable(GL_CULL_FACE);
-    glEnable(GL_BLEND);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-}
-
-void NintendoRenderer::computeStageViewport() {
-    float sw = static_cast<float>(std::max(1, screenW_));
-    float sh = static_cast<float>(std::max(1, screenH_));
-    float targetAspect = 0.f;
-    switch (aspectMode_) {
-        case AspectMode::Ratio16x9: targetAspect = 16.f / 9.f; break;
-        case AspectMode::Ratio16x10: targetAspect = 16.f / 10.f; break;
-        case AspectMode::Ratio4x3: targetAspect = 4.f / 3.f; break;
-        case AspectMode::Auto:
-        default: targetAspect = 0.f; break;
+    if (!prog_quad_ || !prog_bg_ || !prog_prism_ || !prog_panel_ || !prog_icon_ || !prog_scan_) {
+        return false;
     }
 
-    if (targetAspect > 0.f) {
-        float cur = sw / sh;
-        if (cur > targetAspect) {
-            stageH_ = sh;
-            stageW_ = sh * targetAspect;
-        } else {
-            stageW_ = sw;
-            stageH_ = sw / targetAspect;
+    quad_u_screen_ = glGetUniformLocation(prog_quad_, "u_screen");
+    quad_u_texture_ = glGetUniformLocation(prog_quad_, "u_texture");
+
+    bg_u_screen_ = glGetUniformLocation(prog_bg_, "u_screen");
+    bg_u_theme_ = glGetUniformLocation(prog_bg_, "u_theme");
+    bg_u_time_ = glGetUniformLocation(prog_bg_, "u_time");
+    bg_u_prisms_ = glGetUniformLocation(prog_bg_, "u_prisms");
+
+    prism_u_screen_ = glGetUniformLocation(prog_prism_, "u_screen");
+    prism_u_rect_ = glGetUniformLocation(prog_prism_, "u_rect");
+    prism_u_progress_ = glGetUniformLocation(prog_prism_, "u_progress");
+    prism_u_rot_ = glGetUniformLocation(prog_prism_, "u_rot");
+    prism_u_alpha_ = glGetUniformLocation(prog_prism_, "u_alpha");
+    prism_u_colorA_ = glGetUniformLocation(prog_prism_, "u_colorA");
+    prism_u_colorB_ = glGetUniformLocation(prog_prism_, "u_colorB");
+
+    pan_u_screen_ = glGetUniformLocation(prog_panel_, "u_screen");
+    pan_u_rect_ = glGetUniformLocation(prog_panel_, "u_rect");
+    pan_u_size_ = glGetUniformLocation(prog_panel_, "u_size");
+    pan_u_radius_ = glGetUniformLocation(prog_panel_, "u_radius");
+    pan_u_border_px_ = glGetUniformLocation(prog_panel_, "u_border_px");
+    pan_u_top_col_ = glGetUniformLocation(prog_panel_, "u_top_col");
+    pan_u_bot_col_ = glGetUniformLocation(prog_panel_, "u_bot_col");
+    pan_u_border_col_ = glGetUniformLocation(prog_panel_, "u_border_col");
+    pan_u_glow_col_ = glGetUniformLocation(prog_panel_, "u_glow_col");
+    pan_u_shimmer_ = glGetUniformLocation(prog_panel_, "u_shimmer");
+
+    icon_u_screen_ = glGetUniformLocation(prog_icon_, "u_screen");
+    icon_u_rect_ = glGetUniformLocation(prog_icon_, "u_rect");
+    icon_u_kind_ = glGetUniformLocation(prog_icon_, "u_kind");
+    icon_u_angle_ = glGetUniformLocation(prog_icon_, "u_angle");
+    icon_u_alpha_ = glGetUniformLocation(prog_icon_, "u_alpha");
+    icon_u_accent_ = glGetUniformLocation(prog_icon_, "u_accent");
+    icon_u_light_ui_ = glGetUniformLocation(prog_icon_, "u_light_ui");
+
+    scan_u_viewport_ = glGetUniformLocation(prog_scan_, "u_viewport_px");
+    scan_u_strength_ = glGetUniformLocation(prog_scan_, "u_strength");
+
+    return true;
+}
+
+void NintendoRenderer::Resize(int width, int height) {
+    surface_width_ = std::max(1, width);
+    surface_height_ = std::max(1, height);
+    static_idle_frames_ = 0;
+}
+
+void NintendoRenderer::SetSafeInsets(float leftPx, float topPx, float rightPx, float bottomPx) {
+    inset_left_px_ = std::max(0.0f, leftPx);
+    inset_top_px_ = std::max(0.0f, topPx);
+    inset_right_px_ = std::max(0.0f, rightPx);
+    inset_bottom_px_ = std::max(0.0f, bottomPx);
+    static_idle_frames_ = 0;
+}
+
+void NintendoRenderer::UpdateViewport() {
+    const float sw = static_cast<float>(std::max(1, surface_width_));
+    const float sh = static_cast<float>(std::max(1, surface_height_));
+    const bool portrait = (sh > sw);
+
+    view_x_ = 0;
+    view_y_ = 0;
+    view_width_ = surface_width_;
+    view_height_ = surface_height_;
+
+    if (settings_.aspectMode != 0) {
+        float targetRatio = 16.0f / 9.0f;
+        if (settings_.aspectMode == 2) targetRatio = 16.0f / 10.0f;
+        else if (settings_.aspectMode == 3) targetRatio = 4.0f / 3.0f;
+        if (portrait) targetRatio = 1.0f / targetRatio;
+
+        const float curRatio = sw / sh;
+        if (curRatio > targetRatio + 0.005f) {
+            view_width_ = std::max(1, static_cast<int>(std::round(sh * targetRatio)));
+            view_x_ = (surface_width_ - view_width_) / 2;
+        } else if (curRatio < targetRatio - 0.005f) {
+            view_height_ = std::max(1, static_cast<int>(std::round(sw / targetRatio)));
+            view_y_ = (surface_height_ - view_height_) / 2;
         }
-        stageX_ = (sw - stageW_) * 0.5f;
-        stageY_ = (sh - stageH_) * 0.5f;
+    }
+
+    const float vw = static_cast<float>(std::max(1, view_width_));
+    const float vh = static_cast<float>(std::max(1, view_height_));
+    if (!portrait) {
+        screen_height_ = 540.0f;
+        screen_width_ = std::clamp(540.0f * (vw / vh), 680.0f, 1280.0f);
     } else {
-        stageX_ = 0.f;
-        stageY_ = 0.f;
-        stageW_ = sw;
-        stageH_ = sh;
+        screen_width_ = 540.0f;
+        screen_height_ = std::clamp(540.0f * (vh / vw), 680.0f, 1280.0f);
     }
 
-    float minDim = std::min(stageW_, stageH_);
-    uiScale_ = clampf(minDim / 720.f, 0.72f, 2.6f);
-    bool portrait = stageW_ < stageH_;
-    gameCols_ = portrait ? 2 : (stageW_ / stageH_ >= 1.45f ? 4 : 3);
-}
+    const float pxToVirtualX = screen_width_ / vw;
+    const float pxToVirtualY = screen_height_ / vh;
+    const float barX = static_cast<float>(view_x_);
+    const float barY = static_cast<float>(view_y_);
+    safe_left_ = std::clamp((inset_left_px_ - barX) * pxToVirtualX, 0.0f, 52.0f);
+    safe_right_ = std::clamp((inset_right_px_ - barX) * pxToVirtualX, 0.0f, 52.0f);
+    safe_top_ = std::clamp((inset_top_px_ - barY) * pxToVirtualY, 0.0f, 44.0f);
+    safe_bottom_ = std::clamp((inset_bottom_px_ - barY) * pxToVirtualY, 0.0f, 44.0f);
 
-void NintendoRenderer::onSurfaceChanged(int width, int height) {
-    std::lock_guard lock(dataMutex_);
-    screenW_ = std::max(1, width);
-    screenH_ = std::max(1, height);
-    glViewport(0, 0, screenW_, screenH_);
-    computeStageViewport();
-    // Force text re-rasterization only when DPI scale changed materially
-    for (auto& [k, tex] : textTextures_) {
-        if (tex.texId) glDeleteTextures(1, &tex.texId);
+    raster_scale_ = std::clamp(vh / screen_height_, 1.25f, 2.30f);
+    if (last_raster_scale_ > 0.0f && std::fabs(raster_scale_ - last_raster_scale_) > 0.16f) {
+        ClearTextCache();
     }
-    textTextures_.clear();
+    last_raster_scale_ = raster_scale_;
 }
 
-void NintendoRenderer::setLocalizedStrings(const std::unordered_map<std::string, std::string>& strings) {
-    std::lock_guard lock(dataMutex_);
-    strings_ = strings;
-    for (auto& [k, tex] : textTextures_) {
-        if (tex.texId) glDeleteTextures(1, &tex.texId);
+void NintendoRenderer::ClearTextCache() {
+    for (auto& kv : text_cache_) {
+        if (kv.second.tex) glDeleteTextures(1, &kv.second.tex);
     }
-    textTextures_.clear();
-    rebuildGameTabs(true);
+    text_cache_.clear();
+    text_lru_.clear();
 }
 
-void NintendoRenderer::setCatalog(std::vector<GameEntry> games, std::vector<std::string> recentPaths) {
-    std::lock_guard lock(dataMutex_);
-    games_ = std::move(games);
-    recentPaths_ = std::move(recentPaths);
-    rebuildGameTabs(screen_ == Screen::Games);
+void NintendoRenderer::ClearImageCache() {
+    for (auto& kv : image_cache_) {
+        if (kv.second.tex) glDeleteTextures(1, &kv.second.tex);
+    }
+    image_cache_.clear();
+    image_lru_.clear();
 }
 
-void NintendoRenderer::rebuildGameTabs(bool preserveSelection) {
-    std::string prevTabId = (!preserveSelection || selectedGameTab_ < 0 ||
-                             selectedGameTab_ >= static_cast<int>(gameTabs_.size()))
-                                ? ""
-                                : gameTabs_[static_cast<size_t>(selectedGameTab_)].id;
+void NintendoRenderer::EvictTextCacheIfNeeded() {
+    while (text_cache_.size() >= kMaxTextCache && !text_lru_.empty()) {
+        const std::string oldest = text_lru_.back();
+        text_lru_.pop_back();
+        auto it = text_cache_.find(oldest);
+        if (it != text_cache_.end()) {
+            if (it->second.tex) glDeleteTextures(1, &it->second.tex);
+            text_cache_.erase(it);
+        }
+    }
+}
 
-    gameTabs_.clear();
-    for (auto& g : games_) g.isRecent = false;
+void NintendoRenderer::EvictImageCacheIfNeeded() {
+    while (image_cache_.size() >= kMaxImageCache && !image_lru_.empty()) {
+        const std::string oldest = image_lru_.back();
+        image_lru_.pop_back();
+        auto it = image_cache_.find(oldest);
+        if (it != image_cache_.end()) {
+            if (it->second.tex) glDeleteTextures(1, &it->second.tex);
+            image_cache_.erase(it);
+        }
+    }
+}
 
-    // Recent tab MUST appear first once >= 1 launched game exists in library
-    std::vector<int> recentIndices;
-    recentIndices.reserve(recentPaths_.size());
-    for (const auto& rp : recentPaths_) {
-        for (int i = 0; i < static_cast<int>(games_.size()); i++) {
-            if (games_[static_cast<size_t>(i)].path == rp) {
-                games_[static_cast<size_t>(i)].isRecent = true;
-                recentIndices.push_back(i);
-                break;
+void NintendoRenderer::NotifyImageDecoded(
+    const std::string& path,
+    int width, int height,
+    std::vector<uint8_t> rgba) {
+    std::lock_guard<std::mutex> lock(decoded_mutex_);
+    if (pending_decoded_.size() >= 48) {
+        pending_decoded_.pop_front();
+    }
+    pending_decoded_.push_back(PendingDecodedImage{path, width, height, std::move(rgba)});
+    static_idle_frames_ = 0;
+}
+
+bool NintendoRenderer::FlushPendingDecodedImages() {
+    if (!dirty_image_paths_.empty()) {
+        for (const auto& path : dirty_image_paths_) {
+            auto it = image_cache_.find(path);
+            if (it != image_cache_.end()) {
+                if (it->second.tex) glDeleteTextures(1, &it->second.tex);
+                image_lru_.erase(it->second.lruIt);
+                image_cache_.erase(it);
             }
         }
-    }
-    if (!recentIndices.empty()) {
-        GameTab rt;
-        rt.id = "recent";
-        rt.label = str("nintendoui_tab_recent", "Recent");
-        rt.isRecent = true;
-        rt.gameIndices = std::move(recentIndices);
-        gameTabs_.push_back(std::move(rt));
+        dirty_image_paths_.clear();
     }
 
-    // Per-console tabs in Nintendo chronological/family order
-    std::unordered_map<std::string, std::vector<int>> byConsole;
-    std::unordered_map<std::string, std::string> labelByConsole;
-    for (int i = 0; i < static_cast<int>(games_.size()); i++) {
-        const auto& g = games_[static_cast<size_t>(i)];
-        byConsole[g.consoleId].push_back(i);
-        if (labelByConsole.find(g.consoleId) == labelByConsole.end()) {
-            labelByConsole[g.consoleId] = g.consoleShort.empty() ? g.consoleLabel : g.consoleShort;
+    bool uploadedAny = false;
+    constexpr int kMaxUploadsPerFrame = 3;
+    for (int i = 0; i < kMaxUploadsPerFrame; ++i) {
+        PendingDecodedImage item;
+        {
+            std::lock_guard<std::mutex> lock(decoded_mutex_);
+            if (pending_decoded_.empty()) break;
+            item = std::move(pending_decoded_.front());
+            pending_decoded_.pop_front();
         }
-    }
-    for (const char* cid : kConsoleOrder) {
-        auto it = byConsole.find(cid);
-        if (it == byConsole.end() || it->second.empty()) continue;
-        GameTab tab;
-        tab.id = cid;
-        tab.label = labelByConsole[cid];
-        tab.isRecent = false;
-        tab.gameIndices = std::move(it->second);
-        gameTabs_.push_back(std::move(tab));
-    }
-    // Any remaining consoles not in kConsoleOrder
-    for (auto& [cid, list] : byConsole) {
-        bool already = std::any_of(gameTabs_.begin(), gameTabs_.end(),
-                                   [&](const GameTab& t) { return !t.isRecent && t.id == cid; });
-        if (!already && !list.empty()) {
-            GameTab tab;
-            tab.id = cid;
-            tab.label = labelByConsole[cid];
-            tab.isRecent = false;
-            tab.gameIndices = std::move(list);
-            gameTabs_.push_back(std::move(tab));
+        uploadedAny = true;
+
+        auto existing = image_cache_.find(item.path);
+        if (existing != image_cache_.end()) {
+            if (existing->second.tex) glDeleteTextures(1, &existing->second.tex);
+            image_lru_.erase(existing->second.lruIt);
+            image_cache_.erase(existing);
         }
-    }
 
-    if (gameTabs_.empty()) {
-        selectedGameTab_ = 0;
-        gameFocus_ = 0;
-        gameScrollY_ = targetGameScrollY_ = 0.f;
-        return;
-    }
+        EvictImageCacheIfNeeded();
 
-    if (preserveSelection && !prevTabId.empty()) {
-        for (int i = 0; i < static_cast<int>(gameTabs_.size()); i++) {
-            if (gameTabs_[static_cast<size_t>(i)].id == prevTabId) {
-                selectedGameTab_ = i;
-                int maxIdx = static_cast<int>(gameTabs_[static_cast<size_t>(i)].gameIndices.size()) - 1;
-                gameFocus_ = std::clamp(gameFocus_, 0, std::max(0, maxIdx));
-                return;
-            }
+        ImageCacheEntry entry{};
+        entry.requested = true;
+        entry.w = item.w;
+        entry.h = item.h;
+        entry.loadedAtSec = time_sec_;
+        if (item.w > 0 && item.h > 0 && item.rgba.size() >= static_cast<size_t>(item.w) * item.h * 4) {
+            glGenTextures(1, &entry.tex);
+            glBindTexture(GL_TEXTURE_2D, entry.tex);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+            glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, entry.w, entry.h, 0, GL_RGBA, GL_UNSIGNED_BYTE, item.rgba.data());
+            glGenerateMipmap(GL_TEXTURE_2D);
+        } else {
+            entry.failed = true;
         }
+        image_lru_.push_front(item.path);
+        entry.lruIt = image_lru_.begin();
+        image_cache_.emplace(item.path, entry);
     }
 
-    // Default when opening or updating from outside Games: index 0 (which is Recent when non-empty)
-    selectedGameTab_ = 0;
-    gameFocus_ = 0;
-    gameScrollY_ = targetGameScrollY_ = 0.f;
+    std::lock_guard<std::mutex> lock(decoded_mutex_);
+    return uploadedAny || !pending_decoded_.empty();
 }
 
-void NintendoRenderer::openGamesScreenDefault() {
-    screen_ = Screen::Games;
-    screenFade_ = 0.f;
-    // Recent tab MUST be selected first if present
-    selectedGameTab_ = 0;
-    gameFocus_ = 0;
-    gameScrollY_ = targetGameScrollY_ = 0.f;
-}
+const NintendoRenderer::TextCacheEntry& NintendoRenderer::GetOrCreateText(
+    const std::string& text,
+    float fontSize,
+    int style,
+    float maxWidth,
+    int maxLines,
+    int align,
+    int shadowMode) {
+    static const TextCacheEntry kEmpty{};
+    if (text.empty()) return kEmpty;
 
-void NintendoRenderer::setQuickSaves(std::vector<QuickSaveEntry> saves) {
-    std::lock_guard lock(dataMutex_);
-    quickSaves_ = std::move(saves);
-    if (savesSubTab_ == 0) {
-        saveFocus_ = std::clamp(saveFocus_, 0, std::max(0, static_cast<int>(quickSaves_.size()) - 1));
-    }
-}
-
-void NintendoRenderer::setMemorySaves(std::vector<MemorySaveEntry> saves) {
-    std::lock_guard lock(dataMutex_);
-    memorySaves_ = std::move(saves);
-    if (savesSubTab_ == 1) {
-        saveFocus_ = std::clamp(saveFocus_, 0, std::max(0, static_cast<int>(memorySaves_.size()) - 1));
-    }
-}
-
-void NintendoRenderer::setSettings(int themeId, int aspectMode, bool ecoMode, bool sfxEnabled) {
-    std::lock_guard lock(dataMutex_);
-    theme_ = static_cast<ThemeId>(std::clamp(themeId, 0, static_cast<int>(ThemeId::Count) - 1));
-    aspectMode_ = static_cast<AspectMode>(std::clamp(aspectMode, 0, static_cast<int>(AspectMode::Count) - 1));
-    ecoMode_ = ecoMode;
-    sfxEnabled_ = sfxEnabled;
-    computeStageViewport();
-}
-
-void NintendoRenderer::setClockText(std::string clockText) {
-    std::lock_guard lock(dataMutex_);
-    clockText_ = std::move(clockText);
-}
-
-void NintendoRenderer::showToast(std::string message) {
-    std::lock_guard lock(dataMutex_);
-    toastText_ = std::move(message);
-    toastTimer_ = 2.6f;
-}
-
-void NintendoRenderer::uploadImagePixels(const std::string& key, int w, int h, const std::vector<uint8_t>& rgba) {
-    std::lock_guard lock(dataMutex_);
-    pendingUploads_.emplace_back(key, std::make_tuple(w, h, rgba));
-}
-
-void NintendoRenderer::markImageFailed(const std::string& key) {
-    std::lock_guard lock(dataMutex_);
-    auto& entry = imageTextures_[key];
-    entry.pending = false;
-    entry.failed = true;
-}
-
-std::vector<HostAction> NintendoRenderer::drainActions() {
-    std::lock_guard lock(dataMutex_);
-    std::vector<HostAction> out;
-    out.swap(pendingActions_);
-    return out;
-}
-
-std::vector<std::pair<std::string, std::string>> NintendoRenderer::drainImageRequests(int maxCount) {
-    std::lock_guard lock(dataMutex_);
-    std::vector<std::pair<std::string, std::string>> out;
-    const int limit = ecoMode_ ? std::min(maxCount, 1) : maxCount;
-    while (!pendingImageRequests_.empty() && static_cast<int>(out.size()) < limit) {
-        out.push_back(std::move(pendingImageRequests_.front()));
-        pendingImageRequests_.erase(pendingImageRequests_.begin());
-    }
-    return out;
-}
-
-void NintendoRenderer::queueAction(HostAction action) {
-    pendingActions_.push_back(std::move(action));
-}
-
-void NintendoRenderer::triggerSfx(SfxType sfx) {
-    if (!sfxEnabled_) return;
-    HostAction a;
-    a.type = HostActionType::PlaySfx;
-    a.intArg1 = static_cast<int>(sfx);
-    pendingActions_.push_back(std::move(a));
-}
-
-const std::string& NintendoRenderer::str(const char* key, const char* fallback) const {
-    auto it = strings_.find(key);
-    if (it != strings_.end() && !it->second.empty()) return it->second;
-    static const std::string kEmpty;
-    auto [ins, _] = const_cast<std::unordered_map<std::string, std::string>&>(strings_)
-                        .emplace(std::string(key), std::string(fallback));
-    return ins->second;
-}
-
-ThemePalette NintendoRenderer::palette() const {
-    switch (theme_) {
-        case ThemeId::WiiPearl:
-            return {
-                .bgTop = rgbaHex(0xEDF4FA),
-                .bgBottom = rgbaHex(0xD3E3F0),
-                .headerBg = rgbaHex(0xF8FBFF, 0.92f),
-                .cardBgTop = rgbaHex(0xFFFFFF, 0.96f),
-                .cardBgBottom = rgbaHex(0xEDF3F8, 0.96f),
-                .cardSelectedBgTop = rgbaHex(0xFFFFFF, 1.0f),
-                .cardSelectedBgBottom = rgbaHex(0xE1F4FC, 1.0f),
-                .borderNormal = rgbaHex(0xB8CCDD, 0.85f),
-                .borderFocus = rgbaHex(0x009AC7, 1.0f),
-                .accentA = rgbaHex(0x009AC7),
-                .accentB = rgbaHex(0x36C2F0),
-                .textPrimary = rgbaHex(0x182534),
-                .textSecondary = rgbaHex(0x52697F),
-                .textOnAccent = rgbaHex(0xFFFFFF),
-                .tabBg = rgbaHex(0xDDE8F2, 0.90f),
-                .toastBg = rgbaHex(0x122233, 0.92f),
-            };
-        case ThemeId::GameCubeIndigo:
-            return {
-                .bgTop = rgbaHex(0x161133),
-                .bgBottom = rgbaHex(0x2A205E),
-                .headerBg = rgbaHex(0x1D1645, 0.90f),
-                .cardBgTop = rgbaHex(0x2C2361, 0.94f),
-                .cardBgBottom = rgbaHex(0x20194A, 0.94f),
-                .cardSelectedBgTop = rgbaHex(0x3D3285, 1.0f),
-                .cardSelectedBgBottom = rgbaHex(0x2C2266, 1.0f),
-                .borderNormal = rgbaHex(0x52459E, 0.72f),
-                .borderFocus = rgbaHex(0x9A8CFF, 1.0f),
-                .accentA = rgbaHex(0x7C68FF),
-                .accentB = rgbaHex(0xB4A7FF),
-                .textPrimary = rgbaHex(0xF2F3FF),
-                .textSecondary = rgbaHex(0xB3B7DF),
-                .textOnAccent = rgbaHex(0xFFFFFF),
-                .tabBg = rgbaHex(0x231B50, 0.92f),
-                .toastBg = rgbaHex(0x0F0C24, 0.95f),
-            };
-        case ThemeId::FamicomCrimson:
-            return {
-                .bgTop = rgbaHex(0x6D101B),
-                .bgBottom = rgbaHex(0x430911),
-                .headerBg = rgbaHex(0x5B0D17, 0.92f),
-                .cardBgTop = rgbaHex(0xF8F1E3, 0.97f),
-                .cardBgBottom = rgbaHex(0xEAE0CA, 0.97f),
-                .cardSelectedBgTop = rgbaHex(0xFFFDF7, 1.0f),
-                .cardSelectedBgBottom = rgbaHex(0xF6EAD1, 1.0f),
-                .borderNormal = rgbaHex(0xBA9858, 0.70f),
-                .borderFocus = rgbaHex(0xF0BA49, 1.0f),
-                .accentA = rgbaHex(0xC92638),
-                .accentB = rgbaHex(0xE8B44B),
-                .textPrimary = rgbaHex(0x2B1917),
-                .textSecondary = rgbaHex(0x6F5149),
-                .textOnAccent = rgbaHex(0xFFFFFF),
-                .tabBg = rgbaHex(0x821725, 0.92f),
-                .toastBg = rgbaHex(0x2A070C, 0.95f),
-            };
-        case ThemeId::GameBoyClassic:
-            return {
-                .bgTop = rgbaHex(0xA4B55E),
-                .bgBottom = rgbaHex(0x899A48),
-                .headerBg = rgbaHex(0x98A955, 0.94f),
-                .cardBgTop = rgbaHex(0xBAC976, 0.96f),
-                .cardBgBottom = rgbaHex(0xA7B764, 0.96f),
-                .cardSelectedBgTop = rgbaHex(0xCFDC8E, 1.0f),
-                .cardSelectedBgBottom = rgbaHex(0xBBC978, 1.0f),
-                .borderNormal = rgbaHex(0x4F6331, 0.78f),
-                .borderFocus = rgbaHex(0x132910, 1.0f),
-                .accentA = rgbaHex(0x2B4A22),
-                .accentB = rgbaHex(0x436835),
-                .textPrimary = rgbaHex(0x12260F),
-                .textSecondary = rgbaHex(0x364D26),
-                .textOnAccent = rgbaHex(0xD2DF94),
-                .tabBg = rgbaHex(0x94A451, 0.92f),
-                .toastBg = rgbaHex(0x12260F, 0.95f),
-            };
-        case ThemeId::SwitchMidnight:
-        default:
-            return {
-                .bgTop = rgbaHex(0x11151C),
-                .bgBottom = rgbaHex(0x1B222E),
-                .headerBg = rgbaHex(0x161B24, 0.92f),
-                .cardBgTop = rgbaHex(0x222936, 0.96f),
-                .cardBgBottom = rgbaHex(0x1B212C, 0.96f),
-                .cardSelectedBgTop = rgbaHex(0x2A3446, 1.0f),
-                .cardSelectedBgBottom = rgbaHex(0x212938, 1.0f),
-                .borderNormal = rgbaHex(0x384357, 0.80f),
-                .borderFocus = rgbaHex(0x0AB9E6, 1.0f),
-                .accentA = rgbaHex(0x0AB9E6),
-                .accentB = rgbaHex(0xFF4554),
-                .textPrimary = rgbaHex(0xF4F7FA),
-                .textSecondary = rgbaHex(0x98A5B8),
-                .textOnAccent = rgbaHex(0xFFFFFF),
-                .tabBg = rgbaHex(0x1E2531, 0.92f),
-                .toastBg = rgbaHex(0x0B0E13, 0.95f),
-            };
-    }
-}
-
-Color4 NintendoRenderer::consoleBadgeColor(const std::string& consoleId) const {
-    if (consoleId == "3ds") return rgbaHex(0xCE181E);
-    if (consoleId == "nds") return rgbaHex(0x4D586B);
-    if (consoleId == "wii") return rgbaHex(0x009AC7);
-    if (consoleId == "gamecube") return rgbaHex(0x6956CE);
-    if (consoleId == "n64") return rgbaHex(0x1F8A4C);
-    if (consoleId == "snes") return rgbaHex(0x6E50B8);
-    if (consoleId == "nes") return rgbaHex(0xB8252E);
-    if (consoleId == "gba") return rgbaHex(0x493EA6);
-    if (consoleId == "gbc") return rgbaHex(0xD98218);
-    return rgbaHex(0x557536); // gb
-}
-
-void NintendoRenderer::drawBackdrop() {
-    if (!progBackdrop_ || !quadVao_) return;
-    const auto pal = palette();
-    glUseProgram(progBackdrop_);
-    glUniform4f(glGetUniformLocation(progBackdrop_, "uRect"), 0.f, 0.f,
-                static_cast<float>(screenW_), static_cast<float>(screenH_));
-    glUniform2f(glGetUniformLocation(progBackdrop_, "uScreen"),
-                static_cast<float>(screenW_), static_cast<float>(screenH_));
-    glUniform4f(glGetUniformLocation(progBackdrop_, "uBgTop"),
-                pal.bgTop.r, pal.bgTop.g, pal.bgTop.b, pal.bgTop.a);
-    glUniform4f(glGetUniformLocation(progBackdrop_, "uBgBottom"),
-                pal.bgBottom.r, pal.bgBottom.g, pal.bgBottom.b, pal.bgBottom.a);
-    glUniform4f(glGetUniformLocation(progBackdrop_, "uAccentA"),
-                pal.accentA.r, pal.accentA.g, pal.accentA.b, pal.accentA.a);
-    glUniform4f(glGetUniformLocation(progBackdrop_, "uAccentB"),
-                pal.accentB.r, pal.accentB.g, pal.accentB.b, pal.accentB.a);
-    glUniform1f(glGetUniformLocation(progBackdrop_, "uTime"), time_);
-    glUniform1i(glGetUniformLocation(progBackdrop_, "uEcoMode"), ecoMode_ ? 1 : 0);
-    glUniform1i(glGetUniformLocation(progBackdrop_, "uThemeStyle"), static_cast<int>(theme_));
-
-    glBindVertexArray(quadVao_);
-    glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-
-    // Subtle pillarbox/letterbox frame when forced aspect ratio doesn't match screen
-    if (stageX_ > 1.f || stageY_ > 1.f) {
-        Color4 bar{0.f, 0.f, 0.f, 0.62f};
-        if (stageX_ > 1.f) {
-            drawRoundedRect(0.f, 0.f, stageX_, static_cast<float>(screenH_), 0.f, bar, bar, bar, 0.f);
-            drawRoundedRect(stageX_ + stageW_, 0.f, static_cast<float>(screenW_) - (stageX_ + stageW_),
-                            static_cast<float>(screenH_), 0.f, bar, bar, bar, 0.f);
+    const int effAlign = (maxLines <= 1) ? 0 : align;
+    const int effShadow = (shadowMode < 0) ? DefaultShadowMode() : shadowMode;
+    const std::string key = MakeTextCacheKey(text, fontSize, style, maxWidth, maxLines, effAlign, effShadow);
+    auto it = text_cache_.find(key);
+    if (it != text_cache_.end()) {
+        if (it->second.lruIt != text_lru_.begin()) {
+            text_lru_.splice(text_lru_.begin(), text_lru_, it->second.lruIt);
         }
-        if (stageY_ > 1.f) {
-            drawRoundedRect(0.f, 0.f, static_cast<float>(screenW_), stageY_, 0.f, bar, bar, bar, 0.f);
-            drawRoundedRect(0.f, stageY_ + stageH_, static_cast<float>(screenW_),
-                            static_cast<float>(screenH_) - (stageY_ + stageH_), 0.f, bar, bar, bar, 0.f);
-        }
-    }
-}
-
-void NintendoRenderer::drawRoundedRect(float x, float y, float w, float h, float radius,
-                                       const Color4& top, const Color4& bottom,
-                                       const Color4& border, float borderWidth, float glow) {
-    if (!progRounded_ || !quadVao_ || w <= 0.5f || h <= 0.5f) return;
-    glUseProgram(progRounded_);
-    glUniform4f(glGetUniformLocation(progRounded_, "uRect"), x, y, w, h);
-    glUniform2f(glGetUniformLocation(progRounded_, "uScreen"),
-                static_cast<float>(screenW_), static_cast<float>(screenH_));
-    glUniform4f(glGetUniformLocation(progRounded_, "uColorTop"), top.r, top.g, top.b, top.a);
-    glUniform4f(glGetUniformLocation(progRounded_, "uColorBottom"), bottom.r, bottom.g, bottom.b, bottom.a);
-    glUniform4f(glGetUniformLocation(progRounded_, "uBorderColor"), border.r, border.g, border.b, border.a);
-    glUniform1f(glGetUniformLocation(progRounded_, "uRadius"), radius);
-    glUniform1f(glGetUniformLocation(progRounded_, "uBorderWidth"), borderWidth);
-    glUniform1f(glGetUniformLocation(progRounded_, "uGlow"), ecoMode_ ? 0.f : glow);
-
-    glBindVertexArray(quadVao_);
-    glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-}
-
-void NintendoRenderer::drawTexturedRect(float x, float y, float w, float h, GLuint texId,
-                                        const Color4& tint, float radius, bool rounded) {
-    if (!progTextured_ || !quadVao_ || !texId || w <= 0.5f || h <= 0.5f) return;
-    glUseProgram(progTextured_);
-    glUniform4f(glGetUniformLocation(progTextured_, "uRect"), x, y, w, h);
-    glUniform2f(glGetUniformLocation(progTextured_, "uScreen"),
-                static_cast<float>(screenW_), static_cast<float>(screenH_));
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, texId);
-    glUniform1i(glGetUniformLocation(progTextured_, "uTex"), 0);
-    glUniform4f(glGetUniformLocation(progTextured_, "uTint"), tint.r, tint.g, tint.b, tint.a);
-    glUniform1f(glGetUniformLocation(progTextured_, "uRadius"), radius);
-    glUniform1i(glGetUniformLocation(progTextured_, "uUseRounded"), rounded ? 1 : 0);
-
-    glBindVertexArray(quadVao_);
-    glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-}
-
-GLuint NintendoRenderer::acquireTextTexture(const std::string& text, float fontPx, int maxWidthPx,
-                                              bool bold, int align, int& outW, int& outH) {
-    if (text.empty()) {
-        outW = outH = 0;
-        return 0;
-    }
-    const int quantizedW = std::max(32, ((maxWidthPx + 7) / 8) * 8);
-    const int quantizedSize = std::max(10, static_cast<int>(std::round(fontPx)));
-    std::ostringstream oss;
-    oss << quantizedSize << ':' << quantizedW << ':' << (bold ? 1 : 0) << ':' << align << ':' << text;
-    const std::string cacheKey = oss.str();
-
-    auto it = textTextures_.find(cacheKey);
-    if (it != textTextures_.end()) {
-        it->second.lastUsedFrame = frameIndex_;
-        outW = it->second.width;
-        outH = it->second.height;
-        return it->second.texId;
+        return it->second;
     }
 
-    int w = 0, h = 0;
+    int texW = 0, texH = 0;
+    float logW = 0.0f, logH = 0.0f;
     std::vector<uint8_t> rgba;
-    if (!bridge::rasterizeTextBitmap(text, static_cast<float>(quantizedSize), quantizedW, bold, align, w, h, rgba)) {
-        return 0;
+    if (!HostRasterizeText(
+            text, fontSize, style, maxWidth, maxLines, effAlign, raster_scale_, effShadow,
+            texW, texH, logW, logH, rgba)) {
+        return kEmpty;
     }
+
+    EvictTextCacheIfNeeded();
 
     GLuint tex = 0;
     glGenTextures(1, &tex);
@@ -650,1120 +438,995 @@ GLuint NintendoRenderer::acquireTextTexture(const std::string& text, float fontP
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, rgba.data());
+    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, texW, texH, 0, GL_RGBA, GL_UNSIGNED_BYTE, rgba.data());
 
-    textTextures_[cacheKey] = CachedTexture{tex, w, h, false, false, frameIndex_};
-    outW = w;
-    outH = h;
-    return tex;
+    text_lru_.push_front(key);
+    TextCacheEntry entry{tex, logW, logH, text_lru_.begin()};
+    auto [insIt, _] = text_cache_.emplace(key, entry);
+    return insIt->second;
 }
 
-GLuint NintendoRenderer::acquireCoverTexture(const std::string& key, const std::string& path) {
-    if (key.empty() || path.empty()) return 0;
-    auto it = imageTextures_.find(key);
-    if (it != imageTextures_.end()) {
-        it->second.lastUsedFrame = frameIndex_;
-        return it->second.texId;
+const NintendoRenderer::ImageCacheEntry& NintendoRenderer::GetOrCreateImage(const std::string& path, int maxDim) {
+    static const ImageCacheEntry kEmpty{};
+    if (path.empty()) return kEmpty;
+
+    auto it = image_cache_.find(path);
+    if (it != image_cache_.end()) {
+        if (it->second.lruIt != image_lru_.begin()) {
+            image_lru_.splice(image_lru_.begin(), image_lru_, it->second.lruIt);
+        }
+        return it->second;
     }
-    auto& entry = imageTextures_[key];
-    entry.pending = true;
-    entry.lastUsedFrame = frameIndex_;
-    pendingImageRequests_.emplace_back(key, path);
-    return 0;
+
+    EvictImageCacheIfNeeded();
+
+    ImageCacheEntry entry{};
+    entry.requested = true;
+    image_lru_.push_front(path);
+    entry.lruIt = image_lru_.begin();
+    auto [insIt, _] = image_cache_.emplace(path, entry);
+
+    HostRequestDecodeImage(path, std::clamp(maxDim, 64, 512));
+    return insIt->second;
 }
 
-void NintendoRenderer::evictUnusedTexturesIfNeeded() {
-    if (textTextures_.size() > 280) {
-        std::vector<std::pair<uint64_t, std::string>> order;
-        order.reserve(textTextures_.size());
-        for (const auto& [k, v] : textTextures_) order.emplace_back(v.lastUsedFrame, k);
-        std::sort(order.begin(), order.end());
-        size_t removeCount = textTextures_.size() - 200;
-        for (size_t i = 0; i < removeCount; i++) {
-            auto it = textTextures_.find(order[i].second);
-            if (it != textTextures_.end()) {
-                if (it->second.texId) glDeleteTextures(1, &it->second.texId);
-                textTextures_.erase(it);
-            }
-        }
-    }
-    if (imageTextures_.size() > 140) {
-        std::vector<std::pair<uint64_t, std::string>> order;
-        order.reserve(imageTextures_.size());
-        for (const auto& [k, v] : imageTextures_) {
-            if (!v.pending) order.emplace_back(v.lastUsedFrame, k);
-        }
-        std::sort(order.begin(), order.end());
-        size_t removeCount = std::min(order.size(), imageTextures_.size() - 100);
-        for (size_t i = 0; i < removeCount; i++) {
-            auto it = imageTextures_.find(order[i].second);
-            if (it != imageTextures_.end()) {
-                if (it->second.texId) glDeleteTextures(1, &it->second.texId);
-                imageTextures_.erase(it);
-            }
-        }
-    }
+float NintendoRenderer::ImageAlpha(const ImageCacheEntry& entry) const {
+    if (!entry.tex) return 0.0f;
+    if (settings_.motionMode == 3) return 1.0f;
+    return Clamp01((time_sec_ - entry.loadedAtSec) / 0.22f);
 }
 
-void NintendoRenderer::drawText(const std::string& text, float x, float y, float maxW,
-                                float fontPx, const Color4& color, int align, bool bold, float* outH) {
-    int w = 0, h = 0;
-    GLuint tex = acquireTextTexture(text, fontPx, static_cast<int>(maxW), bold, align, w, h);
-    if (outH) *outH = static_cast<float>(h);
-    if (!tex || w <= 0 || h <= 0) return;
+void NintendoRenderer::MeasureText(
+    const std::string& text,
+    float fontSize, int style,
+    float maxWidth, int maxLines,
+    float& outW, float& outH, int shadowMode) {
+    const auto& entry = GetOrCreateText(text, fontSize, style, maxWidth, maxLines, 0, shadowMode);
+    outW = entry.logW;
+    outH = entry.logH;
+}
+
+void NintendoRenderer::DrawText(
+    const std::string& text,
+    float x, float y,
+    float fontSize, int style,
+    const RgbaColor& color,
+    float maxWidth, int maxLines,
+    int align, float boxW, int shadowMode) {
+    if (text.empty() || color.a <= 0.005f) return;
+    const auto& entry = GetOrCreateText(text, fontSize, style, maxWidth, maxLines, align, shadowMode);
+    if (!entry.tex || entry.logW <= 0.0f || entry.logH <= 0.0f) return;
 
     float drawX = x;
-    if (align == 1) drawX = x + (maxW - static_cast<float>(w)) * 0.5f;
-    else if (align == 2) drawX = x + (maxW - static_cast<float>(w));
-    drawTexturedRect(drawX, y, static_cast<float>(w), static_cast<float>(h), tex, color, 0.f, false);
-}
-
-void NintendoRenderer::drawConsoleBadge(float x, float y, float w, float h, const std::string& consoleId,
-                                        const std::string& shortLabel) {
-    Color4 c = consoleBadgeColor(consoleId);
-    Color4 dark{c.r * 0.8f, c.g * 0.8f, c.b * 0.8f, 1.f};
-    Color4 border{1.f, 1.f, 1.f, 0.25f};
-    drawRoundedRect(x, y, w, h, h * 0.38f, c, dark, border, 1.2f * uiScale_);
-    float textH = 0.f;
-    float fpx = clampf(h * 0.56f, 12.f, 28.f);
-    drawText(shortLabel, x, y + (h - fpx * 1.25f) * 0.5f, w, fpx, {1.f, 1.f, 1.f, 1.f}, 1, true, &textH);
-}
-
-void NintendoRenderer::renderIntro() {
-    const auto pal = palette();
-    float dur = ecoMode_ ? 1.25f : 1.85f;
-    float p = clampf(introElapsed_ / dur, 0.f, 1.f);
-    float ease = 1.f - std::pow(1.f - clampf(p / 0.55f, 0.f, 1.f), 3.f);
-    float fadeOut = p > 0.82f ? 1.f - clampf((p - 0.82f) / 0.18f, 0.f, 1.f) : 1.f;
-
-    float cx = stageX_ + stageW_ * 0.5f;
-    float cy = stageY_ + stageH_ * 0.46f;
-    float emblemSize = 96.f * uiScale_ * lerpf(0.75f, 1.0f, ease);
-
-    // Subtle geometric Nintendo-inspired twin-capsule emblem + outer halo (no cringy text!)
-    Color4 glowBorder{pal.accentA.r, pal.accentA.g, pal.accentA.b, 0.65f * fadeOut};
-    drawRoundedRect(cx - emblemSize * 1.08f, cy - emblemSize * 0.56f,
-                    emblemSize * 0.94f, emblemSize * 1.12f, 22.f * uiScale_,
-                    {pal.accentA.r, pal.accentA.g, pal.accentA.b, 0.95f * fadeOut},
-                    {pal.accentA.r * 0.8f, pal.accentA.g * 0.8f, pal.accentA.b * 0.8f, 0.95f * fadeOut},
-                    glowBorder, 2.5f * uiScale_, 0.6f * fadeOut);
-    drawRoundedRect(cx + emblemSize * 0.14f, cy - emblemSize * 0.56f,
-                    emblemSize * 0.94f, emblemSize * 1.12f, 22.f * uiScale_,
-                    {pal.accentB.r, pal.accentB.g, pal.accentB.b, 0.95f * fadeOut},
-                    {pal.accentB.r * 0.8f, pal.accentB.g * 0.8f, pal.accentB.b * 0.8f, 0.95f * fadeOut},
-                    {pal.accentB.r, pal.accentB.g, pal.accentB.b, 0.65f * fadeOut},
-                    2.5f * uiScale_, 0.6f * fadeOut);
-    // Clean analog dot accents inside twin capsules
-    Color4 dotColor{pal.textOnAccent.r, pal.textOnAccent.g, pal.textOnAccent.b, fadeOut};
-    float dotR = 16.f * uiScale_;
-    drawRoundedRect(cx - emblemSize * 0.61f - dotR * 0.5f, cy - emblemSize * 0.24f, dotR, dotR, dotR * 0.5f,
-                    dotColor, dotColor, dotColor, 0.f);
-    drawRoundedRect(cx + emblemSize * 0.61f - dotR * 0.5f, cy + emblemSize * 0.08f, dotR, dotR, dotR * 0.5f,
-                    dotColor, dotColor, dotColor, 0.f);
-
-    float wordY = cy + emblemSize * 0.78f;
-    Color4 titleColor{pal.textPrimary.r, pal.textPrimary.g, pal.textPrimary.b, ease * fadeOut};
-    drawText("EmuCoreD", stageX_, wordY, stageW_, 42.f * uiScale_, titleColor, 1, true);
-
-    float barW = 240.f * uiScale_ * ease;
-    drawRoundedRect(cx - barW * 0.5f, wordY + 56.f * uiScale_, barW, 4.f * uiScale_, 2.f * uiScale_,
-                    {pal.accentA.r, pal.accentA.g, pal.accentA.b, 0.9f * fadeOut},
-                    {pal.accentB.r, pal.accentB.g, pal.accentB.b, 0.9f * fadeOut},
-                    {0, 0, 0, 0}, 0.f);
-
-    hitTargets_.push_back({{stageX_, stageY_, stageW_, stageH_}, HIT_SKIP_INTRO, 0, 0});
-}
-
-void NintendoRenderer::renderHeader(const std::string& titleText, bool showBackButton) {
-    const auto pal = palette();
-    float padX = 28.f * uiScale_;
-    float topY = stageY_ + 18.f * uiScale_;
-    float barH = 60.f * uiScale_;
-
-    drawRoundedRect(stageX_ + padX, topY, stageW_ - padX * 2.f, barH, 18.f * uiScale_,
-                    pal.headerBg, pal.headerBg, pal.borderNormal, 1.5f * uiScale_);
-
-    float titleX = stageX_ + padX + 20.f * uiScale_;
-    if (showBackButton) {
-        float backW = 112.f * uiScale_;
-        float backH = 38.f * uiScale_;
-        float backX = stageX_ + padX + 12.f * uiScale_;
-        float backY = topY + (barH - backH) * 0.5f;
-        drawRoundedRect(backX, backY, backW, backH, 12.f * uiScale_,
-                        pal.tabBg, pal.tabBg, pal.borderFocus, 1.5f * uiScale_);
-        drawText(str("nintendoui_action_back", "Back"), backX + 6.f * uiScale_,
-                 backY + 7.f * uiScale_, backW - 12.f * uiScale_, 19.f * uiScale_,
-                 pal.textPrimary, 1, true);
-        hitTargets_.push_back({{backX, backY, backW, backH}, HIT_BACK, 0, 0});
-        titleX = backX + backW + 16.f * uiScale_;
+    if (align == 1 && boxW > 0.0f) {
+        drawX = x + (boxW - entry.logW) * 0.5f;
+    } else if (align == 2 && boxW > 0.0f) {
+        drawX = x + (boxW - entry.logW);
     }
-
-    drawText(titleText, titleX, topY + 14.f * uiScale_, stageW_ * 0.56f, 26.f * uiScale_,
-             pal.textPrimary, 0, true);
-
-    // Clock & status pill on right side
-    float clockW = 110.f * uiScale_;
-    drawText(clockText_, stageX_ + stageW_ - padX - clockW - 14.f * uiScale_,
-             topY + 17.f * uiScale_, clockW, 21.f * uiScale_, pal.textSecondary, 2, true);
+    PushQuad(entry.tex, drawX, y, entry.logW, entry.logH, color);
 }
 
-void NintendoRenderer::renderHub() {
-    const auto pal = palette();
-    renderHeader("EmuCoreD", false);
-
-    float padX = 28.f * uiScale_;
-    float areaX = stageX_ + padX;
-    float areaY = stageY_ + 98.f * uiScale_;
-    float areaW = stageW_ - padX * 2.f;
-    float areaH = stageH_ - 176.f * uiScale_;
-
-    bool portrait = stageW_ < stageH_;
-    std::array<std::string, 3> titles = {
-        str("nintendoui_menu_games", "Games"),
-        str("nintendoui_menu_saves", "Save Data"),
-        str("nintendoui_menu_settings", "Settings"),
-    };
-
-    std::string recCountText = !recentPaths_.empty()
-        ? str("nintendoui_tab_recent", "Recent") + " • "
-        : "";
-    std::string gamesSub = recCountText + std::to_string(games_.size()) + " • " +
-                           std::to_string(std::max(0, static_cast<int>(gameTabs_.size()) - (!recentPaths_.empty() ? 1 : 0))) + " " +
-                           str("nintendoui_unit_consoles", "consoles");
-    std::string savesSub = std::to_string(quickSaves_.size()) + " " + str("nintendoui_saves_tab_quick", "Quick Saves") +
-                           "  •  " + std::to_string(memorySaves_.size()) + " " + str("nintendoui_saves_tab_memory", "Memory Cards");
-    std::array<std::string, 3> subs = {
-        gamesSub,
-        savesSub,
-        str("nintendoui_settings_subtitle", "Themes • Aspect • Eco Mode"),
-    };
-
-    float gap = 20.f * uiScale_;
-    for (int i = 0; i < 3; i++) {
-        bool focused = (hubFocus_ == i);
-        UiRect r;
-        if (portrait) {
-            float ch = (areaH - gap * 2.f) / 3.f;
-            r = {areaX, areaY + i * (ch + gap), areaW, ch};
-        } else {
-            float cw = (areaW - gap * 2.f) / 3.f;
-            float ch = std::min(areaH * 0.78f, cw * 1.05f);
-            float cy = areaY + (areaH - ch) * 0.45f;
-            r = {areaX + i * (cw + gap), cy, cw, ch};
-        }
-
-        float scaleBoost = focused ? 1.035f + 0.008f * std::sin(focusPulse_) : 1.0f;
-        float dw = r.w * scaleBoost;
-        float dh = r.h * scaleBoost;
-        float dx = r.x - (dw - r.w) * 0.5f;
-        float dy = r.y - (dh - r.h) * 0.5f;
-
-        Color4 top = focused ? pal.cardSelectedBgTop : pal.cardBgTop;
-        Color4 bot = focused ? pal.cardSelectedBgBottom : pal.cardBgBottom;
-        Color4 border = focused ? pal.borderFocus : pal.borderNormal;
-        float bw = focused ? 3.5f * uiScale_ : 1.5f * uiScale_;
-        float glow = focused ? (0.65f + 0.25f * std::sin(focusPulse_)) : 0.f;
-
-        drawRoundedRect(dx, dy, dw, dh, 24.f * uiScale_, top, bot, border, bw, glow);
-
-        // Top Nintendo accent bar inside channel tile
-        Color4 barC = (i == 0) ? pal.accentA : (i == 1 ? pal.accentB : border);
-        drawRoundedRect(dx + 18.f * uiScale_, dy + 16.f * uiScale_, dw - 36.f * uiScale_,
-                        8.f * uiScale_, 4.f * uiScale_, barC, barC, barC, 0.f);
-
-        // Clean geometric channel emblem inside the card
-        float iconSize = portrait ? dh * 0.44f : dh * 0.34f;
-        float iconX = portrait ? dx + 26.f * uiScale_ : dx + (dw - iconSize) * 0.5f;
-        float iconY = portrait ? dy + (dh - iconSize) * 0.5f : dy + dh * 0.22f;
-        drawRoundedRect(iconX, iconY, iconSize, iconSize, 18.f * uiScale_,
-                        barC, {barC.r * 0.75f, barC.g * 0.75f, barC.b * 0.75f, 1.f},
-                        {1.f, 1.f, 1.f, 0.25f}, 1.5f * uiScale_);
-        if (i == 0) {
-            // Game card miniature grid motif
-            float cell = iconSize * 0.24f;
-            float gx = iconX + iconSize * 0.22f;
-            float gy = iconY + iconSize * 0.22f;
-            Color4 wcol{1.f, 1.f, 1.f, 0.92f};
-            for (int r0 = 0; r0 < 2; r0++)
-                for (int c0 = 0; c0 < 2; c0++)
-                    drawRoundedRect(gx + c0 * (cell + 6.f * uiScale_), gy + r0 * (cell + 6.f * uiScale_),
-                                    cell, cell, 4.f * uiScale_, wcol, wcol, wcol, 0.f);
-        } else if (i == 1) {
-            // Memory card / Save cartridge notch silhouette
-            Color4 wcol{1.f, 1.f, 1.f, 0.92f};
-            drawRoundedRect(iconX + iconSize * 0.24f, iconY + iconSize * 0.20f,
-                            iconSize * 0.52f, iconSize * 0.60f, 6.f * uiScale_, wcol, wcol, wcol, 0.f);
-            drawRoundedRect(iconX + iconSize * 0.34f, iconY + iconSize * 0.26f,
-                            iconSize * 0.32f, iconSize * 0.16f, 2.f * uiScale_, barC, barC, barC, 0.f);
-        } else {
-            // Settings slider bars motif
-            Color4 wcol{1.f, 1.f, 1.f, 0.92f};
-            for (int r0 = 0; r0 < 3; r0++) {
-                float sy = iconY + iconSize * (0.28f + r0 * 0.19f);
-                drawRoundedRect(iconX + iconSize * 0.22f, sy, iconSize * 0.56f, 5.f * uiScale_,
-                                2.5f * uiScale_, wcol, wcol, wcol, 0.f);
-            }
-        }
-
-        if (portrait) {
-            float tx = iconX + iconSize + 20.f * uiScale_;
-            float tw = dx + dw - tx - 18.f * uiScale_;
-            drawText(titles[static_cast<size_t>(i)], tx, dy + dh * 0.28f, tw, 28.f * uiScale_, pal.textPrimary, 0, true);
-            drawText(subs[static_cast<size_t>(i)], tx, dy + dh * 0.58f, tw, 17.f * uiScale_, pal.textSecondary, 0, false);
-        } else {
-            float textY = dy + dh * 0.66f;
-            drawText(titles[static_cast<size_t>(i)], dx + 16.f * uiScale_, textY,
-                     dw - 32.f * uiScale_, 27.f * uiScale_, pal.textPrimary, 1, true);
-            drawText(subs[static_cast<size_t>(i)], dx + 14.f * uiScale_, textY + 38.f * uiScale_,
-                     dw - 28.f * uiScale_, 16.f * uiScale_, pal.textSecondary, 1, false);
-        }
-
-        hitTargets_.push_back({{dx, dy, dw, dh}, HIT_HUB_CARD, i, 0});
-    }
+void NintendoRenderer::BeginQuadBatch() {
+    batch_verts_.clear();
+    batch_tex_ = 0;
 }
 
-void NintendoRenderer::renderGames() {
-    const auto pal = palette();
-    renderHeader(str("nintendoui_menu_games", "Games"), true);
-
-    float padX = 28.f * uiScale_;
-    float tabY = stageY_ + 88.f * uiScale_;
-    float tabH = 42.f * uiScale_;
-
-    if (gameTabs_.empty()) {
-        drawText(str("nintendoui_empty_games", "No games found in configured folders."),
-                 stageX_ + padX, stageY_ + stageH_ * 0.44f, stageW_ - padX * 2.f,
-                 22.f * uiScale_, pal.textSecondary, 1, false);
+void NintendoRenderer::FlushQuadBatch() {
+    if (batch_verts_.empty() || !batch_tex_) {
+        batch_verts_.clear();
         return;
     }
+    glUseProgram(prog_quad_);
+    glUniform2f(quad_u_screen_, screen_width_, screen_height_);
+    glUniform1i(quad_u_texture_, 0);
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, batch_tex_);
+    glBindVertexArray(vao_);
+    glBindBuffer(GL_ARRAY_BUFFER, vbo_);
+    const size_t byteSize = batch_verts_.size() * sizeof(Vertex);
+    glBufferSubData(GL_ARRAY_BUFFER, 0, static_cast<GLsizeiptr>(byteSize), batch_verts_.data());
+    glDrawArrays(GL_TRIANGLES, 0, static_cast<GLsizei>(batch_verts_.size()));
+    batch_verts_.clear();
+}
 
-    // Horizontal tab strip (Recent first when available + per-console tabs)
-    float curX = stageX_ + padX;
-    float maxTabEnd = stageX_ + stageW_ - padX;
-    for (int i = 0; i < static_cast<int>(gameTabs_.size()); i++) {
-        const auto& tab = gameTabs_[static_cast<size_t>(i)];
-        bool active = (i == selectedGameTab_);
-        std::string label = tab.label + " (" + std::to_string(tab.gameIndices.size()) + ")";
-        float pillW = clampf((static_cast<float>(label.size()) * 11.5f + 34.f) * uiScale_,
-                             96.f * uiScale_, 220.f * uiScale_);
-        if (curX + pillW > maxTabEnd) break;
-
-        Color4 bgTop = active ? pal.accentA : pal.tabBg;
-        Color4 bgBot = active ? Color4{pal.accentA.r * 0.85f, pal.accentA.g * 0.85f, pal.accentA.b * 0.85f, 1.f} : pal.tabBg;
-        Color4 brd = active ? pal.borderFocus : pal.borderNormal;
-        Color4 txt = active ? pal.textOnAccent : pal.textPrimary;
-
-        drawRoundedRect(curX, tabY, pillW, tabH, 14.f * uiScale_, bgTop, bgBot, brd,
-                        active ? 2.f * uiScale_ : 1.f * uiScale_);
-        drawText(label, curX + 8.f * uiScale_, tabY + 9.f * uiScale_, pillW - 16.f * uiScale_,
-                 17.f * uiScale_, txt, 1, active);
-
-        hitTargets_.push_back({{curX, tabY, pillW, tabH}, HIT_GAME_TAB, i, 0});
-        curX += pillW + 10.f * uiScale_;
+void NintendoRenderer::PushQuad(
+    GLuint tex,
+    float x, float y, float w, float h,
+    const RgbaColor& cTop, const RgbaColor& cBot,
+    float u0, float v0, float u1, float v1) {
+    if (!tex || w <= 0.0f || h <= 0.0f) return;
+    if (batch_tex_ != tex || batch_verts_.size() >= 3900) {
+        FlushQuadBatch();
+        batch_tex_ = tex;
     }
+    const float x2 = x + w;
+    const float y2 = y + h;
+    batch_verts_.push_back({x,  y,  u0, v0, cTop.r, cTop.g, cTop.b, cTop.a});
+    batch_verts_.push_back({x2, y,  u1, v0, cTop.r, cTop.g, cTop.b, cTop.a});
+    batch_verts_.push_back({x2, y2, u1, v1, cBot.r, cBot.g, cBot.b, cBot.a});
+    batch_verts_.push_back({x,  y,  u0, v0, cTop.r, cTop.g, cTop.b, cTop.a});
+    batch_verts_.push_back({x2, y2, u1, v1, cBot.r, cBot.g, cBot.b, cBot.a});
+    batch_verts_.push_back({x,  y2, u0, v1, cBot.r, cBot.g, cBot.b, cBot.a});
+}
 
-    const auto& curTab = gameTabs_[static_cast<size_t>(std::clamp(selectedGameTab_, 0, static_cast<int>(gameTabs_.size()) - 1))];
-    float gridX = stageX_ + padX;
-    float gridY = tabY + tabH + 16.f * uiScale_;
-    float gridW = stageW_ - padX * 2.f;
-    float gridH = (stageY_ + stageH_ - 64.f * uiScale_) - gridY;
+void NintendoRenderer::PushQuad(GLuint tex, float x, float y, float w, float h, const RgbaColor& c) {
+    PushQuad(tex, x, y, w, h, c, c);
+}
 
-    int cols = std::max(1, gameCols_);
-    float gap = 16.f * uiScale_;
-    float cardW = (gridW - gap * (cols - 1)) / static_cast<float>(cols);
-    float coverH = cardW * 0.82f;
-    float cardH = coverH + 62.f * uiScale_;
+void NintendoRenderer::PushTriangle(
+    float x0, float y0, const RgbaColor& c0,
+    float x1, float y1, const RgbaColor& c1,
+    float x2, float y2, const RgbaColor& c2) {
+    if (batch_tex_ != white_tex_ || batch_verts_.size() >= 3900) {
+        FlushQuadBatch();
+        batch_tex_ = white_tex_;
+    }
+    batch_verts_.push_back({x0, y0, 0.5f, 0.5f, c0.r, c0.g, c0.b, c0.a});
+    batch_verts_.push_back({x1, y1, 0.5f, 0.5f, c1.r, c1.g, c1.b, c1.a});
+    batch_verts_.push_back({x2, y2, 0.5f, 0.5f, c2.r, c2.g, c2.b, c2.a});
+}
 
-    glEnable(GL_SCISSOR_TEST);
-    glScissor(static_cast<GLint>(stageX_), static_cast<GLint>(screenH_ - (gridY + gridH)),
-              static_cast<GLsizei>(stageW_), static_cast<GLsizei>(std::max(1.f, gridH)));
+void NintendoRenderer::PushLine(float x0, float y0, float x1, float y1, float thickness, const RgbaColor& c) {
+    const float dx = x1 - x0;
+    const float dy = y1 - y0;
+    const float len = std::sqrt(dx * dx + dy * dy);
+    if (len < 0.001f || thickness <= 0.01f) return;
+    const float nx = (-dy / len) * (thickness * 0.5f);
+    const float ny = (dx / len) * (thickness * 0.5f);
+    PushTriangle(x0 - nx, y0 - ny, c, x1 - nx, y1 - ny, c, x1 + nx, y1 + ny, c);
+    PushTriangle(x0 - nx, y0 - ny, c, x1 + nx, y1 + ny, c, x0 + nx, y0 + ny, c);
+}
 
-    for (int idx = 0; idx < static_cast<int>(curTab.gameIndices.size()); idx++) {
-        int row = idx / cols;
-        int col = idx % cols;
-        float cx = gridX + col * (cardW + gap);
-        float cy = gridY + row * (cardH + gap) - gameScrollY_;
-        if (cy + cardH < gridY - 20.f || cy > gridY + gridH + 20.f) continue;
+void NintendoRenderer::PushCircleOutline(float cx, float cy, float radius, float thickness, int segs, const RgbaColor& c) {
+    if (radius <= 0.5f || segs < 6) return;
+    const float rIn = std::max(0.0f, radius - thickness * 0.5f);
+    const float rOut = radius + thickness * 0.5f;
+    for (int i = 0; i < segs; ++i) {
+        const float a0 = (static_cast<float>(i) / segs) * kTwoPi;
+        const float a1 = (static_cast<float>(i + 1) / segs) * kTwoPi;
+        const float c0 = std::cos(a0), s0 = std::sin(a0);
+        const float c1 = std::cos(a1), s1 = std::sin(a1);
+        PushTriangle(cx + c0 * rIn, cy + s0 * rIn, c, cx + c0 * rOut, cy + s0 * rOut, c, cx + c1 * rOut, cy + s1 * rOut, c);
+        PushTriangle(cx + c0 * rIn, cy + s0 * rIn, c, cx + c1 * rOut, cy + s1 * rOut, c, cx + c1 * rIn, cy + s1 * rIn, c);
+    }
+}
 
-        const auto& g = games_[static_cast<size_t>(curTab.gameIndices[static_cast<size_t>(idx)])];
-        bool focused = (idx == gameFocus_);
+void NintendoRenderer::DrawPanel(
+    float x, float y, float w, float h,
+    float radius, float borderPx,
+    const RgbaColor& topCol, const RgbaColor& botCol, const RgbaColor& borderCol,
+    const RgbaColor& glowCol, float shimmer) {
+    if (w <= 0.5f || h <= 0.5f) return;
+    FlushQuadBatch();
 
-        float s = focused ? 1.035f : 1.0f;
-        float dw = cardW * s;
-        float dh = cardH * s;
-        float dx = cx - (dw - cardW) * 0.5f;
-        float dy = cy - (dh - cardH) * 0.5f;
+    glUseProgram(prog_panel_);
+    glUniform2f(pan_u_screen_, screen_width_, screen_height_);
+    glUniform4f(pan_u_rect_, x, y, w, h);
+    glUniform2f(pan_u_size_, w, h);
+    glUniform1f(pan_u_radius_, radius);
+    glUniform1f(pan_u_border_px_, borderPx);
+    glUniform4f(pan_u_top_col_, topCol.r, topCol.g, topCol.b, topCol.a);
+    glUniform4f(pan_u_bot_col_, botCol.r, botCol.g, botCol.b, botCol.a);
+    glUniform4f(pan_u_border_col_, borderCol.r, borderCol.g, borderCol.b, borderCol.a);
+    glUniform4f(pan_u_glow_col_, glowCol.r, glowCol.g, glowCol.b, glowCol.a);
+    glUniform1f(pan_u_shimmer_, shimmer);
 
-        drawRoundedRect(dx, dy, dw, dh, 16.f * uiScale_,
-                        focused ? pal.cardSelectedBgTop : pal.cardBgTop,
-                        focused ? pal.cardSelectedBgBottom : pal.cardBgBottom,
-                        focused ? pal.borderFocus : pal.borderNormal,
-                        focused ? 3.f * uiScale_ : 1.2f * uiScale_,
-                        focused ? 0.5f : 0.f);
+    glBindVertexArray(fs_vao_);
+    glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+}
 
-        float artPad = 8.f * uiScale_;
-        float artW = dw - artPad * 2.f;
-        float artH = coverH - artPad;
-        GLuint coverTex = acquireCoverTexture(g.coverKey, g.coverPath);
-        if (coverTex) {
-            drawTexturedRect(dx + artPad, dy + artPad, artW, artH, coverTex, {1.f, 1.f, 1.f, 1.f},
-                             11.f * uiScale_, true);
+void NintendoRenderer::DrawPrismEmblem(
+    float cx, float cy, float radius, float progress, float rotRad, float alpha) {
+    if (radius <= 1.0f || alpha <= 0.005f || progress <= 0.005f) return;
+    FlushQuadBatch();
+
+    const RgbaColor colA = PrimaryAccentColor(1.0f);
+    const RgbaColor colB = SecondaryAccentColor(1.0f);
+    const float d = radius * 2.0f;
+    glUseProgram(prog_prism_);
+    glUniform2f(prism_u_screen_, screen_width_, screen_height_);
+    glUniform4f(prism_u_rect_, cx - radius, cy - radius, d, d);
+    glUniform1f(prism_u_progress_, Clamp01(progress));
+    glUniform1f(prism_u_rot_, rotRad);
+    glUniform1f(prism_u_alpha_, Clamp01(alpha));
+    glUniform4f(prism_u_colorA_, colA.r, colA.g, colA.b, colA.a);
+    glUniform4f(prism_u_colorB_, colB.r, colB.g, colB.b, colB.a);
+
+    glBindVertexArray(fs_vao_);
+    glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+}
+
+void NintendoRenderer::DrawShaderIcon(
+    int kind, float cx, float cy, float radius, float angleRad, float alpha, const RgbaColor& accent) {
+    if (radius <= 1.0f || alpha <= 0.005f) return;
+    FlushQuadBatch();
+
+    const float d = radius * 2.0f;
+    glUseProgram(prog_icon_);
+    glUniform2f(icon_u_screen_, screen_width_, screen_height_);
+    glUniform4f(icon_u_rect_, cx - radius, cy - radius, d, d);
+    glUniform1i(icon_u_kind_, kind);
+    glUniform1f(icon_u_angle_, angleRad);
+    glUniform1f(icon_u_alpha_, Clamp01(alpha));
+    glUniform4f(icon_u_accent_, accent.r, accent.g, accent.b, accent.a);
+    glUniform1i(icon_u_light_ui_, IsLightTheme() ? 1 : 0);
+
+    glBindVertexArray(fs_vao_);
+    glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+}
+
+void NintendoRenderer::DrawImageAspectFit(
+    const ImageCacheEntry& img,
+    float x, float y, float w, float h,
+    float alpha,
+    bool fillCrop) {
+    if (!img.tex || img.w <= 0 || img.h <= 0 || alpha <= 0.005f) return;
+    const float srcAspect = static_cast<float>(img.w) / static_cast<float>(img.h);
+    const float dstAspect = w / std::max(1.0f, h);
+
+    if (!fillCrop) {
+        float drawW = w;
+        float drawH = h;
+        if (srcAspect > dstAspect) {
+            drawH = w / srcAspect;
         } else {
-            Color4 c = consoleBadgeColor(g.consoleId);
-            drawRoundedRect(dx + artPad, dy + artPad, artW, artH, 11.f * uiScale_,
-                            {c.r * 0.42f, c.g * 0.42f, c.b * 0.42f, 1.f},
-                            {c.r * 0.20f, c.g * 0.20f, c.b * 0.20f, 1.f},
-                            {1.f, 1.f, 1.f, 0.14f}, 1.f * uiScale_);
-            drawConsoleBadge(dx + artPad + (artW - 88.f * uiScale_) * 0.5f,
-                             dy + artPad + (artH - 32.f * uiScale_) * 0.5f,
-                             88.f * uiScale_, 32.f * uiScale_, g.consoleId, g.consoleShort);
+            drawW = h * srcAspect;
         }
-
-        // Console pill corner overlay
-        drawConsoleBadge(dx + artPad + 6.f * uiScale_, dy + artPad + 6.f * uiScale_,
-                         64.f * uiScale_, 23.f * uiScale_, g.consoleId, g.consoleShort);
-
-        drawText(g.title, dx + 10.f * uiScale_, dy + coverH + 6.f * uiScale_,
-                 dw - 20.f * uiScale_, 17.f * uiScale_, pal.textPrimary, 0, focused);
-
-        // Clamp hit target inside visible scissor bounds
-        float visibleTop = std::max(dy, gridY);
-        float visibleBot = std::min(dy + dh, gridY + gridH);
-        if (visibleBot > visibleTop) {
-            hitTargets_.push_back({{dx, visibleTop, dw, visibleBot - visibleTop}, HIT_GAME_CARD, idx, 0});
-        }
-    }
-
-    glDisable(GL_SCISSOR_TEST);
-}
-
-void NintendoRenderer::renderSaves() {
-    const auto pal = palette();
-    renderHeader(str("nintendoui_menu_saves", "Save Data"), true);
-
-    float padX = 28.f * uiScale_;
-    float tabY = stageY_ + 88.f * uiScale_;
-    float tabH = 42.f * uiScale_;
-    float tabW = std::min(280.f * uiScale_, (stageW_ - padX * 2.f - 12.f * uiScale_) * 0.5f);
-
-    std::array<std::string, 2> tabLabels = {
-        str("nintendoui_saves_tab_quick", "Quick Saves") + " (" + std::to_string(quickSaves_.size()) + ")",
-        str("nintendoui_saves_tab_memory", "Memory Cards") + " (" + std::to_string(memorySaves_.size()) + ")"
-    };
-    for (int i = 0; i < 2; i++) {
-        bool active = (savesSubTab_ == i);
-        float tx = stageX_ + padX + i * (tabW + 12.f * uiScale_);
-        drawRoundedRect(tx, tabY, tabW, tabH, 14.f * uiScale_,
-                        active ? pal.accentA : pal.tabBg,
-                        active ? pal.accentA : pal.tabBg,
-                        active ? pal.borderFocus : pal.borderNormal,
-                        active ? 2.f * uiScale_ : 1.f * uiScale_);
-        drawText(tabLabels[static_cast<size_t>(i)], tx + 10.f * uiScale_, tabY + 9.f * uiScale_,
-                 tabW - 20.f * uiScale_, 18.f * uiScale_, active ? pal.textOnAccent : pal.textPrimary, 1, active);
-        hitTargets_.push_back({{tx, tabY, tabW, tabH}, HIT_SAVE_SUBTAB, i, 0});
-    }
-
-    float listX = stageX_ + padX;
-    float listY = tabY + tabH + 16.f * uiScale_;
-    float listW = stageW_ - padX * 2.f;
-    float listH = (stageY_ + stageH_ - 64.f * uiScale_) - listY;
-
-    int count = savesSubTab_ == 0 ? static_cast<int>(quickSaves_.size()) : static_cast<int>(memorySaves_.size());
-    if (count == 0) {
-        drawText(savesSubTab_ == 0
-                     ? str("nintendoui_empty_quicksaves", "No quick save states yet.")
-                     : str("nintendoui_empty_memsaves", "No memory cards or battery saves found."),
-                 listX, listY + listH * 0.40f, listW, 21.f * uiScale_, pal.textSecondary, 1, false);
-        return;
-    }
-
-    float rowH = 96.f * uiScale_;
-    float gap = 12.f * uiScale_;
-
-    glEnable(GL_SCISSOR_TEST);
-    glScissor(static_cast<GLint>(stageX_), static_cast<GLint>(screenH_ - (listY + listH)),
-              static_cast<GLsizei>(stageW_), static_cast<GLsizei>(std::max(1.f, listH)));
-
-    for (int i = 0; i < count; i++) {
-        float ry = listY + i * (rowH + gap) - saveScrollY_;
-        if (ry + rowH < listY - 12.f || ry > listY + listH + 12.f) continue;
-
-        bool focused = (i == saveFocus_);
-        drawRoundedRect(listX, ry, listW, rowH, 16.f * uiScale_,
-                        focused ? pal.cardSelectedBgTop : pal.cardBgTop,
-                        focused ? pal.cardSelectedBgBottom : pal.cardBgBottom,
-                        focused ? pal.borderFocus : pal.borderNormal,
-                        focused ? 2.5f * uiScale_ : 1.2f * uiScale_,
-                        focused ? 0.4f : 0.f);
-
-        float thumbW = 112.f * uiScale_;
-        float thumbH = rowH - 16.f * uiScale_;
-        float thumbX = listX + 10.f * uiScale_;
-        float thumbY = ry + 8.f * uiScale_;
-
-        if (savesSubTab_ == 0) {
-            const auto& qs = quickSaves_[static_cast<size_t>(i)];
-            GLuint tex = acquireCoverTexture("qs:" + qs.id, qs.previewPath);
-            if (tex) {
-                drawTexturedRect(thumbX, thumbY, thumbW, thumbH, tex, {1.f, 1.f, 1.f, 1.f}, 10.f * uiScale_, true);
-            } else {
-                drawConsoleBadge(thumbX + 12.f * uiScale_, thumbY + (thumbH - 32.f * uiScale_) * 0.5f,
-                                 88.f * uiScale_, 32.f * uiScale_, qs.consoleId, qs.consoleShort);
-            }
-
-            float btnW = clampf(108.f * uiScale_, 88.f * uiScale_, listW * 0.16f);
-            float btnH = 38.f * uiScale_;
-            float delX = listX + listW - btnW - 12.f * uiScale_;
-            float actX = delX - btnW - 10.f * uiScale_;
-            float btnY = ry + (rowH - btnH) * 0.5f;
-
-            float textX = thumbX + thumbW + 14.f * uiScale_;
-            float textW = std::max(80.f, actX - textX - 10.f * uiScale_);
-            drawText(qs.gameTitle, textX, ry + 14.f * uiScale_, textW, 20.f * uiScale_, pal.textPrimary, 0, true);
-            drawText(qs.consoleShort + " • " + qs.slotLabel + " • " + qs.sizeText + " • " + qs.timestampText,
-                     textX, ry + 50.f * uiScale_, textW, 15.f * uiScale_, pal.textSecondary, 0, false);
-
-            drawRoundedRect(actX, btnY, btnW, btnH, 10.f * uiScale_, pal.accentA, pal.accentA, pal.borderFocus, 1.f * uiScale_);
-            drawText(str("nintendoui_action_load", "Load"), actX, btnY + 8.f * uiScale_, btnW, 17.f * uiScale_,
-                     pal.textOnAccent, 1, true);
-
-            bool confirmDel = (pendingDeleteSaveIdx_ == i);
-            Color4 delCol = confirmDel ? rgbaHex(0xD9303E) : pal.tabBg;
-            drawRoundedRect(delX, btnY, btnW, btnH, 10.f * uiScale_, delCol, delCol,
-                            confirmDel ? rgbaHex(0xFF8A93) : pal.borderNormal, 1.2f * uiScale_);
-            drawText(str("nintendoui_action_delete", "Delete"), delX, btnY + 8.f * uiScale_, btnW, 17.f * uiScale_,
-                     confirmDel ? Color4{1.f, 1.f, 1.f, 1.f} : pal.textPrimary, 1, true);
-
-            if (ry >= listY - 8.f && ry + rowH <= listY + listH + 8.f) {
-                hitTargets_.push_back({{actX, btnY, btnW, btnH}, HIT_SAVE_PRIMARY, i, 0});
-                hitTargets_.push_back({{delX, btnY, btnW, btnH}, HIT_SAVE_DELETE, i, 0});
-            }
-        } else {
-            const auto& ms = memorySaves_[static_cast<size_t>(i)];
-            drawConsoleBadge(thumbX + 10.f * uiScale_, thumbY + (thumbH - 34.f * uiScale_) * 0.5f,
-                             92.f * uiScale_, 34.f * uiScale_, ms.consoleId, ms.consoleShort);
-
-            float btnW = clampf(114.f * uiScale_, 92.f * uiScale_, listW * 0.17f);
-            float btnH = 38.f * uiScale_;
-            float delX = listX + listW - btnW - 12.f * uiScale_;
-            float actX = delX - btnW - 10.f * uiScale_;
-            float btnY = ry + (rowH - btnH) * 0.5f;
-
-            float textX = thumbX + thumbW + 14.f * uiScale_;
-            float textW = std::max(80.f, actX - textX - 10.f * uiScale_);
-            drawText(ms.title, textX, ry + 14.f * uiScale_, textW, 20.f * uiScale_, pal.textPrimary, 0, true);
-            drawText(ms.consoleShort + " • " + ms.sizeText + " • " + ms.timestampText,
-                     textX, ry + 50.f * uiScale_, textW, 15.f * uiScale_, pal.textSecondary, 0, false);
-
-            drawRoundedRect(actX, btnY, btnW, btnH, 10.f * uiScale_, pal.accentA, pal.accentA, pal.borderFocus, 1.f * uiScale_);
-            drawText(str("nintendoui_action_backup", "Backup"), actX, btnY + 8.f * uiScale_, btnW, 17.f * uiScale_,
-                     pal.textOnAccent, 1, true);
-
-            bool confirmDel = (pendingDeleteSaveIdx_ == i);
-            Color4 delCol = confirmDel ? rgbaHex(0xD9303E) : pal.tabBg;
-            drawRoundedRect(delX, btnY, btnW, btnH, 10.f * uiScale_, delCol, delCol,
-                            confirmDel ? rgbaHex(0xFF8A93) : pal.borderNormal, 1.2f * uiScale_);
-            drawText(str("nintendoui_action_delete", "Delete"), delX, btnY + 8.f * uiScale_, btnW, 17.f * uiScale_,
-                     confirmDel ? Color4{1.f, 1.f, 1.f, 1.f} : pal.textPrimary, 1, true);
-
-            if (ry >= listY - 8.f && ry + rowH <= listY + listH + 8.f) {
-                hitTargets_.push_back({{actX, btnY, btnW, btnH}, HIT_SAVE_PRIMARY, i, 0});
-                hitTargets_.push_back({{delX, btnY, btnW, btnH}, HIT_SAVE_DELETE, i, 0});
-            }
-        }
-    }
-
-    glDisable(GL_SCISSOR_TEST);
-}
-
-void NintendoRenderer::renderSettings() {
-    const auto pal = palette();
-    renderHeader(str("nintendoui_menu_settings", "Settings"), true);
-
-    float padX = 28.f * uiScale_;
-    float listX = stageX_ + padX;
-    float listY = stageY_ + 96.f * uiScale_;
-    float listW = stageW_ - padX * 2.f;
-    float rowH = 74.f * uiScale_;
-    float gap = 12.f * uiScale_;
-
-    std::string themeName;
-    switch (theme_) {
-        case ThemeId::WiiPearl: themeName = str("nintendoui_theme_wii", "Wii Pearl"); break;
-        case ThemeId::GameCubeIndigo: themeName = str("nintendoui_theme_gc", "GameCube Indigo"); break;
-        case ThemeId::FamicomCrimson: themeName = str("nintendoui_theme_famicom", "Famicom Crimson"); break;
-        case ThemeId::GameBoyClassic: themeName = str("nintendoui_theme_gb", "Game Boy Classic"); break;
-        default: themeName = str("nintendoui_theme_switch", "Switch Midnight"); break;
-    }
-
-    std::string aspectName;
-    switch (aspectMode_) {
-        case AspectMode::Ratio16x9: aspectName = "16:9"; break;
-        case AspectMode::Ratio16x10: aspectName = "16:10"; break;
-        case AspectMode::Ratio4x3: aspectName = "4:3"; break;
-        default: aspectName = str("nintendoui_aspect_auto", "Auto"); break;
-    }
-
-    std::array<std::pair<std::string, std::string>, 5> rows = {{
-        {str("nintendoui_setting_theme", "Nintendo Theme"), themeName},
-        {str("nintendoui_setting_aspect", "Screen Aspect"), aspectName},
-        {str("nintendoui_setting_eco", "Eco Performance Mode"),
-         ecoMode_ ? str("nintendoui_state_on", "On") : str("nintendoui_state_off", "Off")},
-        {str("nintendoui_setting_sfx", "UI Sound Effects"),
-         sfxEnabled_ ? str("nintendoui_state_on", "On") : str("nintendoui_state_off", "Off")},
-        {str("nintendoui_setting_standard_ui", "Switch to Standard View"),
-         str("nintendoui_action_open", "Open")},
-    }};
-
-    for (int i = 0; i < 5; i++) {
-        float ry = listY + i * (rowH + gap);
-        bool focused = (settingFocus_ == i);
-        drawRoundedRect(listX, ry, listW, rowH, 16.f * uiScale_,
-                        focused ? pal.cardSelectedBgTop : pal.cardBgTop,
-                        focused ? pal.cardSelectedBgBottom : pal.cardBgBottom,
-                        focused ? pal.borderFocus : pal.borderNormal,
-                        focused ? 2.5f * uiScale_ : 1.2f * uiScale_,
-                        focused ? 0.35f : 0.f);
-
-        drawText(rows[static_cast<size_t>(i)].first, listX + 20.f * uiScale_, ry + 21.f * uiScale_,
-                 listW * 0.56f, 21.f * uiScale_, pal.textPrimary, 0, focused);
-
-        float pillW = std::min(240.f * uiScale_, listW * 0.36f);
-        float pillH = 40.f * uiScale_;
-        float px = listX + listW - pillW - 18.f * uiScale_;
-        float py = ry + (rowH - pillH) * 0.5f;
-        drawRoundedRect(px, py, pillW, pillH, 12.f * uiScale_,
-                        focused ? pal.accentA : pal.tabBg,
-                        focused ? pal.accentA : pal.tabBg,
-                        pal.borderFocus, 1.2f * uiScale_);
-        drawText(rows[static_cast<size_t>(i)].second, px + 8.f * uiScale_, py + 8.f * uiScale_,
-                 pillW - 16.f * uiScale_, 18.f * uiScale_,
-                 focused ? pal.textOnAccent : pal.textPrimary, 1, true);
-
-        hitTargets_.push_back({{listX, ry, listW, rowH}, HIT_SETTING_ROW, i, 0});
-    }
-}
-
-void NintendoRenderer::renderFooter() {
-    const auto pal = palette();
-    float padX = 28.f * uiScale_;
-    float fy = stageY_ + stageH_ - 52.f * uiScale_;
-    float fh = 38.f * uiScale_;
-
-    float pillW = std::min(190.f * uiScale_, stageW_ * 0.30f);
-    drawRoundedRect(stageX_ + padX, fy, pillW, fh, 12.f * uiScale_,
-                    pal.tabBg, pal.tabBg, pal.borderNormal, 1.f * uiScale_);
-    drawText(str("nintendoui_setting_theme", "Theme"), stageX_ + padX + 8.f * uiScale_,
-             fy + 8.f * uiScale_, pillW - 16.f * uiScale_, 16.f * uiScale_, pal.textPrimary, 1, true);
-    hitTargets_.push_back({{stageX_ + padX, fy, pillW, fh}, HIT_FOOTER_THEME, 0, 0});
-
-    float stdW = std::min(230.f * uiScale_, stageW_ * 0.36f);
-    float stdX = stageX_ + stageW_ - padX - stdW;
-    drawRoundedRect(stdX, fy, stdW, fh, 12.f * uiScale_,
-                    pal.tabBg, pal.tabBg, pal.borderNormal, 1.f * uiScale_);
-    drawText(str("nintendoui_setting_standard_ui", "Standard View"), stdX + 8.f * uiScale_,
-             fy + 8.f * uiScale_, stdW - 16.f * uiScale_, 16.f * uiScale_, pal.textPrimary, 1, true);
-    hitTargets_.push_back({{stdX, fy, stdW, fh}, HIT_FOOTER_STANDARD, 0, 0});
-}
-
-void NintendoRenderer::renderToast() {
-    if (toastTimer_ <= 0.f || toastText_.empty()) return;
-    const auto pal = palette();
-    float alpha = clampf(toastTimer_ * 2.f, 0.f, 1.f);
-    float tw = std::min(460.f * uiScale_, stageW_ * 0.72f);
-    float th = 48.f * uiScale_;
-    float tx = stageX_ + (stageW_ - tw) * 0.5f;
-    float ty = stageY_ + stageH_ - 112.f * uiScale_;
-    Color4 bg = pal.toastBg;
-    bg.a *= alpha;
-    drawRoundedRect(tx, ty, tw, th, 16.f * uiScale_, bg, bg,
-                    {pal.accentA.r, pal.accentA.g, pal.accentA.b, alpha}, 1.5f * uiScale_);
-    drawText(toastText_, tx + 14.f * uiScale_, ty + 12.f * uiScale_, tw - 28.f * uiScale_,
-             18.f * uiScale_, {1.f, 1.f, 1.f, alpha}, 1, true);
-}
-
-void NintendoRenderer::onDrawFrame(float dtSeconds) {
-    std::lock_guard lock(dataMutex_);
-    float dt = clampf(dtSeconds, 0.001f, 0.05f);
-    time_ += dt;
-    frameIndex_++;
-    focusPulse_ += dt * (ecoMode_ ? 2.0f : 4.2f);
-    screenFade_ = clampf(screenFade_ + dt * 5.0f, 0.f, 1.f);
-    if (toastTimer_ > 0.f) toastTimer_ = std::max(0.f, toastTimer_ - dt);
-    if (pendingDeleteTimer_ > 0.f) {
-        pendingDeleteTimer_ = std::max(0.f, pendingDeleteTimer_ - dt);
-        if (pendingDeleteTimer_ == 0.f) pendingDeleteSaveIdx_ = -1;
-    }
-
-    // Upload budgeted cover/thumbnail textures on GL thread
-    int uploadLimit = ecoMode_ ? 1 : 2;
-    while (!pendingUploads_.empty() && uploadLimit-- > 0) {
-        auto item = std::move(pendingUploads_.front());
-        pendingUploads_.erase(pendingUploads_.begin());
-        const std::string& key = item.first;
-        int w = std::get<0>(item.second);
-        int h = std::get<1>(item.second);
-        const auto& rgba = std::get<2>(item.second);
-        if (w > 0 && h > 0 && rgba.size() == static_cast<size_t>(w) * h * 4) {
-            auto& texEntry = imageTextures_[key];
-            if (texEntry.texId) glDeleteTextures(1, &texEntry.texId);
-            glGenTextures(1, &texEntry.texId);
-            glBindTexture(GL_TEXTURE_2D, texEntry.texId);
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, rgba.data());
-            texEntry.width = w;
-            texEntry.height = h;
-            texEntry.pending = false;
-            texEntry.failed = false;
-            texEntry.lastUsedFrame = frameIndex_;
-        }
-    }
-
-    evictUnusedTexturesIfNeeded();
-
-    gameScrollY_ = lerpf(gameScrollY_, targetGameScrollY_, dt * 14.f);
-    saveScrollY_ = lerpf(saveScrollY_, targetSaveScrollY_, dt * 14.f);
-
-    if (screen_ == Screen::Intro) {
-        if (!bootSfxPlayed_) {
-            bootSfxPlayed_ = true;
-            triggerSfx(SfxType::Boot);
-        }
-        introElapsed_ += dt;
-        float dur = ecoMode_ ? 1.25f : 1.85f;
-        if (introElapsed_ >= dur) {
-            screen_ = Screen::Hub;
-            screenFade_ = 0.f;
-        }
-    }
-
-    hitTargets_.clear();
-    glClearColor(0.04f, 0.05f, 0.08f, 1.f);
-    glClear(GL_COLOR_BUFFER_BIT);
-    drawBackdrop();
-
-    switch (screen_) {
-        case Screen::Intro: renderIntro(); break;
-        case Screen::Hub: renderHub(); renderFooter(); break;
-        case Screen::Games: renderGames(); renderFooter(); break;
-        case Screen::Saves: renderSaves(); renderFooter(); break;
-        case Screen::Settings: renderSettings(); renderFooter(); break;
-    }
-
-    renderToast();
-}
-
-void NintendoRenderer::activateHubCard(int idx) {
-    triggerSfx(SfxType::Confirm);
-    if (idx == 0) {
-        openGamesScreenDefault();
-    } else if (idx == 1) {
-        screen_ = Screen::Saves;
-        screenFade_ = 0.f;
-        saveFocus_ = 0;
-        saveScrollY_ = targetSaveScrollY_ = 0.f;
-    } else if (idx == 2) {
-        screen_ = Screen::Settings;
-        screenFade_ = 0.f;
-        settingFocus_ = 0;
-    }
-}
-
-void NintendoRenderer::activateGameSelection() {
-    if (gameTabs_.empty()) return;
-    int tIdx = std::clamp(selectedGameTab_, 0, static_cast<int>(gameTabs_.size()) - 1);
-    const auto& tab = gameTabs_[static_cast<size_t>(tIdx)];
-    if (tab.gameIndices.empty()) return;
-    int fIdx = std::clamp(gameFocus_, 0, static_cast<int>(tab.gameIndices.size()) - 1);
-    const auto& g = games_[static_cast<size_t>(tab.gameIndices[static_cast<size_t>(fIdx)])];
-    triggerSfx(SfxType::Launch);
-    HostAction a;
-    a.type = HostActionType::LaunchGame;
-    a.arg1 = g.path;
-    a.arg2 = g.title;
-    queueAction(std::move(a));
-}
-
-void NintendoRenderer::activateSaveSelection() {
-    if (savesSubTab_ == 0) {
-        if (quickSaves_.empty()) return;
-        int idx = std::clamp(saveFocus_, 0, static_cast<int>(quickSaves_.size()) - 1);
-        const auto& qs = quickSaves_[static_cast<size_t>(idx)];
-        triggerSfx(SfxType::Launch);
-        HostAction a;
-        a.type = HostActionType::LoadSaveState;
-        a.arg1 = qs.gamePath;
-        a.arg2 = qs.id;
-        a.intArg1 = qs.slot;
-        queueAction(std::move(a));
+        const float dx = x + (w - drawW) * 0.5f;
+        const float dy = y + (h - drawH) * 0.5f;
+        PushQuad(img.tex, dx, dy, drawW, drawH, {1.0f, 1.0f, 1.0f, alpha});
     } else {
-        if (memorySaves_.empty()) return;
-        int idx = std::clamp(saveFocus_, 0, static_cast<int>(memorySaves_.size()) - 1);
-        const auto& ms = memorySaves_[static_cast<size_t>(idx)];
-        triggerSfx(SfxType::Confirm);
-        HostAction a;
-        a.type = HostActionType::BackupMemorySave;
-        a.arg1 = ms.filePath;
-        a.arg2 = ms.title;
-        queueAction(std::move(a));
+        float u0 = 0.0f, v0 = 0.0f, u1 = 1.0f, v1 = 1.0f;
+        if (srcAspect > dstAspect) {
+            float keep = dstAspect / srcAspect;
+            u0 = (1.0f - keep) * 0.5f;
+            u1 = 1.0f - u0;
+        } else {
+            float keep = srcAspect / dstAspect;
+            v0 = (1.0f - keep) * 0.5f;
+            v1 = 1.0f - v0;
+        }
+        PushQuad(img.tex, x, y, w, h, {1.0f, 1.0f, 1.0f, alpha}, {1.0f, 1.0f, 1.0f, alpha}, u0, v0, u1, v1);
     }
 }
 
-void NintendoRenderer::activateSettingRow(int row, int delta) {
-    triggerSfx(SfxType::Confirm);
-    if (row == 0) {
-        int next = (static_cast<int>(theme_) + delta + static_cast<int>(ThemeId::Count)) %
-                   static_cast<int>(ThemeId::Count);
-        theme_ = static_cast<ThemeId>(next);
-    } else if (row == 1) {
-        int next = (static_cast<int>(aspectMode_) + delta + static_cast<int>(AspectMode::Count)) %
-                   static_cast<int>(AspectMode::Count);
-        aspectMode_ = static_cast<AspectMode>(next);
-        computeStageViewport();
-    } else if (row == 2) {
-        ecoMode_ = !ecoMode_;
-    } else if (row == 3) {
-        sfxEnabled_ = !sfxEnabled_;
-    } else if (row == 4) {
-        HostAction a;
-        a.type = HostActionType::SwitchToStandardUi;
-        queueAction(std::move(a));
-        return;
+void NintendoRenderer::DrawScanlinesPass() {
+    if (settings_.scanlinesMode == 0) return;
+    FlushQuadBatch();
+    const float strength = (settings_.scanlinesMode == 1) ? 0.070f : 0.165f;
+    glUseProgram(prog_scan_);
+    glUniform2f(scan_u_viewport_, static_cast<float>(view_width_), static_cast<float>(view_height_));
+    glUniform1f(scan_u_strength_, strength);
+    glBindVertexArray(fs_vao_);
+    glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+}
+
+bool NintendoRenderer::IsLightTheme() const {
+    return settings_.theme == 0 || settings_.theme == 4; // Wii Pearl & Game Boy LCD
+}
+
+int NintendoRenderer::DefaultShadowMode() const {
+    return IsLightTheme() ? 0 : 1;
+}
+
+RgbaColor NintendoRenderer::PrimaryAccentColor(float alpha) const {
+    switch (settings_.theme) {
+        case 1: return {0.49f, 0.41f, 0.96f, alpha}; // GameCube Indigo (#7C68F5)
+        case 2: return {0.04f, 0.73f, 0.90f, alpha}; // Switch Neon Blue (#0AB9E6)
+        case 3: return {0.91f, 0.71f, 0.29f, alpha}; // Famicom Metallic Gold (#E8B44B)
+        case 4: return {0.17f, 0.29f, 0.13f, alpha}; // Game Boy Dark Olive (#2B4A22)
+        default: return {0.00f, 0.60f, 0.78f, alpha}; // Wii Classic Cyan (#009AC7)
+    }
+}
+
+RgbaColor NintendoRenderer::SecondaryAccentColor(float alpha) const {
+    switch (settings_.theme) {
+        case 1: return {0.72f, 0.67f, 1.00f, alpha}; // GameCube Lavender Silver
+        case 2: return {1.00f, 0.27f, 0.33f, alpha}; // Switch Neon Red (#FF4554)
+        case 3: return {0.82f, 0.16f, 0.24f, alpha}; // Famicom Lacquer Red (#D1293D)
+        case 4: return {0.32f, 0.46f, 0.22f, alpha}; // Game Boy Moss Accent
+        default: return {0.18f, 0.46f, 0.86f, alpha}; // Wii / DS Azure
+    }
+}
+
+RgbaColor NintendoRenderer::PanelTopColor(float alpha) const {
+    switch (settings_.theme) {
+        case 0: return {0.98f, 0.99f, 1.00f, alpha};  // Wii Ceramic White
+        case 1: return {0.17f, 0.14f, 0.38f, alpha};  // GameCube Royal Indigo
+        case 2: return {0.12f, 0.15f, 0.21f, alpha};  // Switch OLED Charcoal
+        case 3: return {0.25f, 0.05f, 0.08f, alpha};  // Famicom Deep Burgundy Lacquer
+        default: return {0.76f, 0.82f, 0.47f, alpha}; // Game Boy Backlit Olive Glass
+    }
+}
+
+RgbaColor NintendoRenderer::PanelBotColor(float alpha) const {
+    switch (settings_.theme) {
+        case 0: return {0.89f, 0.93f, 0.98f, alpha};
+        case 1: return {0.10f, 0.08f, 0.26f, alpha};
+        case 2: return {0.07f, 0.09f, 0.13f, alpha};
+        case 3: return {0.14f, 0.025f, 0.045f, alpha};
+        default: return {0.67f, 0.74f, 0.39f, alpha};
+    }
+}
+
+RgbaColor NintendoRenderer::PanelBorderColor(float alpha) const {
+    switch (settings_.theme) {
+        case 0: return {0.62f, 0.76f, 0.89f, alpha};
+        case 1: return {0.42f, 0.36f, 0.78f, alpha};
+        case 2: return {0.28f, 0.34f, 0.45f, alpha};
+        case 3: return {0.76f, 0.56f, 0.26f, alpha}; // Famicom Brass Trim
+        default: return {0.30f, 0.39f, 0.19f, alpha};
+    }
+}
+
+RgbaColor NintendoRenderer::SelectedBorderColor(float alpha) const {
+    return PrimaryAccentColor(alpha);
+}
+
+RgbaColor NintendoRenderer::PrimaryTextColor(float alpha) const {
+    switch (settings_.theme) {
+        case 0: return {0.07f, 0.15f, 0.25f, alpha};
+        case 3: return {0.99f, 0.95f, 0.86f, alpha}; // Famicom Ivory Cream Text on Dark Crimson
+        case 4: return {0.07f, 0.15f, 0.06f, alpha}; // Game Boy Crisp Ink Green
+        default: return {0.96f, 0.98f, 1.00f, alpha};
+    }
+}
+
+RgbaColor NintendoRenderer::SecondaryTextColor(float alpha) const {
+    switch (settings_.theme) {
+        case 0: return {0.28f, 0.39f, 0.52f, alpha};
+        case 3: return {0.92f, 0.80f, 0.62f, alpha}; // Warm Gold-Cream Subtitle
+        case 4: return {0.21f, 0.31f, 0.15f, alpha};
+        default: return {0.72f, 0.80f, 0.92f, alpha};
+    }
+}
+
+bool NintendoRenderer::Draw() {
+    if (!gl_ready_) return false;
+    UpdateViewport();
+
+    const auto now = std::chrono::steady_clock::now();
+    float dt = 0.016f;
+    if (has_frame_tp_) {
+        dt = std::chrono::duration<float>(now - last_frame_tp_).count();
+        dt = std::clamp(dt, 0.001f, 0.05f);
+    }
+    last_frame_tp_ = now;
+    has_frame_tp_ = true;
+
+    time_sec_ += dt;
+    UpdateCachedClockStrings();
+
+    if (toast_timer_ > 0.0f) {
+        toast_timer_ = std::max(0.0f, toast_timer_ - dt);
     }
 
-    HostAction p;
-    p.type = HostActionType::PersistSettings;
-    p.intArg1 = static_cast<int>(theme_);
-    p.intArg2 = (static_cast<int>(aspectMode_) & 0xF) | (ecoMode_ ? 0x10 : 0) | (sfxEnabled_ ? 0x20 : 0);
-    queueAction(std::move(p));
-}
+    const bool pendingImages = FlushPendingDecodedImages();
 
-void NintendoRenderer::ensureGameFocusVisible() {
-    float padX = 28.f * uiScale_;
-    float gridW = stageW_ - padX * 2.f;
-    float gridY = stageY_ + 88.f * uiScale_ + 42.f * uiScale_ + 16.f * uiScale_;
-    float gridH = (stageY_ + stageH_ - 64.f * uiScale_) - gridY;
-    int cols = std::max(1, gameCols_);
-    float gap = 16.f * uiScale_;
-    float cardW = (gridW - gap * (cols - 1)) / static_cast<float>(cols);
-    float cardH = cardW * 0.82f + 62.f * uiScale_;
-    int row = gameFocus_ / cols;
-    float top = row * (cardH + gap);
-    float bot = top + cardH;
-    if (top < targetGameScrollY_) targetGameScrollY_ = top;
-    if (bot > targetGameScrollY_ + gridH) targetGameScrollY_ = std::max(0.f, bot - gridH);
-}
+    const float motionScale = (settings_.motionMode == 1) ? 0.45f
+                            : (settings_.motionMode == 2) ? 0.65f
+                            : (settings_.motionMode == 3) ? 0.0f
+                                                          : 1.0f;
+    spin_angle_ += dt * 1.15f * motionScale;
+    if (spin_angle_ > kTwoPi * 100.0f) {
+        spin_angle_ -= kTwoPi * 100.0f;
+    }
 
-void NintendoRenderer::ensureSaveFocusVisible() {
-    float listY = stageY_ + 88.f * uiScale_ + 42.f * uiScale_ + 16.f * uiScale_;
-    float listH = (stageY_ + stageH_ - 64.f * uiScale_) - listY;
-    float rowH = 96.f * uiScale_;
-    float gap = 12.f * uiScale_;
-    float top = saveFocus_ * (rowH + gap);
-    float bot = top + rowH;
-    if (top < targetSaveScrollY_) targetSaveScrollY_ = top;
-    if (bot > targetSaveScrollY_ + listH) targetSaveScrollY_ = std::max(0.f, bot - listH);
-}
+    if (screen_fade_t_ < 1.0f) {
+        screen_fade_t_ = std::min(1.0f, screen_fade_t_ + dt * 3.4f);
+        if (screen_fade_t_ >= 1.0f) {
+            prev_screen_ = -1;
+        }
+    } else {
+        prev_screen_ = -1;
+    }
 
-void NintendoRenderer::handleTap(float x, float y) {
-    // Reverse order so top/overlay controls win hit tests
-    for (int i = static_cast<int>(hitTargets_.size()) - 1; i >= 0; i--) {
-        const auto& h = hitTargets_[static_cast<size_t>(i)];
-        if (!h.rect.contains(x, y)) continue;
-        switch (h.actionCode) {
-            case HIT_SKIP_INTRO:
-                screen_ = Screen::Hub;
-                screenFade_ = 0.f;
-                triggerSfx(SfxType::Confirm);
-                return;
-            case HIT_HUB_CARD:
-                hubFocus_ = h.param0;
-                activateHubCard(h.param0);
-                return;
-            case HIT_BACK: {
-                bool dummy = false;
-                onBackPressed(dummy);
-                return;
+    if (overlay_ != last_overlay_) {
+        last_overlay_ = overlay_;
+        overlay_fade_t_ = (overlay_ != OVERLAY_NONE && settings_.motionMode != 3) ? 0.0f : 1.0f;
+    }
+    if (overlay_fade_t_ < 1.0f) {
+        overlay_fade_t_ = std::min(1.0f, overlay_fade_t_ + dt * 6.0f);
+    }
+
+    if (exiting_shell_) {
+        exit_t_ += dt * 4.5f;
+        if (exit_t_ >= 1.0f) {
+            exiting_shell_ = false;
+            HostNotifyExitRequested();
+        }
+    }
+
+    // Spring-follow hub orbital angle (shortest arc modulo 4)
+    {
+        float diff = static_cast<float>(main_index_) - hub_visual_pos_;
+        while (diff > 2.0f) diff -= 4.0f;
+        while (diff < -2.0f) diff += 4.0f;
+        if (settings_.motionMode == 3) {
+            hub_visual_pos_ = static_cast<float>(main_index_);
+        } else {
+            const float step = std::min(1.0f, dt * 11.0f);
+            hub_visual_pos_ += diff * step;
+            if (hub_visual_pos_ < 0.0f) hub_visual_pos_ += 4.0f;
+            if (hub_visual_pos_ >= 4.0f) hub_visual_pos_ -= 4.0f;
+        }
+    }
+
+    const float scrollLerp = (settings_.motionMode == 3) ? 1.0f : std::min(1.0f, dt * 15.0f);
+    game_scroll_y_ += (game_scroll_target_y_ - game_scroll_y_) * scrollLerp;
+    tab_scroll_x_ += (tab_scroll_target_x_ - tab_scroll_x_) * scrollLerp;
+    mem_scroll_y_ += (mem_scroll_target_y_ - mem_scroll_y_) * scrollLerp;
+    settings_scroll_y_ += (settings_scroll_target_y_ - settings_scroll_y_) * scrollLerp;
+
+    if (boot_active_) {
+        if (!boot_sfx_played_ && boot_t_ > 0.01f) {
+            boot_sfx_played_ = true;
+            HostPlaySfx(SFX_BOOT_INTRO);
+        }
+        boot_t_ += dt / std::max(0.25f, boot_duration_);
+        if (boot_t_ >= 1.0f) {
+            boot_active_ = false;
+            boot_t_ = 1.0f;
+            screen_fade_t_ = 0.0f;
+        }
+    }
+
+    if (launching_) {
+        launch_t_ += dt * 2.15f;
+        if (launch_t_ >= 1.0f && !launch_dispatched_) {
+            launch_dispatched_ = true;
+            if (launch_is_save_) {
+                HostNotifySaveLaunch(launch_path_, launch_save_slot_);
+            } else {
+                HostNotifyGameLaunch(launch_path_);
             }
-            case HIT_GAME_TAB:
-                selectedGameTab_ = h.param0;
-                gameFocus_ = 0;
-                gameScrollY_ = targetGameScrollY_ = 0.f;
-                triggerSfx(SfxType::TabSwitch);
-                return;
-            case HIT_GAME_CARD:
-                gameFocus_ = h.param0;
-                activateGameSelection();
-                return;
-            case HIT_SAVE_SUBTAB:
-                savesSubTab_ = h.param0;
-                saveFocus_ = 0;
-                saveScrollY_ = targetSaveScrollY_ = 0.f;
-                pendingDeleteSaveIdx_ = -1;
-                triggerSfx(SfxType::TabSwitch);
-                return;
-            case HIT_SAVE_PRIMARY:
-                saveFocus_ = h.param0;
-                pendingDeleteSaveIdx_ = -1;
-                activateSaveSelection();
-                return;
-            case HIT_SAVE_DELETE:
-                saveFocus_ = h.param0;
-                if (pendingDeleteSaveIdx_ == h.param0 && pendingDeleteTimer_ > 0.f) {
-                    pendingDeleteSaveIdx_ = -1;
-                    pendingDeleteTimer_ = 0.f;
-                    triggerSfx(SfxType::Back);
-                    HostAction a;
-                    if (savesSubTab_ == 0 && h.param0 < static_cast<int>(quickSaves_.size())) {
-                        a.type = HostActionType::DeleteSaveState;
-                        a.arg1 = quickSaves_[static_cast<size_t>(h.param0)].id;
-                    } else if (savesSubTab_ == 1 && h.param0 < static_cast<int>(memorySaves_.size())) {
-                        a.type = HostActionType::DeleteMemorySave;
-                        a.arg1 = memorySaves_[static_cast<size_t>(h.param0)].filePath;
-                    }
-                    if (a.type != HostActionType::None) queueAction(std::move(a));
-                } else {
-                    pendingDeleteSaveIdx_ = h.param0;
-                    pendingDeleteTimer_ = 3.5f;
-                    toastText_ = str("nintendoui_confirm_delete", "Tap Delete again to confirm");
-                    toastTimer_ = 2.6f;
-                    triggerSfx(SfxType::Move);
-                }
-                return;
-            case HIT_SETTING_ROW:
-                settingFocus_ = h.param0;
-                activateSettingRow(h.param0, 1);
-                return;
-            case HIT_FOOTER_THEME:
-                activateSettingRow(0, 1);
-                return;
-            case HIT_FOOTER_STANDARD:
-                activateSettingRow(4, 1);
-                return;
+        }
+        if (launch_t_ > 2.5f) {
+            launching_ = false;
         }
     }
-}
 
-void NintendoRenderer::onTouchEvent(int action, float x, float y) {
-    std::lock_guard lock(dataMutex_);
-    if (action == kTouchDown) {
-        touchDown_ = true;
-        touchDragged_ = false;
-        touchStartX_ = x;
-        touchStartY_ = y;
-        touchLastY_ = y;
-    } else if (action == kTouchMove && touchDown_) {
-        float dy = y - touchLastY_;
-        float dist = std::hypot(x - touchStartX_, y - touchStartY_);
-        if (dist > 14.f * uiScale_) touchDragged_ = true;
-        if (touchDragged_) {
-            if (screen_ == Screen::Games && !gameTabs_.empty()) {
-                int cols = std::max(1, gameCols_);
-                const auto& curTab = gameTabs_[static_cast<size_t>(selectedGameTab_)];
-                int rows = (static_cast<int>(curTab.gameIndices.size()) + cols - 1) / cols;
-                float gridW = stageW_ - 56.f * uiScale_;
-                float cardW = (gridW - 16.f * uiScale_ * (cols - 1)) / cols;
-                float rowStep = cardW * 0.82f + 78.f * uiScale_;
-                float maxScroll = std::max(0.f, rows * rowStep - (stageH_ - 220.f * uiScale_));
-                targetGameScrollY_ = clampf(targetGameScrollY_ - dy, 0.f, maxScroll);
-                gameScrollY_ = targetGameScrollY_;
-            } else if (screen_ == Screen::Saves) {
-                int count = savesSubTab_ == 0 ? static_cast<int>(quickSaves_.size())
-                                              : static_cast<int>(memorySaves_.size());
-                float maxScroll = std::max(0.f, count * (108.f * uiScale_) - (stageH_ - 220.f * uiScale_));
-                targetSaveScrollY_ = clampf(targetSaveScrollY_ - dy, 0.f, maxScroll);
-                saveScrollY_ = targetSaveScrollY_;
+    glDisable(GL_DEPTH_TEST);
+    glViewport(0, 0, surface_width_, surface_height_);
+    glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+    glClear(GL_COLOR_BUFFER_BIT);
+
+    glViewport(view_x_, view_y_, view_width_, view_height_);
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+    // 1. Nintendo Backdrop Shader + 6 Translucent Floating Beveled Crystal Prisms
+    {
+        const float w = screen_width_;
+        const float h = screen_height_;
+        const float ts = time_sec_ * motionScale;
+        const float baseS = std::min(w, h) * 0.135f;
+
+        const GLfloat prisms[24] = {
+            w * 0.15f + std::sin(ts * 0.34f) * 32.0f, h * 0.24f + std::cos(ts * 0.27f) * 24.0f, baseS * 1.15f, ts * 0.18f + 0.3f,
+            w * 0.85f + std::cos(ts * 0.31f + 1.1f) * 36.0f, h * 0.26f + std::sin(ts * 0.39f + 0.6f) * 26.0f, baseS * 0.92f, -ts * 0.14f + 0.8f,
+            w * 0.21f + std::cos(ts * 0.29f + 2.3f) * 28.0f, h * 0.78f + std::sin(ts * 0.25f + 1.4f) * 24.0f, baseS * 0.80f, ts * 0.15f + 1.4f,
+            w * 0.80f + std::sin(ts * 0.28f + 3.1f) * 34.0f, h * 0.76f + std::cos(ts * 0.33f + 2.0f) * 22.0f, baseS * 1.06f, -ts * 0.12f + 0.5f,
+            w * 0.50f + std::sin(ts * 0.22f + 0.9f) * 44.0f, h * 0.16f + std::cos(ts * 0.19f + 1.7f) * 18.0f, baseS * 0.62f, ts * 0.20f + 2.1f,
+            w * 0.46f + std::cos(ts * 0.26f + 4.1f) * 38.0f, h * 0.86f + std::sin(ts * 0.21f + 0.4f) * 18.0f, baseS * 0.68f, -ts * 0.16f + 1.1f,
+        };
+
+        glUseProgram(prog_bg_);
+        glUniform2f(bg_u_screen_, w, h);
+        glUniform1i(bg_u_theme_, settings_.theme);
+        glUniform1f(bg_u_time_, ts);
+        glUniform4fv(bg_u_prisms_, 6, prisms);
+        glBindVertexArray(fs_vao_);
+        glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+    }
+
+    hit_targets_.clear();
+    BeginQuadBatch();
+
+    const LayoutMetrics m = ComputeMetrics();
+    const float exitFade = exiting_shell_ ? (1.0f - EaseOutCubic(Clamp01(exit_t_))) : 1.0f;
+    const bool hasCross = (prev_screen_ >= 0 && prev_screen_ != screen_ && screen_fade_t_ < 1.0f);
+    const float outAlpha = (hasCross && screen_fade_t_ < 0.72f)
+        ? EaseOutCubic(1.0f - Clamp01(screen_fade_t_ / 0.72f)) * exitFade
+        : 0.0f;
+    const float inAlpha = (hasCross
+        ? EaseOutCubic(Clamp01((screen_fade_t_ - 0.14f) / 0.86f))
+        : EaseOutCubic(screen_fade_t_)) * exitFade;
+
+    if (boot_active_) {
+        DrawBootIntro(1.0f);
+    } else if (launching_) {
+        DrawLaunchStage();
+    } else {
+        auto drawScreenById = [&](int screenId, float a) {
+            if (a <= 0.005f) return;
+            switch (screenId) {
+                case SCREEN_MAIN_MENU: DrawMainMenu(m, a); break;
+                case SCREEN_GAMES: DrawGamesScreen(m, a); break;
+                case SCREEN_FILE: DrawFileScreen(m, a); break;
+                case SCREEN_SETTINGS: DrawSettingsScreen(m, a); break;
+                default: DrawMainMenu(m, a); break;
+            }
+        };
+        if (outAlpha > 0.005f) {
+            drawScreenById(prev_screen_, outAlpha);
+            hit_targets_.clear();
+        }
+        drawScreenById(screen_, inAlpha);
+        DrawBottomBar(m, std::max(inAlpha, outAlpha * 0.45f));
+        if (toast_timer_ > 0.0f && !toast_text_.empty()) {
+            DrawToast(m);
+        }
+        if (overlay_ != OVERLAY_NONE) {
+            DrawOverlay(m, EaseOutCubic(overlay_fade_t_) * exitFade);
+        }
+    }
+
+    FlushQuadBatch();
+    DrawScanlinesPass();
+
+    bool hasActiveFades = (toast_timer_ > 0.0f);
+    if (!hasActiveFades && settings_.motionMode == 3) {
+        for (const auto& kv : image_cache_) {
+            if (kv.second.tex && (time_sec_ - kv.second.loadedAtSec) < 0.26f) {
+                hasActiveFades = true;
+                break;
             }
         }
-        touchLastY_ = y;
-    } else if (action == kTouchUp) {
-        if (touchDown_ && !touchDragged_) {
-            handleTap(x, y);
-        }
-        touchDown_ = false;
-        touchDragged_ = false;
-    } else if (action == kTouchCancel) {
-        touchDown_ = false;
-        touchDragged_ = false;
     }
-}
 
-void NintendoRenderer::onBackPressed(bool& handled) {
-    handled = false;
-    if (screen_ == Screen::Intro) {
-        screen_ = Screen::Hub;
-        screenFade_ = 0.f;
-        triggerSfx(SfxType::Confirm);
-        handled = true;
-    } else if (screen_ != Screen::Hub) {
-        screen_ = Screen::Hub;
-        screenFade_ = 0.f;
-        pendingDeleteSaveIdx_ = -1;
-        triggerSfx(SfxType::Back);
-        handled = true;
-    }
-}
+    const bool animatingNow =
+        boot_active_ || launching_ || exiting_shell_ ||
+        prev_screen_ >= 0 || screen_fade_t_ < 0.995f || overlay_fade_t_ < 0.995f ||
+        pendingImages || hasActiveFades ||
+        std::fabs(game_scroll_y_ - game_scroll_target_y_) > 0.25f ||
+        std::fabs(tab_scroll_x_ - tab_scroll_target_x_) > 0.25f ||
+        std::fabs(mem_scroll_y_ - mem_scroll_target_y_) > 0.25f ||
+        std::fabs(settings_scroll_y_ - settings_scroll_target_y_) > 0.25f ||
+        (settings_.motionMode != 3);
 
-bool NintendoRenderer::onKeyEvent(int keyCode, bool down) {
-    std::lock_guard lock(dataMutex_);
-    if (!down) return false;
-
-    if (screen_ == Screen::Intro) {
-        screen_ = Screen::Hub;
-        screenFade_ = 0.f;
-        triggerSfx(SfxType::Confirm);
+    if (animatingNow) {
+        static_idle_frames_ = 0;
         return true;
     }
-
-    const bool isUp = (keyCode == AKEYCODE_DPAD_UP);
-    const bool isDown = (keyCode == AKEYCODE_DPAD_DOWN);
-    const bool isLeft = (keyCode == AKEYCODE_DPAD_LEFT);
-    const bool isRight = (keyCode == AKEYCODE_DPAD_RIGHT);
-    const bool isConfirm = (keyCode == AKEYCODE_BUTTON_A || keyCode == AKEYCODE_DPAD_CENTER ||
-                            keyCode == AKEYCODE_ENTER);
-    const bool isBack = (keyCode == AKEYCODE_BUTTON_B || keyCode == AKEYCODE_BACK ||
-                         keyCode == AKEYCODE_ESCAPE);
-    const bool isL1 = (keyCode == AKEYCODE_BUTTON_L1);
-    const bool isR1 = (keyCode == AKEYCODE_BUTTON_R1);
-    const bool isX = (keyCode == AKEYCODE_BUTTON_X);
-
-    if (isBack) {
-        bool handled = false;
-        onBackPressed(handled);
-        return handled;
+    if (static_idle_frames_ < 3) {
+        static_idle_frames_++;
+        return true;
     }
-
-    if (screen_ == Screen::Hub) {
-        if (isLeft || isUp) {
-            hubFocus_ = (hubFocus_ + 2) % 3;
-            triggerSfx(SfxType::Move);
-            return true;
-        }
-        if (isRight || isDown) {
-            hubFocus_ = (hubFocus_ + 1) % 3;
-            triggerSfx(SfxType::Move);
-            return true;
-        }
-        if (isConfirm) {
-            activateHubCard(hubFocus_);
-            return true;
-        }
-        return false;
-    }
-
-    if (screen_ == Screen::Games && !gameTabs_.empty()) {
-        if (isL1 || isR1) {
-            int n = static_cast<int>(gameTabs_.size());
-            selectedGameTab_ = (selectedGameTab_ + (isR1 ? 1 : (n - 1))) % n;
-            gameFocus_ = 0;
-            gameScrollY_ = targetGameScrollY_ = 0.f;
-            triggerSfx(SfxType::TabSwitch);
-            return true;
-        }
-        const auto& tab = gameTabs_[static_cast<size_t>(selectedGameTab_)];
-        int total = static_cast<int>(tab.gameIndices.size());
-        if (total == 0) return false;
-        int cols = std::max(1, gameCols_);
-        if (isLeft) { gameFocus_ = (gameFocus_ + total - 1) % total; ensureGameFocusVisible(); triggerSfx(SfxType::Move); return true; }
-        if (isRight) { gameFocus_ = (gameFocus_ + 1) % total; ensureGameFocusVisible(); triggerSfx(SfxType::Move); return true; }
-        if (isUp) {
-            if (gameFocus_ - cols >= 0) {
-                gameFocus_ -= cols;
-                ensureGameFocusVisible();
-                triggerSfx(SfxType::Move);
-                return true;
-            }
-            return true;
-        }
-        if (isDown) {
-            if (gameFocus_ + cols < total) {
-                gameFocus_ += cols;
-                ensureGameFocusVisible();
-                triggerSfx(SfxType::Move);
-                return true;
-            }
-            return true;
-        }
-        if (isConfirm) {
-            activateGameSelection();
-            return true;
-        }
-    }
-
-    if (screen_ == Screen::Saves) {
-        if (isL1 || isR1) {
-            savesSubTab_ = 1 - savesSubTab_;
-            saveFocus_ = 0;
-            saveScrollY_ = targetSaveScrollY_ = 0.f;
-            pendingDeleteSaveIdx_ = -1;
-            triggerSfx(SfxType::TabSwitch);
-            return true;
-        }
-        int total = savesSubTab_ == 0 ? static_cast<int>(quickSaves_.size())
-                                      : static_cast<int>(memorySaves_.size());
-        if (total == 0) return false;
-        if (isUp) { saveFocus_ = (saveFocus_ + total - 1) % total; ensureSaveFocusVisible(); triggerSfx(SfxType::Move); return true; }
-        if (isDown) { saveFocus_ = (saveFocus_ + 1) % total; ensureSaveFocusVisible(); triggerSfx(SfxType::Move); return true; }
-        if (isConfirm) { activateSaveSelection(); return true; }
-        if (isX) {
-            if (pendingDeleteSaveIdx_ == saveFocus_ && pendingDeleteTimer_ > 0.f) {
-                int idx = saveFocus_;
-                pendingDeleteSaveIdx_ = -1;
-                pendingDeleteTimer_ = 0.f;
-                HostAction a;
-                if (savesSubTab_ == 0 && idx < static_cast<int>(quickSaves_.size())) {
-                    a.type = HostActionType::DeleteSaveState;
-                    a.arg1 = quickSaves_[static_cast<size_t>(idx)].id;
-                } else if (savesSubTab_ == 1 && idx < static_cast<int>(memorySaves_.size())) {
-                    a.type = HostActionType::DeleteMemorySave;
-                    a.arg1 = memorySaves_[static_cast<size_t>(idx)].filePath;
-                }
-                if (a.type != HostActionType::None) {
-                    triggerSfx(SfxType::Back);
-                    queueAction(std::move(a));
-                }
-            } else {
-                pendingDeleteSaveIdx_ = saveFocus_;
-                pendingDeleteTimer_ = 3.5f;
-                toastText_ = str("nintendoui_confirm_delete", "Press again to confirm delete");
-                toastTimer_ = 2.6f;
-                triggerSfx(SfxType::Move);
-            }
-            return true;
-        }
-    }
-
-    if (screen_ == Screen::Settings) {
-        if (isUp) { settingFocus_ = (settingFocus_ + 4) % 5; triggerSfx(SfxType::Move); return true; }
-        if (isDown) { settingFocus_ = (settingFocus_ + 1) % 5; triggerSfx(SfxType::Move); return true; }
-        if (isLeft) { activateSettingRow(settingFocus_, -1); return true; }
-        if (isRight || isConfirm) { activateSettingRow(settingFocus_, 1); return true; }
-    }
-
     return false;
 }
 
-void NintendoRenderer::onAnalogAxis(float axisX, float axisY) {
-    int dirX = axisX > 0.55f ? 1 : (axisX < -0.55f ? -1 : 0);
-    int dirY = axisY > 0.55f ? 1 : (axisY < -0.55f ? -1 : 0);
+void NintendoRenderer::RegisterHit(float x, float y, float w, float h, int kind, int index) {
+    hit_targets_.push_back(HitTarget{x, y, w, h, kind, index});
+}
 
-    bool changed = false;
-    {
-        std::lock_guard lock(dataMutex_);
-        if (dirX != lastAnalogDirX_ || dirY != lastAnalogDirY_) {
-            lastAnalogDirX_ = dirX;
-            lastAnalogDirY_ = dirY;
-            changed = true;
+const NintendoRenderer::HitTarget* NintendoRenderer::FindHit(float vx, float vy) const {
+    for (auto it = hit_targets_.rbegin(); it != hit_targets_.rend(); ++it) {
+        if (vx >= it->x && vx <= (it->x + it->w) && vy >= it->y && vy <= (it->y + it->h)) {
+            return &(*it);
         }
     }
-    if (!changed) return;
-    if (dirX < 0) onKeyEvent(AKEYCODE_DPAD_LEFT, true);
-    else if (dirX > 0) onKeyEvent(AKEYCODE_DPAD_RIGHT, true);
-    if (dirY < 0) onKeyEvent(AKEYCODE_DPAD_UP, true);
-    else if (dirY > 0) onKeyEvent(AKEYCODE_DPAD_DOWN, true);
+    return nullptr;
+}
+
+bool NintendoRenderer::SurfaceNormToVirtual(float normX, float normY, float& outVx, float& outVy) const {
+    const float sx = normX * static_cast<float>(surface_width_);
+    const float sy = normY * static_cast<float>(surface_height_);
+    const float vx = (sx - static_cast<float>(view_x_)) / static_cast<float>(std::max(1, view_width_));
+    const float vy = (sy - static_cast<float>(view_y_)) / static_cast<float>(std::max(1, view_height_));
+    outVx = vx * screen_width_;
+    outVy = vy * screen_height_;
+    return vx >= 0.0f && vx <= 1.0f && vy >= 0.0f && vy <= 1.0f;
+}
+
+std::string NintendoRenderer::TextOr(const std::string& key, const char* fallback) const {
+    auto it = strings_.find(key);
+    if (it != strings_.end() && !it->second.empty()) return it->second;
+    return fallback ? std::string(fallback) : std::string();
+}
+
+int NintendoRenderer::ShaderIconForPlatform(const std::string& platformId) const {
+    if (platformId == "3ds" || platformId == "nds" || platformId == "gb" || platformId == "gbc" || platformId == "gba") {
+        return (platformId == "3ds" || platformId == "nds") ? ICON_HANDHELD : ICON_CARTRIDGE;
+    }
+    if (platformId == "n64" || platformId == "snes" || platformId == "nes") {
+        return ICON_CARTRIDGE;
+    }
+    return ICON_DISC_GC;
+}
+
+RgbaColor NintendoRenderer::ColorForPlatform(const std::string& platformId) const {
+    for (const auto& ct : console_tabs_) {
+        if (ct.id == platformId) return ct.accent;
+    }
+    return DefaultConsoleAccent(platformId, 1.0f);
+}
+
+void NintendoRenderer::RebuildDisplayTabs(bool forceSelectRecentIfPresent) {
+    std::string prevTabId;
+    std::string prevGamePath;
+    if (tab_index_ >= 0 && tab_index_ < static_cast<int>(display_tabs_.size())) {
+        prevTabId = display_tabs_[tab_index_].id;
+        const auto& indices = display_tabs_[tab_index_].gameIndices;
+        if (game_index_ >= 0 && game_index_ < static_cast<int>(indices.size())) {
+            int absIdx = indices[game_index_];
+            if (absIdx >= 0 && absIdx < static_cast<int>(games_.size())) {
+                prevGamePath = games_[absIdx].path;
+            }
+        }
+    }
+
+    display_tabs_.clear();
+    has_recent_tab_ = false;
+
+    std::vector<int> recentIndices;
+    for (int i = 0; i < static_cast<int>(games_.size()); ++i) {
+        if (games_[i].recentRank >= 0) recentIndices.push_back(i);
+    }
+    if (!recentIndices.empty()) {
+        std::sort(recentIndices.begin(), recentIndices.end(), [&](int a, int b) {
+            if (games_[a].recentRank != games_[b].recentRank) return games_[a].recentRank < games_[b].recentRank;
+            return games_[a].title < games_[b].title;
+        });
+        has_recent_tab_ = true;
+        DisplayTab rt;
+        rt.id = "_RECENT_";
+        rt.label = TextOr("nintendoui_tab_recent", "Recent");
+        rt.accent = PrimaryAccentColor(1.0f);
+        rt.isRecent = true;
+        rt.gameIndices = std::move(recentIndices);
+        display_tabs_.push_back(std::move(rt));
+    }
+
+    std::unordered_set<std::string> coveredIds;
+    for (const auto& ct : console_tabs_) {
+        DisplayTab dt;
+        dt.id = ct.id;
+        dt.label = ct.label;
+        dt.accent = ct.accent;
+        dt.isRecent = false;
+        for (int i = 0; i < static_cast<int>(games_.size()); ++i) {
+            if (games_[i].platformId == ct.id) dt.gameIndices.push_back(i);
+        }
+        if (!dt.gameIndices.empty()) {
+            coveredIds.insert(ct.id);
+            display_tabs_.push_back(std::move(dt));
+        }
+    }
+
+    for (int i = 0; i < static_cast<int>(games_.size()); ++i) {
+        const std::string& pid = games_[i].platformId;
+        if (coveredIds.count(pid)) continue;
+        coveredIds.insert(pid);
+        DisplayTab dt;
+        dt.id = pid;
+        dt.label = games_[i].platformLabel.empty() ? (pid.empty() ? "Nintendo" : pid) : games_[i].platformLabel;
+        dt.accent = DefaultConsoleAccent(pid, 1.0f);
+        for (int j = i; j < static_cast<int>(games_.size()); ++j) {
+            if (games_[j].platformId == pid) dt.gameIndices.push_back(j);
+        }
+        display_tabs_.push_back(std::move(dt));
+    }
+
+    if (display_tabs_.empty()) {
+        tab_index_ = 0;
+        game_index_ = 0;
+        return;
+    }
+
+    if (forceSelectRecentIfPresent && has_recent_tab_) {
+        tab_index_ = 0;
+        game_index_ = 0;
+        game_scroll_y_ = game_scroll_target_y_ = 0.0f;
+        tab_scroll_x_ = tab_scroll_target_x_ = 0.0f;
+        return;
+    }
+
+    if (!prevTabId.empty()) {
+        int foundTab = -1;
+        for (int i = 0; i < static_cast<int>(display_tabs_.size()); ++i) {
+            if (display_tabs_[i].id == prevTabId) { foundTab = i; break; }
+        }
+        if (foundTab >= 0) {
+            tab_index_ = foundTab;
+            if (!prevGamePath.empty()) {
+                const auto& indices = display_tabs_[tab_index_].gameIndices;
+                for (int r = 0; r < static_cast<int>(indices.size()); ++r) {
+                    if (games_[indices[r]].path == prevGamePath) { game_index_ = r; break; }
+                }
+            }
+        }
+    }
+    ClampSelectionIndices();
+}
+
+void NintendoRenderer::RebuildMemoryFilters() {
+    std::string prevId;
+    if (mem_filter_index_ >= 0 && mem_filter_index_ < static_cast<int>(mem_filters_.size())) {
+        prevId = mem_filters_[mem_filter_index_].first;
+    }
+    mem_filters_.clear();
+    mem_filters_.emplace_back("all", TextOr("nintendoui_filter_all", "All"));
+
+    static const char* kOrder[] = {"3ds", "nds", "wii", "gamecube", "n64", "snes", "nes", "gba", "gbc", "gb"};
+    for (const char* cid : kOrder) {
+        std::string shortLbl;
+        for (const auto& ms : mem_saves_) {
+            if (ms.consoleId == cid) {
+                shortLbl = ms.consoleShort.empty() ? cid : ms.consoleShort;
+                break;
+            }
+        }
+        if (!shortLbl.empty()) {
+            mem_filters_.emplace_back(cid, shortLbl);
+        }
+    }
+    mem_filter_index_ = 0;
+    if (!prevId.empty()) {
+        for (int i = 0; i < static_cast<int>(mem_filters_.size()); ++i) {
+            if (mem_filters_[i].first == prevId) { mem_filter_index_ = i; break; }
+        }
+    }
+}
+
+void NintendoRenderer::SwitchScreen(int nextScreen) {
+    if (nextScreen == screen_) return;
+    if (settings_.motionMode == 3) {
+        prev_screen_ = -1;
+        screen_ = nextScreen;
+        screen_fade_t_ = 1.0f;
+    } else {
+        prev_screen_ = screen_;
+        screen_ = nextScreen;
+        screen_fade_t_ = 0.0f;
+    }
+    static_idle_frames_ = 0;
+
+    if (nextScreen == SCREEN_GAMES && has_recent_tab_) {
+        tab_index_ = 0;
+        game_index_ = 0;
+        game_scroll_y_ = game_scroll_target_y_ = 0.0f;
+        tab_scroll_x_ = tab_scroll_target_x_ = 0.0f;
+    }
+    ClampSelectionIndices();
+}
+
+int NintendoRenderer::ActiveTabGameCount() const {
+    if (tab_index_ < 0 || tab_index_ >= static_cast<int>(display_tabs_.size())) return 0;
+    return static_cast<int>(display_tabs_[tab_index_].gameIndices.size());
+}
+
+int NintendoRenderer::ActiveTabAbsGameIndex(int rowIdx) const {
+    if (tab_index_ < 0 || tab_index_ >= static_cast<int>(display_tabs_.size())) return -1;
+    const auto& indices = display_tabs_[tab_index_].gameIndices;
+    if (rowIdx < 0 || rowIdx >= static_cast<int>(indices.size())) return -1;
+    return indices[rowIdx];
+}
+
+std::vector<int> NintendoRenderer::FilteredSaveIndices() const {
+    std::vector<int> out;
+    if (file_tab_ != 1 || file_filter_game_path_.empty()) {
+        out.reserve(saves_.size());
+        for (int i = 0; i < static_cast<int>(saves_.size()); ++i) out.push_back(i);
+        return out;
+    }
+    for (int i = 0; i < static_cast<int>(saves_.size()); ++i) {
+        if (saves_[i].gamePath == file_filter_game_path_) out.push_back(i);
+    }
+    return out;
+}
+
+std::vector<int> NintendoRenderer::FilteredMemoryIndices() const {
+    std::vector<int> out;
+    std::string filterId = "all";
+    if (mem_filter_index_ >= 0 && mem_filter_index_ < static_cast<int>(mem_filters_.size())) {
+        filterId = mem_filters_[mem_filter_index_].first;
+    }
+    for (int i = 0; i < static_cast<int>(mem_saves_.size()); ++i) {
+        if (filterId == "all" || mem_saves_[i].consoleId == filterId) out.push_back(i);
+    }
+    return out;
+}
+
+void NintendoRenderer::ClampSelectionIndices() {
+    main_index_ = std::clamp(main_index_, 0, 3);
+    if (display_tabs_.empty()) {
+        tab_index_ = 0;
+        game_index_ = 0;
+    } else {
+        tab_index_ = std::clamp(tab_index_, 0, static_cast<int>(display_tabs_.size()) - 1);
+        const int gCount = ActiveTabGameCount();
+        game_index_ = (gCount <= 0) ? 0 : std::clamp(game_index_, 0, gCount - 1);
+    }
+    file_tab_ = std::clamp(file_tab_, 0, 2);
+    if (mem_filters_.empty()) {
+        mem_filter_index_ = 0;
+    } else {
+        mem_filter_index_ = std::clamp(mem_filter_index_, 0, static_cast<int>(mem_filters_.size()) - 1);
+    }
+    const int memCount = static_cast<int>(FilteredMemoryIndices().size());
+    mem_row_index_ = (memCount <= 0) ? 0 : std::clamp(mem_row_index_, 0, memCount - 1);
+
+    const int perPage = ComputeMetrics().portrait ? 9 : 12;
+    const int totalPages = std::max(1, (static_cast<int>(FilteredSaveIndices().size()) + perPage - 1) / perPage);
+    save_page_ = std::clamp(save_page_, 0, totalPages - 1);
+    save_slot_index_ = std::clamp(save_slot_index_, 0, perPage - 1);
+    settings_index_ = std::clamp(settings_index_, 0, kSettingsCount - 1);
+}
+
+void NintendoRenderer::UpdateCachedClockStrings() {
+    const std::time_t nowSec = std::time(nullptr);
+    if (nowSec == cached_clock_sec_ &&
+        cached_clock_24h_ == settings_.time24h &&
+        cached_clock_date_fmt_ == settings_.dateFormat &&
+        !cached_time_str_.empty()) {
+        return;
+    }
+    cached_clock_sec_ = nowSec;
+    cached_clock_24h_ = settings_.time24h;
+    cached_clock_date_fmt_ = settings_.dateFormat;
+
+    std::tm tmv{};
+    localtime_r(&nowSec, &tmv);
+    clock_hour_ = tmv.tm_hour;
+    clock_min_ = tmv.tm_min;
+    clock_sec_ = tmv.tm_sec;
+    cached_time_str_ = FormatClockFromTm(tmv);
+    cached_date_str_ = FormatDateFromTm(tmv);
+}
+
+std::string NintendoRenderer::FormatClockFromTm(const std::tm& tmv) const {
+    char buf[24];
+    if (settings_.time24h) {
+        std::snprintf(buf, sizeof(buf), "%02d:%02d:%02d", tmv.tm_hour, tmv.tm_min, tmv.tm_sec);
+    } else {
+        int h = tmv.tm_hour % 12;
+        if (h == 0) h = 12;
+        std::snprintf(buf, sizeof(buf), "%d:%02d:%02d %s", h, tmv.tm_min, tmv.tm_sec, (tmv.tm_hour >= 12) ? "PM" : "AM");
+    }
+    return buf;
+}
+
+std::string NintendoRenderer::FormatDateFromTm(const std::tm& tmv) const {
+    char buf[24];
+    const int y = tmv.tm_year + 1900;
+    const int m = tmv.tm_mon + 1;
+    const int d = tmv.tm_mday;
+    if (settings_.dateFormat == 1) std::snprintf(buf, sizeof(buf), "%02d/%02d/%04d", m, d, y);
+    else if (settings_.dateFormat == 2) std::snprintf(buf, sizeof(buf), "%04d/%02d/%02d", y, m, d);
+    else std::snprintf(buf, sizeof(buf), "%02d/%02d/%04d", d, m, y);
+    return buf;
+}
+
+void NintendoRenderer::SetStrings(std::unordered_map<std::string, std::string> strings) {
+    strings_ = std::move(strings);
+    ClearTextCache();
+    RebuildDisplayTabs(false);
+    RebuildMemoryFilters();
+    static_idle_frames_ = 0;
+}
+
+void NintendoRenderer::SetConsoleTabs(std::vector<ConsoleTabInfo> tabs) {
+    console_tabs_ = std::move(tabs);
+    RebuildDisplayTabs(false);
+    static_idle_frames_ = 0;
+}
+
+void NintendoRenderer::SetGames(std::vector<GameEntry> games) {
+    const bool hadRecent = has_recent_tab_;
+    games_ = std::move(games);
+    RebuildDisplayTabs(!hadRecent);
+    static_idle_frames_ = 0;
+}
+
+void NintendoRenderer::SetSaves(std::vector<SaveEntry> saves) {
+    for (const auto& newSave : saves) {
+        if (newSave.previewPath.empty()) continue;
+        for (const auto& oldSave : saves_) {
+            if (oldSave.previewPath == newSave.previewPath &&
+                (oldSave.dateStr != newSave.dateStr || oldSave.sizeStr != newSave.sizeStr)) {
+                dirty_image_paths_.insert(newSave.previewPath);
+                break;
+            }
+        }
+    }
+    saves_ = std::move(saves);
+    ClampSelectionIndices();
+    static_idle_frames_ = 0;
+}
+
+void NintendoRenderer::SetMemorySaves(std::vector<MemorySaveEntry> memSaves) {
+    mem_saves_ = std::move(memSaves);
+    RebuildMemoryFilters();
+    ClampSelectionIndices();
+    static_idle_frames_ = 0;
+}
+
+void NintendoRenderer::SetSettings(const ShellSettings& settings) {
+    const int oldTheme = settings_.theme;
+    settings_ = settings;
+    settings_.theme = std::clamp(settings_.theme, 0, 4);
+    settings_.aspectMode = std::clamp(settings_.aspectMode, 0, 3);
+    settings_.motionMode = std::clamp(settings_.motionMode, 0, 3);
+    settings_.scanlinesMode = std::clamp(settings_.scanlinesMode, 0, 2);
+    settings_.bootAnimMode = std::clamp(settings_.bootAnimMode, 0, 2);
+    settings_.dateFormat = std::clamp(settings_.dateFormat, 0, 2);
+    if (oldTheme != settings_.theme) {
+        ClearTextCache();
+    }
+    static_idle_frames_ = 0;
+}
+
+void NintendoRenderer::SetSystemStatus(const SystemStatus& status) {
+    status_ = status;
+    static_idle_frames_ = 0;
+}
+
+void NintendoRenderer::SetTouchMode(bool active, bool showTutorial) {
+    touch_mode_active_ = active;
+    if (showTutorial && overlay_ == OVERLAY_NONE && !boot_active_) {
+        overlay_ = OVERLAY_TOUCH_GUIDE;
+    }
+    static_idle_frames_ = 0;
+}
+
+void NintendoRenderer::SetLoading(bool gamesLoading, bool savesLoading) {
+    games_loading_ = gamesLoading;
+    saves_loading_ = savesLoading;
+    static_idle_frames_ = 0;
+}
+
+void NintendoRenderer::ShowToast(const std::string& message) {
+    toast_text_ = message;
+    toast_timer_ = 2.5f;
+    static_idle_frames_ = 0;
+}
+
+void NintendoRenderer::TriggerTransition(int kind) {
+    launching_ = false;
+    launch_dispatched_ = false;
+    launch_t_ = 0.0f;
+    boot_sfx_played_ = false;
+    prev_screen_ = -1;
+    last_overlay_ = OVERLAY_NONE;
+    overlay_fade_t_ = 1.0f;
+    exiting_shell_ = false;
+    exit_t_ = 0.0f;
+    static_idle_frames_ = 0;
+
+    if (kind == 1 || settings_.bootAnimMode == 2) {
+        boot_active_ = false;
+        screen_fade_t_ = 1.0f;
+        if (screen_ == SCREEN_GAMES && has_recent_tab_) {
+            tab_index_ = 0;
+            game_index_ = 0;
+            game_scroll_y_ = game_scroll_target_y_ = 0.0f;
+            tab_scroll_x_ = tab_scroll_target_x_ = 0.0f;
+        }
+    } else {
+        boot_active_ = true;
+        boot_t_ = 0.0f;
+        boot_duration_ = (settings_.bootAnimMode == 1) ? 1.15f : 2.35f;
+        screen_fade_t_ = 1.0f;
+    }
+}
+
+std::vector<int> NintendoRenderer::GetState() const {
+    return {screen_, main_index_, tab_index_, game_index_, file_tab_, mem_filter_index_, save_slot_index_};
+}
+
+void NintendoRenderer::SetState(int screen, int mainIndex, int tabIndex, int gameIndex, int fileTab, int memFilterIdx, int saveIndex) {
+    screen_ = std::clamp(screen, 0, 3);
+    main_index_ = std::clamp(mainIndex, 0, 3);
+    hub_visual_pos_ = static_cast<float>(main_index_);
+    tab_index_ = std::max(0, tabIndex);
+    game_index_ = std::max(0, gameIndex);
+    file_tab_ = std::clamp(fileTab, 0, 2);
+    mem_filter_index_ = std::max(0, memFilterIdx);
+    save_slot_index_ = std::max(0, saveIndex);
+    ClampSelectionIndices();
+    static_idle_frames_ = 0;
 }
 
 } // namespace nintendoui

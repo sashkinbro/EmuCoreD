@@ -205,7 +205,7 @@ fun AdaptiveShell(
     val tvSafeVertical = TvUiMetrics.safeVerticalDp(configuration.screenHeightDp).dp
     val tvNavigationWidth = TvUiMetrics.navigationWidthDp(configuration.screenWidthDp).dp
 
-    if (isWide) {
+    if (isWide && drawerEnabled) {
         Row(
             modifier = Modifier
                 .fillMaxSize()

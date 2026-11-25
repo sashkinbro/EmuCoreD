@@ -33,6 +33,9 @@
 /core-nes/.cxx/
 /core-snes/build/
 /core-snes/.cxx/
+/native-ui/android/build/
+/native-ui/android/.cxx/
+/native-ui/android/.externalNativeBuild/
 /coreDS/.externalNativeBuild/
 /.gradle/
 /.kotlin/
