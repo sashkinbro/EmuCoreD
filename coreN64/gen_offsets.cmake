@@ -1,4 +1,20 @@
-execute_process(COMMAND "${STRINGS}" "${OBJECT}" RESULT_VARIABLE result OUTPUT_VARIABLE data)
+file(MAKE_DIRECTORY "${OUTPUT_DIR}")
+# Release builds use ThinLTO, so asm_defines.o is LLVM bitcode ("BC" magic) whose inline asm still holds
+# unexpanded operands. Lower it to a real object first; the offsets are only printed there. Build-time only:
+# nothing from this object ends up in the library.
+set(object "${OBJECT}")
+file(READ "${OBJECT}" magic LIMIT 2 HEX)
+if(magic STREQUAL "4243")
+    if(NOT CLANG)
+        message(FATAL_ERROR "asm_defines.o is LLVM bitcode and no CLANG was given to lower it")
+    endif()
+    set(object "${OUTPUT_DIR}/asm_defines_lowered.o")
+    execute_process(COMMAND "${CLANG}" -x ir -c "${OBJECT}" -o "${object}" RESULT_VARIABLE result ERROR_VARIABLE error)
+    if(NOT result EQUAL 0)
+        message(FATAL_ERROR "Could not lower LTO asm_defines.o: ${error}")
+    endif()
+endif()
+execute_process(COMMAND "${STRINGS}" "${object}" RESULT_VARIABLE result OUTPUT_VARIABLE data)
 if(NOT result EQUAL 0)
     message(FATAL_ERROR "Could not read N64 dynarec ABI offsets")
 endif()

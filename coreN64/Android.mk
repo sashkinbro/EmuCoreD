@@ -3,7 +3,8 @@ include $(EMUCORED_N64_DIR)/mupen64plus/libretro/jni/Android.mk
 
 # The upstream offset recipe uses POSIX shell syntax, which NDK make cannot
 # execute through Windows cmd.exe. Generate the same files with SDK CMake.
+# CLANG lowers asm_defines.o first when release ThinLTO made it LLVM bitcode.
 ifeq ($(HOST_OS),windows)
 $(ASM_DEFINES_NASM):
-	@"$(EMUCORED_CMAKE)" "-DSTRINGS=$(NDK_ROOT)/toolchains/llvm/prebuilt/windows-x86_64/bin/llvm-strings.exe" "-DOBJECT=$(ASM_DEFINES_OBJ)" "-DOUTPUT_DIR=$(AWK_DEST_DIR)" -P "$(EMUCORED_N64_DIR)/gen_offsets.cmake"
+	@"$(EMUCORED_CMAKE)" "-DSTRINGS=$(NDK_ROOT)/toolchains/llvm/prebuilt/windows-x86_64/bin/llvm-strings.exe" "-DCLANG=$(NDK_ROOT)/toolchains/llvm/prebuilt/windows-x86_64/bin/clang.exe" "-DOBJECT=$(ASM_DEFINES_OBJ)" "-DOUTPUT_DIR=$(AWK_DEST_DIR)" -P "$(EMUCORED_N64_DIR)/gen_offsets.cmake"
 endif
