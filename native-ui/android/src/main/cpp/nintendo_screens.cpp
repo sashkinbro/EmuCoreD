@@ -170,7 +170,7 @@ void NintendoRenderer::DrawTopBar(const LayoutMetrics& m, const std::string& tit
     std::snprintf(batBuf, sizeof(batBuf), "%d%%%s", status_.batteryLevel, status_.batteryCharging ? "+" : "");
     char coreBuf[32];
     const size_t sysCount = display_tabs_.empty() ? 0 : (display_tabs_.size() - (has_recent_tab_ ? 1 : 0));
-    std::snprintf(coreBuf, sizeof(coreBuf), "%zu/%d SYS", sysCount, std::max(8, status_.coreCount));
+    std::snprintf(coreBuf, sizeof(coreBuf), "%zu/10 SYS", sysCount);
 
     std::string statusLine;
     if (!m.portrait) {
@@ -490,8 +490,8 @@ void NintendoRenderer::DrawMainMenu(const LayoutMetrics& m, float alpha) {
         DrawPrismEmblem(rxCard + 30.0f, infoTop + cardH * 0.5f, 18.0f, 1.0f, -spin_angle_ * 0.40f, alpha * 0.92f);
         const float rtx = rxCard + 56.0f;
         const float rtw = cardW - 66.0f;
-        DrawText(sysTitle, rtx, infoTop + cardH * 0.5f - 18.0f, 15.0f, STYLE_BODY_BOLD, PrimaryTextColor(alpha), rtw, 1, 0);
-        DrawText(sysDesc, rtx, infoTop + cardH * 0.5f + 4.0f, 11.8f, STYLE_BODY, SecondaryTextColor(alpha), rtw, 1, 0);
+        DrawText(sysTitle, rtx, infoTop + cardH * 0.5f - 23.0f, 14.5f, STYLE_BODY_BOLD, PrimaryTextColor(alpha), rtw, 1, 0);
+        DrawText(sysDesc, rtx, infoTop + cardH * 0.5f - 1.0f, 11.2f, STYLE_BODY, SecondaryTextColor(alpha), rtw, 2, 0);
     } else {
         const float cardW = std::min(m.bodyW, 460.0f);
         const float cxCard = hubCx - cardW * 0.5f;
@@ -511,8 +511,8 @@ void NintendoRenderer::DrawMainMenu(const LayoutMetrics& m, float alpha) {
             DrawPanel(cxCard, y2, cardW, pCardH, 16.0f, 1.2f,
                       PanelTopColor(0.86f * alpha), PanelBotColor(0.94f * alpha), PanelBorderColor(0.75f * alpha));
             DrawPrismEmblem(cxCard + 36.0f, y2 + pCardH * 0.5f, 18.0f, 1.0f, -spin_angle_ * 0.40f, alpha * 0.92f);
-            DrawText(sysTitle, cxCard + 68.0f, y2 + pCardH * 0.5f - 18.0f, 15.5f, STYLE_BODY_BOLD, PrimaryTextColor(alpha), cardW - 82.0f, 1, 0);
-            DrawText(sysDesc, cxCard + 68.0f, y2 + pCardH * 0.5f + 4.0f, 12.0f, STYLE_BODY, SecondaryTextColor(alpha), cardW - 82.0f, 1, 0);
+            DrawText(sysTitle, cxCard + 68.0f, y2 + pCardH * 0.5f - 23.0f, 15.0f, STYLE_BODY_BOLD, PrimaryTextColor(alpha), cardW - 82.0f, 1, 0);
+            DrawText(sysDesc, cxCard + 68.0f, y2 + pCardH * 0.5f - 1.0f, 11.4f, STYLE_BODY, SecondaryTextColor(alpha), cardW - 82.0f, 2, 0);
         }
     }
 }
@@ -1156,10 +1156,10 @@ void NintendoRenderer::DrawMemoryCardsTab(const LayoutMetrics& m, float topY, fl
         ? mem_filters_[mem_filter_index_].second
         : TextOr("nintendoui_filter_all", "All");
     char lcdTop[64], lcdBot[64];
-    std::snprintf(lcdTop, sizeof(lcdTop), "%s · %zu ITEMS", filterLbl.c_str(), filtered.size());
-    if (totalBytes < 1024LL) std::snprintf(lcdBot, sizeof(lcdBot), "%lld B TOTAL", static_cast<long long>(totalBytes));
-    else if (totalBytes < 1024LL * 1024LL) std::snprintf(lcdBot, sizeof(lcdBot), "%.1f KB TOTAL", totalBytes / 1024.0);
-    else std::snprintf(lcdBot, sizeof(lcdBot), "%.2f MB TOTAL", totalBytes / (1024.0 * 1024.0));
+    std::snprintf(lcdTop, sizeof(lcdTop), "%s · %zu", filterLbl.c_str(), filtered.size());
+    if (totalBytes < 1024LL) std::snprintf(lcdBot, sizeof(lcdBot), "%lld B", static_cast<long long>(totalBytes));
+    else if (totalBytes < 1024LL * 1024LL) std::snprintf(lcdBot, sizeof(lcdBot), "%.1f KB", totalBytes / 1024.0);
+    else std::snprintf(lcdBot, sizeof(lcdBot), "%.2f MB", totalBytes / (1024.0 * 1024.0));
 
     DrawText(lcdTop, dockX + pad + 12.0f, dockY + pad + 9.0f, 13.5f, STYLE_MONO,
              {0.06f, 0.18f, 0.14f, alpha}, dockW - pad * 2.0f - 24.0f, 1, 0, 0.0f, 0);

@@ -712,7 +712,7 @@ int NintendoRenderer::DefaultShadowMode() const {
 
 RgbaColor NintendoRenderer::PrimaryAccentColor(float alpha) const {
     switch (settings_.theme) {
-        case 1: return {0.49f, 0.41f, 0.96f, alpha}; // GameCube Indigo (#7C68F5)
+        case 1: return {0.62f, 0.54f, 1.00f, alpha}; // GameCube Luminous Lavender Indigo
         case 2: return {0.04f, 0.73f, 0.90f, alpha}; // Switch Neon Blue (#0AB9E6)
         case 3: return {0.91f, 0.71f, 0.29f, alpha}; // Famicom Metallic Gold (#E8B44B)
         case 4: return {0.17f, 0.29f, 0.13f, alpha}; // Game Boy Dark Olive (#2B4A22)
