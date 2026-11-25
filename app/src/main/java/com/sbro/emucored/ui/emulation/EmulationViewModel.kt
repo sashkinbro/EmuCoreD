@@ -1100,12 +1100,13 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
             var knownPlatform: GamePlatform? = null
             currentGamePath?.let { source ->
                 val probeContext = currentCoroutineContext()
-                knownPlatform = ConsoleGameDiscovery.identify(getApplication(), source,
+                val resolvedPlatform = ConsoleGameDiscovery.identify(getApplication(), source,
                     checkActive = { probeContext.ensureActive() })
                     ?: GamePlatform.forPath(source)
-                if (knownPlatform != null) {
-                    GamePlatform.remember(source, knownPlatform!!)
-                    _uiState.update { latest -> latest.copy(gamePlatform = knownPlatform!!) }
+                knownPlatform = resolvedPlatform
+                if (resolvedPlatform != null) {
+                    GamePlatform.remember(source, resolvedPlatform)
+                    _uiState.update { latest -> latest.copy(gamePlatform = resolvedPlatform) }
                 } else if (!autotestMode && !bootSmokeProbe) {
                     // Never fall through to the default 3DS core for an image
                     // whose actual console could not be established.
@@ -1273,7 +1274,7 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
                     currentGameCrc = metadata.serialWithCrc.extractCrc().orEmpty()
                     currentGameSource = when {
                         safePath.startsWith("content://") -> "content_uri"
-                        launchPath?.removePrefix("!")?.startsWith("/") == true -> "file"
+                        launchPath.removePrefix("!").startsWith("/") -> "file"
                         else -> "unknown"
                     }
                     pendingPerGameCoreOptions = if (activeGamePlatform() != GamePlatform.N3DS) emptyMap() else (

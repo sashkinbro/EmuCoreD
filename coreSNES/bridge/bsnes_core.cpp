@@ -30,10 +30,15 @@ extern "C" void emucored_bsnes_init() {
 extern "C" void emucored_bsnes_deinit() {
     audio_buffer_index = 0;
     audio_buffer_max = AUDIOBUFSIZE;
-    delete program;
-    program = nullptr;
-    delete emulator;
-    emulator = nullptr;
+    if (program) {
+        delete program; // Program::~Program() already deletes emulator
+        program = nullptr;
+        emulator = nullptr;
+    } else {
+        delete emulator;
+        emulator = nullptr;
+    }
+    Emulator::platform = nullptr;
 }
 extern "C" void emucored_bsnes_sync_audio_buffer() {
     audio_buffer_index = 0;

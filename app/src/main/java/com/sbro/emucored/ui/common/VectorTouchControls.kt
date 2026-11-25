@@ -322,10 +322,10 @@ fun VectorOverlayButton(
     val skin = LocalControlSkin.current
     val skinArt = skin?.artFor(drawableRes, labelOverride, wide = width > height * 1.2f)
     val skinControlId = skinArt?.id
-    val skinImage = skinControlId?.let { skin?.images?.get(it) }
-    val skinPressedImage = skinControlId?.let { skin?.pressed?.get(it) }
+    val skinImage = skinControlId?.let { skin.images[it] }
+    val skinPressedImage = skinControlId?.let { skin.pressed[it] }
     val skinShown = if (isActivelyPressed && skinPressedImage != null) skinPressedImage else skinImage
-    val effectivePressEffect = if (skinImage != null) skin?.pressEffect ?: pressEffect else pressEffect
+    val effectivePressEffect = if (skinImage != null) skin.pressEffect ?: pressEffect else pressEffect
     val scale = animatedPressScale(
         pressed = isActivelyPressed && !(skinImage != null && skinPressedImage != null),
         effect = effectivePressEffect,
@@ -418,7 +418,7 @@ fun VectorOverlayButton(
             .graphicsLayer(
                 scaleX = scale,
                 scaleY = scale,
-                alpha = if (skinImage != null && skin != null) alpha * skin.opacity else alpha
+                alpha = if (skinImage != null) alpha * skin.opacity else alpha
             )
             .clip(styleShape)
             .then(styleBrush?.let { Modifier.background(it, styleShape) } ?: Modifier)
@@ -1222,11 +1222,11 @@ fun VectorAnalogStick(
             )
         } else if (analogSkinBase != null || analogSkinStick != null) {
             val skinStickShown = if (isActivelyPressed) {
-                skin?.pressed?.get("analog_stick") ?: analogSkinStick
+                skin.pressed["analog_stick"] ?: analogSkinStick
             } else {
                 analogSkinStick
             }
-            val skinAlpha = skin?.opacity ?: 1f
+            val skinAlpha = skin.opacity
             if (analogSkinBase != null) {
                 Image(
                     bitmap = analogSkinBase,
@@ -1234,7 +1234,7 @@ fun VectorAnalogStick(
                     modifier = Modifier.fillMaxSize(),
                     contentScale = ContentScale.Fit,
                     alpha = skinAlpha,
-                    colorFilter = skin?.tintFilter,
+                    colorFilter = skin.tintFilter,
                     filterQuality = FilterQuality.Medium
                 )
             } else {
@@ -1255,7 +1255,7 @@ fun VectorAnalogStick(
                         .offset { IntOffset(displayedThumbOffset.x.roundToInt(), displayedThumbOffset.y.roundToInt()) },
                     contentScale = ContentScale.Fit,
                     alpha = skinAlpha,
-                    colorFilter = skin?.tintFilter,
+                    colorFilter = skin.tintFilter,
                     filterQuality = FilterQuality.Medium
                 )
             } else {

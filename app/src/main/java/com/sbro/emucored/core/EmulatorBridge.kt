@@ -923,8 +923,8 @@ object EmulatorBridge {
     private fun currentDisplayRotation(): Int {
         val context = getContext() ?: return 0
         return runCatching {
-            context.display?.rotation ?: android.view.Surface.ROTATION_0
-        }.getOrDefault(0)
+            context.display.rotation
+        }.getOrDefault(android.view.Surface.ROTATION_0)
     }
 
     private fun isPortraitDisplay(): Boolean {
