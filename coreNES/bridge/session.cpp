@@ -9,6 +9,8 @@
 #include "api/NstApiSound.hpp"
 #include "api/NstApiUser.hpp"
 #include "api/NstApiVideo.hpp"
+#include "NstMachine.hpp"
+#include "NstImage.hpp"
 #include <atomic>
 #include <sstream>
 using namespace Nes::Api;
@@ -19,8 +21,13 @@ struct Session {
   Emulator emulator;
   Input::Controllers input;
   std::vector<uint32_t> pixels = std::vector<uint32_t>(256 * 240);
+  int16_t stereo[4096]{};
   std::string battery;
   std::string diskPatch;
+  uint64_t batteryHash = 0;
+  size_t batterySize = 0;
+  uint64_t diskPatchHash = 0;
+  size_t diskPatchSize = 0;
   bool diskPatchInvalid = false;
   unsigned selectedDiskSide = 0;
   uint64_t rom = 0;
@@ -47,15 +54,20 @@ static void NST_CALLBACK files(void *data, User::File &f) {
     std::ostringstream patch(std::ios::binary);
     if (NES_SUCCEEDED(f.GetPatchContent(User::File::PATCH_UPS, patch))) {
       auto bytes = patch.str();
-      if (!bytes.empty()) writeBytes(s->diskPatch, bytes.data(), bytes.size());
+      if (!bytes.empty())
+        writeBytesIfChanged(s->diskPatch, bytes.data(), bytes.size(),
+                            s->diskPatchHash, s->diskPatchSize);
     }
     break;
   }
   case User::File::LOAD_BATTERY:
   case User::File::LOAD_EEPROM: {
     auto b = readBytes(s->battery);
-    if (!b.empty())
+    if (!b.empty()) {
+      s->batteryHash = hashBytes(b.data(), b.size());
+      s->batterySize = b.size();
       f.SetContent(b.data(), b.size());
+    }
     break;
   }
   case User::File::SAVE_BATTERY:
@@ -63,7 +75,7 @@ static void NST_CALLBACK files(void *data, User::File &f) {
     const void *p = nullptr;
     Nes::ulong n = 0;
     if (NES_SUCCEEDED(f.GetContent(p, n)) && p && n)
-      writeBytes(s->battery, p, n);
+      writeBytesIfChanged(s->battery, p, n, s->batteryHash, s->batterySize);
     break;
   }
   default:
@@ -153,7 +165,7 @@ static Session *createSession(const std::string &path,
     return 0;
   }
   if (audio)
-    s->output.initAudio(48000, 1);
+    s->output.initAudio(48000, 2);
   return s;
 }
 extern "C" JNIEXPORT jlong JNICALL JNI(nativeCreate)(JNIEnv *e, jobject,
@@ -167,36 +179,85 @@ extern "C" JNIEXPORT void JNICALL JNI(nativeDestroy)(JNIEnv *, jobject,
                                                      jlong h) {
   delete (Session *)h;
 }
+extern "C" JNIEXPORT void JNICALL JNI(nativeFlushBattery)(JNIEnv *, jobject,
+                                                          jlong h) {
+  auto *s = (Session *)h;
+  if (!s || !s->loaded)
+    return;
+  Nes::Core::Machine &machine = s->emulator;
+  if (!machine.image)
+    return;
+  const Nes::uint regions = machine.image->NumMemoryRegions();
+  std::vector<uint8_t> combined;
+  const void *singleData = nullptr;
+  size_t singleSize = 0;
+  for (Nes::uint i = 0; i < regions; ++i) {
+    const auto region = machine.image->GetMemoryRegion(i);
+    if (!region.battery || !region.data || region.size == 0)
+      continue;
+    if (!singleData) {
+      singleData = region.data;
+      singleSize = region.size;
+    } else {
+      if (combined.empty()) {
+        const auto *first = static_cast<const uint8_t *>(singleData);
+        combined.assign(first, first + singleSize);
+      }
+      const auto *bytes = static_cast<const uint8_t *>(region.data);
+      combined.insert(combined.end(), bytes, bytes + region.size);
+    }
+  }
+  if (!combined.empty()) {
+    writeBytesIfChanged(s->battery, combined.data(), combined.size(),
+                        s->batteryHash, s->batterySize);
+  } else if (singleData && singleSize > 0) {
+    writeBytesIfChanged(s->battery, singleData, singleSize,
+                        s->batteryHash, s->batterySize);
+  }
+}
 extern "C" JNIEXPORT jboolean JNICALL JNI(nativeFrame)(JNIEnv *, jobject,
                                                        jlong h) {
   auto *s = (Session *)h;
+  if (!s || !s->loaded)
+    return false;
   Video::Output v(s->pixels.data(), 256 * 4);
   int16_t pcm[2048];
   Sound::Output a(pcm, 2048);
   if (NES_FAILED(s->emulator.Execute(&v, &a, &s->input)))
     return false;
   s->output.present(s->pixels.data(), 256, 240);
-  s->output.audioWrite(pcm, a.length[0]);
+  const int frames = std::clamp<int>(a.length[0], 0, 2048);
+  for (int i = 0; i < frames; i++) {
+    s->stereo[i * 2] = pcm[i];
+    s->stereo[i * 2 + 1] = pcm[i];
+  }
+  s->output.audioWrite(s->stereo, frames);
   return true;
 }
 extern "C" JNIEXPORT jdouble JNICALL JNI(nativeRate)(JNIEnv *, jobject,
                                                      jlong h) {
-  return Machine(((Session *)h)->emulator).GetMode() == Machine::PAL
+  auto *s = (Session *)h;
+  if (!s || !s->loaded)
+    return 60.0988139;
+  return Machine(s->emulator).GetMode() == Machine::PAL
              ? 50.0069789
              : 60.0988139;
 }
 extern "C" JNIEXPORT void JNICALL JNI(nativeSurface)(JNIEnv *e, jobject,
                                                      jlong h, jobject surface) {
-  ((Session *)h)->output.attach(e, surface);
+  auto *s = (Session *)h;
+  if (s) s->output.attach(e, surface);
 }
 extern "C" JNIEXPORT void JNICALL JNI(nativePause)(JNIEnv *, jobject, jlong h,
                                                    jboolean p) {
-  ((Session *)h)->output.pause(p);
+  auto *s = (Session *)h;
+  if (s) s->output.pause(p);
 }
 extern "C" JNIEXPORT void JNICALL JNI(nativeButton)(JNIEnv *, jobject, jlong h,
                                                     jint player, jint b,
                                                     jboolean p) {
-  if (player < 0 || player > 1)
+  auto *s = (Session *)h;
+  if (!s || !s->loaded || player < 0 || player > 1)
     return;
   unsigned key = 0;
   switch (b) {
@@ -225,7 +286,7 @@ extern "C" JNIEXPORT void JNICALL JNI(nativeButton)(JNIEnv *, jobject, jlong h,
     key = 128;
     break;
   }
-  auto &buttons = ((Session *)h)->input.pad[player].buttons;
+  auto &buttons = s->input.pad[player].buttons;
   if (p)
     buttons |= key;
   else
@@ -247,6 +308,8 @@ extern "C" JNIEXPORT jboolean JNICALL JNI(nativeStateFile)(JNIEnv *e, jobject,
                                                            jstring path,
                                                            jboolean save) {
   auto *s = (Session *)h;
+  if (!s || !s->loaded)
+    return false;
   if (save) {
     auto b = state(s);
     return !b.empty() && saveEnvelope(utf(e, path), s->rom, b);
@@ -290,6 +353,8 @@ extern "C" JNIEXPORT jboolean JNICALL JNI(nativeOption)(JNIEnv *e, jobject,
                                                         jlong h, jstring key,
                                                         jstring value) {
   auto *s = (Session *)h;
+  if (!s || !s->loaded)
+    return false;
   auto k = utf(e, key), v = utf(e, value);
   if (k == "aspect_ratio") return s->output.setAspectOption(v);
   if (k == "fds_disk_side" || k == "fds_ejected") return applyDiskOption(s, k, v);

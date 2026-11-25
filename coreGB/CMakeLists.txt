@@ -35,6 +35,7 @@ if(ANDROID AND EMUCORED_BUILD_ANDROID_RUNTIME)
  target_compile_features(emucored_gb PRIVATE cxx_std_17)
  target_include_directories(emucored_gb PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/../core-common")
  target_link_libraries(emucored_gb PRIVATE emucored_sameboy android aaudio EGL GLESv2)
+ target_link_options(emucored_gb PRIVATE "-Wl,-z,max-page-size=16384" "-Wl,--exclude-libs,ALL")
 
  if(EMUCORED_BUILD_CORE_TESTS)
   add_executable(emucored_gb_session_contract bridge/session_contract.cpp)

@@ -754,6 +754,10 @@ object EmulatorBridge {
             DsSession.resetKeys()
             return
         }
+        if (AdditionalConsoleSession.isActive) {
+            NativeApp.resetKeyStatus()
+            return
+        }
         if (!isNativeLoaded || !isVmActive) return
         launchSerial {
             if (!isVmActive || !runCatching { NativeApp.hasValidVm() }.getOrDefault(false)) return@launchSerial

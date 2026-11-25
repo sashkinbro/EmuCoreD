@@ -13,6 +13,8 @@ struct Session {
   std::vector<int16_t> samples;
   std::string battery;
   uint64_t rom = 0;
+  uint64_t batteryHash = 0;
+  size_t batterySize = 0;
   bool batteryReady = false;
   ~Session() {
     flushSave();
@@ -21,12 +23,14 @@ struct Session {
     }
   }
   void flushSave() {
-    if (gb && batteryReady) {
+    if (gb && batteryReady && GB_get_battery_dirty(gb)) {
       int n = GB_save_battery_size(gb);
       if (n > 0) {
         std::vector<uint8_t> b(n);
-        if (!GB_save_battery_to_buffer(gb, b.data(), b.size()))
-          writeBytes(battery, b.data(), b.size());
+        if (!GB_save_battery_to_buffer(gb, b.data(), b.size()) &&
+            writeBytesIfChanged(battery, b.data(), b.size(), batteryHash, batterySize)) {
+          GB_clear_battery_dirty(gb);
+        }
       }
     }
   }
@@ -139,8 +143,12 @@ static bool loadValidatedBattery(Session *s) {
       return false;
   } else if (extra != 0)
     return false;
-  if (!bytes.empty())
+  if (!bytes.empty()) {
+    s->batteryHash = hashBytes(bytes.data(), bytes.size());
+    s->batterySize = bytes.size();
     GB_load_battery_from_buffer(s->gb, bytes.data(), bytes.size());
+    GB_clear_battery_dirty(s->gb);
+  }
   return true;
 }
 static uint32_t rgb(GB_gameboy_t *, uint8_t r, uint8_t g, uint8_t b) {
@@ -211,6 +219,8 @@ extern "C" JNIEXPORT void JNICALL JNI(nativeDestroy)(JNIEnv *, jobject,
 extern "C" JNIEXPORT jboolean JNICALL JNI(nativeFrame)(JNIEnv *, jobject,
                                                        jlong h) {
   auto *s = (Session *)h;
+  if (!s || !s->gb)
+    return false;
   s->samples.clear();
   GB_run_frame(s->gb);
   s->output.present(s->pixels.data(), 160, 144);
@@ -222,16 +232,19 @@ extern "C" JNIEXPORT jdouble JNICALL JNI(nativeRate)(JNIEnv *, jobject) {
 }
 extern "C" JNIEXPORT void JNICALL JNI(nativeSurface)(JNIEnv *e, jobject,
                                                      jlong h, jobject surface) {
-  ((Session *)h)->output.attach(e, surface);
+  auto *s = (Session *)h;
+  if (s) s->output.attach(e, surface);
 }
 extern "C" JNIEXPORT void JNICALL JNI(nativePause)(JNIEnv *, jobject, jlong h,
                                                    jboolean p) {
-  ((Session *)h)->output.pause(p);
+  auto *s = (Session *)h;
+  if (s) s->output.pause(p);
 }
 extern "C" JNIEXPORT void JNICALL JNI(nativeButton)(JNIEnv *, jobject, jlong h,
                                                     jint player, jint b,
                                                     jboolean p) {
-  if (player)
+  auto *s = (Session *)h;
+  if (!s || !s->gb || player)
     return;
   int k = -1;
   switch (b) {
@@ -261,13 +274,15 @@ extern "C" JNIEXPORT void JNICALL JNI(nativeButton)(JNIEnv *, jobject, jlong h,
     break;
   }
   if (k >= 0)
-    GB_set_key_state(((Session *)h)->gb, (GB_key_t)k, p);
+    GB_set_key_state(s->gb, (GB_key_t)k, p);
 }
 extern "C" JNIEXPORT jboolean JNICALL JNI(nativeStateFile)(JNIEnv *e, jobject,
                                                            jlong h,
                                                            jstring path,
                                                            jboolean save) {
   auto *s = (Session *)h;
+  if (!s || !s->gb)
+    return false;
   std::vector<uint8_t> b;
   if (save) {
     b.resize(GB_get_save_state_size(s->gb));
@@ -297,6 +312,8 @@ extern "C" JNIEXPORT jboolean JNICALL JNI(nativeOption)(JNIEnv *e, jobject,
                                                         jlong h, jstring key,
                                                         jstring value) {
   auto *s = (Session *)h;
+  if (!s || !s->gb)
+    return false;
   auto k = utf(e, key), v = utf(e, value);
   if (k == "aspect_ratio") return s->output.setAspectOption(v);
   if (k == "audio_enabled" && (v == "true" || v == "false")) {

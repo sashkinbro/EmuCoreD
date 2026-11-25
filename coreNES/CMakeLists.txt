@@ -15,6 +15,7 @@ if(ANDROID AND EMUCORED_BUILD_ANDROID_RUNTIME)
  add_library(emucored_nes SHARED bridge/session.cpp)
  target_include_directories(emucored_nes PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/../core-common")
  target_link_libraries(emucored_nes PRIVATE emucored_nestopia android aaudio EGL GLESv2)
+ target_link_options(emucored_nes PRIVATE "-Wl,-z,max-page-size=16384" "-Wl,--exclude-libs,ALL")
 
  if(EMUCORED_BUILD_CORE_TESTS)
   add_executable(emucored_nes_session_contract bridge/session_contract.cpp)

@@ -7,6 +7,7 @@
 #include <android/native_window_jni.h>
 #include <atomic>
 #include <cstring>
+#include <dlfcn.h>
 #include <fstream>
 #include <jni.h>
 #include <string>
@@ -34,26 +35,36 @@ struct AndroidOutput {
     else return false;
     return true;
   }
-  static constexpr uint32_t audioCapacity = 8192;
+  static constexpr uint32_t audioCapacity = 16384;
   int audioChannels = 2;
   int audioRate = 48000;
+  int inputSampleRate = 0;
+  double resamplePhase = 0.0;
+  int16_t prevSample[2]{0, 0};
+  bool hasPrevSample = false;
   int16_t audioQueue[audioCapacity * 2]{};
   int16_t audioLastSample[2]{0, 0};
   std::atomic<uint32_t> audioRead{0}, audioWritten{0};
-  std::atomic<bool> audioFlushing{false};
+  std::atomic<uint32_t> audioFlushGen{0}, audioDiscardUntil{0};
+  uint32_t audioFlushSeen = 0;
   static aaudio_data_callback_result_t
   audioCallback(AAudioStream *, void *user, void *buffer, int32_t count) {
     auto *s = (AndroidOutput *)user;
     auto *out = (int16_t *)buffer;
-    if (s->audioFlushing.load(std::memory_order_acquire)) {
+    const int channels = std::clamp(s->audioChannels, 1, 2);
+    const uint32_t gen = s->audioFlushGen.load(std::memory_order_acquire);
+    uint32_t r = s->audioRead.load(std::memory_order_relaxed);
+    const uint32_t w = s->audioWritten.load(std::memory_order_acquire);
+    if (gen != s->audioFlushSeen) {
+      s->audioFlushSeen = gen;
       s->audioLastSample[0] = 0;
       s->audioLastSample[1] = 0;
-      std::fill(out, out + count * s->audioChannels, 0);
-      return AAUDIO_CALLBACK_RESULT_CONTINUE;
+      const uint32_t discardUntil = s->audioDiscardUntil.load(std::memory_order_acquire);
+      const uint32_t toDiscard = discardUntil - r;
+      const uint32_t avail = w - r;
+      r = (toDiscard <= avail) ? (r + toDiscard) : w;
+      s->audioRead.store(r, std::memory_order_release);
     }
-    auto r = s->audioRead.load(std::memory_order_relaxed),
-         w = s->audioWritten.load(std::memory_order_acquire);
-    const int channels = std::clamp(s->audioChannels, 1, 2);
     uint32_t n = std::min<uint32_t>(count, w - r);
     for (uint32_t i = 0; i < n; i++) {
       for (int c = 0; c < channels; c++) {
@@ -85,7 +96,6 @@ struct AndroidOutput {
         eglDestroySurface(display, surface);
       if (context != EGL_NO_CONTEXT)
         eglDestroyContext(display, context);
-      eglTerminate(display);
     }
     display = EGL_NO_DISPLAY;
     surface = EGL_NO_SURFACE;
@@ -103,20 +113,34 @@ struct AndroidOutput {
     window = nullptr;
   }
   void attach(JNIEnv *e, jobject s) {
+    ANativeWindow *next = s ? ANativeWindow_fromSurface(e, s) : nullptr;
+    if (next == window) {
+      if (next)
+        ANativeWindow_release(next);
+      return;
+    }
     detach();
-    if (s)
-      window = ANativeWindow_fromSurface(e, s);
+    window = next;
+  }
+  void setInputSampleRate(int rate) {
+    if (rate > 0 && rate != inputSampleRate) {
+      inputSampleRate = rate;
+    }
   }
   void flushAudio() {
-    audioFlushing.store(true, std::memory_order_release);
     const uint32_t w = audioWritten.load(std::memory_order_acquire);
-    audioRead.store(w, std::memory_order_release);
-    audioLastSample[0] = 0;
-    audioLastSample[1] = 0;
+    audioDiscardUntil.store(w, std::memory_order_release);
+    audioFlushGen.fetch_add(1, std::memory_order_release);
+    resamplePhase = 0.0;
+    hasPrevSample = false;
+    prevSample[0] = 0;
+    prevSample[1] = 0;
     if (audio) {
-      AAudioStream_requestFlush(audio);
+      const aaudio_stream_state_t state = AAudioStream_getState(audio);
+      if (state == AAUDIO_STREAM_STATE_PAUSED || state == AAUDIO_STREAM_STATE_STOPPED) {
+        AAudioStream_requestFlush(audio);
+      }
     }
-    audioFlushing.store(false, std::memory_order_release);
   }
   bool initAudio(int rate, int channels = 2) {
     if (audio) {
@@ -124,19 +148,31 @@ struct AndroidOutput {
       audio = nullptr;
     }
     audioChannels = std::clamp(channels, 1, 2);
-    audioRate = rate;
-    audioRead = 0;
-    audioWritten = 0;
+    audioRate = rate > 0 ? rate : 48000;
+    if (inputSampleRate <= 0)
+      inputSampleRate = audioRate;
+    audioRead.store(0, std::memory_order_relaxed);
+    audioWritten.store(0, std::memory_order_relaxed);
+    audioFlushGen.store(0, std::memory_order_relaxed);
+    audioDiscardUntil.store(0, std::memory_order_relaxed);
+    audioFlushSeen = 0;
     audioLastSample[0] = 0;
     audioLastSample[1] = 0;
-    audioFlushing = false;
+    resamplePhase = 0.0;
+    hasPrevSample = false;
+    prevSample[0] = 0;
+    prevSample[1] = 0;
     AAudioStreamBuilder *b = nullptr;
     if (AAudio_createStreamBuilder(&b) != AAUDIO_OK)
       return false;
     AAudioStreamBuilder_setDirection(b, AAUDIO_DIRECTION_OUTPUT);
     AAudioStreamBuilder_setFormat(b, AAUDIO_FORMAT_PCM_I16);
-    AAudioStreamBuilder_setSampleRate(b, rate);
+    AAudioStreamBuilder_setSampleRate(b, audioRate);
     AAudioStreamBuilder_setChannelCount(b, audioChannels);
+    if (auto *setUsage = reinterpret_cast<void (*)(AAudioStreamBuilder *, int32_t)>(
+            dlsym(RTLD_DEFAULT, "AAudioStreamBuilder_setUsage"))) {
+      setUsage(b, 14 /* AAUDIO_USAGE_GAME */);
+    }
     AAudioStreamBuilder_setPerformanceMode(b,
                                            AAUDIO_PERFORMANCE_MODE_LOW_LATENCY);
     AAudioStreamBuilder_setDataCallback(b, audioCallback, this);
@@ -146,12 +182,25 @@ struct AndroidOutput {
       audio = nullptr;
       return false;
     }
+    const int32_t actualRate = AAudioStream_getSampleRate(audio);
+    if (actualRate > 0)
+      audioRate = actualRate;
     const int32_t burst = AAudioStream_getFramesPerBurst(audio);
     const int32_t cap = AAudioStream_getBufferCapacityInFrames(audio);
     if (burst > 0 && cap > 0) {
-      AAudioStream_setBufferSizeInFrames(audio, std::min(cap, burst * 2));
+      const int32_t target = std::max(burst * 4, audioRate / 30);
+      AAudioStream_setBufferSizeInFrames(audio, std::min(cap, target));
     }
-    return AAudioStream_requestStart(audio) == AAUDIO_OK;
+    const uint32_t prefill = std::min<uint32_t>(audioRate / 50, audioCapacity / 4);
+    for (uint32_t i = 0; i < prefill * audioChannels; i++)
+      audioQueue[i] = 0;
+    audioWritten.store(prefill, std::memory_order_release);
+    if (AAudioStream_requestStart(audio) != AAUDIO_OK) {
+      AAudioStream_close(audio);
+      audio = nullptr;
+      return false;
+    }
+    return true;
   }
   void audioWrite(const int16_t *data, int frames) {
     if (!data || frames <= 0)
@@ -164,21 +213,67 @@ struct AndroidOutput {
     }
     if (muted)
       return;
-    auto w = audioWritten.load(std::memory_order_relaxed),
-         r = audioRead.load(std::memory_order_acquire);
-    uint32_t n = std::min<uint32_t>(frames, audioCapacity - (w - r));
-    for (uint32_t i = 0; i < n; i++)
-      for (int c = 0; c < audioChannels; c++)
-        audioQueue[((w + i) % audioCapacity) * audioChannels + c] =
-            data[i * audioChannels + c];
-    audioWritten.store(w + n, std::memory_order_release);
+    uint32_t w = audioWritten.load(std::memory_order_relaxed);
+    const uint32_t r = audioRead.load(std::memory_order_acquire);
+    const uint32_t queued = w - r;
+    const int channels = std::clamp(audioChannels, 1, 2);
+    const int inRate = inputSampleRate > 0 ? inputSampleRate : audioRate;
+    const int outRate = audioRate > 0 ? audioRate : 48000;
+    const uint32_t maxQueue = std::min<uint32_t>(
+        audioCapacity - 64, static_cast<uint32_t>((outRate * 9) / 100));
+    if (queued >= maxQueue || queued >= audioCapacity - 1) {
+      for (int c = 0; c < channels; c++)
+        prevSample[c] = data[(frames - 1) * channels + c];
+      hasPrevSample = true;
+      resamplePhase = 0.0;
+      return;
+    }
+    if (!hasPrevSample) {
+      for (int c = 0; c < channels; c++)
+        prevSample[c] = data[c];
+      hasPrevSample = true;
+    }
+    const double targetFill = outRate * 0.045;
+    const double fillError =
+        (static_cast<double>(queued) - targetFill) / std::max<double>(1.0, outRate * 0.1);
+    const double skew = std::clamp(1.0 + fillError * 0.005, 0.995, 1.005);
+    const double step = (static_cast<double>(inRate) / static_cast<double>(outRate)) * skew;
+    const uint32_t room = std::min(audioCapacity - queued, maxQueue - queued);
+    uint32_t outCount = 0;
+    while (resamplePhase < static_cast<double>(frames) && outCount < room) {
+      const int idx = std::clamp(static_cast<int>(resamplePhase), 0, frames - 1);
+      const double frac = resamplePhase - static_cast<double>(idx);
+      for (int c = 0; c < channels; c++) {
+        const int16_t s0 = (idx == 0) ? prevSample[c] : data[(idx - 1) * channels + c];
+        const int16_t s1 = data[idx * channels + c];
+        const double interp = static_cast<double>(s0) +
+                              (static_cast<double>(s1) - static_cast<double>(s0)) * frac;
+        const int clamped = std::clamp(static_cast<int>(interp + (interp >= 0 ? 0.5 : -0.5)), -32768, 32767);
+        audioQueue[((w + outCount) % audioCapacity) * channels + c] = static_cast<int16_t>(clamped);
+      }
+      outCount++;
+      resamplePhase += step;
+    }
+    for (int c = 0; c < channels; c++)
+      prevSample[c] = data[(frames - 1) * channels + c];
+    if (outCount >= room) {
+      resamplePhase = 0.0;
+    } else {
+      resamplePhase -= static_cast<double>(frames);
+      if (resamplePhase < 0.0) resamplePhase = 0.0;
+    }
+    if (outCount > 0)
+      audioWritten.store(w + outCount, std::memory_order_release);
   }
   void pause(bool p) {
     if (!audio) return;
     const aaudio_stream_state_t state = AAudioStream_getState(audio);
     if (p) {
       if (state == AAUDIO_STREAM_STATE_STARTED || state == AAUDIO_STREAM_STATE_STARTING) {
-        AAudioStream_requestPause(audio);
+        if (AAudioStream_requestPause(audio) == AAUDIO_OK) {
+          aaudio_stream_state_t nextState = state;
+          AAudioStream_waitForStateChange(audio, state, &nextState, 50000000LL);
+        }
       }
       flushAudio();
     } else {
@@ -349,6 +444,20 @@ static uint64_t hashBytes(const uint8_t *p, size_t n) {
     h *= 1099511628211ULL;
   }
   return h;
+}
+static bool writeBytesIfChanged(const std::string &path, const void *bytes,
+                                size_t size, uint64_t &lastHash,
+                                size_t &lastSize) {
+  if (!bytes || size == 0)
+    return true;
+  const uint64_t h = hashBytes(static_cast<const uint8_t *>(bytes), size);
+  if (size == lastSize && h == lastHash)
+    return true;
+  if (!writeBytes(path, bytes, size))
+    return false;
+  lastHash = h;
+  lastSize = size;
+  return true;
 }
 struct StateHeader {
   uint64_t magic = 0x3145544154534345ULL, rom = 0, checksum = 0, size = 0;

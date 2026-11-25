@@ -17,6 +17,7 @@ set(BUILD_GL OFF CACHE BOOL "Presentation is owned by our Android adapter" FORCE
 set(BUILD_GLES2 OFF CACHE BOOL "Presentation is owned by our Android adapter" FORCE)
 set(BUILD_GLES3 OFF CACHE BOOL "Presentation is owned by our Android adapter" FORCE)
 add_subdirectory(mgba)
+target_compile_options(emucored_mgba PRIVATE $<$<OR:$<CONFIG:Release>,$<CONFIG:RelWithDebInfo>>:-flto=thin>)
 
 # Public headers have conditional ABI fields: consumers must inherit the engine's
 # feature definitions, rather than independently guessing ENABLE_VFS etc.
@@ -38,6 +39,7 @@ if(ANDROID AND EMUCORED_BUILD_ANDROID_RUNTIME)
  target_compile_features(emucored_gba PRIVATE cxx_std_17)
  target_include_directories(emucored_gba PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/../core-common")
  target_link_libraries(emucored_gba PRIVATE emucored_gba_core android aaudio EGL GLESv2)
+ target_link_options(emucored_gba PRIVATE "-Wl,-z,max-page-size=16384" "-Wl,--exclude-libs,ALL")
 
  if(EMUCORED_BUILD_CORE_TESTS)
   add_executable(emucored_gba_session_contract bridge/session_contract.cpp)

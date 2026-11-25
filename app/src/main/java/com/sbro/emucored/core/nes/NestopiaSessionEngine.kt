@@ -25,7 +25,9 @@ class NestopiaSessionEngine : ThreadedFrameSessionEngine() {
  override fun nativeSetButton(handle: Long, player: Int, button: EngineButton, pressed: Boolean) = nativeButton(handle,player,button.ordinal,pressed)
  override fun nativeState(handle: Long, path: File, save: Boolean): Boolean = nativeStateFile(handle,path.absolutePath,save)
  override fun nativeApplyOption(handle: Long, key: String, value: String): Boolean = nativeOption(handle,key,value)
+ override fun nativeFlushSave(handle: Long) = nativeFlushBattery(handle)
  override fun nativeReplaceCheats(handle: Long, formats: Array<String>, codes: Array<String>): Boolean = nativeCheats(handle,formats,codes)
+ private external fun nativeFlushBattery(handle: Long)
  private external fun nativeCheats(handle: Long, formats: Array<String>, codes: Array<String>): Boolean
  private external fun nativeCreate(path: String,battery: String,platform: String,firmware: String): Long
  private external fun nativeDestroy(handle: Long)

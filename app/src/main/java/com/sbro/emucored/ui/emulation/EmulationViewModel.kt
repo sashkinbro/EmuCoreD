@@ -706,6 +706,9 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
         viewModelScope.launch {
             preferences.fastForwardSpeed.collect { value ->
                 applyGlobalRuntimePreferenceUpdate { it.copy(fastForwardSpeed = value) }
+                if (activePerGameKey() == null) {
+                    EmulatorBridge.setFastForwardSpeed(value)
+                }
             }
         }
         viewModelScope.launch {
@@ -1172,6 +1175,7 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
                     statusMessage = "status_applying_config"
                 ) }
 
+                EmulatorBridge.setFastForwardSpeed(config.fastForwardSpeed)
                 if (activeGamePlatform() == GamePlatform.N3DS) {
                     EmulatorBridge.applyRuntimeConfig(
                         emulatorDataPath = config.emulatorDataPath,
@@ -1542,10 +1546,12 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
         updateCrashContext(launchState = if (!isPaused) "paused" else "running")
         viewModelScope.launch(Dispatchers.IO) {
             try {
-                if (isPaused) {
-                    EmulatorBridge.resume()
-                } else {
-                    EmulatorBridge.pause()
+                lifecycleMutex.withLock {
+                    if (isPaused) {
+                        EmulatorBridge.resume()
+                    } else {
+                        EmulatorBridge.pause()
+                    }
                 }
             } catch (_: Exception) { }
         }
@@ -1562,7 +1568,9 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
             updateCrashContext(launchState = "paused")
             viewModelScope.launch(Dispatchers.IO) {
                 try {
-                    EmulatorBridge.pause()
+                    lifecycleMutex.withLock {
+                        EmulatorBridge.pause()
+                    }
                 } catch (_: Exception) { }
             }
         } else {
@@ -1577,7 +1585,9 @@ class EmulationViewModel(application: Application) : AndroidViewModel(applicatio
         updateCrashContext(launchState = "running")
         viewModelScope.launch(Dispatchers.IO) {
             try {
-                EmulatorBridge.resume()
+                lifecycleMutex.withLock {
+                    EmulatorBridge.resume()
+                }
             } catch (_: Exception) { }
         }
     }

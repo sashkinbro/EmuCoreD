@@ -5,6 +5,7 @@
 #include <mgba/core/config.h>
 #include <mgba/core/core.h>
 #include <mgba/core/cheats.h>
+#include <mgba/core/serialize.h>
 #include <mgba/internal/gba/cheats.h>
 #include "typed_cheats.h"
 #include <mgba/core/log.h>
@@ -15,11 +16,18 @@
 static void silentLog(mLogger *, int, mLogLevel, const char *, va_list) {}
 static mLogger quietLogger{silentLog, nullptr};
 struct Session {
+  struct AudioRateStream {
+    mAVStream av{};
+    Session *session = nullptr;
+  };
   AndroidOutput output;
+  AudioRateStream avStream;
   mCore *core = nullptr;
   std::vector<uint32_t> pixels = std::vector<uint32_t>(240 * 160);
   std::string battery;
   uint64_t rom = 0;
+  uint64_t saveHash = 0;
+  size_t saveSize = 0;
   VFile *saveFile = nullptr;
   bool batteryReady = false;
   ~Session() {
@@ -37,7 +45,7 @@ struct Session {
         std::vector<uint8_t> data(n);
         saveFile->seek(saveFile, 0, SEEK_SET);
         if (saveFile->read(saveFile, data.data(), n) == n)
-          writeBytes(battery, data.data(), n);
+          writeBytesIfChanged(battery, data.data(), n, saveHash, saveSize);
       }
     }
   }
@@ -98,8 +106,20 @@ static Session *createSession(const std::string &path,
     return 0;
   }
   s->core->setVideoBuffer(s->core, s->pixels.data(), 240);
-  s->core->setAudioBufferSize(s->core, 4096);
+  s->core->setAudioBufferSize(s->core, 8192);
+  s->avStream.session = s;
+  s->avStream.av.audioRateChanged = [](mAVStream *av, unsigned rate) {
+    auto *holder = reinterpret_cast<Session::AudioRateStream *>(av);
+    if (holder && holder->session && rate > 0) {
+      holder->session->output.setInputSampleRate(static_cast<int>(rate));
+    }
+  };
+  s->core->setAVStream(s->core, &s->avStream.av);
   auto save = readBytes(s->battery);
+  if (!save.empty()) {
+    s->saveHash = hashBytes(save.data(), save.size());
+    s->saveSize = save.size();
+  }
   s->saveFile = VFileMemChunk(save.data(), save.size());
   if (!s->saveFile || !s->core->loadSave(s->core, s->saveFile)) {
     if (s->saveFile) {
@@ -116,8 +136,9 @@ static Session *createSession(const std::string &path,
   }
 #endif
   s->core->reset(s->core);
+  s->output.setInputSampleRate(static_cast<int>(s->core->audioSampleRate(s->core)));
   if (audio)
-    s->output.initAudio(s->core->audioSampleRate(s->core));
+    s->output.initAudio(48000, 2);
   s->batteryReady = true;
   return s;
 }
@@ -134,12 +155,16 @@ extern "C" JNIEXPORT void JNICALL JNI(nativeDestroy)(JNIEnv *, jobject,
 extern "C" JNIEXPORT jboolean JNICALL JNI(nativeFrame)(JNIEnv *, jobject,
                                                        jlong h) {
   auto *s = (Session *)h;
+  if (!s || !s->core)
+    return false;
   s->core->runFrame(s->core);
   s->output.present(s->pixels.data(), 240, 160);
   int16_t samples[8192];
   auto *a = s->core->getAudioBuffer(s->core);
-  size_t n = mAudioBufferRead(a, samples, 4096);
-  s->output.audioWrite(samples, n);
+  size_t n = 0;
+  while ((n = mAudioBufferRead(a, samples, 4096)) > 0) {
+    s->output.audioWrite(samples, static_cast<int>(n));
+  }
   return true;
 }
 extern "C" JNIEXPORT jdouble JNICALL JNI(nativeRate)(JNIEnv *, jobject) {
@@ -147,11 +172,13 @@ extern "C" JNIEXPORT jdouble JNICALL JNI(nativeRate)(JNIEnv *, jobject) {
 }
 extern "C" JNIEXPORT void JNICALL JNI(nativeSurface)(JNIEnv *e, jobject,
                                                      jlong h, jobject surface) {
-  ((Session *)h)->output.attach(e, surface);
+  auto *s = (Session *)h;
+  if (s) s->output.attach(e, surface);
 }
 extern "C" JNIEXPORT void JNICALL JNI(nativePause)(JNIEnv *, jobject, jlong h,
                                                    jboolean p) {
-  ((Session *)h)->output.pause(p);
+  auto *s = (Session *)h;
+  if (s) s->output.pause(p);
 }
 extern "C" JNIEXPORT void JNICALL JNI(nativeButton)(JNIEnv *, jobject, jlong h,
                                                     jint player, jint b,
@@ -193,35 +220,68 @@ extern "C" JNIEXPORT void JNICALL JNI(nativeButton)(JNIEnv *, jobject, jlong h,
   }
   if (key >= 0) {
     auto *s = (Session *)h;
+    if (!s || !s->core)
+      return;
     if (p)
       s->core->addKeys(s->core, 1 << key);
     else
       s->core->clearKeys(s->core, 1 << key);
   }
 }
+static bool readAllVFile(VFile *vf, std::vector<uint8_t> &out) {
+  if (!vf) return false;
+  ssize_t n = vf->size(vf);
+  if (n <= 0) return false;
+  out.resize(static_cast<size_t>(n));
+  vf->seek(vf, 0, SEEK_SET);
+  return vf->read(vf, out.data(), n) == n;
+}
 extern "C" JNIEXPORT jboolean JNICALL JNI(nativeStateFile)(JNIEnv *e, jobject,
                                                            jlong h,
                                                            jstring path,
                                                            jboolean save) {
   auto *s = (Session *)h;
-  size_t n = s->core->stateSize(s->core);
+  if (!s || !s->core)
+    return false;
+  const std::string statePath = utf(e, path);
   std::vector<uint8_t> b;
   if (save) {
-    b.resize(n);
-    return s->core->saveState(s->core, b.data()) &&
-           saveEnvelope(utf(e, path), s->rom, b);
+    VFile *vf = VFileMemChunk(nullptr, 0);
+    if (!vf) return false;
+    bool ok = mCoreSaveStateNamed(s->core, vf, SAVESTATE_SAVEDATA | SAVESTATE_RTC) &&
+              readAllVFile(vf, b) &&
+              saveEnvelope(statePath, s->rom, b);
+    vf->close(vf);
+    return ok;
   }
-  b = loadEnvelope(utf(e, path), s->rom);
-  if (b.size() != n)
+  b = loadEnvelope(statePath, s->rom);
+  if (b.empty())
     return false;
-  std::vector<uint8_t> previous(n);
-  const bool havePrevious = s->core->saveState(s->core, previous.data());
-  if (s->core->loadState(s->core, b.data())) {
+  VFile *prev = VFileMemChunk(nullptr, 0);
+  const bool havePrev = prev && mCoreSaveStateNamed(s->core, prev, SAVESTATE_SAVEDATA | SAVESTATE_RTC);
+  bool loaded = false;
+  if (b.size() == s->core->stateSize(s->core)) {
+    loaded = s->core->loadState(s->core, b.data());
+  } else {
+    VFile *vf = VFileFromConstMemory(b.data(), b.size());
+    if (vf) {
+      loaded = mCoreLoadStateNamed(s->core, vf, SAVESTATE_SAVEDATA | SAVESTATE_RTC);
+      vf->close(vf);
+    }
+  }
+  if (loaded) {
+    if (auto *ab = s->core->getAudioBuffer(s->core)) {
+      mAudioBufferClear(ab);
+    }
     s->output.flushAudio();
+    if (prev) prev->close(prev);
     return true;
   }
-  if (havePrevious)
-    s->core->loadState(s->core, previous.data());
+  if (havePrev) {
+    prev->seek(prev, 0, SEEK_SET);
+    mCoreLoadStateNamed(s->core, prev, SAVESTATE_SAVEDATA | SAVESTATE_RTC);
+  }
+  if (prev) prev->close(prev);
   return false;
 }
 extern "C" JNIEXPORT void JNICALL JNI(nativeFlushBattery)(JNIEnv *, jobject, jlong h) {
@@ -232,6 +292,8 @@ extern "C" JNIEXPORT jboolean JNICALL JNI(nativeOption)(JNIEnv *e, jobject,
                                                         jlong h, jstring key,
                                                         jstring value) {
   auto *s = (Session *)h;
+  if (!s || !s->core)
+    return false;
   auto k = utf(e, key), v = utf(e, value);
   if (k == "aspect_ratio") return s->output.setAspectOption(v);
   if (k == "audio_enabled" && (v == "true" || v == "false")) {

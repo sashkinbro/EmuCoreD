@@ -2,6 +2,45 @@
 // Retain the pinned upstream frontend-independent ABI, with an explicit loaded
 // acknowledgement: retro_load_game alone does not report a failed core load.
 #include "target-libretro/libretro.cpp"
+
+struct EmuCoreProgram : Program {
+    auto open(uint id, string name, vfs::file::mode mode, bool required) -> shared_pointer<vfs::file> override {
+        if (id == ::SuperFamicom::ID::SuperFamicom && (name == "time.rtc" || name.endsWith(".data.ram"))) {
+            string save_path;
+            auto suffix = Location::suffix(base_name);
+            auto base = Location::base(base_name.transform("\\", "/"));
+            const string ext = (name == "time.rtc") ? string(".rtc") : string(".", name);
+            const char *save = nullptr;
+            if (environ_cb && environ_cb(RETRO_ENVIRONMENT_GET_SAVE_DIRECTORY, &save) && save)
+                save_path = { string(save).transform("\\", "/"), "/", base.trimRight(suffix, 1L), ext };
+            else
+                save_path = { base_name.trimRight(suffix, 1L), ext };
+            return vfs::fs::file::open(save_path, mode);
+        }
+        return Program::open(id, name, mode, required);
+    }
+};
+
+extern "C" void emucored_bsnes_init() {
+    audio_buffer_index = 0;
+    audio_buffer_max = AUDIOBUFSIZE;
+    emulator = new SuperFamicom::Interface;
+    program = new EmuCoreProgram;
+}
+extern "C" void emucored_bsnes_deinit() {
+    audio_buffer_index = 0;
+    audio_buffer_max = AUDIOBUFSIZE;
+    delete program;
+    program = nullptr;
+    delete emulator;
+    emulator = nullptr;
+}
+extern "C" void emucored_bsnes_sync_audio_buffer() {
+    audio_buffer_index = 0;
+    audio_buffer_max = (emulator && emulator->loaded() && retro_get_region() == RETRO_REGION_NTSC)
+        ? (SAMPLERATE / 60) * 2
+        : AUDIOBUFSIZE;
+}
 extern "C" bool emucored_bsnes_loaded() { return emulator && emulator->loaded(); }
 extern "C" void emucored_bsnes_save_sram() {
     if (emulator && emulator->loaded() && program) {

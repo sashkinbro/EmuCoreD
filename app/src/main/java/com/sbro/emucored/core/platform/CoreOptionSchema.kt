@@ -105,13 +105,13 @@ object CoreOptionSchema {
         ConsolePlatform.GBC -> frame + handheldAudio + toggle("color_correction", SettingsCategory.Graphics)
         ConsolePlatform.NES -> frame + toggle("unlimited_sprites", SettingsCategory.Graphics, default = false)
         ConsolePlatform.SNES -> frame + listOf(
-            option("bsnes_ppu_fast", SettingsCategory.Emulation, "ON", "ON", "OFF"),
-            option("bsnes_dsp_fast", SettingsCategory.Audio, "ON", "ON", "OFF"),
-            option("bsnes_entropy", SettingsCategory.Emulation, "Low", "Low", "High", "None"),
+            option("bsnes_ppu_fast", SettingsCategory.Emulation, "ON", "ON", "OFF", restart = true),
+            option("bsnes_dsp_fast", SettingsCategory.Audio, "ON", "ON", "OFF", restart = true),
+            option("bsnes_entropy", SettingsCategory.Emulation, "Low", "Low", "High", "None", restart = true),
             option("bsnes_blur_emulation", SettingsCategory.Graphics, "OFF", "ON", "OFF"),
             option("bsnes_ppu_no_sprite_limit", SettingsCategory.Graphics, "OFF", "ON", "OFF"),
             option("bsnes_ppu_show_overscan", SettingsCategory.Graphics, "OFF", "ON", "OFF"),
-            option("bsnes_hotfixes", SettingsCategory.Emulation, "OFF", "ON", "OFF"),
+            option("bsnes_hotfixes", SettingsCategory.Emulation, "OFF", "ON", "OFF", restart = true),
             CoreOptionDefinition("bsnes_mode7_scale", SettingsCategory.Graphics, "1x", (1..8).map { "${it}x" }),
             CoreOptionDefinition("bsnes_cpu_overclock", SettingsCategory.Emulation, "100", (10..400 step 10).map(Int::toString)),
             CoreOptionDefinition("bsnes_sa1_overclock", SettingsCategory.Emulation, "100", (10..400 step 10).map(Int::toString)),
@@ -125,7 +125,7 @@ object CoreOptionSchema {
             option("bsnes_dsp_cubic", SettingsCategory.Audio, "OFF", "ON", "OFF"),
             option("bsnes_dsp_echo_shadow", SettingsCategory.Audio, "OFF", "ON", "OFF"),
             option("bsnes_coprocessor_delayed_sync", SettingsCategory.Emulation, "ON", "ON", "OFF"),
-            option("bsnes_coprocessor_prefer_hle", SettingsCategory.Emulation, "ON", "ON", "OFF"),
+            option("bsnes_coprocessor_prefer_hle", SettingsCategory.Emulation, "ON", "ON", "OFF", restart = true),
             option("bsnes_run_ahead_frames", SettingsCategory.Emulation, "OFF", "OFF", "1", "2", "3", "4"),
             option("bsnes_video_filter", SettingsCategory.Graphics, "None", "None", "NTSC (RF)", "NTSC (Composite)", "NTSC (S-Video)", "NTSC (RGB)")
         )

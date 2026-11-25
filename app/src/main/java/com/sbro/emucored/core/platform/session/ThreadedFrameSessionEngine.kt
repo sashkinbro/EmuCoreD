@@ -71,12 +71,8 @@ abstract class ThreadedFrameSessionEngine : CoreSessionEngine {
         this.surface = surface; this.width = width; this.height = height
         if (surface == null && worker.isRunning) {
             val latch = CountDownLatch(1)
-            val queued = worker.post {
-                try {
-                    if (nativeHandle != 0L) nativeAttachSurface(nativeHandle, null, 0, 0)
-                } finally {
-                    latch.countDown()
-                }
+            val queued = worker.post(onComplete = { latch.countDown() }) {
+                if (nativeHandle != 0L) nativeAttachSurface(nativeHandle, null, 0, 0)
             }
             if (queued) {
                 runCatching { latch.await(500L, TimeUnit.MILLISECONDS) }

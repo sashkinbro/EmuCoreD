@@ -5,6 +5,9 @@
 #include <map>
 #include <memory>
 #include <mutex>
+extern "C" void emucored_bsnes_init();
+extern "C" void emucored_bsnes_deinit();
+extern "C" void emucored_bsnes_sync_audio_buffer();
 extern "C" bool emucored_bsnes_loaded();
 extern "C" void emucored_bsnes_save_sram();
 extern "C" bool emucored_bsnes_valid_cheat(const char*);
@@ -103,17 +106,18 @@ JNI(jlong) Java_com_sbro_emucored_core_snes_BsnesSessionEngine_nativeCreate(JNIE
     }
     active=session.get();
     retro_set_environment(environment); retro_set_video_refresh(video); retro_set_audio_sample_batch(audio);
-    retro_set_input_poll(poll); retro_set_input_state(input); retro_init();
+    retro_set_input_poll(poll); retro_set_input_state(input); emucored_bsnes_init();
     const auto source=utf(env,path);
-    if(!emucored_bsnes_load_game(source.c_str())) { retro_deinit(); active=nullptr; return 0; }
+    if(!emucored_bsnes_load_game(source.c_str())) { emucored_bsnes_deinit(); active=nullptr; return 0; }
     retro_cheat_reset();
-    if(!session->output.initAudio(48000)) { retro_unload_game(); retro_deinit(); active=nullptr; return 0; }
+    emucored_bsnes_sync_audio_buffer();
+    session->output.initAudio(48000);
     return reinterpret_cast<jlong>(session.release());
 }
 JNI(void) Java_com_sbro_emucored_core_snes_BsnesSessionEngine_nativeDestroy(JNIEnv*,jobject,jlong handle) {
     std::scoped_lock lock(ownership);
     auto* session=reinterpret_cast<Session*>(handle); if(!session || session!=active) return;
-    retro_cheat_reset(); retro_unload_game(); retro_deinit(); active=nullptr; delete session;
+    retro_cheat_reset(); retro_unload_game(); emucored_bsnes_deinit(); active=nullptr; delete session;
 }
 JNI(jboolean) Java_com_sbro_emucored_core_snes_BsnesSessionEngine_nativeFrame(JNIEnv*,jobject,jlong handle) {
     if(reinterpret_cast<Session*>(handle)!=active || !active || !emucored_bsnes_loaded()) return false;
@@ -149,6 +153,7 @@ JNI(jboolean) Java_com_sbro_emucored_core_snes_BsnesSessionEngine_nativeStateFil
         previous.resize(size);
         if(!retro_serialize(previous.data(),previous.size())) previous.clear();
     }
+    emucored_bsnes_sync_audio_buffer();
     if(retro_unserialize(bytes.data(),bytes.size())) {
         s->output.flushAudio();
         return true;

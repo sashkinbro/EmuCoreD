@@ -1,5 +1,6 @@
 package com.sbro.emucored.core.platform.session
 
+import android.os.Process
 import java.util.concurrent.Executors
 import java.util.concurrent.locks.LockSupport
 import kotlinx.coroutines.CancellationException
@@ -41,7 +42,12 @@ internal class OwnedCoreThread(
     suspend fun start(open: () -> Boolean, startPaused: Boolean): Boolean = lifecycle.withLock {
         if (isRunning) return@withLock false
         stopLocked()
-        val lane = Executors.newSingleThreadExecutor { Thread(it, name) }.asCoroutineDispatcher()
+        val lane = Executors.newSingleThreadExecutor { runnable ->
+            Thread({
+                runCatching { Process.setThreadPriority(Process.THREAD_PRIORITY_URGENT_DISPLAY) }
+                runnable.run()
+            }, name)
+        }.asCoroutineDispatcher()
         dispatcher = lane
         val owner = CoroutineScope(SupervisorJob() + lane)
         scope = owner
@@ -112,11 +118,14 @@ internal class OwnedCoreThread(
         }
     }
 
-    fun post(action: () -> Unit): Boolean {
+    fun post(onComplete: (() -> Unit)? = null, action: () -> Unit): Boolean {
         val lane = dispatcher ?: return false
         val owner = scope ?: return false
-        owner.launch {
+        val job = owner.launch {
             if (dispatcher === lane && isRunning && !stopping) action()
+        }
+        if (onComplete != null) {
+            job.invokeOnCompletion { onComplete() }
         }
         return true
     }
