@@ -18,6 +18,7 @@
 #include "video_core/renderer_base.h"
 
 bool EmuWindow_Android::OnSurfaceChanged(ANativeWindow* surface) {
+    std::scoped_lock lock{window_mutex};
     int temp_width = (surface == nullptr) ? 0 : ANativeWindow_getWidth(surface);
     int temp_height = (surface == nullptr) ? 0 : ANativeWindow_getHeight(surface);
     if (render_window == surface && temp_width == window_width && temp_height == window_height) {

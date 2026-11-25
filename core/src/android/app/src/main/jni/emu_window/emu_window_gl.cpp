@@ -92,12 +92,6 @@ EmuWindow_Android_OpenGL::EmuWindow_Android_OpenGL(Core::System& system_, ANativ
 
     CreateWindowSurface();
 
-    if (eglQuerySurface(egl_display, egl_surface, EGL_WIDTH, &window_width) != EGL_TRUE) {
-        return;
-    }
-    if (eglQuerySurface(egl_display, egl_surface, EGL_HEIGHT, &window_height) != EGL_TRUE) {
-        return;
-    }
     if (sharedContext) {
         egl_context = *sharedContext;
     } else if (egl_context =
@@ -108,29 +102,38 @@ EmuWindow_Android_OpenGL::EmuWindow_Android_OpenGL(Core::System& system_, ANativ
     } else {
         owns_context = true;
     }
-    if (eglSurfaceAttrib(egl_display, egl_surface, EGL_SWAP_BEHAVIOR, EGL_BUFFER_DESTROYED) !=
-        EGL_TRUE) {
-        LOG_CRITICAL(Frontend, "eglSurfaceAttrib() failed");
-        return;
-    }
     if (core_context = CreateSharedContext(); !core_context) {
         LOG_CRITICAL(Frontend, "CreateSharedContext() failed");
         return;
     }
-    if (eglMakeCurrent(egl_display, egl_surface, egl_surface, egl_context) != EGL_TRUE) {
-        LOG_CRITICAL(Frontend, "eglMakeCurrent() failed");
-        return;
+    if (egl_surface != EGL_NO_SURFACE) {
+        if (eglQuerySurface(egl_display, egl_surface, EGL_WIDTH, &window_width) != EGL_TRUE ||
+            eglQuerySurface(egl_display, egl_surface, EGL_HEIGHT, &window_height) != EGL_TRUE) {
+            return;
+        }
+        if (eglSurfaceAttrib(egl_display, egl_surface, EGL_SWAP_BEHAVIOR, EGL_BUFFER_DESTROYED) !=
+            EGL_TRUE) {
+            LOG_CRITICAL(Frontend, "eglSurfaceAttrib() failed");
+            return;
+        }
+        if (eglMakeCurrent(egl_display, egl_surface, egl_surface, egl_context) != EGL_TRUE) {
+            LOG_CRITICAL(Frontend, "eglMakeCurrent() failed");
+            return;
+        }
+        if (!gladLoadGLES2Loader((GLADloadproc)eglGetProcAddress)) {
+            LOG_CRITICAL(Frontend, "gladLoadGLES2Loader() failed");
+            return;
+        }
+        if (!eglSwapInterval(egl_display, Settings::values.use_vsync ? 1 : 0)) {
+            LOG_CRITICAL(Frontend, "eglSwapInterval() failed");
+            return;
+        }
+        OnFramebufferSizeChanged();
+    } else {
+        core_context->MakeCurrent();
+        gladLoadGLES2Loader((GLADloadproc)eglGetProcAddress);
+        core_context->DoneCurrent();
     }
-    if (!gladLoadGLES2Loader((GLADloadproc)eglGetProcAddress)) {
-        LOG_CRITICAL(Frontend, "gladLoadGLES2Loader() failed");
-        return;
-    }
-    if (!eglSwapInterval(egl_display, Settings::values.use_vsync ? 1 : 0)) {
-        LOG_CRITICAL(Frontend, "eglSwapInterval() failed");
-        return;
-    }
-
-    OnFramebufferSizeChanged();
 }
 
 EmuWindow_Android_OpenGL::~EmuWindow_Android_OpenGL() {
@@ -182,9 +185,6 @@ void EmuWindow_Android_OpenGL::DestroyContext() {
     if (egl_context && owns_context && !eglDestroyContext(egl_display, egl_context)) {
         LOG_CRITICAL(Frontend, "eglDestroySurface() failed");
     }
-    if (display_initialized && !eglTerminate(egl_display)) {
-        LOG_CRITICAL(Frontend, "eglTerminate() failed");
-    }
     egl_context = EGL_NO_CONTEXT;
     egl_display = EGL_NO_DISPLAY;
     display_initialized = false;
@@ -195,6 +195,7 @@ std::unique_ptr<Frontend::GraphicsContext> EmuWindow_Android_OpenGL::CreateShare
 }
 
 void EmuWindow_Android_OpenGL::PollEvents() {
+    std::scoped_lock lock{window_mutex};
     if (!render_window) {
         return;
     }
@@ -204,11 +205,15 @@ void EmuWindow_Android_OpenGL::PollEvents() {
 
     DestroyWindowSurface();
     CreateWindowSurface();
+    if (egl_surface != EGL_NO_SURFACE) {
+        eglSurfaceAttrib(egl_display, egl_surface, EGL_SWAP_BEHAVIOR, EGL_BUFFER_DESTROYED);
+    }
     OnFramebufferSizeChanged();
     presenting_state = PresentingState::Initial;
 }
 
 void EmuWindow_Android_OpenGL::StopPresenting() {
+    std::scoped_lock lock{window_mutex};
     if (egl_context && eglGetCurrentContext() == egl_context) {
         eglMakeCurrent(egl_display, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT);
     }
@@ -216,7 +221,8 @@ void EmuWindow_Android_OpenGL::StopPresenting() {
 }
 
 void EmuWindow_Android_OpenGL::TryPresenting() {
-    if (!system.IsPoweredOn()) {
+    std::scoped_lock lock{window_mutex};
+    if (!system.IsPoweredOn() || egl_surface == EGL_NO_SURFACE) {
         return;
     }
     if (presenting_state == PresentingState::Initial) [[unlikely]] {

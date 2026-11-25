@@ -14,9 +14,9 @@
 #include <cstdio>
 #include <deque>
 #include <functional>
-#include <future>
 #include <mutex>
 #include <string>
+#include <sys/resource.h>
 #include <thread>
 #include <vector>
 
@@ -97,17 +97,46 @@ void Post(std::function<void()> work) {
   runtime.commands.emplace_back(std::move(work));
   runtime.changed.notify_all();
 }
+struct SyncCall {
+  std::mutex mutex;
+  std::condition_variable cv;
+  bool done = false;
+  bool ok = false;
+  void complete(bool value) {
+    {
+      std::lock_guard lock(mutex);
+      if (done) return;
+      ok = value;
+      done = true;
+    }
+    cv.notify_all();
+  }
+  bool wait() {
+    std::unique_lock lock(mutex);
+    cv.wait(lock, [this] { return done; });
+    return ok;
+  }
+};
+struct SyncCallGuard {
+  std::shared_ptr<SyncCall> call;
+  ~SyncCallGuard() {
+    if (call) call->complete(false);
+  }
+};
+
 bool OnHost(std::function<bool()> work) {
   std::lock_guard api_lock(runtime.api_mutex);
-  auto result = std::make_shared<std::promise<bool>>();
-  auto completed = result->get_future();
+  auto call = std::make_shared<SyncCall>();
+  auto guard = std::make_shared<SyncCallGuard>(SyncCallGuard{call});
   {
     std::lock_guard lock(runtime.mutex);
     if (!runtime.active || runtime.stop) return false;
-    runtime.commands.emplace_back([result, work = std::move(work)] { result->set_value(work()); });
+    runtime.commands.emplace_back([call, guard, work = std::move(work)] {
+      call->complete(work());
+    });
     runtime.changed.notify_all();
   }
-  return completed.get();
+  return call->wait();
 }
 void DrainCommands() {
   std::deque<std::function<void()>> work;
@@ -135,7 +164,7 @@ struct OptionBinding {
   std::string key;
   bool restart;
   std::vector<std::string> values;
-  std::function<void(const std::string&)> write;
+  std::function<void(const std::string&, bool)> write;
   std::function<std::string()> read;
 };
 template <typename T>
@@ -146,9 +175,12 @@ OptionBinding BindOption(const char* key, const Config::Info<T>& info,
   std::vector<std::string> names;
   for (const auto& [name, value] : choices) { values.emplace_back(name, value); names.emplace_back(name); }
   return {key, restart, std::move(names),
-          [&info, values](const std::string& name) {
+          [&info, values](const std::string& name, bool base) {
             for (const auto& [candidate, value] : values)
-              if (name == candidate) { Config::SetCurrent(info, value); return; }
+              if (name == candidate) {
+                if (base) Config::SetBase(info, value); else Config::SetCurrent(info, value);
+                return;
+              }
           },
           [&info, values] {
             const T value = Config::Get(info);
@@ -165,7 +197,10 @@ OptionBinding IntOption(const char* key, const Config::Info<int>& info, int firs
   std::vector<std::string> values;
   for (int value = first; value <= last; value += step) values.push_back(std::to_string(value));
   return {key, restart, std::move(values),
-          [&info](const std::string& value) { Config::SetCurrent(info, std::stoi(value)); },
+          [&info](const std::string& value, bool base) {
+            const int parsed = std::stoi(value);
+            if (base) Config::SetBase(info, parsed); else Config::SetCurrent(info, parsed);
+          },
           [&info] { return std::to_string(Config::Get(info)); }};
 }
 const std::vector<OptionBinding>& OptionBindings() {
@@ -240,14 +275,22 @@ const std::vector<OptionBinding>& OptionBindings() {
     std::vector<std::string> speeds, clocks;
     for (int i = 1; i <= 40; ++i) speeds.push_back(std::to_string(i / 10) + "." + std::to_string(i % 10));
     b.push_back({"speed", false, std::move(speeds),
-      [](const std::string& v) { Config::SetCurrent(Config::MAIN_EMULATION_SPEED, std::stof(v)); },
+      [](const std::string& v, bool base) {
+        if (base) Config::SetBase(Config::MAIN_EMULATION_SPEED, std::stof(v));
+        else Config::SetCurrent(Config::MAIN_EMULATION_SPEED, std::stof(v));
+      },
       [] { const int tenth = std::lround(Config::Get(Config::MAIN_EMULATION_SPEED) * 10);
            return std::to_string(tenth / 10) + "." + std::to_string(tenth % 10); }});
     for (int i = 10; i <= 400; i += 10) clocks.push_back(std::to_string(i));
     b.push_back({"cpu_clock", true, std::move(clocks),
-      [](const std::string& v) {
-        Config::SetCurrent(Config::MAIN_OVERCLOCK_ENABLE, v != "100");
-        Config::SetCurrent(Config::MAIN_OVERCLOCK, std::stof(v) / 100.f);
+      [](const std::string& v, bool base) {
+        if (base) {
+          Config::SetBase(Config::MAIN_OVERCLOCK_ENABLE, v != "100");
+          Config::SetBase(Config::MAIN_OVERCLOCK, std::stof(v) / 100.f);
+        } else {
+          Config::SetCurrent(Config::MAIN_OVERCLOCK_ENABLE, v != "100");
+          Config::SetCurrent(Config::MAIN_OVERCLOCK, std::stof(v) / 100.f);
+        }
       }, [] { return std::to_string(Config::Get(Config::MAIN_OVERCLOCK_ENABLE) ?
                        int(std::lround(Config::Get(Config::MAIN_OVERCLOCK) * 100)) : 100); }});
     return b;
@@ -279,7 +322,7 @@ bool Option(std::string key, const std::string& value, bool boot) {
                                          u32(std::stoi(value))) == g_backend_info.AAModes.end()) return false;
   if (!boot && key == "gpu_texture_decoding" && value == "true" && !g_backend_info.bSupportsGPUTextureDecoding) return false;
   if (boot) {
-    binding->write(value);
+    binding->write(value, true);
     return binding->read() == value;
   }
   // Config's CPU callback refreshes g_Config, but the normal GPU promotion to
@@ -288,14 +331,14 @@ bool Option(std::string key, const std::string& value, bool boot) {
   // (so its Config callbacks run synchronously), then ask the GPU to consume the
   // change. AsyncRequests also services jobs while paused. Never write video
   // configuration or recreate GPU resources directly from this host thread.
-  auto result = std::make_shared<std::promise<bool>>();
-  auto completed = result->get_future();
-  Core::RunOnCPUThread(Core::System::GetInstance(), [binding, value, result] {
-    binding->write(value);
+  auto call = std::make_shared<SyncCall>();
+  auto guard = std::make_shared<SyncCallGuard>(SyncCallGuard{call});
+  Core::RunOnCPUThread(Core::System::GetInstance(), [binding, value, call, guard] {
+    binding->write(value, false);
     AsyncRequests::GetInstance()->PushBlockingEvent([] { CheckForConfigChanges(); });
-    result->set_value(binding->read() == value);
+    call->complete(binding->read() == value);
   });
-  return completed.get();
+  return call->wait();
 }
 std::string ReadOption(std::string key) {
   key = OptionKey(std::move(key));
@@ -394,6 +437,7 @@ std::unique_ptr<BootParameters> BootFromImage(const std::string& path) {
 }
 void HostRun(std::string path, std::string user, std::string sys, bool wii, bool paused,
              std::vector<std::pair<std::string, std::string>> options) {
+  setpriority(PRIO_PROCESS, 0, -6);
   auto& system = Core::System::GetInstance();
   runtime.wii = wii;
   runtime.profile = 1;
@@ -415,25 +459,25 @@ void HostRun(std::string path, std::string user, std::string sys, bool wii, bool
   // Upstream calls this host hook even when reporting is disabled. Our own
   // frontend supplies no device analytics and never installs the HTTP backend.
   DolphinAnalytics::AndroidSetGetValFunc([](std::string) { return std::string{}; });
-  Config::SetCurrent(Config::MAIN_ANALYTICS_ENABLED, false);
-  Config::SetCurrent(Config::MAIN_ENABLE_CHEATS, false);
-  Config::SetCurrent(Config::MAIN_GFX_BACKEND, std::string("Vulkan"));
-  Config::SetCurrent(Config::MAIN_AUDIO_BACKEND, std::string(BACKEND_CUBEB));
-  Config::SetCurrent(Config::MAIN_CPU_CORE, PowerPC::CPUCore::JITARM64);
-  Config::SetCurrent(Config::MAIN_DSP_HLE, true);
-  Config::SetCurrent(Config::MAIN_SKIP_IPL, true);
-  Config::SetCurrent(Config::MAIN_ENABLE_SAVESTATES, true);
-  Config::SetCurrent(Config::MAIN_WIIMOTE_CONTINUOUS_SCANNING, false);
-  Config::SetCurrent(Config::GFX_SHOW_FPS, false);
-  Config::SetCurrent(Config::GFX_DRIVER_LIB_NAME, runtime.gpu_driver_name);
-  Config::SetCurrent(Config::MAIN_OSD_MESSAGES, false);
+  Config::SetBase(Config::MAIN_ANALYTICS_ENABLED, false);
+  Config::SetBase(Config::MAIN_ENABLE_CHEATS, false);
+  Config::SetBase(Config::MAIN_GFX_BACKEND, std::string("Vulkan"));
+  Config::SetBase(Config::MAIN_AUDIO_BACKEND, std::string(BACKEND_CUBEB));
+  Config::SetBase(Config::MAIN_CPU_CORE, PowerPC::CPUCore::JITARM64);
+  Config::SetBase(Config::MAIN_DSP_HLE, true);
+  Config::SetBase(Config::MAIN_SKIP_IPL, true);
+  Config::SetBase(Config::MAIN_ENABLE_SAVESTATES, true);
+  Config::SetBase(Config::MAIN_WIIMOTE_CONTINUOUS_SCANNING, false);
+  Config::SetBase(Config::GFX_SHOW_FPS, false);
+  Config::SetBase(Config::GFX_DRIVER_LIB_NAME, runtime.gpu_driver_name);
+  Config::SetBase(Config::MAIN_OSD_MESSAGES, false);
   for (const auto& [key, value] : options) {
     if (!Option(key, value, true)) {
       UICommon::Shutdown(); runtime.initialized = false; StartResult(6); return;
     }
   }
   for (int i = 0; i < 4; ++i)
-    Config::SetCurrent(Config::GetInfoForWiimoteSource(i), wii ? WiimoteSource::Emulated : WiimoteSource::None);
+    Config::SetBase(Config::GetInfoForWiimoteSource(i), wii ? WiimoteSource::Emulated : WiimoteSource::None);
   VideoBackendBase::ActivateBackend(Config::Get(Config::MAIN_GFX_BACKEND));
   UICommon::InitControllers(WindowSystemInfo(WindowSystemType::Android, nullptr, nullptr, nullptr));
   {
@@ -521,7 +565,10 @@ void HostRun(std::string path, std::string user, std::string sys, bool wii, bool
     std::unique_lock lock(runtime.mutex);
     runtime.changed.wait_for(lock, 8ms, [] { return !runtime.commands.empty() || runtime.stop; });
   }
-  runtime.active = false;
+  {
+    std::lock_guard lock(runtime.mutex);
+    runtime.active = false;
+  }
   // Fulfill accepted synchronous commands before ending their host worker.
   DrainCommands();
 #if EMUCORED_DIAGNOSTICS
@@ -541,8 +588,11 @@ void HostRun(std::string path, std::string user, std::string sys, bool wii, bool
 #if EMUCORED_DIAGNOSTICS
   __android_log_print(ANDROID_LOG_INFO, "DolphinRuntime", "HostRun stop: complete");
 #endif
-  runtime.initialized = false;
-  runtime.paused = false;
+  {
+    std::lock_guard lock(runtime.mutex);
+    runtime.initialized = false;
+    runtime.paused = false;
+  }
   runtime.changed.notify_all();
 }
 }
@@ -552,7 +602,10 @@ void Host_PPCSymbolsChanged() {}
 void Host_PPCBreakpointsChanged() {}
 bool Host_UIBlocksControllerState() { return false; }
 void Host_Message(HostMessageID id) {
-  if (id == HostMessageID::WMUserStop) runtime.stop = true;
+  {
+    std::lock_guard lock(runtime.mutex);
+    if (id == HostMessageID::WMUserStop) runtime.stop = true;
+  }
   runtime.changed.notify_all();
 }
 void Host_UpdateTitle(const std::string&) {}
@@ -619,12 +672,16 @@ JNIEXPORT jint JNICALL JNI_METHOD(start)(JNIEnv* env, jobject, jstring path, jst
   runtime.changed.wait(lock, [] { return runtime.start_result != -1; });
   return runtime.start_result;
 }
-JNIEXPORT void JNICALL JNI_METHOD(requestStop)(JNIEnv*, jobject) { runtime.stop = true; runtime.changed.notify_all(); }
+JNIEXPORT void JNICALL JNI_METHOD(requestStop)(JNIEnv*, jobject) {
+  { std::lock_guard lock(runtime.mutex); runtime.stop = true; }
+  runtime.changed.notify_all();
+}
 JNIEXPORT void JNICALL JNI_METHOD(stop)(JNIEnv*, jobject) {
 #if EMUCORED_DIAGNOSTICS
   __android_log_print(ANDROID_LOG_INFO, "DolphinRuntime", "stop: request");
 #endif
-  runtime.stop = true; runtime.changed.notify_all();
+  { std::lock_guard lock(runtime.mutex); runtime.stop = true; }
+  runtime.changed.notify_all();
   std::lock_guard api_lock(runtime.api_mutex);
   if (runtime.host.joinable()) runtime.host.join();
 #if EMUCORED_DIAGNOSTICS

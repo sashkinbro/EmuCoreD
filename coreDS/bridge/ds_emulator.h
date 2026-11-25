@@ -50,6 +50,7 @@ public:
     void SetRenderScale(int scale);
     void SetPaused(bool paused);
     void SetRenderer(int renderer);
+    void SetVolume(float volume);
     bool SaveState(const std::string& path);
     bool LoadState(const std::string& path);
     bool ReplaceCheats(std::vector<std::vector<uint32_t>> codes);
@@ -69,6 +70,7 @@ private:
     void PresentFrame();
     void PresentVulkanFrame();
     void ApplyRenderScaleLocked();
+    void StopLocked();
     bool PerformStateRequest(const std::string& path, bool save);
     bool WriteStateFile(const std::string& path);
     bool ReadStateFile(const std::string& path);
@@ -85,16 +87,19 @@ private:
     std::vector<uint32_t> vulkan_readback_;
     AAudioStream* audio_stream_ = nullptr;
     std::vector<int16_t> audio_buffer_;
-    static constexpr uint32_t kAudioCapacity = 8192;
+    static constexpr uint32_t kAudioCapacity = 16384;
     int16_t audio_ring_[kAudioCapacity * 2]{};
     int16_t audio_last_sample_[2]{0, 0};
     std::atomic<uint32_t> audio_read_{0};
     std::atomic<uint32_t> audio_write_{0};
-    std::atomic<bool> audio_flushing_{false};
+    std::atomic<uint32_t> audio_flush_gen_{0};
+    std::atomic<uint32_t> audio_discard_until_{0};
+    uint32_t audio_flush_seen_ = 0;
     std::atomic<float> audio_volume_{1.0f};
     std::unique_ptr<DsPresenter> presenter_;
     std::unique_ptr<DsPresenter> secondary_presenter_;
     std::thread thread_;
+    std::mutex lifecycle_mutex_;
     std::mutex surface_mutex_;
     std::mutex vulkan_present_mutex_;
     std::mutex audio_mutex_;

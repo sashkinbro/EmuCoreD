@@ -99,6 +99,7 @@ private:
     bool vsync_enabled{};
     bool blit_supported;
     bool use_present_thread{true};
+    bool shutting_down{false};
     void* last_render_surface{};
 };
 

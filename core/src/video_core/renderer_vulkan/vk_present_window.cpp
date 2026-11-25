@@ -153,6 +153,15 @@ PresentWindow::PresentWindow(Frontend::EmuWindow& emu_window_, const Instance& i
 }
 
 PresentWindow::~PresentWindow() {
+    {
+        std::scoped_lock lock{recreate_surface_mutex};
+        shutting_down = true;
+    }
+    recreate_surface_cv.notify_all();
+    if (present_thread.joinable()) {
+        present_thread.request_stop();
+        present_thread.join();
+    }
     scheduler.Finish();
     const vk::Device device = instance.GetDevice();
     // If the window is destroyed before the next_surface is
@@ -375,7 +384,10 @@ void PresentWindow::CopyToSwapchain(Frame* frame) {
 #ifdef ANDROID
         {
             std::unique_lock lock{recreate_surface_mutex};
-            recreate_surface_cv.wait(lock, [this]() { return surface != next_surface; });
+            recreate_surface_cv.wait(lock, [this]() { return shutting_down || surface != next_surface; });
+            if (shutting_down) {
+                return;
+            }
             surface = next_surface;
         }
 #endif
@@ -396,7 +408,13 @@ void PresentWindow::CopyToSwapchain(Frame* frame) {
 #endif
 
     while (!swapchain.AcquireNextImage()) {
+        if (shutting_down) {
+            return;
+        }
         recreate_swapchain();
+        if (shutting_down) {
+            return;
+        }
     }
 
     const vk::Image swapchain_image = swapchain.Image();

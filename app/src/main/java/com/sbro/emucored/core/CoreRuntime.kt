@@ -215,6 +215,9 @@ internal object CoreRuntime {
         }
 
         val thread = Thread({
+            runCatching {
+                android.os.Process.setThreadPriority(android.os.Process.THREAD_PRIORITY_URGENT_DISPLAY)
+            }
             try {
                 if (startPaused) EmuCoreNative.runPaused(gamePath) else EmuCoreNative.run(gamePath)
             } catch (error: Throwable) {
@@ -282,9 +285,9 @@ internal object CoreRuntime {
         startPresentationFrames()
     }
 
-    fun shutdown() {
-        if (!running && !starting && !EmuCoreNative.isRunning() && sessionThread?.isAlive != true) return
-        if (!requestShutdown()) return
+    fun shutdown() = lifecycleLock.withLock {
+        if (!running && !starting && !EmuCoreNative.isRunning() && sessionThread?.isAlive != true) return@withLock
+        if (!requestShutdown()) return@withLock
         running = false
         paused = false
         currentGamePath = null

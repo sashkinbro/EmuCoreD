@@ -8,8 +8,11 @@
 #include <chrono>
 #include <cstdio>
 #include <cstring>
+#include <dlfcn.h>
 #include <fstream>
+#include <map>
 #include <mutex>
+#include <sys/resource.h>
 #include <sys/system_properties.h>
 #include <vector>
 #include <unistd.h>
@@ -80,6 +83,107 @@ void WriteSaveFile(const std::string& path, const u8* data, u32 length) {
     if (!ok) std::remove(tmp.c_str());
 }
 
+uint64_t HashSaveBytes(const u8* data, size_t size) {
+    uint64_t h = 1469598103934665603ULL;
+    for (size_t i = 0; i < size; ++i) {
+        h ^= data[i];
+        h *= 1099511628211ULL;
+    }
+    return h;
+}
+
+class DebouncedSaveWriter {
+public:
+    ~DebouncedSaveWriter() { Shutdown(); }
+
+    void Enqueue(const std::string& path, const u8* data, u32 length) {
+        if (path.empty() || !data || length == 0) return;
+        std::vector<u8> copy(data, data + length);
+        std::lock_guard lock(mutex_);
+        EnsureWorkerLocked();
+        pending_[path] = std::move(copy);
+        dirty_since_ = std::chrono::steady_clock::now();
+        cv_.notify_all();
+    }
+
+    void Flush() {
+        std::unique_lock lock(mutex_);
+        if (!worker_.joinable() && pending_.empty()) return;
+        flush_now_ = true;
+        cv_.notify_all();
+        done_cv_.wait(lock, [this] { return pending_.empty() && !writing_; });
+        flush_now_ = false;
+    }
+
+    void Shutdown() {
+        Flush();
+        {
+            std::lock_guard lock(mutex_);
+            stop_ = true;
+        }
+        cv_.notify_all();
+        if (worker_.joinable()) worker_.join();
+        stop_ = false;
+    }
+
+private:
+    void EnsureWorkerLocked() {
+        if (!worker_.joinable()) {
+            stop_ = false;
+            worker_ = std::thread(&DebouncedSaveWriter::Run, this);
+        }
+    }
+
+    void Run() {
+        std::unique_lock lock(mutex_);
+        while (true) {
+            cv_.wait(lock, [this] { return stop_ || flush_now_ || !pending_.empty(); });
+            if (stop_ && pending_.empty()) break;
+            if (!flush_now_ && !stop_) {
+                const auto target = dirty_since_ + std::chrono::milliseconds(500);
+                cv_.wait_until(lock, target, [this] { return stop_ || flush_now_; });
+                if (!stop_ && !flush_now_ &&
+                    std::chrono::steady_clock::now() < dirty_since_ + std::chrono::milliseconds(500)) {
+                    continue;
+                }
+            }
+            if (pending_.empty()) {
+                done_cv_.notify_all();
+                continue;
+            }
+            std::map<std::string, std::vector<u8>> batch;
+            batch.swap(pending_);
+            writing_ = true;
+            lock.unlock();
+            for (const auto& [path, bytes] : batch) {
+                const uint64_t h = HashSaveBytes(bytes.data(), bytes.size());
+                auto prev = written_hashes_.find(path);
+                if (prev != written_hashes_.end() && prev->second.first == bytes.size() && prev->second.second == h) {
+                    continue;
+                }
+                WriteSaveFile(path, bytes.data(), static_cast<u32>(bytes.size()));
+                written_hashes_[path] = {bytes.size(), h};
+            }
+            lock.lock();
+            writing_ = false;
+            if (pending_.empty()) done_cv_.notify_all();
+        }
+    }
+
+    std::mutex mutex_;
+    std::condition_variable cv_;
+    std::condition_variable done_cv_;
+    std::map<std::string, std::vector<u8>> pending_;
+    std::map<std::string, std::pair<size_t, uint64_t>> written_hashes_;
+    std::chrono::steady_clock::time_point dirty_since_{};
+    std::thread worker_;
+    bool flush_now_ = false;
+    bool writing_ = false;
+    bool stop_ = false;
+};
+
+DebouncedSaveWriter g_save_writer;
+
 } // namespace
 
 void RequestStop(melonDS::Platform::StopReason) {
@@ -87,11 +191,11 @@ void RequestStop(melonDS::Platform::StopReason) {
 }
 
 void WriteNdsSave(const u8* data, u32 length, u32, u32) {
-    WriteSaveFile(EmuCoreDS::g_sram_path, data, length);
+    g_save_writer.Enqueue(EmuCoreDS::g_sram_path, data, length);
 }
 
 void WriteFirmwareData(const u8* data, u32 length, u32, u32) {
-    WriteSaveFile(EmuCoreDS::g_firmware_path, data, length);
+    g_save_writer.Enqueue(EmuCoreDS::g_firmware_path, data, length);
 }
 
 DsEmulator& Emulator() {
@@ -111,7 +215,8 @@ void DsEmulator::SetUserDirectory(const std::string& path) {
 }
 
 bool DsEmulator::Start(const std::string& rom_path, const std::string& sram_path, bool start_paused) {
-    Stop();
+    std::lock_guard lifecycle_lock(lifecycle_mutex_);
+    StopLocked();
     rom_path_ = rom_path;
     sram_path_ = sram_path;
     g_rom_path = rom_path;
@@ -170,7 +275,9 @@ bool DsEmulator::Start(const std::string& rom_path, const std::string& sram_path
             EMUCORED_DIAGNOSTIC_LOG(__android_log_print(ANDROID_LOG_ERROR, "EmuCoreDS",
                                 "VulkanOutput initialization failed; falling back to software"));
             vulkan_output_.reset();
-            nds_->GPU.SetRenderer3D(std::make_unique<melonDS::SoftRenderer>());
+            auto soft = std::make_unique<melonDS::SoftRenderer>();
+            soft->SetThreaded(true, nds_->GPU);
+            nds_->GPU.SetRenderer3D(std::move(soft));
         } else {
             for (auto& frame : vulkan_frames_) frame = std::make_unique<Frame>();
             vulkan_frame_cursor_ = 0;
@@ -185,6 +292,9 @@ bool DsEmulator::Start(const std::string& rom_path, const std::string& sram_path
             }
         }
     } else {
+        if (auto* soft = dynamic_cast<melonDS::SoftRenderer*>(&nds_->GPU.GetRenderer3D())) {
+            soft->SetThreaded(true, nds_->GPU);
+        }
         EMUCORED_DIAGNOSTIC_LOG(__android_log_print(ANDROID_LOG_INFO, "EmuCoreDS", "Using DS software renderer"));
     }
     nds_->Reset();
@@ -197,7 +307,12 @@ bool DsEmulator::Start(const std::string& rom_path, const std::string& sram_path
 
     {
         std::lock_guard lock(surface_mutex_);
-        AttachVulkanSurfaceLocked();
+        if (vulkan_output_) {
+            AttachVulkanSurfaceLocked();
+        } else {
+            if (!presenter_) presenter_ = std::make_unique<DsPresenter>();
+            presenter_->SetSurface(window_);
+        }
     }
 
     running_ = true;
@@ -220,8 +335,18 @@ void DsEmulator::RequestStopAsync() {
 }
 
 void DsEmulator::Stop() {
-    const bool was_running=running_.exchange(false);
+    std::lock_guard lifecycle_lock(lifecycle_mutex_);
+    StopLocked();
+}
+
+void DsEmulator::StopLocked() {
+    const bool was_running = running_.exchange(false);
+    stop_requested_ = true;
+    g_stop_requested = true;
     state_cv_.notify_all();
+    if (thread_.joinable()) thread_.join();
+    stop_requested_ = false;
+    g_save_writer.Flush();
     if (!was_running) {
         {
             std::lock_guard lock(surface_mutex_);
@@ -236,10 +361,6 @@ void DsEmulator::Stop() {
         if (nds_) nds_.reset();
         return;
     }
-    stop_requested_ = true;
-    g_stop_requested = true;
-    if (thread_.joinable()) thread_.join();
-    stop_requested_ = false;
     StopAudio();
     {
         std::lock_guard lock(surface_mutex_);
@@ -255,8 +376,10 @@ void DsEmulator::Stop() {
 }
 
 void DsEmulator::Reset() {
+    std::lock_guard lifecycle_lock(lifecycle_mutex_);
     if (!nds_ || !running_.load()) return;
     stop_requested_ = true;
+    state_cv_.notify_all();
     if (thread_.joinable()) thread_.join();
     stop_requested_ = false;
     g_stop_requested = false;
@@ -268,6 +391,7 @@ void DsEmulator::Reset() {
 }
 
 void DsEmulator::Run() {
+    setpriority(PRIO_PROCESS, 0, -8);
     using clock = std::chrono::steady_clock;
     auto next_frame = clock::now();
     while (running_.load() && !stop_requested_.load()) {
@@ -747,15 +871,25 @@ aaudio_data_callback_result_t DsEmulator::AudioCallback(
     AAudioStream*, void* user, void* buffer, int32_t count) {
     auto* self = static_cast<DsEmulator*>(user);
     auto* out = static_cast<int16_t*>(buffer);
-    if (self->audio_flushing_.load(std::memory_order_acquire) ||
-        self->paused_.load(std::memory_order_relaxed)) {
+    const uint32_t gen = self->audio_flush_gen_.load(std::memory_order_acquire);
+    uint32_t r = self->audio_read_.load(std::memory_order_relaxed);
+    const uint32_t w = self->audio_write_.load(std::memory_order_acquire);
+    if (gen != self->audio_flush_seen_) {
+        self->audio_flush_seen_ = gen;
+        self->audio_last_sample_[0] = 0;
+        self->audio_last_sample_[1] = 0;
+        const uint32_t discard_until = self->audio_discard_until_.load(std::memory_order_acquire);
+        const uint32_t to_discard = discard_until - r;
+        const uint32_t avail = w - r;
+        r = (to_discard <= avail) ? (r + to_discard) : w;
+        self->audio_read_.store(r, std::memory_order_release);
+    }
+    if (self->paused_.load(std::memory_order_relaxed)) {
         self->audio_last_sample_[0] = 0;
         self->audio_last_sample_[1] = 0;
         std::fill(out, out + count * 2, 0);
         return AAUDIO_CALLBACK_RESULT_CONTINUE;
     }
-    const uint32_t r = self->audio_read_.load(std::memory_order_relaxed);
-    const uint32_t w = self->audio_write_.load(std::memory_order_acquire);
     const uint32_t avail = w - r;
     const uint32_t n = std::min<uint32_t>(static_cast<uint32_t>(std::max(0, count)), avail);
     for (uint32_t i = 0; i < n; i++) {
@@ -778,12 +912,9 @@ aaudio_data_callback_result_t DsEmulator::AudioCallback(
 }
 
 void DsEmulator::FlushAudioRing() {
-    audio_flushing_.store(true, std::memory_order_release);
     const uint32_t w = audio_write_.load(std::memory_order_acquire);
-    audio_read_.store(w, std::memory_order_release);
-    audio_last_sample_[0] = 0;
-    audio_last_sample_[1] = 0;
-    audio_flushing_.store(false, std::memory_order_release);
+    audio_discard_until_.store(w, std::memory_order_release);
+    audio_flush_gen_.fetch_add(1, std::memory_order_release);
 }
 
 bool DsEmulator::OpenAudioStreamLocked() {
@@ -793,6 +924,10 @@ bool DsEmulator::OpenAudioStreamLocked() {
     AAudioStreamBuilder_setSampleRate(builder, 48000);
     AAudioStreamBuilder_setChannelCount(builder, 2);
     AAudioStreamBuilder_setFormat(builder, AAUDIO_FORMAT_PCM_I16);
+    if (auto* set_usage = reinterpret_cast<void (*)(AAudioStreamBuilder*, int32_t)>(
+            dlsym(RTLD_DEFAULT, "AAudioStreamBuilder_setUsage"))) {
+        set_usage(builder, 14 /* AAUDIO_USAGE_GAME */);
+    }
     AAudioStreamBuilder_setSharingMode(builder, AAUDIO_SHARING_MODE_SHARED);
     AAudioStreamBuilder_setPerformanceMode(builder, AAUDIO_PERFORMANCE_MODE_LOW_LATENCY);
     AAudioStreamBuilder_setDataCallback(builder, AudioCallback, this);
@@ -804,18 +939,22 @@ bool DsEmulator::OpenAudioStreamLocked() {
                             static_cast<int>(result)));
         return false;
     }
+    const int32_t actual_rate = std::max(8000, AAudioStream_getSampleRate(audio_stream_));
     const int32_t burst = AAudioStream_getFramesPerBurst(audio_stream_);
     const int32_t cap = AAudioStream_getBufferCapacityInFrames(audio_stream_);
     if (burst > 0 && cap > 0) {
-        AAudioStream_setBufferSizeInFrames(audio_stream_, std::min(cap, burst * 2));
+        const int32_t target = std::max(burst * 4, actual_rate / 30);
+        AAudioStream_setBufferSizeInFrames(audio_stream_, std::min(cap, target));
     }
-    if (paused_.load(std::memory_order_relaxed)) {
-        AAudioStream_requestPause(audio_stream_);
-    } else {
-        AAudioStream_requestStart(audio_stream_);
+    if (!paused_.load(std::memory_order_relaxed)) {
+        if (AAudioStream_requestStart(audio_stream_) != AAUDIO_OK) {
+            AAudioStream_close(audio_stream_);
+            audio_stream_ = nullptr;
+            return false;
+        }
     }
     EMUCORED_DIAGNOSTIC_LOG(__android_log_print(ANDROID_LOG_INFO, "EmuCoreDS", "AAudio callback stream %d Hz %d ch",
-                        AAudioStream_getSampleRate(audio_stream_),
+                        actual_rate,
                         AAudioStream_getChannelCount(audio_stream_)));
     return true;
 }
@@ -825,9 +964,11 @@ void DsEmulator::StartAudio() {
     if (audio_stream_ != nullptr) return;
     audio_read_.store(0, std::memory_order_relaxed);
     audio_write_.store(0, std::memory_order_relaxed);
+    audio_flush_gen_.store(0, std::memory_order_relaxed);
+    audio_discard_until_.store(0, std::memory_order_relaxed);
+    audio_flush_seen_ = 0;
     audio_last_sample_[0] = 0;
     audio_last_sample_[1] = 0;
-    audio_flushing_.store(false, std::memory_order_release);
     OpenAudioStreamLocked();
 }
 
@@ -839,6 +980,10 @@ void DsEmulator::StopAudio() {
         audio_stream_ = nullptr;
     }
     FlushAudioRing();
+}
+
+void DsEmulator::SetVolume(float volume) {
+    audio_volume_.store(std::clamp(volume, 0.0f, 1.0f), std::memory_order_relaxed);
 }
 
 void DsEmulator::DrainAudio() {
@@ -884,15 +1029,22 @@ void DsEmulator::SetRenderer(int renderer) {
 
 void DsEmulator::SetPaused(bool paused) {
     paused_.store(paused, std::memory_order_relaxed);
+    if (paused) g_save_writer.Flush();
     std::lock_guard audio_lock(audio_mutex_);
     if (audio_stream_ == nullptr) return;
     const aaudio_stream_state_t state = AAudioStream_getState(audio_stream_);
     if (paused) {
         if (state == AAUDIO_STREAM_STATE_STARTED || state == AAUDIO_STREAM_STATE_STARTING) {
-            AAudioStream_requestPause(audio_stream_);
+            if (AAudioStream_requestPause(audio_stream_) == AAUDIO_OK) {
+                aaudio_stream_state_t next = state;
+                AAudioStream_waitForStateChange(audio_stream_, state, &next, 50000000LL);
+            }
         }
         FlushAudioRing();
-        AAudioStream_requestFlush(audio_stream_);
+        const aaudio_stream_state_t post_state = AAudioStream_getState(audio_stream_);
+        if (post_state == AAUDIO_STREAM_STATE_PAUSED || post_state == AAUDIO_STREAM_STATE_STOPPED) {
+            AAudioStream_requestFlush(audio_stream_);
+        }
     } else if (state != AAUDIO_STREAM_STATE_STARTED && state != AAUDIO_STREAM_STATE_STARTING &&
                state != AAUDIO_STREAM_STATE_DISCONNECTED && state != AAUDIO_STREAM_STATE_CLOSED) {
         AAudioStream_requestStart(audio_stream_);

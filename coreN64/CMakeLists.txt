@@ -33,14 +33,24 @@ get_filename_component(n64_build "${CMAKE_CURRENT_SOURCE_DIR}/../build/n64/${n64
 set(core_output "${n64_build}/libs/${ANDROID_ABI}/libretro.so")
 set(n64_diagnostics_args)
 set(n64_diagnostics_deps)
+set(n64_lto_flags "")
+if(CMAKE_BUILD_TYPE STREQUAL "Release" OR CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo")
+    set(n64_lto_flags " -flto=thin")
+endif()
+set(n64_cflags "APP_CFLAGS=-O3${n64_lto_flags}")
+set(n64_cppflags "APP_CPPFLAGS=-O3${n64_lto_flags}")
+set(n64_ldflags "${n64_lto_flags}")
 if(NOT EMUCORED_DIAGNOSTICS)
     # ParaLLEl has its own logcat fallback, independent of the libretro callback.
     # Wrap only calls from this shared library; leave Android and GPU drivers alone.
     add_library(n64_silent_logs OBJECT bridge/silent_logs.cpp)
+    target_compile_options(n64_silent_logs PRIVATE -fno-lto)
     set(n64_silent_object "$<TARGET_OBJECTS:n64_silent_logs>")
     list(APPEND n64_diagnostics_args
-        "APP_LDFLAGS=-Wl,--wrap=__android_log_print -Wl,--wrap=__android_log_vprint -Wl,--wrap=__android_log_write \"${n64_silent_object}\"")
+        "APP_LDFLAGS=-Wl,--wrap=__android_log_print -Wl,--wrap=__android_log_vprint -Wl,--wrap=__android_log_write${n64_ldflags} \"${n64_silent_object}\"")
     list(APPEND n64_diagnostics_deps n64_silent_logs "${n64_silent_object}")
+elseif(NOT n64_ldflags STREQUAL "")
+    list(APPEND n64_diagnostics_args "APP_LDFLAGS=${n64_lto_flags}")
 endif()
 add_custom_command(OUTPUT "${core_output}"
     COMMAND "${ndk_build}"
@@ -50,10 +60,12 @@ add_custom_command(OUTPUT "${core_output}"
         "NDK_OUT=${n64_build}/obj"
         "NDK_LIBS_OUT=${n64_build}/libs"
         "EMUCORED_CMAKE=${CMAKE_COMMAND}"
+        "${n64_cflags}"
+        "${n64_cppflags}"
         ${n64_diagnostics_args}
         "GLES3=1" "NDK_DEBUG=0" -j4
     WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/mupen64plus"
-    DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/CMakeLists.txt" "${CMAKE_CURRENT_SOURCE_DIR}/Android.mk" "${CMAKE_CURRENT_SOURCE_DIR}/gen_offsets.cmake" ${n64_diagnostics_deps}
+    DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/CMakeLists.txt" "${CMAKE_CURRENT_SOURCE_DIR}/Android.mk" "${CMAKE_CURRENT_SOURCE_DIR}/Application.mk" "${CMAKE_CURRENT_SOURCE_DIR}/gen_offsets.cmake" ${n64_diagnostics_deps}
     VERBATIM)
 add_custom_target(n64_retro_build DEPENDS "${core_output}")
 add_library(n64_retro SHARED IMPORTED GLOBAL)

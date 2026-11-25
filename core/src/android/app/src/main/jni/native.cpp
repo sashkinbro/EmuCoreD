@@ -1050,7 +1050,10 @@ jboolean JNICALL Java_com_sbro_emucored_core_GpuDriverHelper_supportsCustomDrive
 // TODO(xperia64): ensure these cannot be called in an invalid state (e.g. after StopEmulation)
 void Java_com_sbro_emucored_core_EmuCoreNative_unPauseEmulation([[maybe_unused]] JNIEnv* env,
                                                               [[maybe_unused]] jobject obj) {
-    pause_emulation = false;
+    {
+        std::scoped_lock pause_lock{paused_mutex};
+        pause_emulation = false;
+    }
     running_cv.notify_all();
     auto* handler = InputManager::NDKMotionHandler();
     if (handler) {
@@ -1060,7 +1063,10 @@ void Java_com_sbro_emucored_core_EmuCoreNative_unPauseEmulation([[maybe_unused]]
 
 void Java_com_sbro_emucored_core_EmuCoreNative_pauseEmulation([[maybe_unused]] JNIEnv* env,
                                                             [[maybe_unused]] jobject obj) {
-    pause_emulation = true;
+    {
+        std::scoped_lock pause_lock{paused_mutex};
+        pause_emulation = true;
+    }
     auto* handler = InputManager::NDKMotionHandler();
     if (handler) {
         handler->DisableSensors();
@@ -1069,21 +1075,28 @@ void Java_com_sbro_emucored_core_EmuCoreNative_pauseEmulation([[maybe_unused]] J
 
 void Java_com_sbro_emucored_core_EmuCoreNative_stopEmulation([[maybe_unused]] JNIEnv* env,
                                                            [[maybe_unused]] jobject obj) {
-    stop_requested = true;
-    surface_cv.notify_all();
-    if (stop_run.exchange(true)) {
-        // stop_run was already true
-        running_cv.notify_all();
-        return;
-    }
-    pause_emulation = false;
-    if (window) {
-        window->StopPresenting();
-    }
-    if (secondary_window) {
-        secondary_window->StopPresenting();
+    bool was_stopped = false;
+    {
+        std::scoped_lock pause_lock{paused_mutex};
+        was_stopped = stop_run.exchange(true);
+        if (!was_stopped) {
+            pause_emulation = false;
+        }
     }
     running_cv.notify_all();
+    {
+        std::scoped_lock surface_lock{surface_mutex};
+        stop_requested = true;
+        if (!was_stopped) {
+            if (window) {
+                window->StopPresenting();
+            }
+            if (secondary_window) {
+                secondary_window->StopPresenting();
+            }
+        }
+    }
+    surface_cv.notify_all();
 }
 
 jboolean Java_com_sbro_emucored_core_EmuCoreNative_isRunning([[maybe_unused]] JNIEnv* env,
@@ -1110,19 +1123,21 @@ jboolean Java_com_sbro_emucored_core_EmuCoreNative_onGamePadEvent([[maybe_unused
                                                                 [[maybe_unused]] jobject obj,
                                                                 [[maybe_unused]] jstring j_device,
                                                                 jint j_button, jint action) {
-    bool consumed{};
-    if (action) {
-        consumed = InputManager::ButtonHandler()->PressKey(j_button);
-    } else {
-        consumed = InputManager::ButtonHandler()->ReleaseKey(j_button);
+    auto* handler = InputManager::ButtonHandler();
+    if (!handler) {
+        return JNI_FALSE;
     }
-
+    const bool consumed = action ? handler->PressKey(j_button) : handler->ReleaseKey(j_button);
     return static_cast<jboolean>(consumed);
 }
 
 jboolean Java_com_sbro_emucored_core_EmuCoreNative_onGamePadMoveEvent(
     [[maybe_unused]] JNIEnv* env, [[maybe_unused]] jobject obj, [[maybe_unused]] jstring j_device,
     jint axis, jfloat x, jfloat y) {
+    auto* handler = InputManager::AnalogHandler();
+    if (!handler) {
+        return JNI_FALSE;
+    }
     // Clamp joystick movement to supported minimum and maximum
     // Citra uses an inverted y axis sent by the frontend
     x = std::clamp(x, -1.f, 1.f);
@@ -1136,20 +1151,26 @@ jboolean Java_com_sbro_emucored_core_EmuCoreNative_onGamePadMoveEvent(
         x /= r;
         y /= r;
     }
-    return static_cast<jboolean>(InputManager::AnalogHandler()->MoveJoystick(axis, x, y));
+    return static_cast<jboolean>(handler->MoveJoystick(axis, x, y));
 }
 
 jboolean Java_com_sbro_emucored_core_EmuCoreNative_onGamePadAxisEvent(
     [[maybe_unused]] JNIEnv* env, [[maybe_unused]] jobject obj, [[maybe_unused]] jstring j_device,
     jint axis_id, jfloat axis_val) {
-    return static_cast<jboolean>(
-        InputManager::ButtonHandler()->AnalogButtonEvent(axis_id, axis_val));
+    auto* handler = InputManager::ButtonHandler();
+    if (!handler) {
+        return JNI_FALSE;
+    }
+    return static_cast<jboolean>(handler->AnalogButtonEvent(axis_id, axis_val));
 }
 
 jboolean Java_com_sbro_emucored_core_EmuCoreNative_onTouchEvent([[maybe_unused]] JNIEnv* env,
                                                               [[maybe_unused]] jobject obj,
                                                               jfloat x, jfloat y,
                                                               jboolean pressed) {
+    if (!window) {
+        return JNI_FALSE;
+    }
     return static_cast<jboolean>(
         window->OnTouchEvent(static_cast<int>(x + 0.5), static_cast<int>(y + 0.5), pressed));
 }
@@ -1331,10 +1352,13 @@ void Java_com_sbro_emucored_core_EmuCoreNative_run__Ljava_lang_String_2(JNIEnv* 
     const std::string path = GetJString(env, j_path);
 
     stop_requested = false;
-    if (!stop_run) {
-        stop_run = true;
-        running_cv.notify_all();
+    {
+        std::scoped_lock pause_lock{paused_mutex};
+        if (!stop_run) {
+            stop_run = true;
+        }
     }
+    running_cv.notify_all();
 
     const Core::System::ResultStatus result{RunCitra(path)};
     if (result != Core::System::ResultStatus::Success) {
@@ -1593,12 +1617,14 @@ void Java_com_sbro_emucored_core_EmuCoreNative_playTimeManagerStart(JNIEnv* env,
 }
 
 void Java_com_sbro_emucored_core_EmuCoreNative_playTimeManagerStop(JNIEnv* env, jobject obj) {
-    play_time_manager->Stop();
+    if (play_time_manager) {
+        play_time_manager->Stop();
+    }
 }
 
 jlong Java_com_sbro_emucored_core_EmuCoreNative_playTimeManagerGetPlayTime(JNIEnv* env, jobject obj,
                                                                          jlong title_id) {
-    return static_cast<jlong>(play_time_manager->GetPlayTime(title_id));
+    return play_time_manager ? static_cast<jlong>(play_time_manager->GetPlayTime(title_id)) : 0;
 }
 
 jlong Java_com_sbro_emucored_core_EmuCoreNative_playTimeManagerGetCurrentTitleId(JNIEnv* env,

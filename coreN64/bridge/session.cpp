@@ -25,6 +25,8 @@ struct Session {
     std::vector<uint8_t> rom;
     std::string path, directory;
     uint64_t rom_hash = 0;
+    uint64_t save_hash = 0;
+    size_t save_size = 0;
     uint16_t buttons[4]{};
     int16_t axes[4][2][2]{};
     bool initialized = false, loaded = false, context_ready = false, options_changed = false;
@@ -32,8 +34,12 @@ struct Session {
 
     EGLSurface currentSurface() const { return window_surface == EGL_NO_SURFACE ? pbuffer : window_surface; }
     bool makeCurrent() const {
-        return display != EGL_NO_DISPLAY && context != EGL_NO_CONTEXT && currentSurface() != EGL_NO_SURFACE &&
-            eglMakeCurrent(display, currentSurface(), currentSurface(), context);
+        const EGLSurface target = currentSurface();
+        if (display == EGL_NO_DISPLAY || context == EGL_NO_CONTEXT || target == EGL_NO_SURFACE)
+            return false;
+        if (eglGetCurrentContext() == context && eglGetCurrentSurface(EGL_DRAW) == target)
+            return true;
+        return eglMakeCurrent(display, target, target, context);
     }
     bool initializeGraphics() {
         display = eglGetDisplay(EGL_DEFAULT_DISPLAY);
@@ -100,6 +106,10 @@ struct Session {
                 if (eglGetConfigAttrib(display, config, EGL_NATIVE_VISUAL_ID, &format) &&
                     ANativeWindow_setBuffersGeometry(window, 0, 0, format) == 0)
                     window_surface = eglCreateWindowSurface(display, config, window, nullptr);
+                if (window_surface == EGL_NO_SURFACE) {
+                    ANativeWindow_release(window);
+                    window = nullptr;
+                }
             }
         }
         if (makeCurrent()) eglSwapInterval(display, 0);
@@ -144,9 +154,11 @@ struct Session {
         if (!loaded) return;
         void* ram = retro_get_memory_data(RETRO_MEMORY_SAVE_RAM);
         const size_t size = retro_get_memory_size(RETRO_MEMORY_SAVE_RAM);
-        if (ram && size && size <= 16 * 1024 * 1024) writeBytes(directory + "/battery.srm", ram, size);
+        if (ram && size && size <= 16 * 1024 * 1024)
+            writeBytesIfChanged(directory + "/battery.srm", ram, size, save_hash, save_size);
     }
     void close() {
+        audio.pause(true);
         makeCurrent();
         if (loaded) {
             flushSave();
@@ -162,9 +174,11 @@ struct Session {
             if (window_surface != EGL_NO_SURFACE) eglDestroySurface(display, window_surface);
             if (pbuffer != EGL_NO_SURFACE) eglDestroySurface(display, pbuffer);
             if (context != EGL_NO_CONTEXT) eglDestroyContext(display, context);
-            eglTerminate(display);
         }
-        if (window) ANativeWindow_release(window);
+        if (window) {
+            ANativeWindow_release(window);
+            window = nullptr;
+        }
     }
 };
 Session* active = nullptr;
@@ -292,6 +306,8 @@ JNI(jlong) Java_com_sbro_emucored_core_n64_Mupen64Native_nativeCreate(JNIEnv* en
     session->path = utf(env, path); session->directory = utf(env, directory);
     // The frontend's button assignments use the independent C-button layout.
     session->options["mupen64plus-alt-map"] = "True";
+    session->options["mupen64plus-EnableShadersStorage"] = "True";
+    session->options["mupen64plus-HybridFilter"] = "False";
     if (!keys || !values || env->GetArrayLength(keys) != env->GetArrayLength(values)) return 0;
     for (jsize index = 0; index < env->GetArrayLength(keys); ++index) {
         auto key = static_cast<jstring>(env->GetObjectArrayElement(keys, index));
@@ -322,11 +338,17 @@ JNI(jlong) Java_com_sbro_emucored_core_n64_Mupen64Native_nativeCreate(JNIEnv* en
     auto battery = readBytes(session->directory + "/battery.srm");
     auto* ram = retro_get_memory_data(RETRO_MEMORY_SAVE_RAM);
     const size_t ram_size = retro_get_memory_size(RETRO_MEMORY_SAVE_RAM);
-    if (ram && battery.size() == ram_size) std::memcpy(ram, battery.data(), ram_size);
+    if (ram && battery.size() == ram_size) {
+        std::memcpy(ram, battery.data(), ram_size);
+        session->save_hash = hashBytes(battery.data(), ram_size);
+        session->save_size = ram_size;
+    }
     const int rate = static_cast<int>(session->av.timing.sample_rate);
-    if (rate < 8000 || rate > 192000 || !session->audio.initAudio(rate)) {
+    if (rate < 8000 || rate > 192000) {
         session->close(); active = nullptr; return 0;
     }
+    session->audio.setInputSampleRate(rate);
+    session->audio.initAudio(48000, 2);
     return reinterpret_cast<jlong>(session.release());
 }
 JNI(void) Java_com_sbro_emucored_core_n64_Mupen64Native_nativeDestroy(JNIEnv*, jobject, jlong handle) {

@@ -4,6 +4,7 @@
 
 #pragma once
 
+#include <mutex>
 #include <vector>
 #include <EGL/egl.h>
 #include "core/frontend/emu_window.h"
@@ -64,5 +65,6 @@ protected:
     int window_width{};
     int window_height{};
 
+    mutable std::recursive_mutex window_mutex;
     std::unique_ptr<Frontend::GraphicsContext> core_context;
 };
