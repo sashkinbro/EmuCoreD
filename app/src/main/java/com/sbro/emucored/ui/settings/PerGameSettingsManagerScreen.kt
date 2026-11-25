@@ -64,20 +64,20 @@ import com.sbro.emucored.core.AzaharCoreOptionLocalization
 import com.sbro.emucored.core.CoreOptionStore
 import androidx.compose.material.icons.rounded.Tune
 import com.sbro.emucored.ui.common.AppAlertDialog as AlertDialog
-import androidx.compose.material3.Button
+import com.sbro.emucored.ui.theme.style.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.DropdownMenu
+import com.sbro.emucored.ui.theme.style.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.FilterChip
+import com.sbro.emucored.ui.theme.style.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Slider
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Switch
+import com.sbro.emucored.ui.common.SyncedSlider
+import com.sbro.emucored.ui.theme.style.Surface
+import com.sbro.emucored.ui.theme.style.Switch
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
+import com.sbro.emucored.ui.theme.style.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -1885,7 +1885,7 @@ private fun SliderRow(
                 color = MaterialTheme.colorScheme.primary
             )
         }
-        Slider(
+        SyncedSlider(
             value = sliderValue,
             onValueChange = {
                 sliderValue = it

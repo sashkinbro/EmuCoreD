@@ -39,19 +39,19 @@ import androidx.compose.material.icons.rounded.LightMode
 import androidx.compose.material.icons.rounded.Palette
 import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.FilterChip
+import com.sbro.emucored.ui.theme.style.Button
+import com.sbro.emucored.ui.theme.style.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
+import com.sbro.emucored.ui.theme.style.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Slider
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Switch
+import com.sbro.emucored.ui.common.SyncedSlider
+import com.sbro.emucored.ui.theme.style.Surface
+import com.sbro.emucored.ui.theme.style.Switch
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
+import com.sbro.emucored.ui.theme.style.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -1041,7 +1041,7 @@ private fun RgbSlider(
 ) {
     Row(verticalAlignment = Alignment.CenterVertically) {
         Text("$label  $value", modifier = Modifier.size(width = 58.dp, height = 24.dp))
-        Slider(
+        SyncedSlider(
             value = value.toFloat(),
             onValueChange = { onValueChange(it.roundToInt().coerceIn(0, 255)) },
             enabled = enabled,
@@ -1068,7 +1068,7 @@ private fun CornerSlider(
                 fontWeight = FontWeight.SemiBold
             )
         }
-        Slider(
+        SyncedSlider(
             value = value,
             onValueChange = onValueChange,
             enabled = enabled,

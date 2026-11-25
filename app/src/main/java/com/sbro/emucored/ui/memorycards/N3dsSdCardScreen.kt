@@ -14,6 +14,10 @@ import androidx.compose.material.icons.rounded.CloudDownload
 import androidx.compose.material.icons.rounded.Memory
 import androidx.compose.material.icons.rounded.Save
 import androidx.compose.material3.*
+import com.sbro.emucored.ui.theme.style.Surface
+import com.sbro.emucored.ui.theme.style.FilledTonalButton
+import com.sbro.emucored.ui.theme.style.OutlinedButton
+import com.sbro.emucored.ui.theme.style.TextButton
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -229,7 +233,7 @@ fun N3dsSdCardScreen(onBackClick: () -> Unit) {
                 item {
                     Text(stringResource(R.string.psp_memstick_saves),
                         style = MaterialTheme.typography.titleLarge,
-                        color = MaterialTheme.colorScheme.onSurface,
+                        color = MaterialTheme.colorScheme.onBackground,
                         modifier = Modifier.padding(top = 10.dp))
                 }
                 if (saves.isEmpty()) item {
