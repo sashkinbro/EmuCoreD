@@ -214,7 +214,11 @@ private val blankSkinParts: Map<Int, Pair<String, String>> = mapOf(
     R.drawable.ic_controller_l3_button to ("l3" to "HOME"),
     R.drawable.ic_controller_r3_button to ("r3" to "TOUCH"),
     R.drawable.ic_controller_select_button to ("select" to "SELECT"),
-    R.drawable.ic_controller_start_button to ("start" to "START")
+    R.drawable.ic_controller_start_button to ("start" to "START"),
+    // Buttons with a console label (GameCube/N64/Nunchuk Z, Wii 1/2, +/−, C, N64 C↑...) arrive already swapped to
+    // these blank outlines, so they need art of their own or they would keep the stock look under a skin.
+    R.drawable.ic_controller_blank_face_button to ("cross" to ""),
+    R.drawable.ic_controller_blank_shoulder_button to ("l1" to "")
 )
 
 /** Which skin image a button shows and, on blank art, the label drawn over it. */
