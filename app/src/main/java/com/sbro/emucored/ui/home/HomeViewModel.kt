@@ -136,7 +136,8 @@ data class CiaInstallUiState(
     val isFinished: Boolean = false,
     val success: Boolean = false,
     @StringRes val messageResId: Int? = null,
-    val installedLaunchPath: String? = null
+    val installedLaunchPath: String? = null,
+    val launchedFromNativeUi: Boolean = false
 )
 
 class HomeViewModel(application: Application, private val savedStateHandle: SavedStateHandle) : AndroidViewModel(application) {
@@ -499,11 +500,11 @@ class HomeViewModel(application: Application, private val savedStateHandle: Save
      * install succeeds the resulting NAND path is included so the UI can boot
      * the title without a second scan.
      */
-    fun installCia(game: GameItem) {
+    fun installCia(game: GameItem, launchedFromNativeUi: Boolean = false) {
         if (ciaInstallJob?.isActive == true) return
         ciaInstallJob = viewModelScope.launch {
             val context = getApplication<Application>()
-            _ciaInstallState.value = CiaInstallUiState(game = game)
+            _ciaInstallState.value = CiaInstallUiState(game = game, launchedFromNativeUi = launchedFromNativeUi)
 
             val status = withContext(Dispatchers.IO) {
                 val ciaPath = runCatching {

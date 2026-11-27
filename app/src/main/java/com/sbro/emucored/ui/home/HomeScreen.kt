@@ -193,7 +193,7 @@ private fun GameItem.isCiaImage(): Boolean =
 @SuppressLint("ConfigurationScreenWidthHeight", "FrequentlyChangingValue")
 @Composable
 fun HomeScreen(
-    onGameClick: (GameItem, String?) -> Unit,
+    onGameClick: (game: GameItem, installedPath: String?, launchedFromNativeUi: Boolean) -> Unit,
     onContinueGame: (GameItem) -> Unit,
     onLoadSaveClick: (GameItem) -> Unit,
     onManageGameClick: (GameItem) -> Unit,
@@ -366,26 +366,27 @@ fun HomeScreen(
     // the already installed copy), everything else launches normally. The
     // installed copy is passed separately so the game keeps its library
     // identity (title, serial and cover) while booting from the NAND/SD file.
-    val launchGame: (GameItem) -> Unit = { game ->
+    fun launchGame(game: GameItem, launchedFromNativeUi: Boolean = false) {
         if (N3dsGameFormats.isCiaFile(game.fileName) || N3dsGameFormats.isCiaFile(game.path)) {
             scope.launch {
                 val installedPath = viewModel.findInstalledCiaPath(game)
                 if (installedPath != null) {
-                    onGameClick(game, installedPath)
+                    onGameClick(game, installedPath, launchedFromNativeUi)
                 } else {
-                    viewModel.installCia(game)
+                    viewModel.installCia(game, launchedFromNativeUi)
                 }
             }
         } else {
-            onGameClick(game, null)
+            onGameClick(game, null, launchedFromNativeUi)
         }
     }
 
     CiaInstallDialog(
         state = ciaInstallState,
         onBoot = { game, installedPath ->
+            val launchedFromNativeUi = ciaInstallState.launchedFromNativeUi
             viewModel.dismissCiaInstall()
-            onGameClick(game, installedPath)
+            onGameClick(game, installedPath, launchedFromNativeUi)
         },
         onDismiss = viewModel::dismissCiaInstall
     )
@@ -525,7 +526,7 @@ fun HomeScreen(
                     recentGames = uiState.recentGames,
                     isCoverArtDisabled = uiState.isCoverArtDisabled,
                     onExitShelfMode = viewModel::toggleShelfMode,
-                    onLaunchGame = launchGame,
+                    onLaunchGame = { game -> launchGame(game, launchedFromNativeUi = true) },
                     onLaunchSaveSlot = onLaunchSaveSlot,
                     onOpenGameSettings = onManageGameClick,
                     modifier = Modifier.fillMaxSize()

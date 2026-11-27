@@ -120,7 +120,8 @@ data class EmulationRoute(
     val bootSmokeProbe: Boolean = false,
     val autotestMode: Boolean = false,
     val renderer: Int? = null,
-    val exitAppOnExit: Boolean = false
+    val exitAppOnExit: Boolean = false,
+    val launchedFromNativeUi: Boolean = false
 )
 
 internal fun EmulationRoute.isMeaningfulReviewSession(): Boolean =
@@ -515,9 +516,13 @@ fun AppNavigation(
                     // cannot be launched from the drawer, so no BIOS action.
                 ) { openDrawer ->
                     HomeScreen(
-                        onGameClick = { game, installedPath ->
+                        onGameClick = { game, installedPath, launchedFromNativeUi ->
                             navController.navigate(
-                                EmulationRoute(gamePath = game.path, installedPath = installedPath)
+                                EmulationRoute(
+                                    gamePath = game.path,
+                                    installedPath = installedPath,
+                                    launchedFromNativeUi = launchedFromNativeUi
+                                )
                             ) {
                                 launchSingleTop = true
                             }
@@ -552,7 +557,9 @@ fun AppNavigation(
                             GameLaunchShortcut.requestPinnedShortcut(context, game)
                         },
                         onLaunchSaveSlot = { path, slot ->
-                            navController.navigate(EmulationRoute(gamePath = path, saveSlot = slot)) {
+                            navController.navigate(
+                                EmulationRoute(gamePath = path, saveSlot = slot, launchedFromNativeUi = true)
+                            ) {
                                 launchSingleTop = true
                             }
                         },
@@ -739,6 +746,7 @@ fun AppNavigation(
                     autotestMode = route.autotestMode,
                     rendererOverride = route.renderer,
                     restoredAfterProcessDeath = blockRestoredEmulationRoute,
+                    launchedFromNativeUi = route.launchedFromNativeUi,
                     onExit = { activePlayTimeMs ->
                         if (route.exitAppOnExit) {
                             activity?.finishAndRemoveTask()
