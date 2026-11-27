@@ -62,8 +62,8 @@ android {
         applicationId = "com.sbro.emucored"
         minSdk = 26
         targetSdk = 37
-        versionCode = 29
-        versionName = "0.0.3"
+        versionCode = 31
+        versionName = "0.0.4"
 
         buildConfigField("String", "FEEDBACK_ENDPOINT", buildConfigString(feedbackEndpoint))
         buildConfigField("String", "FEEDBACK_API_KEY", buildConfigString(feedbackApiKey))
