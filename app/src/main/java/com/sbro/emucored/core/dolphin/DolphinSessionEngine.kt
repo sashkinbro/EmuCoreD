@@ -183,7 +183,9 @@ class DolphinSessionEngine : CoreSessionEngine {
             else -> return false
         }
         DolphinNative.control(player, control, x.coerceIn(-1f, 1f).toDouble())
-        DolphinNative.control(player, control + 1, -y.coerceIn(-1f, 1f).toDouble())
+        // The shared pad bridge already sends positive-up Y, which GameCube expects.
+        val vertical = if (wii) -y else y
+        DolphinNative.control(player, control + 1, vertical.coerceIn(-1f, 1f).toDouble())
         return true
     }
     override fun setTouch(x: Int, y: Int, pressed: Boolean): Boolean = owned(false) {
