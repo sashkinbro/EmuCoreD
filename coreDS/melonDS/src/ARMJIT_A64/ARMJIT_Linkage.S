@@ -33,12 +33,39 @@ _ARM_Dispatch:
 .global ARM_Dispatch
 ARM_Dispatch:
 #endif
-    stp x19, x20, [sp, #-96]!
+    stp x19, x20, [sp, #-128]!
     stp x21, x22, [sp, #16]
     stp x23, x24, [sp, #32]
     stp x25, x26, [sp, #48]
     stp x27, x28, [sp, #64]
     stp x29, x30, [sp, #80]
+
+    str xzr, [sp, #96]
+
+    mov RCPU, x0
+    ldr RCycles, [RCPU, ARM_Cycles_offset]
+    ldr RCPSR, [RCPU, ARM_CPSR_offset]
+
+    br x1
+
+.p2align 4,,15
+
+#ifdef __APPLE__
+.global _ARM_RunBlocks
+_ARM_RunBlocks:
+#else
+.global ARM_RunBlocks
+ARM_RunBlocks:
+#endif
+    stp x19, x20, [sp, #-128]!
+    stp x21, x22, [sp, #16]
+    stp x23, x24, [sp, #32]
+    stp x25, x26, [sp, #48]
+    stp x27, x28, [sp, #64]
+    stp x29, x30, [sp, #80]
+
+    stp x2, x3, [sp, #96]
+    str x4, [sp, #112]
 
     mov RCPU, x0
     ldr RCycles, [RCPU, ARM_Cycles_offset]
@@ -55,15 +82,58 @@ _ARM_Ret:
 .global ARM_Ret
 ARM_Ret:
 #endif
-    str RCycles, [RCPU, ARM_Cycles_offset]
     str RCPSR, [RCPU, ARM_CPSR_offset]
+
+    ldr x0, [sp, #96]
+    cbz x0, .Lsingle_exit
+
+    ldr w1, [RCPU, ARM_StopExecution_offset]
+    cbnz w1, .Lsingle_exit
+
+    ldr x1, [x0]
+    add x1, x1, RCycles, sxtw
+    str x1, [x0]
+    mov RCycles, wzr
+
+    ldr x2, [sp, #104]
+    ldr x2, [x2]
+    cmp x1, x2
+    b.hs .Lsingle_exit
+
+    ldr w3, [RCPU, ARM_R15_offset]
+    tst RCPSR, #0x20
+    sub w4, w3, #4
+    sub w5, w3, #2
+    csel w3, w5, w4, ne
+
+    ldr w4, [RCPU, ARM_FastBlockLookupStart_offset]
+    ldr w5, [RCPU, ARM_FastBlockLookupSize_offset]
+    sub w6, w3, w4
+    cmp w6, w5
+    b.hs .Lsingle_exit
+
+    ldr x7, [RCPU, ARM_FastBlockLookup_offset]
+    lsr w6, w6, #1
+    ldr x7, [x7, x6, lsl #3]
+    ldr w8, [RCPU, ARM_Num_offset]
+    orr w3, w3, w8
+    lsr x9, x7, #32
+    cmp w9, w3
+    b.ne .Lsingle_exit
+
+    ldr x10, [sp, #112]
+    add x10, x10, w7, uxtw
+    br x10
+
+.Lsingle_exit:
+    str RCycles, [RCPU, ARM_Cycles_offset]
 
     ldp x29, x30, [sp, #80]
     ldp x27, x28, [sp, #64]
     ldp x25, x26, [sp, #48]
     ldp x23, x24, [sp, #32]
     ldp x21, x22, [sp, #16]
-    ldp x19, x20, [sp], #96
+    ldp x19, x20, [sp], #128
 
     ret
 

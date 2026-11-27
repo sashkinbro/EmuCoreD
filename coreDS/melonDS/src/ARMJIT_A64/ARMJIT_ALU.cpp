@@ -246,7 +246,7 @@ void Compiler::Comp_Logical(int op, bool S, ARM64Reg rd, ARM64Reg rn, Op2 op2)
         break;
     }
 
-    if (S)
+    if (S && FlagsNZNeeded())
         Comp_RetriveFlags(false);
 }
 
@@ -275,10 +275,7 @@ void Compiler::Comp_Arithmetic(int op, bool S, ARM64Reg rd, ARM64Reg rn, Op2 op2
         else
         {
             if (op2.IsImm)
-            {
-                MOVI2R(W2, op2.Imm);
                 SUBI2R(rd, rn, op2.Imm, W0);
-            }
             else
                 SUB(rd, rn, op2.Reg.Rm, op2.ToArithOption());
         }
@@ -404,7 +401,7 @@ void Compiler::Comp_Arithmetic(int op, bool S, ARM64Reg rd, ARM64Reg rn, Op2 op2
             CSET(W2, CC_CS);
             CSET(W3, CC_VS);
             if (op2.IsImm)
-                ADDSI2R(rd, W1, op2.Imm);
+                ADDSI2R(rd, W1, op2.Imm, W0);
             else
                 ADDS(rd, W1, op2.Reg.Rm, op2.ToArithOption());
             CSINC(W2, W2, WZR, CC_CC);
@@ -414,7 +411,7 @@ void Compiler::Comp_Arithmetic(int op, bool S, ARM64Reg rd, ARM64Reg rn, Op2 op2
         {
             ADD(W1, W2, W1);
             if (op2.IsImm)
-                ADDI2R(rd, W1, op2.Imm);
+                ADDI2R(rd, W1, op2.Imm, W0);
             else
                 ADD(rd, W1, op2.Reg.Rm, op2.ToArithOption());
         }
@@ -617,8 +614,10 @@ void Compiler::Comp_Mul_Mla(bool S, bool mla, ARM64Reg rd, ARM64Reg rm, ARM64Reg
     }
     else
     {
-        CLS(W0, rs);
-        Comp_AddCycles_CI(mla ? 1 : 0, W0, ArithOption(W0, ST_LSR, 3));
+        EOR(W0, rs, rs, ArithOption(rs, ST_ASR, 31));
+        ORRI2R(W0, W0, 1);
+        CLZ(W0, W0);
+        Comp_AddCycles_CI(mla ? 5 : 4, W0, ArithOption(W0, ST_LSR, 3));
     }
 
     if (mla)
@@ -651,10 +650,12 @@ void Compiler::A_Comp_Mul_Long()
     else
     {
         if (sign)
-            CLS(W0, rs);
+            EOR(W0, rs, rs, ArithOption(rs, ST_ASR, 31));
         else
-            CLZ(W0, rs);
-        Comp_AddCycles_CI(0, W0, ArithOption(W0, ST_LSR, 3));
+            MOV(W0, rs);
+        ORRI2R(W0, W0, 1);
+        CLZ(W0, W0);
+        Comp_AddCycles_CI(5, W0, ArithOption(W0, ST_LSR, 3));
     }
 
     if (add)
@@ -680,7 +681,7 @@ void Compiler::A_Comp_Mul_Long()
         UBFX(EncodeRegTo64(rd), EncodeRegTo64(rn), 32, 32);
     }
     
-    if (S)
+    if (S && FlagsNZNeeded())
         Comp_RetriveFlags(false);
 }
 
@@ -732,7 +733,7 @@ void Compiler::A_Comp_Mul_Short()
         ARM64Reg rn = MapReg(CurInstr.A_Reg(12));
 
         MOV(W2, rn);
-        BFI(X2, rd, 32, 32);
+        BFI(X2, EncodeRegTo64(rd), 32, 32);
 
         SBFX(W0, rm, x ? 16 : 0, 16);
 

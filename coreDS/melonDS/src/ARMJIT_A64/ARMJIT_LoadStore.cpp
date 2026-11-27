@@ -293,29 +293,30 @@ void Compiler::Comp_MemAccess(int rd, int rn, Op2 offset, int size, int flags)
             }
             else
             {
+                MOV(X1, RCPU);
                 if (flags & memop_Store)
                 {
-                    MOV(W1, rdMapped);
+                    MOV(W2, rdMapped);
                     switch (size | NDS.ConsoleType)
                     {
-                    case 32: QuickCallFunction(X3, SlowWrite7<u32, 0>); break;
-                    case 33: QuickCallFunction(X3, SlowWrite7<u32, 1>); break;
-                    case 16: QuickCallFunction(X3, SlowWrite7<u16, 0>); break;
-                    case 17: QuickCallFunction(X3, SlowWrite7<u16, 1>); break;
-                    case 8: QuickCallFunction(X3, SlowWrite7<u8, 0>); break;
-                    case 9: QuickCallFunction(X3, SlowWrite7<u8, 1>); break;
+                    case 32: QuickCallFunction(X3, SlowWrite7Cpu<u32, 0>); break;
+                    case 33: QuickCallFunction(X3, SlowWrite7Cpu<u32, 1>); break;
+                    case 16: QuickCallFunction(X3, SlowWrite7Cpu<u16, 0>); break;
+                    case 17: QuickCallFunction(X3, SlowWrite7Cpu<u16, 1>); break;
+                    case 8: QuickCallFunction(X3, SlowWrite7Cpu<u8, 0>); break;
+                    case 9: QuickCallFunction(X3, SlowWrite7Cpu<u8, 1>); break;
                     }
                 }
                 else
                 {
                     switch (size | NDS.ConsoleType)
                     {
-                    case 32: QuickCallFunction(X3, SlowRead7<u32, 0>); break;
-                    case 33: QuickCallFunction(X3, SlowRead7<u32, 1>); break;
-                    case 16: QuickCallFunction(X3, SlowRead7<u16, 0>); break;
-                    case 17: QuickCallFunction(X3, SlowRead7<u16, 1>); break;
-                    case 8: QuickCallFunction(X3, SlowRead7<u8, 0>); break;
-                    case 9: QuickCallFunction(X3, SlowRead7<u8, 1>); break;
+                    case 32: QuickCallFunction(X3, SlowRead7Cpu<u32, 0>); break;
+                    case 33: QuickCallFunction(X3, SlowRead7Cpu<u32, 1>); break;
+                    case 16: QuickCallFunction(X3, SlowRead7Cpu<u16, 0>); break;
+                    case 17: QuickCallFunction(X3, SlowRead7Cpu<u16, 1>); break;
+                    case 8: QuickCallFunction(X3, SlowRead7Cpu<u8, 0>); break;
+                    case 9: QuickCallFunction(X3, SlowRead7Cpu<u8, 1>); break;
                     }
                 }
             }
@@ -503,7 +504,7 @@ s32 Compiler::Comp_MemAccessBlock(int rn, BitSet16 regs, bool store, bool preinc
         : NDS.JIT.Memory.ClassifyAddress7(CurInstr.DataRegion);
 
     bool compileFastPath = NDS.JIT.FastMemoryEnabled()
-        && store && !usermode && (CurInstr.Cond() < 0xE || NDS.JIT.Memory.IsFastmemCompatible(expectedTarget));
+        && !usermode && (Thumb || CurInstr.Cond() < 0xE || NDS.JIT.Memory.IsFastmemCompatible(expectedTarget));
 
     {
         s32 offset = decrement
@@ -511,7 +512,11 @@ s32 Compiler::Comp_MemAccessBlock(int rn, BitSet16 regs, bool store, bool preinc
             : (preinc ? 4 : 0);
 
         if (offset)
+        {
             ADDI2R(W0, MapReg(rn), offset);
+            if (compileFastPath)
+                ANDI2R(W0, W0, ~3);
+        }
         else if (compileFastPath)
             ANDI2R(W0, MapReg(rn), ~3);
         else
@@ -695,12 +700,13 @@ s32 Compiler::Comp_MemAccessBlock(int rn, BitSet16 regs, bool store, bool preinc
     }
     else
     {
+        MOV(X3, RCPU);
         switch ((u32)store * 2 | NDS.ConsoleType)
         {
-        case 0: QuickCallFunction(X4, SlowBlockTransfer7<false, 0>); break;
-        case 1: QuickCallFunction(X4, SlowBlockTransfer7<false, 1>); break;
-        case 2: QuickCallFunction(X4, SlowBlockTransfer7<true, 0>); break;
-        case 3: QuickCallFunction(X4, SlowBlockTransfer7<true, 1>); break;
+        case 0: QuickCallFunction(X4, SlowBlockTransfer7Cpu<false, 0>); break;
+        case 1: QuickCallFunction(X4, SlowBlockTransfer7Cpu<false, 1>); break;
+        case 2: QuickCallFunction(X4, SlowBlockTransfer7Cpu<true, 0>); break;
+        case 3: QuickCallFunction(X4, SlowBlockTransfer7Cpu<true, 1>); break;
         }
     }
 
@@ -745,9 +751,9 @@ s32 Compiler::Comp_MemAccessBlock(int rn, BitSet16 regs, bool store, bool preinc
 
                 LDP(INDEX_SIGNED, EncodeRegTo64(first), EncodeRegTo64(second), SP, i * 8);
 
-                if (first == W3)
+                if (!(RegCache.LoadedRegs & (1 << reg)))
                     SaveReg(reg, W3);
-                if (second == W4)
+                if (!(RegCache.LoadedRegs & (1 << *nextReg)))
                     SaveReg(*nextReg, W4);
 
                 it++;
@@ -805,7 +811,7 @@ void Compiler::A_Comp_LDM_STM()
 
     if (load && writeback && regs[CurInstr.A_Reg(16)])
         writeback = Num == 0
-            && (!(regs & ~BitSet16(1 << CurInstr.A_Reg(16)))) || (regs & ~BitSet16((2 << CurInstr.A_Reg(16)) - 1));
+            && ((!(regs & ~BitSet16(1 << CurInstr.A_Reg(16)))) || (regs & ~BitSet16((2 << CurInstr.A_Reg(16)) - 1)));
 
     s32 offset = Comp_MemAccessBlock(CurInstr.A_Reg(16), regs, !load, pre, !add, usermode, load && writeback);
 

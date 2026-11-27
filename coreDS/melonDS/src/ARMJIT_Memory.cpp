@@ -32,7 +32,9 @@
 #if defined(__ANDROID__)
 #include <dlfcn.h>
 #include <linux/ashmem.h>
+#include <linux/memfd.h>
 #include <sys/ioctl.h>
+#include <sys/syscall.h>
 #endif
 
 #include "ARMJIT.h"
@@ -199,29 +201,32 @@ static struct sigaction OldSaBus;
 
 void ARMJIT_Memory::SigsegvHandler(int sig, siginfo_t* info, void* rawContext)
 {
-    if (sig != SIGSEGV && sig != SIGBUS)
+    if ((sig == SIGSEGV || sig == SIGBUS) && info &&
+        (info->si_code == SEGV_MAPERR || info->si_code == SEGV_ACCERR))
     {
-        // We are not interested in other signals - handle it as usual.
-        return;
-    }
-    if (info->si_code != SEGV_MAPERR && info->si_code != SEGV_ACCERR)
-    {
-        // Huh? Return.
-        return;
-    }
-
-    ucontext_t* context = (ucontext_t*)rawContext;
-
-    FaultDescription desc {};
-    u8* curArea = (u8*)(NDS::Current->CurCPU == 0 ? NDS::Current->JIT.Memory.FastMem9Start : NDS::Current->JIT.Memory.FastMem7Start);
-
-    desc.EmulatedFaultAddr = (u8*)info->si_addr - curArea;
-    desc.FaultPC = (u8*)context->CONTEXT_PC;
-
-    if (FaultHandler(desc, *NDS::Current))
-    {
-        context->CONTEXT_PC = (u64)desc.FaultPC;
-        return;
+        melonDS::NDS* nds = melonDS::NDS::Current;
+        if (nds != nullptr && nds->JIT.FastMemoryEnabled())
+        {
+            ucontext_t* context = (ucontext_t*)rawContext;
+            u8* faultPC = (u8*)context->CONTEXT_PC;
+            if (nds->JIT.JITCompiler.IsJITFault(faultPC))
+            {
+                u8* curArea = (u8*)(nds->CurCPU == 0 ? nds->JIT.Memory.FastMem9Start : nds->JIT.Memory.FastMem7Start);
+                uintptr_t faultAddr = reinterpret_cast<uintptr_t>(info->si_addr);
+                uintptr_t areaStart = reinterpret_cast<uintptr_t>(curArea);
+                if (curArea != nullptr && faultAddr >= areaStart && faultAddr < areaStart + static_cast<uintptr_t>(AddrSpaceSize))
+                {
+                    FaultDescription desc {};
+                    desc.EmulatedFaultAddr = static_cast<u32>(faultAddr - areaStart);
+                    desc.FaultPC = faultPC;
+                    if (FaultHandler(desc, *nds))
+                    {
+                        context->CONTEXT_PC = (u64)desc.FaultPC;
+                        return;
+                    }
+                }
+            }
+        }
     }
 
     struct sigaction* oldSa;
@@ -232,12 +237,13 @@ void ARMJIT_Memory::SigsegvHandler(int sig, siginfo_t* info, void* rawContext)
 
     if (oldSa->sa_flags & SA_SIGINFO)
     {
-      oldSa->sa_sigaction(sig, info, rawContext);
+      if (oldSa->sa_sigaction)
+        oldSa->sa_sigaction(sig, info, rawContext);
       return;
     }
     if (oldSa->sa_handler == SIG_DFL)
     {
-      signal(sig, SIG_DFL);
+      sigaction(sig, oldSa, nullptr);
       return;
     }
     if (oldSa->sa_handler == SIG_IGN)
@@ -245,7 +251,8 @@ void ARMJIT_Memory::SigsegvHandler(int sig, siginfo_t* info, void* rawContext)
       // Ignore signal
       return;
     }
-    oldSa->sa_handler(sig);
+    if (oldSa->sa_handler)
+      oldSa->sa_handler(sig);
 }
 
 #endif
@@ -1033,7 +1040,7 @@ void ARMJIT_Memory::RegisterFaultHandler()
     struct sigaction sa;
     sa.sa_handler = nullptr;
     sa.sa_sigaction = &SigsegvHandler;
-    sa.sa_flags = SA_SIGINFO;
+    sa.sa_flags = SA_SIGINFO | SA_ONSTACK;
     sigemptyset(&sa.sa_mask);
     sigaction(SIGSEGV, &sa, &OldSaSegv);
 #ifdef __APPLE__
@@ -1145,13 +1152,29 @@ ARMJIT_Memory::ARMJIT_Memory(melonDS::NDS& nds) : NDS(nds)
     {
         MemoryFile = ASharedMemory_create("melondsfastmem", MemoryTotalSize);
     }
-    else
+    if (MemoryFile < 0)
     {
         int fd = open(ASHMEM_DEVICE, O_RDWR);
-        ioctl(fd, ASHMEM_SET_NAME, "melondsfastmem");
-        ioctl(fd, ASHMEM_SET_SIZE, MemoryTotalSize);
-        MemoryFile = fd;
+        if (fd >= 0)
+        {
+            ioctl(fd, ASHMEM_SET_NAME, "melondsfastmem");
+            ioctl(fd, ASHMEM_SET_SIZE, MemoryTotalSize);
+            MemoryFile = fd;
+        }
     }
+#ifdef __NR_memfd_create
+    if (MemoryFile < 0)
+    {
+        int fd = static_cast<int>(syscall(__NR_memfd_create, "melondsfastmem", MFD_CLOEXEC));
+        if (fd >= 0)
+        {
+            if (ftruncate(fd, MemoryTotalSize) == 0)
+                MemoryFile = fd;
+            else
+                close(fd);
+        }
+    }
+#endif
 #else
     char fastmemPidName[snprintf(NULL, 0, "/melondsfastmem%d", getpid()) + 1];
     snprintf(fastmemPidName, sizeof(fastmemPidName), "/melondsfastmem%d", getpid());
@@ -1169,7 +1192,16 @@ ARMJIT_Memory::ARMJIT_Memory(melonDS::NDS& nds) : NDS(nds)
     }
 #endif
 
-    mmap(MemoryBase, MemoryTotalSize, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_FIXED, MemoryFile, 0);
+    if (MemoryBase == MAP_FAILED || MemoryFile < 0 ||
+        mmap(MemoryBase, MemoryTotalSize, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_FIXED, MemoryFile, 0) == MAP_FAILED)
+    {
+        if (MemoryBase != nullptr && MemoryBase != MAP_FAILED)
+            munmap(MemoryBase, VirtmemAreaSize);
+        MemoryBase = nullptr;
+        FastMem9Start = nullptr;
+        FastMem7Start = nullptr;
+        return;
+    }
 #endif
     FastMem9Start = MemoryBase+MemoryTotalSize;
     FastMem7Start = static_cast<u8*>(FastMem9Start)+AddrSpaceSize;

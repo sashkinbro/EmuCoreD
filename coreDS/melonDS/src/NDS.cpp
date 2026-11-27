@@ -136,6 +136,8 @@ NDS::~NDS() noexcept
 {
     UnregisterEventFuncs(Event_Div);
     UnregisterEventFuncs(Event_Sqrt);
+    if (Current == this)
+        Current = nullptr;
     // The destructor for each component is automatically called by the compiler
 }
 

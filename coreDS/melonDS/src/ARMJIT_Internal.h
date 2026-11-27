@@ -99,9 +99,12 @@ template <typename T, int ConsoleType> T SlowRead9(u32 addr, ARMv5* cpu);
 template <typename T, int ConsoleType> void SlowWrite9(u32 addr, ARMv5* cpu, u32 val);
 template <typename T, int ConsoleType> T SlowRead7(u32 addr);
 template <typename T, int ConsoleType> void SlowWrite7(u32 addr, u32 val);
+template <typename T, int ConsoleType> T SlowRead7Cpu(u32 addr, ARM* cpu);
+template <typename T, int ConsoleType> void SlowWrite7Cpu(u32 addr, ARM* cpu, u32 val);
 
 template <bool Write, int ConsoleType> void SlowBlockTransfer9(u32 addr, u64* data, u32 num, ARMv5* cpu);
 template <bool Write, int ConsoleType> void SlowBlockTransfer7(u32 addr, u64* data, u32 num);
+template <bool Write, int ConsoleType> void SlowBlockTransfer7Cpu(u32 addr, u64* data, u32 num, ARM* cpu);
 
 }
 

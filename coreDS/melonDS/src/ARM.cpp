@@ -633,7 +633,11 @@ void ARMv5::Execute()
             JitBlockEntry block = NDS.JIT.LookUpBlock(0, FastBlockLookup,
                 instrAddr - FastBlockLookupStart, instrAddr);
             if (block)
+#if defined(__aarch64__)
+                ARM_RunBlocks(this, block, &NDS.ARM9Timestamp, &NDS.ARM9Target, NDS.JIT.JITCompiler.GetRXBase());
+#else
                 ARM_Dispatch(this, block);
+#endif
             else
                 NDS.JIT.CompileBlock(this);
 
@@ -773,7 +777,11 @@ void ARMv4::Execute()
             JitBlockEntry block = NDS.JIT.LookUpBlock(1, FastBlockLookup,
                 instrAddr - FastBlockLookupStart, instrAddr);
             if (block)
+#if defined(__aarch64__)
+                ARM_RunBlocks(this, block, &NDS.ARM7Timestamp, &NDS.ARM7Target, NDS.JIT.JITCompiler.GetRXBase());
+#else
                 ARM_Dispatch(this, block);
+#endif
             else
                 NDS.JIT.CompileBlock(this);
 

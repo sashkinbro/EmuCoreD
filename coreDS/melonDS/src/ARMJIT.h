@@ -176,6 +176,7 @@ public:
 
 // Defined in assembly
 extern "C" void ARM_Dispatch(melonDS::ARM* cpu, melonDS::JitBlockEntry entry);
+extern "C" void ARM_RunBlocks(melonDS::ARM* cpu, melonDS::JitBlockEntry firstBlock, melonDS::u64* timestampPtr, const melonDS::u64* targetPtr, const melonDS::u8* rxBase);
 #else
 namespace melonDS
 {

@@ -16,6 +16,11 @@
     with melonDS. If not, see http://www.gnu.org/licenses/.
 */
 
+#define ARM_Num_offset 0x8
 #define ARM_CPSR_offset 0x64
 #define ARM_Cycles_offset 0xc
 #define ARM_StopExecution_offset 0x10
+#define ARM_R15_offset 0x60
+#define ARM_FastBlockLookupStart_offset 0xd8
+#define ARM_FastBlockLookupSize_offset 0xdc
+#define ARM_FastBlockLookup_offset 0xe0

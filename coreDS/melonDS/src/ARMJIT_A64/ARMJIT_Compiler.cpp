@@ -359,26 +359,19 @@ Compiler::Compiler(melonDS::NDS& nds) : Arm64Gen::ARM64XEmitter(), NDS(nds)
                         continue;
                     ARM64Reg rdMapped = (ARM64Reg)reg;
                     PatchedStoreFuncs[consoleType][num][size][reg] = GetRXPtr();
-                    if (num == 0)
-                    {
-                        MOV(X1, RCPU);
-                        MOV(W2, rdMapped);
-                    }
-                    else
-                    {
-                        MOV(W1, rdMapped);
-                    }
+                    MOV(X1, RCPU);
+                    MOV(W2, rdMapped);
                     ABI_PushRegisters(BitSet32({30}) | CallerSavedPushRegs);
                     if (consoleType == 0)
                     {
                         switch ((8 << size) |  num)
                         {
                         case 32: QuickCallFunction(X3, SlowWrite9<u32, 0>); break;
-                        case 33: QuickCallFunction(X3, SlowWrite7<u32, 0>); break;
+                        case 33: QuickCallFunction(X3, SlowWrite7Cpu<u32, 0>); break;
                         case 16: QuickCallFunction(X3, SlowWrite9<u16, 0>); break;
-                        case 17: QuickCallFunction(X3, SlowWrite7<u16, 0>); break;
+                        case 17: QuickCallFunction(X3, SlowWrite7Cpu<u16, 0>); break;
                         case 8: QuickCallFunction(X3, SlowWrite9<u8, 0>); break;
-                        case 9: QuickCallFunction(X3, SlowWrite7<u8, 0>); break;
+                        case 9: QuickCallFunction(X3, SlowWrite7Cpu<u8, 0>); break;
                         }
                     }
                     else
@@ -386,11 +379,11 @@ Compiler::Compiler(melonDS::NDS& nds) : Arm64Gen::ARM64XEmitter(), NDS(nds)
                         switch ((8 << size) |  num)
                         {
                         case 32: QuickCallFunction(X3, SlowWrite9<u32, 1>); break;
-                        case 33: QuickCallFunction(X3, SlowWrite7<u32, 1>); break;
+                        case 33: QuickCallFunction(X3, SlowWrite7Cpu<u32, 1>); break;
                         case 16: QuickCallFunction(X3, SlowWrite9<u16, 1>); break;
-                        case 17: QuickCallFunction(X3, SlowWrite7<u16, 1>); break;
+                        case 17: QuickCallFunction(X3, SlowWrite7Cpu<u16, 1>); break;
                         case 8: QuickCallFunction(X3, SlowWrite9<u8, 1>); break;
-                        case 9: QuickCallFunction(X3, SlowWrite7<u8, 1>); break;
+                        case 9: QuickCallFunction(X3, SlowWrite7Cpu<u8, 1>); break;
                         }
                     }
                     
@@ -400,19 +393,18 @@ Compiler::Compiler(melonDS::NDS& nds) : Arm64Gen::ARM64XEmitter(), NDS(nds)
                     for (int signextend = 0; signextend < 2; signextend++)
                     {
                         PatchedLoadFuncs[consoleType][num][size][signextend][reg] = GetRXPtr();
-                        if (num == 0)
-                            MOV(X1, RCPU);
+                        MOV(X1, RCPU);
                         ABI_PushRegisters(BitSet32({30}) | CallerSavedPushRegs);
                         if (consoleType == 0)
                         {
                             switch ((8 << size) |  num)
                             {
                             case 32: QuickCallFunction(X3, SlowRead9<u32, 0>); break;
-                            case 33: QuickCallFunction(X3, SlowRead7<u32, 0>); break;
+                            case 33: QuickCallFunction(X3, SlowRead7Cpu<u32, 0>); break;
                             case 16: QuickCallFunction(X3, SlowRead9<u16, 0>); break;
-                            case 17: QuickCallFunction(X3, SlowRead7<u16, 0>); break;
+                            case 17: QuickCallFunction(X3, SlowRead7Cpu<u16, 0>); break;
                             case 8: QuickCallFunction(X3, SlowRead9<u8, 0>); break;
-                            case 9: QuickCallFunction(X3, SlowRead7<u8, 0>); break;
+                            case 9: QuickCallFunction(X3, SlowRead7Cpu<u8, 0>); break;
                             }
                         }
                         else
@@ -420,15 +412,15 @@ Compiler::Compiler(melonDS::NDS& nds) : Arm64Gen::ARM64XEmitter(), NDS(nds)
                             switch ((8 << size) |  num)
                             {
                             case 32: QuickCallFunction(X3, SlowRead9<u32, 1>); break;
-                            case 33: QuickCallFunction(X3, SlowRead7<u32, 1>); break;
+                            case 33: QuickCallFunction(X3, SlowRead7Cpu<u32, 1>); break;
                             case 16: QuickCallFunction(X3, SlowRead9<u16, 1>); break;
-                            case 17: QuickCallFunction(X3, SlowRead7<u16, 1>); break;
+                            case 17: QuickCallFunction(X3, SlowRead7Cpu<u16, 1>); break;
                             case 8: QuickCallFunction(X3, SlowRead9<u8, 1>); break;
-                            case 9: QuickCallFunction(X3, SlowRead7<u8, 1>); break;
+                            case 9: QuickCallFunction(X3, SlowRead7Cpu<u8, 1>); break;
                             }
                         }
                         ABI_PopRegisters(BitSet32({30}) | CallerSavedPushRegs);
-                        if (size == 32)
+                        if (size == 2)
                             MOV(rdMapped, W0);
                         else if (signextend)
                             SBFX(rdMapped, W0, 0, 8 << size);
@@ -669,7 +661,7 @@ void Compiler::Comp_BranchSpecialBehaviour(bool taken)
         RegCache.PrepareExit();
 
         if (ConstantCycles)
-            ADD(RCycles, RCycles, ConstantCycles);
+            ADDI2R(RCycles, RCycles, ConstantCycles, W0);
         QuickTailCall(X0, ARM_Ret);
     }
 }
@@ -732,6 +724,11 @@ JitBlockEntry Compiler::CompileBlock(ARM* cpu, bool thumb, FetchedInstr instrs[]
 
         if (comp == NULL)
         {
+            if (ConstantCycles)
+            {
+                ADDI2R(RCycles, RCycles, ConstantCycles, W0);
+                ConstantCycles = 0;
+            }
             SaveCycles();
             SaveCPSR();
             RegCache.Flush();
@@ -821,7 +818,7 @@ JitBlockEntry Compiler::CompileBlock(ARM* cpu, bool thumb, FetchedInstr instrs[]
     RegCache.Flush();
 
     if (ConstantCycles)
-        ADD(RCycles, RCycles, ConstantCycles);
+        ADDI2R(RCycles, RCycles, ConstantCycles, W0);
     QuickTailCall(X0, ARM_Ret);
 
     FlushIcache();
@@ -848,7 +845,7 @@ void Compiler::Comp_AddCycles_C(bool forceNonConstant)
         NDS.ARM7MemTimings[CurInstr.CodeCycles][Thumb ? 1 : 3]
         : ((R15 & 0x2) ? 0 : CurInstr.CodeCycles);
 
-    if (forceNonConstant)
+    if (!forceNonConstant)
         ConstantCycles += cycles;
     else
         ADD(RCycles, RCycles, cycles);
@@ -876,7 +873,7 @@ void Compiler::Comp_AddCycles_CI(u32 c, ARM64Reg numI, ArithOption shift)
         NDS.ARM7MemTimings[CurInstr.CodeCycles][Thumb ? 0 : 2]
         : ((R15 & 0x2) ? 0 : CurInstr.CodeCycles)) + c;
 
-    ADD(RCycles, RCycles, cycles);
+    SUB(RCycles, RCycles, numI, shift);
     if (Thumb || CurInstr.Cond() >= 0xE)
         ConstantCycles += cycles;
     else

@@ -105,11 +105,11 @@ T SlowRead9(u32 addr, ARMv5* cpu)
     else if ((addr & cpu->DTCMMask) == cpu->DTCMBase)
         val = *(T*)&cpu->DTCM[addr & 0x3FFF];
     else if (std::is_same<T, u32>::value)
-        val = NDS::Current->ARM9Read32(addr);
+        val = cpu->NDS.ARM9Read32(addr);
     else if (std::is_same<T, u16>::value)
-        val = NDS::Current->ARM9Read16(addr);
+        val = cpu->NDS.ARM9Read16(addr);
     else
-        val = NDS::Current->ARM9Read8(addr);
+        val = cpu->NDS.ARM9Read8(addr);
 
     if (std::is_same<T, u32>::value)
         return ROR(val, offset << 3);
@@ -153,15 +153,15 @@ void SlowWrite9(u32 addr, ARMv5* cpu, u32 val)
     }
     else if (std::is_same<T, u32>::value)
     {
-        NDS::Current->ARM9Write32(addr, val);
+        cpu->NDS.ARM9Write32(addr, val);
     }
     else if (std::is_same<T, u16>::value)
     {
-        NDS::Current->ARM9Write16(addr, val);
+        cpu->NDS.ARM9Write16(addr, val);
     }
     else
     {
-        NDS::Current->ARM9Write8(addr, val);
+        cpu->NDS.ARM9Write8(addr, val);
     }
 }
 
@@ -192,6 +192,39 @@ void SlowBlockTransfer9(u32 addr, u64* data, u32 num, ARMv5* cpu)
     }
 }
 
+template <typename T, int ConsoleType>
+T SlowRead7Cpu(u32 addr, ARM* cpu)
+{
+    u32 offset = addr & 0x3;
+    addr &= ~(sizeof(T) - 1);
+
+    T val;
+    if (std::is_same<T, u32>::value)
+        val = cpu->NDS.ARM7Read32(addr);
+    else if (std::is_same<T, u16>::value)
+        val = cpu->NDS.ARM7Read16(addr);
+    else
+        val = cpu->NDS.ARM7Read8(addr);
+
+    if (std::is_same<T, u32>::value)
+        return ROR(val, offset << 3);
+    else
+        return val;
+}
+
+template <typename T, int ConsoleType>
+void SlowWrite7Cpu(u32 addr, ARM* cpu, u32 val)
+{
+    addr &= ~(sizeof(T) - 1);
+
+    if (std::is_same<T, u32>::value)
+        cpu->NDS.ARM7Write32(addr, val);
+    else if (std::is_same<T, u16>::value)
+        cpu->NDS.ARM7Write16(addr, val);
+    else
+        cpu->NDS.ARM7Write8(addr, val);
+}
+
 template <bool Write, int ConsoleType>
 void SlowBlockTransfer7(u32 addr, u64* data, u32 num)
 {
@@ -202,6 +235,20 @@ void SlowBlockTransfer7(u32 addr, u64* data, u32 num)
             SlowWrite7<u32, ConsoleType>(addr, data[i]);
         else
             data[i] = SlowRead7<u32, ConsoleType>(addr);
+        addr += 4;
+    }
+}
+
+template <bool Write, int ConsoleType>
+void SlowBlockTransfer7Cpu(u32 addr, u64* data, u32 num, ARM* cpu)
+{
+    addr &= ~0x3;
+    for (u32 i = 0; i < num; i++)
+    {
+        if (Write)
+            SlowWrite7Cpu<u32, ConsoleType>(addr, cpu, data[i]);
+        else
+            data[i] = SlowRead7Cpu<u32, ConsoleType>(addr, cpu);
         addr += 4;
     }
 }
@@ -218,18 +265,37 @@ void SlowBlockTransfer7(u32 addr, u64* data, u32 num)
     template void SlowWrite7<u32, consoleType>(u32, u32); \
     template void SlowWrite7<u16, consoleType>(u32, u32); \
     template void SlowWrite7<u8, consoleType>(u32, u32); \
+    template void SlowWrite7Cpu<u32, consoleType>(u32, ARM*, u32); \
+    template void SlowWrite7Cpu<u16, consoleType>(u32, ARM*, u32); \
+    template void SlowWrite7Cpu<u8, consoleType>(u32, ARM*, u32); \
     \
     template u32 SlowRead7<u32, consoleType>(u32); \
     template u16 SlowRead7<u16, consoleType>(u32); \
     template u8 SlowRead7<u8, consoleType>(u32); \
+    template u32 SlowRead7Cpu<u32, consoleType>(u32, ARM*); \
+    template u16 SlowRead7Cpu<u16, consoleType>(u32, ARM*); \
+    template u8 SlowRead7Cpu<u8, consoleType>(u32, ARM*); \
     \
     template void SlowBlockTransfer9<false, consoleType>(u32, u64*, u32, ARMv5*); \
     template void SlowBlockTransfer9<true, consoleType>(u32, u64*, u32, ARMv5*); \
     template void SlowBlockTransfer7<false, consoleType>(u32 addr, u64* data, u32 num); \
     template void SlowBlockTransfer7<true, consoleType>(u32 addr, u64* data, u32 num); \
+    template void SlowBlockTransfer7Cpu<false, consoleType>(u32 addr, u64* data, u32 num, ARM* cpu); \
+    template void SlowBlockTransfer7Cpu<true, consoleType>(u32 addr, u64* data, u32 num, ARM* cpu); \
 
 INSTANTIATE_SLOWMEM(0)
 INSTANTIATE_SLOWMEM(1)
+
+#if defined(__aarch64__)
+static_assert(offsetof(ARM, Num) == 0x8);
+static_assert(offsetof(ARM, Cycles) == 0xc);
+static_assert(offsetof(ARM, StopExecution) == 0x10);
+static_assert(offsetof(ARM, R[15]) == 0x60);
+static_assert(offsetof(ARM, CPSR) == 0x64);
+static_assert(offsetof(ARM, FastBlockLookupStart) == 0xd8);
+static_assert(offsetof(ARM, FastBlockLookupSize) == 0xdc);
+static_assert(offsetof(ARM, FastBlockLookup) == 0xe0);
+#endif
 
 ARMJIT::~ARMJIT() noexcept
 {
@@ -970,7 +1036,7 @@ void ARMJIT::InvalidateByAddr(u32 localAddr) noexcept
 
     AddressRange* region = CodeMemRegions[localAddr >> 27];
     AddressRange* range = &region[(localAddr & 0x7FFFFFF) / 512];
-    u32 mask = 1 << ((localAddr & 0x1FF) / 16);
+    u32 invalidateMask = 1 << ((localAddr & 0x1FF) / 16);
 
     range->Code = 0;
     for (int i = 0; i < range->Blocks.Length;)
@@ -984,7 +1050,7 @@ void ARMJIT::InvalidateByAddr(u32 localAddr) noexcept
             if (block->AddressRanges()[j] == (localAddr & ~0x1FF))
             {
                 mask = block->AddressMasks()[j];
-                invalidated = block->AddressMasks()[j] & mask;
+                invalidated = (mask & invalidateMask) != 0;
                 assert(mask);
                 break;
             }
