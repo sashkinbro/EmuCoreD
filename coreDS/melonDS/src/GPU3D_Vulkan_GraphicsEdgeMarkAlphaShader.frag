@@ -68,43 +68,6 @@ int wrapTexelCoord(int coord, int size, bool repeat, bool mirror)
     return coord;
 }
 
-bool usesCompactOpaqueDepthWritePaletteUi(uint flags, uint polyAttr, uint texParam)
-{
-    uint textureFormat = (texParam >> 26u) & 0x7u;
-    uint polyAlpha = (polyAttr >> 16u) & 0x1Fu;
-    uint blendMode = (polyAttr >> 4u) & 0x3u;
-    bool color0Transparent = (texParam & (1u << 29u)) != 0u;
-    bool depthWriteEnabled = (polyAttr & (1u << 11u)) != 0u;
-    bool clearAlphaZero = ((pc.clearAttr >> 16u) & 0x1Fu) == 0u;
-    bool repeatS = (texParam & (1u << 16u)) != 0u;
-    bool repeatT = (texParam & (1u << 17u)) != 0u;
-    bool mirrorS = (texParam & (1u << 18u)) != 0u;
-    bool mirrorT = (texParam & (1u << 19u)) != 0u;
-    bool statusGlyphTexturePage = (texParam & 0xFFFFu) == 0x05C0u;
-
-    return (flags & TRI_FLAG_TEXTURED) != 0u
-        && (flags & TRI_FLAG_LINEAR) != 0u
-        && textureFormat == 3u
-        && color0Transparent
-        && statusGlyphTexturePage
-        && depthWriteEnabled
-        && clearAlphaZero
-        && blendMode == 0u
-        && polyAlpha == 31u
-        && !repeatS
-        && !repeatT
-        && !mirrorS
-        && !mirrorT;
-}
-
-vec2 dsPixelCenterDelta()
-{
-    vec2 renderScale = max(vec2(float(pc.width) * (1.0 / 256.0), float(pc.height) * (1.0 / 192.0)), vec2(1.0));
-    vec2 subpixelOffset = mod(gl_FragCoord.xy - vec2(0.5), renderScale);
-    vec2 dsPixelCenterOffset = max((renderScale - vec2(1.0)) * 0.5, vec2(0.0));
-    return dsPixelCenterOffset - subpixelOffset;
-}
-
 uint sampleTextureAlpha()
 {
     uint flags = fTriInfo0.x;
@@ -113,19 +76,12 @@ uint sampleTextureAlpha()
     uint texWidth = fTriInfo0.w;
     uint texHeight = fTriInfo1.x;
     uint texParam = fTriInfo1.y;
-    uint polyAttr = fTriInfo1.z;
     vec2 texcoord = fTexcoord;
 
     bool repeatS = (texParam & (1u << 16u)) != 0u;
     bool repeatT = (texParam & (1u << 17u)) != 0u;
     bool mirrorS = (texParam & (1u << 18u)) != 0u;
     bool mirrorT = (texParam & (1u << 19u)) != 0u;
-
-    if (usesCompactOpaqueDepthWritePaletteUi(flags, polyAttr, texParam))
-    {
-        vec2 centerDelta = dsPixelCenterDelta();
-        texcoord += dFdx(fTexcoord) * centerDelta.x + dFdy(fTexcoord) * centerDelta.y;
-    }
 
 
     if ((flags & TRI_FLAG_TEXCOORD_BOUNDS) != 0u)

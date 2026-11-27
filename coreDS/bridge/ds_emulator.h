@@ -76,7 +76,10 @@ private:
     bool ReadStateFile(const std::string& path);
     void AttachVulkanSurfaceLocked();
     void DetachVulkanSurfaceLocked();
+    void AttachVulkanSecondarySurfaceLocked();
+    void DetachVulkanSecondarySurfaceLocked();
     void ConfigureVulkanSurfaceLocked();
+    void ConfigureVulkanSecondarySurfaceLocked();
 
     std::unique_ptr<melonDS::NDS> nds_;
     std::unique_ptr<MelonDSAndroid::VulkanOutput> vulkan_output_;
@@ -107,6 +110,7 @@ private:
     ANativeWindow* window_ = nullptr;
     ANativeWindow* secondary_window_ = nullptr;
     int vulkan_surface_id_ = 0;
+    int vulkan_secondary_surface_id_ = 0;
     std::atomic<bool> running_{false};
     std::atomic<bool> stop_requested_{false};
     std::atomic<bool> paused_{false};

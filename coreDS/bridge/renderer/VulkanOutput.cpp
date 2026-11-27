@@ -6002,7 +6002,9 @@ bool VulkanOutput::dispatchFaithfulCompositor(Frame* frame, FrameResource& resou
         fuenteLegible.subresourceRange = {
             VK_IMAGE_ASPECT_COLOR_BIT, 0u, 1u, 0u, 1u};
         vkCmdPipelineBarrier(resource.commandBuffer,
-            VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
+            VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT
+                | VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT
+                | VK_PIPELINE_STAGE_TRANSFER_BIT,
             VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
             0u, 0u, nullptr, 0u, nullptr, 1u, &fuenteLegible);
 
@@ -6164,20 +6166,6 @@ bool VulkanOutput::dispatchFaithfulCompositor(Frame* frame, FrameResource& resou
         std::atomic_thread_fence(std::memory_order_release);
     }
 
-    VkBufferMemoryBarrier causalHostVisible{};
-    causalHostVisible.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
-    causalHostVisible.srcAccessMask = VK_ACCESS_HOST_WRITE_BIT;
-    causalHostVisible.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
-    causalHostVisible.srcQueueFamilyIndex =
-        causalHostVisible.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-    causalHostVisible.buffer = faithfulCausalBuffer[faithfulRing];
-    causalHostVisible.offset = 0u;
-    causalHostVisible.size = kFaithfulCausalBufferSize;
-    vkCmdPipelineBarrier(resource.commandBuffer,
-        VK_PIPELINE_STAGE_HOST_BIT,
-        VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
-        0u, 0u, nullptr, 1u, &causalHostVisible, 0u, nullptr);
-
     VkBufferMemoryBarrier faithfulScratchReuse[2]{};
     const VkBuffer faithfulScratchBuffers[2] = {
         faithfulObjBuffer, faithfulB1Buffer,
@@ -6291,7 +6279,11 @@ bool VulkanOutput::dispatchFaithfulCompositor(Frame* frame, FrameResource& resou
     if (!rutaCorta)
         vkCmdPipelineBarrier(
             resource.commandBuffer,
-            resource.hasContent ? VK_PIPELINE_STAGE_ALL_COMMANDS_BIT : VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
+            resource.hasContent
+                ? (VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT
+                    | VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT
+                    | VK_PIPELINE_STAGE_TRANSFER_BIT)
+                : VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
             VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
             0, 0, nullptr, 0, nullptr, 1, &aGeneral);
 
@@ -6826,7 +6818,9 @@ bool VulkanOutput::dispatchFaithfulCompositor(Frame* frame, FrameResource& resou
     vkCmdPipelineBarrier(
         resource.commandBuffer,
         VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
-        VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
+        VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT
+            | VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT
+            | VK_PIPELINE_STAGE_TRANSFER_BIT,
         0, 0, nullptr, 0, nullptr, 1, &aLegible);
     }
     writeFaithfulTimestamp(6u, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT);
@@ -9906,8 +9900,13 @@ bool VulkanOutput::recordRenderer3dSnapshotCopy(
         && (rendererWidth % 256u) == 0u
         && (rendererHeight % 192u) == 0u
         && rendererWidth / 256u == rendererHeight / 192u;
+    const bool nativeProjectionConsumersEnabled =
+        faithfulNativeFallbackGpuBacked
+        || EMUCORED_DIAGNOSTIC_ENV("MELON_SONDA_CAPID") != nullptr
+        || areRendererDebugBgObjLogsEnabled();
     const bool recordNativeProjection =
-        faithfulNativeProjectionEnabled
+        nativeProjectionConsumersEnabled
+        && faithfulNativeProjectionEnabled
         && snapshotSourceImage != VK_NULL_HANDLE
         && snapshotSourceImageView != VK_NULL_HANDLE
         && exactNativeDimensions
@@ -9977,7 +9976,9 @@ bool VulkanOutput::recordRenderer3dSnapshotCopy(
         projectionWritable.size = kNativeProjectionBytes;
         vkCmdPipelineBarrier(
             resource.commandBuffer,
-            VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
+            VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT
+                | VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT
+                | VK_PIPELINE_STAGE_TRANSFER_BIT,
             VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
             0u, 0u, nullptr, 1u, &projectionWritable,
             1u, &sourceToProjection);
@@ -10058,7 +10059,10 @@ bool VulkanOutput::recordRenderer3dSnapshotCopy(
     };
     vkCmdPipelineBarrier(
         resource.commandBuffer,
-        VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
+        VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT
+            | VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT
+            | VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT
+            | VK_PIPELINE_STAGE_TRANSFER_BIT,
         VK_PIPELINE_STAGE_TRANSFER_BIT,
         0,
         0,
@@ -10279,7 +10283,9 @@ bool VulkanOutput::validateFrameSubmission(Frame* frame, u64 waitTimeoutNs)
     vkCmdPipelineBarrier(
         resource.commandBuffer,
         VK_PIPELINE_STAGE_TRANSFER_BIT,
-        VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
+        VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT
+            | VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT
+            | VK_PIPELINE_STAGE_TRANSFER_BIT,
         0,
         0,
         nullptr,
@@ -10816,7 +10822,10 @@ bool VulkanOutput::readResourceImagePixels(
 
     vkCmdPipelineBarrier(
         resource.commandBuffer,
-        VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
+        VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT
+            | VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT
+            | VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT
+            | VK_PIPELINE_STAGE_TRANSFER_BIT,
         VK_PIPELINE_STAGE_TRANSFER_BIT,
         0,
         0,
@@ -10867,7 +10876,9 @@ bool VulkanOutput::readResourceImagePixels(
     vkCmdPipelineBarrier(
         resource.commandBuffer,
         VK_PIPELINE_STAGE_TRANSFER_BIT,
-        VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
+        VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT
+            | VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT
+            | VK_PIPELINE_STAGE_TRANSFER_BIT,
         0,
         0,
         nullptr,

@@ -1189,6 +1189,9 @@ private:
     u32 FaithfulPrevSwapScanout = 0;
 
     bool FaithfulComponerActivo[2] {};
+    bool FaithfulModo2UsedThisFrame = false;
+    bool FaithfulPrevModo2Valid = false;
+    bool FaithfulCaptureUsedThisFrame = false;
     std::array<u32, 2 * kStructuredPlaneBufferWords> StructuredVulkan2DPlanesStorage {};
     std::array<u8, 2 * kStructuredLineMaskBytes> StructuredVulkan2DLineHasPayloadStorage {};
     std::array<u8, 2 * kStructuredLineMaskBytes> StructuredVulkan2DLineHas3DSlotStorage {};

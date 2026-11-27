@@ -288,6 +288,22 @@ private:
         u32 rendererHeight = 0;
     };
 
+    static constexpr size_t kMaxFramesInFlight = 3;
+
+    struct FrameSyncSlot
+    {
+        VkCommandBuffer commandBuffer = VK_NULL_HANDLE;
+        VkFence inFlightFence = VK_NULL_HANDLE;
+        VkSemaphore imageAvailableSemaphore = VK_NULL_HANDLE;
+        VkDescriptorSet screenDescriptorSet = VK_NULL_HANDLE;
+        VkDescriptorSet backgroundDescriptorSet = VK_NULL_HANDLE;
+        DescriptorSetCacheState screenDescriptorCache{};
+        DescriptorSetCacheState backgroundDescriptorCache{};
+        VkQueryPool timestampQueryPool = VK_NULL_HANDLE;
+        bool timestampPending = false;
+        u64 vertexGenerationUploaded = 0;
+    };
+
     struct SurfaceState
     {
         int id = 0;
@@ -315,15 +331,12 @@ private:
 
         VkRenderPass renderPass = VK_NULL_HANDLE;
         VkPipeline composedPipeline = VK_NULL_HANDLE;
+        VkPipeline composedOpaquePipeline = VK_NULL_HANDLE;
         VkCommandPool commandPool = VK_NULL_HANDLE;
-        VkCommandBuffer commandBuffer = VK_NULL_HANDLE;
-        VkFence inFlightFence = VK_NULL_HANDLE;
-        VkSemaphore imageAvailableSemaphore = VK_NULL_HANDLE;
+        std::array<FrameSyncSlot, kMaxFramesInFlight> frameSlots{};
+        size_t currentFrameSlot = 0;
 
         std::vector<VkSemaphore> renderFinishedSemaphores;
-
-        VkDescriptorSet screenDescriptorSet = VK_NULL_HANDLE;
-        VkDescriptorSet backgroundDescriptorSet = VK_NULL_HANDLE;
 
         VkBuffer vertexBuffer = VK_NULL_HANDLE;
         VkDeviceMemory vertexMemory = VK_NULL_HANDLE;
@@ -338,8 +351,9 @@ private:
         VkPresentModeKHR cachedPresentMode = VK_PRESENT_MODE_FIFO_KHR;
         bool vertexBufferDirty = true;
         bool backgroundDescriptorDirty = false;
-        DescriptorSetCacheState screenDescriptorCache{};
-        DescriptorSetCacheState backgroundDescriptorCache{};
+        bool allDrawsOpaque = true;
+        u64 currentVertexGeneration = 0;
+        std::vector<SurfaceVertex> cachedVertices;
         bool cachedDirectPresent = false;
         bool cachedRetroArchApplied = false;
         bool cachedFastHighresOnlyTop = false;
@@ -363,8 +377,6 @@ private:
         bool cachedDirectTopComposedCarryRequired = false;
         bool cachedDirectBottomComposedCarryRequired = false;
         std::vector<DrawCall> cachedDrawCalls;
-        VkQueryPool timestampQueryPool = VK_NULL_HANDLE;
-        bool timestampPending = false;
         BackgroundResource background{};
         RetroArchResources retroArch{};
         RetroArchImageResource topComposedCarry{};
@@ -418,16 +430,17 @@ private:
     void destroyRenderFinishedSemaphores(SurfaceState& surfaceState);
     VkResult waitForPresentQueueIdleForLifecycle();
     void recoverSwapchain(SurfaceState& surfaceState, const char* reason);
-    bool createInFlightFence(SurfaceState& surfaceState, bool signaled);
-    void destroyInFlightFence(SurfaceState& surfaceState);
+    bool createInFlightFence(FrameSyncSlot& slot, bool signaled);
+    void destroyInFlightFence(FrameSyncSlot& slot);
     void ensureSurfacePipelineCache();
     void saveSurfacePipelineCache();
     void destroySurfacePipelineCache();
+    VkResult waitForSlotIdle(SurfaceState& surfaceState, FrameSyncSlot& slot, u64 timeoutNs = UINT64_MAX);
     VkResult waitForSurfaceIdle(SurfaceState& surfaceState, u64 timeoutNs = UINT64_MAX);
-    bool resetSurfaceInFlightFence(SurfaceState& surfaceState);
+    bool resetSlotInFlightFence(FrameSyncSlot& slot);
     bool createTimestampQueryPool(VkQueryPool& queryPool);
     void destroyTimestampQueryPool(VkQueryPool& queryPool);
-    void consumeSurfaceGpuTiming(SurfaceState& surfaceState);
+    void consumeSlotGpuTiming(FrameSyncSlot& slot);
     void logPerformanceIfNeeded();
 
     bool ensureBackgroundTexture(SurfaceState& surfaceState, const VulkanBackgroundImage& backgroundImage);
@@ -436,6 +449,7 @@ private:
 
     bool updateDescriptorSets(
         SurfaceState& surfaceState,
+        FrameSyncSlot& slot,
         VkImageView frameImageView,
         const VulkanCompositionInputs& inputs,
         VulkanFilterMode filtering,
@@ -443,6 +457,8 @@ private:
     );
     bool updateVertexBuffer(
         SurfaceState& surfaceState,
+        size_t slotIndex,
+        FrameSyncSlot& slot,
         const VulkanSurfaceConfig& config,
         const BackgroundResource* backgroundResource,
         const VulkanCompositionInputs& inputs,
@@ -452,6 +468,8 @@ private:
     );
     bool recordSurfaceCommands(
         SurfaceState& surfaceState,
+        size_t slotIndex,
+        FrameSyncSlot& slot,
         VkFramebuffer framebuffer,
         const VulkanCompositionInputs& inputs,
         VkImage sampledImage,
@@ -467,6 +485,7 @@ private:
     );
     bool submitSurfaceCommands(
         SurfaceState& surfaceState,
+        FrameSyncSlot& slot,
         u32 imageIndex,
         VkSemaphore sourceReadySemaphore,
         u64 sourceReadyValue,

@@ -32,3 +32,5 @@ set_target_properties(emucored_ds PROPERTIES
     CXX_STANDARD_REQUIRED ON
     OUTPUT_NAME "emucored_ds"
 )
+
+target_link_options(emucored_ds PRIVATE "-Wl,-z,max-page-size=16384")

@@ -1,4 +1,5 @@
 #include "../../bridge/ds_diagnostics.h"
+#include <algorithm>
 #include <cstring>
 #include <mutex>
 
@@ -12,6 +13,7 @@ namespace melonDS
 {
 
 constexpr uint64_t kFenceWaitTimeoutNs = 2'000'000'000ull;
+constexpr VkDeviceSize kDefaultTexcacheStagingBytes = 2u * 1024u * 1024u;
 
 TexcacheVulkanLoader::TexcacheVulkanLoader()
     : State(std::make_shared<SharedState>())
@@ -47,6 +49,28 @@ bool TexcacheVulkanLoader::EnsureVulkanState()
     if (State->Device == VK_NULL_HANDLE || State->Queue == VK_NULL_HANDLE)
     {
         EMUCORED_DIAGNOSTIC_LOG(Platform::Log(Platform::LogLevel::Error, "TexcacheVulkan: invalid Vulkan context handles"));
+        CleanupVulkanState();
+        return false;
+    }
+
+    VkSamplerCreateInfo samplerCreateInfo{};
+    samplerCreateInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
+    samplerCreateInfo.magFilter = VK_FILTER_NEAREST;
+    samplerCreateInfo.minFilter = VK_FILTER_NEAREST;
+    samplerCreateInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_NEAREST;
+    samplerCreateInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+    samplerCreateInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+    samplerCreateInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+    samplerCreateInfo.anisotropyEnable = VK_FALSE;
+    samplerCreateInfo.maxAnisotropy = 1.0f;
+    samplerCreateInfo.compareEnable = VK_FALSE;
+    samplerCreateInfo.minLod = 0.0f;
+    samplerCreateInfo.maxLod = 0.0f;
+    samplerCreateInfo.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK;
+    samplerCreateInfo.unnormalizedCoordinates = VK_FALSE;
+    if (vkCreateSampler(State->Device, &samplerCreateInfo, nullptr, &State->NearestSampler) != VK_SUCCESS)
+    {
+        EMUCORED_DIAGNOSTIC_LOG(Platform::Log(Platform::LogLevel::Error, "TexcacheVulkan: failed to create shared sampler"));
         CleanupVulkanState();
         return false;
     }
@@ -87,6 +111,79 @@ bool TexcacheVulkanLoader::EnsureVulkanState()
     return true;
 }
 
+bool TexcacheVulkanLoader::EnsureStagingCapacity(VkDeviceSize requiredBytes)
+{
+    if (State == nullptr || State->Device == VK_NULL_HANDLE)
+        return false;
+
+    if (State->StagingBuffer != VK_NULL_HANDLE && State->StagingMapped != nullptr
+        && State->StagingCapacity >= requiredBytes)
+    {
+        return true;
+    }
+
+    WaitForPendingUploads();
+
+    if (State->StagingMapped != nullptr && State->StagingMemory != VK_NULL_HANDLE)
+    {
+        vkUnmapMemory(State->Device, State->StagingMemory);
+        State->StagingMapped = nullptr;
+    }
+    if (State->StagingBuffer != VK_NULL_HANDLE)
+    {
+        vkDestroyBuffer(State->Device, State->StagingBuffer, nullptr);
+        State->StagingBuffer = VK_NULL_HANDLE;
+    }
+    if (State->StagingMemory != VK_NULL_HANDLE)
+    {
+        vkFreeMemory(State->Device, State->StagingMemory, nullptr);
+        State->StagingMemory = VK_NULL_HANDLE;
+    }
+    State->StagingCapacity = 0;
+    State->StagingUsed = 0;
+
+    const VkDeviceSize allocSize = std::max(requiredBytes, kDefaultTexcacheStagingBytes);
+
+    VkBufferCreateInfo stagingBufferCreateInfo{};
+    stagingBufferCreateInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+    stagingBufferCreateInfo.size = allocSize;
+    stagingBufferCreateInfo.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+    stagingBufferCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+    if (vkCreateBuffer(State->Device, &stagingBufferCreateInfo, nullptr, &State->StagingBuffer) != VK_SUCCESS)
+        return false;
+
+    VkMemoryRequirements memReqs{};
+    vkGetBufferMemoryRequirements(State->Device, State->StagingBuffer, &memReqs);
+
+    VkMemoryAllocateInfo allocInfo{};
+    allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+    allocInfo.allocationSize = memReqs.size;
+    allocInfo.memoryTypeIndex = VulkanContext::Get().FindMemoryType(
+        memReqs.memoryTypeBits,
+        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+    if (allocInfo.memoryTypeIndex == UINT32_MAX
+        || vkAllocateMemory(State->Device, &allocInfo, nullptr, &State->StagingMemory) != VK_SUCCESS
+        || vkBindBufferMemory(State->Device, State->StagingBuffer, State->StagingMemory, 0) != VK_SUCCESS
+        || vkMapMemory(State->Device, State->StagingMemory, 0, allocSize, 0, &State->StagingMapped) != VK_SUCCESS)
+    {
+        if (State->StagingBuffer != VK_NULL_HANDLE)
+        {
+            vkDestroyBuffer(State->Device, State->StagingBuffer, nullptr);
+            State->StagingBuffer = VK_NULL_HANDLE;
+        }
+        if (State->StagingMemory != VK_NULL_HANDLE)
+        {
+            vkFreeMemory(State->Device, State->StagingMemory, nullptr);
+            State->StagingMemory = VK_NULL_HANDLE;
+        }
+        State->StagingMapped = nullptr;
+        return false;
+    }
+
+    State->StagingCapacity = allocSize;
+    return true;
+}
+
 void TexcacheVulkanLoader::CleanupVulkanState()
 {
     if (State == nullptr)
@@ -107,6 +204,10 @@ void TexcacheVulkanLoader::CleanupVulkanState()
         vkDeviceWaitIdle(State->Device);
     }
 
+    State->PendingInitialTransitions.clear();
+    State->PendingCopies.clear();
+    State->UploadInFlight = false;
+
     for (auto& [handle, textureArray] : State->TextureArrays)
     {
         (void)handle;
@@ -115,32 +216,29 @@ void TexcacheVulkanLoader::CleanupVulkanState()
     State->TextureArrays.clear();
     State->NextHandle = 1;
 
-    for (auto& uploadSlot : State->UploadSlots)
+    if (State->StagingMapped != nullptr && State->StagingMemory != VK_NULL_HANDLE && State->Device != VK_NULL_HANDLE)
     {
-        if (uploadSlot.Fence != VK_NULL_HANDLE && State->Device != VK_NULL_HANDLE)
-        {
-            vkDestroyFence(State->Device, uploadSlot.Fence, nullptr);
-            uploadSlot.Fence = VK_NULL_HANDLE;
-        }
-        if (uploadSlot.CommandBuffer != VK_NULL_HANDLE && State->CommandPool != VK_NULL_HANDLE && State->Device != VK_NULL_HANDLE)
-        {
-            vkFreeCommandBuffers(State->Device, State->CommandPool, 1, &uploadSlot.CommandBuffer);
-            uploadSlot.CommandBuffer = VK_NULL_HANDLE;
-        }
-        if (uploadSlot.StagingBuffer != VK_NULL_HANDLE && State->Device != VK_NULL_HANDLE)
-        {
-            vkDestroyBuffer(State->Device, uploadSlot.StagingBuffer, nullptr);
-            uploadSlot.StagingBuffer = VK_NULL_HANDLE;
-        }
-        if (uploadSlot.StagingMemory != VK_NULL_HANDLE && State->Device != VK_NULL_HANDLE)
-        {
-            vkFreeMemory(State->Device, uploadSlot.StagingMemory, nullptr);
-            uploadSlot.StagingMemory = VK_NULL_HANDLE;
-        }
-        uploadSlot.StagingSize = 0;
-        uploadSlot.InFlight = false;
+        vkUnmapMemory(State->Device, State->StagingMemory);
+        State->StagingMapped = nullptr;
     }
-    State->NextUploadSlot = 0;
+    if (State->StagingBuffer != VK_NULL_HANDLE && State->Device != VK_NULL_HANDLE)
+    {
+        vkDestroyBuffer(State->Device, State->StagingBuffer, nullptr);
+        State->StagingBuffer = VK_NULL_HANDLE;
+    }
+    if (State->StagingMemory != VK_NULL_HANDLE && State->Device != VK_NULL_HANDLE)
+    {
+        vkFreeMemory(State->Device, State->StagingMemory, nullptr);
+        State->StagingMemory = VK_NULL_HANDLE;
+    }
+    State->StagingCapacity = 0;
+    State->StagingUsed = 0;
+
+    if (State->NearestSampler != VK_NULL_HANDLE && State->Device != VK_NULL_HANDLE)
+    {
+        vkDestroySampler(State->Device, State->NearestSampler, nullptr);
+        State->NearestSampler = VK_NULL_HANDLE;
+    }
 
     if (State->UploadFence != VK_NULL_HANDLE && State->Device != VK_NULL_HANDLE)
     {
@@ -186,12 +284,6 @@ void TexcacheVulkanLoader::DestroyTextureArray(TextureArray& textureArray)
 
     VkDevice device = State->Device;
 
-    if (textureArray.Sampler != VK_NULL_HANDLE)
-    {
-        vkDestroySampler(device, textureArray.Sampler, nullptr);
-        textureArray.Sampler = VK_NULL_HANDLE;
-    }
-
     if (textureArray.ArrayView != VK_NULL_HANDLE)
     {
         vkDestroyImageView(device, textureArray.ArrayView, nullptr);
@@ -203,19 +295,6 @@ void TexcacheVulkanLoader::DestroyTextureArray(TextureArray& textureArray)
         vkDestroyImageView(device, textureArray.NormalizedArrayView, nullptr);
         textureArray.NormalizedArrayView = VK_NULL_HANDLE;
     }
-
-    if (textureArray.StagingBuffer != VK_NULL_HANDLE)
-    {
-        vkDestroyBuffer(device, textureArray.StagingBuffer, nullptr);
-        textureArray.StagingBuffer = VK_NULL_HANDLE;
-    }
-
-    if (textureArray.StagingMemory != VK_NULL_HANDLE)
-    {
-        vkFreeMemory(device, textureArray.StagingMemory, nullptr);
-        textureArray.StagingMemory = VK_NULL_HANDLE;
-    }
-    textureArray.StagingSize = 0;
 
     if (textureArray.Image != VK_NULL_HANDLE)
     {
@@ -236,26 +315,13 @@ void TexcacheVulkanLoader::DestroyTextureArray(TextureArray& textureArray)
 
 void TexcacheVulkanLoader::WaitForPendingUploads()
 {
-    if (State == nullptr || State->Device == VK_NULL_HANDLE)
+    if (State == nullptr || State->Device == VK_NULL_HANDLE || !State->UploadInFlight || State->UploadFence == VK_NULL_HANDLE)
         return;
 
-    for (auto& uploadSlot : State->UploadSlots)
-    {
-        if (!uploadSlot.InFlight || uploadSlot.Fence == VK_NULL_HANDLE)
-            continue;
-
-        const VkResult fenceStatus = vkGetFenceStatus(State->Device, uploadSlot.Fence);
-        if (fenceStatus == VK_SUCCESS)
-        {
-            uploadSlot.InFlight = false;
-            continue;
-        }
-        if (fenceStatus != VK_NOT_READY)
-            continue;
-
-        if (vkWaitForFences(State->Device, 1, &uploadSlot.Fence, VK_TRUE, kFenceWaitTimeoutNs) == VK_SUCCESS)
-            uploadSlot.InFlight = false;
-    }
+    const VkResult fenceStatus = vkGetFenceStatus(State->Device, State->UploadFence);
+    if (fenceStatus == VK_NOT_READY)
+        vkWaitForFences(State->Device, 1, &State->UploadFence, VK_TRUE, kFenceWaitTimeoutNs);
+    State->UploadInFlight = false;
 }
 
 TexcacheVulkanLoader::TextureHandle TexcacheVulkanLoader::GenerateTexture(u32 width, u32 height, u32 layers)
@@ -273,14 +339,6 @@ TexcacheVulkanLoader::TextureHandle TexcacheVulkanLoader::GenerateTexture(u32 wi
     textureArray.LayerFlags.assign(layers, 0u);
     const bool normalizedTextureResources =
         GetVulkanTextureDescriptorPolicy().RequiresNormalizedTextureDescriptor();
-    if (normalizedTextureResources)
-    {
-
-        textureArray.LayerPixels.reset(new u32[
-            static_cast<size_t>(width)
-                * static_cast<size_t>(height)
-                * static_cast<size_t>(layers)]);
-    }
 
     VkImageCreateInfo imageCreateInfo{};
     imageCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
@@ -296,7 +354,7 @@ TexcacheVulkanLoader::TextureHandle TexcacheVulkanLoader::GenerateTexture(u32 wi
     imageCreateInfo.arrayLayers = layers;
     imageCreateInfo.samples = VK_SAMPLE_COUNT_1_BIT;
     imageCreateInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
-    imageCreateInfo.usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT;
+    imageCreateInfo.usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
     imageCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
     imageCreateInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 
@@ -360,132 +418,7 @@ TexcacheVulkanLoader::TextureHandle TexcacheVulkanLoader::GenerateTexture(u32 wi
         }
     }
 
-    VkSamplerCreateInfo samplerCreateInfo{};
-    samplerCreateInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
-    samplerCreateInfo.magFilter = VK_FILTER_NEAREST;
-    samplerCreateInfo.minFilter = VK_FILTER_NEAREST;
-    samplerCreateInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_NEAREST;
-    samplerCreateInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-    samplerCreateInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-    samplerCreateInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-    samplerCreateInfo.anisotropyEnable = VK_FALSE;
-    samplerCreateInfo.maxAnisotropy = 1.0f;
-    samplerCreateInfo.compareEnable = VK_FALSE;
-    samplerCreateInfo.minLod = 0.0f;
-    samplerCreateInfo.maxLod = 0.0f;
-    samplerCreateInfo.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK;
-    samplerCreateInfo.unnormalizedCoordinates = VK_FALSE;
-    if (vkCreateSampler(State->Device, &samplerCreateInfo, nullptr, &textureArray.Sampler) != VK_SUCCESS)
-    {
-        EMUCORED_DIAGNOSTIC_LOG(Platform::Log(Platform::LogLevel::Error, "TexcacheVulkan: failed to create sampler"));
-        DestroyTextureArray(textureArray);
-        return 0;
-    }
-
-    textureArray.StagingSize = static_cast<VkDeviceSize>(width) * static_cast<VkDeviceSize>(height) * sizeof(u32);
-    VkBufferCreateInfo stagingBufferCreateInfo{};
-    stagingBufferCreateInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-    stagingBufferCreateInfo.size = textureArray.StagingSize;
-    stagingBufferCreateInfo.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
-    stagingBufferCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-    if (vkCreateBuffer(State->Device, &stagingBufferCreateInfo, nullptr, &textureArray.StagingBuffer) != VK_SUCCESS)
-    {
-        EMUCORED_DIAGNOSTIC_LOG(Platform::Log(Platform::LogLevel::Error, "TexcacheVulkan: failed to create staging buffer"));
-        DestroyTextureArray(textureArray);
-        return 0;
-    }
-
-    VkMemoryRequirements stagingMemoryRequirements{};
-    vkGetBufferMemoryRequirements(State->Device, textureArray.StagingBuffer, &stagingMemoryRequirements);
-
-    VkMemoryAllocateInfo stagingMemoryAllocateInfo{};
-    stagingMemoryAllocateInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-    stagingMemoryAllocateInfo.allocationSize = stagingMemoryRequirements.size;
-    stagingMemoryAllocateInfo.memoryTypeIndex = VulkanContext::Get().FindMemoryType(
-        stagingMemoryRequirements.memoryTypeBits,
-        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT
-    );
-    if (stagingMemoryAllocateInfo.memoryTypeIndex == UINT32_MAX
-        || vkAllocateMemory(State->Device, &stagingMemoryAllocateInfo, nullptr, &textureArray.StagingMemory) != VK_SUCCESS
-        || vkBindBufferMemory(State->Device, textureArray.StagingBuffer, textureArray.StagingMemory, 0) != VK_SUCCESS)
-    {
-        EMUCORED_DIAGNOSTIC_LOG(Platform::Log(Platform::LogLevel::Error, "TexcacheVulkan: failed to allocate staging memory"));
-        DestroyTextureArray(textureArray);
-        return 0;
-    }
-
-    if (vkWaitForFences(State->Device, 1, &State->UploadFence, VK_TRUE, kFenceWaitTimeoutNs) != VK_SUCCESS
-        || vkResetFences(State->Device, 1, &State->UploadFence) != VK_SUCCESS
-        || vkResetCommandBuffer(State->CommandBuffer, 0) != VK_SUCCESS)
-    {
-        EMUCORED_DIAGNOSTIC_LOG(Platform::Log(Platform::LogLevel::Error, "TexcacheVulkan: failed to prepare upload sync objects"));
-        DestroyTextureArray(textureArray);
-        return 0;
-    }
-
-    VkCommandBufferBeginInfo beginInfo{};
-    beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-    beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-    if (vkBeginCommandBuffer(State->CommandBuffer, &beginInfo) != VK_SUCCESS)
-    {
-        DestroyTextureArray(textureArray);
-        return 0;
-    }
-
-    constexpr VkPipelineStageFlags kTextureShaderStages =
-        VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT | VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
-
-    VkImageMemoryBarrier toGeneralBarrier{};
-    toGeneralBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-    toGeneralBarrier.srcAccessMask = 0;
-    toGeneralBarrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT;
-    toGeneralBarrier.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-    toGeneralBarrier.newLayout = VK_IMAGE_LAYOUT_GENERAL;
-    toGeneralBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-    toGeneralBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-    toGeneralBarrier.image = textureArray.Image;
-    toGeneralBarrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-    toGeneralBarrier.subresourceRange.baseMipLevel = 0;
-    toGeneralBarrier.subresourceRange.levelCount = 1;
-    toGeneralBarrier.subresourceRange.baseArrayLayer = 0;
-    toGeneralBarrier.subresourceRange.layerCount = layers;
-    vkCmdPipelineBarrier(
-        State->CommandBuffer,
-        VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
-        kTextureShaderStages,
-        0,
-        0,
-        nullptr,
-        0,
-        nullptr,
-        1,
-        &toGeneralBarrier
-    );
-
-    if (vkEndCommandBuffer(State->CommandBuffer) != VK_SUCCESS)
-    {
-        DestroyTextureArray(textureArray);
-        return 0;
-    }
-
-    VkSubmitInfo submitInfo{};
-    submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-    submitInfo.commandBufferCount = 1;
-    submitInfo.pCommandBuffers = &State->CommandBuffer;
-    {
-        std::scoped_lock queueLock(VulkanContext::Get().GetQueueLock());
-        if (vkQueueSubmit(State->Queue, 1, &submitInfo, State->UploadFence) != VK_SUCCESS)
-        {
-            DestroyTextureArray(textureArray);
-            return 0;
-        }
-    }
-
-    if (vkWaitForFences(State->Device, 1, &State->UploadFence, VK_TRUE, kFenceWaitTimeoutNs) != VK_SUCCESS)
-    {
-        DestroyTextureArray(textureArray);
-        return 0;
-    }
+    State->PendingInitialTransitions.push_back({textureArray.Image, layers});
 
     TextureHandle handle = State->NextHandle++;
     State->TextureArrays.emplace(handle, std::move(textureArray));
@@ -505,23 +438,12 @@ void TexcacheVulkanLoader::UploadTexture(TextureHandle handle, u32 width, u32 he
         return;
 
     TextureArray& textureArray = it->second;
-    if (layer >= textureArray.Layers)
-        return;
-    if (textureArray.Width != width || textureArray.Height != height)
+    if (layer >= textureArray.Layers || textureArray.Width != width || textureArray.Height != height)
         return;
 
     const size_t layerPixelCount = static_cast<size_t>(width) * static_cast<size_t>(height);
     bool layerOpaque = true;
     const u32* sourcePixels = static_cast<const u32*>(data);
-    if (textureArray.LayerPixels)
-    {
-        const size_t layerPixelOffset = static_cast<size_t>(layer) * layerPixelCount;
-        std::memcpy(
-            &textureArray.LayerPixels[layerPixelOffset],
-            sourcePixels,
-            layerPixelCount * sizeof(u32));
-        textureArray.LayerFlags[layer] |= TextureArray::CpuMirrorReady;
-    }
     for (size_t pixel = 0; pixel < layerPixelCount; pixel++)
     {
         if (((sourcePixels[pixel] >> 24u) & 0x1Fu) != 0x1Fu)
@@ -535,114 +457,37 @@ void TexcacheVulkanLoader::UploadTexture(TextureHandle handle, u32 width, u32 he
             | (layerOpaque ? TextureArray::Opaque : 0u);
 
     const VkDeviceSize requiredStagingSize = static_cast<VkDeviceSize>(layerPixelCount * sizeof(u32));
-    SharedState::UploadSlot* uploadSlot = nullptr;
-    size_t uploadSlotIndex = State->NextUploadSlot;
-    for (size_t slotOffset = 0; slotOffset < SharedState::UploadSlotCount; slotOffset++)
-    {
-        const size_t candidateIndex = (State->NextUploadSlot + slotOffset) % SharedState::UploadSlotCount;
-        SharedState::UploadSlot& candidate = State->UploadSlots[candidateIndex];
-        if (!candidate.InFlight || candidate.Fence == VK_NULL_HANDLE || vkGetFenceStatus(State->Device, candidate.Fence) == VK_SUCCESS)
-        {
-            candidate.InFlight = false;
-            uploadSlot = &candidate;
-            uploadSlotIndex = candidateIndex;
-            break;
-        }
-    }
-    if (uploadSlot == nullptr)
-    {
-        uploadSlotIndex = State->NextUploadSlot;
-        uploadSlot = &State->UploadSlots[uploadSlotIndex];
-        if (uploadSlot->Fence != VK_NULL_HANDLE
-            && vkWaitForFences(State->Device, 1, &uploadSlot->Fence, VK_TRUE, kFenceWaitTimeoutNs) != VK_SUCCESS)
-        {
-            return;
-        }
-        uploadSlot->InFlight = false;
-    }
-    State->NextUploadSlot = (uploadSlotIndex + 1u) % SharedState::UploadSlotCount;
-
-    if (uploadSlot->Fence == VK_NULL_HANDLE)
-    {
-        VkFenceCreateInfo fenceCreateInfo{};
-        fenceCreateInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
-        fenceCreateInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
-        if (vkCreateFence(State->Device, &fenceCreateInfo, nullptr, &uploadSlot->Fence) != VK_SUCCESS)
-            return;
-    }
-
-    if (uploadSlot->CommandBuffer == VK_NULL_HANDLE)
-    {
-        VkCommandBufferAllocateInfo commandBufferAllocateInfo{};
-        commandBufferAllocateInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-        commandBufferAllocateInfo.commandPool = State->CommandPool;
-        commandBufferAllocateInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-        commandBufferAllocateInfo.commandBufferCount = 1;
-        if (vkAllocateCommandBuffers(State->Device, &commandBufferAllocateInfo, &uploadSlot->CommandBuffer) != VK_SUCCESS)
-            return;
-    }
-
-    if (uploadSlot->StagingBuffer == VK_NULL_HANDLE || uploadSlot->StagingSize < requiredStagingSize)
-    {
-        if (uploadSlot->StagingBuffer != VK_NULL_HANDLE)
-        {
-            vkDestroyBuffer(State->Device, uploadSlot->StagingBuffer, nullptr);
-            uploadSlot->StagingBuffer = VK_NULL_HANDLE;
-        }
-        if (uploadSlot->StagingMemory != VK_NULL_HANDLE)
-        {
-            vkFreeMemory(State->Device, uploadSlot->StagingMemory, nullptr);
-            uploadSlot->StagingMemory = VK_NULL_HANDLE;
-        }
-        uploadSlot->StagingSize = 0;
-
-        VkBufferCreateInfo stagingBufferCreateInfo{};
-        stagingBufferCreateInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-        stagingBufferCreateInfo.size = requiredStagingSize;
-        stagingBufferCreateInfo.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
-        stagingBufferCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-        if (vkCreateBuffer(State->Device, &stagingBufferCreateInfo, nullptr, &uploadSlot->StagingBuffer) != VK_SUCCESS)
-            return;
-
-        VkMemoryRequirements stagingMemoryRequirements{};
-        vkGetBufferMemoryRequirements(State->Device, uploadSlot->StagingBuffer, &stagingMemoryRequirements);
-
-        VkMemoryAllocateInfo stagingMemoryAllocateInfo{};
-        stagingMemoryAllocateInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-        stagingMemoryAllocateInfo.allocationSize = stagingMemoryRequirements.size;
-        stagingMemoryAllocateInfo.memoryTypeIndex = VulkanContext::Get().FindMemoryType(
-            stagingMemoryRequirements.memoryTypeBits,
-            VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT
-        );
-        if (stagingMemoryAllocateInfo.memoryTypeIndex == UINT32_MAX
-            || vkAllocateMemory(State->Device, &stagingMemoryAllocateInfo, nullptr, &uploadSlot->StagingMemory) != VK_SUCCESS
-            || vkBindBufferMemory(State->Device, uploadSlot->StagingBuffer, uploadSlot->StagingMemory, 0) != VK_SUCCESS)
-        {
-            if (uploadSlot->StagingBuffer != VK_NULL_HANDLE)
-            {
-                vkDestroyBuffer(State->Device, uploadSlot->StagingBuffer, nullptr);
-                uploadSlot->StagingBuffer = VK_NULL_HANDLE;
-            }
-            if (uploadSlot->StagingMemory != VK_NULL_HANDLE)
-            {
-                vkFreeMemory(State->Device, uploadSlot->StagingMemory, nullptr);
-                uploadSlot->StagingMemory = VK_NULL_HANDLE;
-            }
-            uploadSlot->StagingSize = 0;
-            return;
-        }
-
-        uploadSlot->StagingSize = requiredStagingSize;
-    }
-
-    void* mappedMemory = nullptr;
-    if (vkMapMemory(State->Device, uploadSlot->StagingMemory, 0, requiredStagingSize, 0, &mappedMemory) != VK_SUCCESS)
+    if (!EnsureStagingCapacity(requiredStagingSize))
         return;
-    std::memcpy(mappedMemory, data, requiredStagingSize);
-    vkUnmapMemory(State->Device, uploadSlot->StagingMemory);
 
-    if (vkResetFences(State->Device, 1, &uploadSlot->Fence) != VK_SUCCESS
-        || vkResetCommandBuffer(uploadSlot->CommandBuffer, 0) != VK_SUCCESS)
+    VkDeviceSize alignedOffset = (State->StagingUsed + 15ull) & ~15ull;
+    if (alignedOffset + requiredStagingSize > State->StagingCapacity)
+    {
+        FlushPendingUploads();
+        WaitForPendingUploads();
+        alignedOffset = 0;
+    }
+    if (State->UploadInFlight)
+    {
+        WaitForPendingUploads();
+    }
+
+    std::memcpy(static_cast<u8*>(State->StagingMapped) + alignedOffset, sourcePixels, requiredStagingSize);
+    State->StagingUsed = alignedOffset + requiredStagingSize;
+    State->PendingCopies.push_back({textureArray.Image, layer, width, height, alignedOffset});
+}
+
+void TexcacheVulkanLoader::FlushPendingUploads()
+{
+    if (State == nullptr || State->Device == VK_NULL_HANDLE)
+        return;
+    if (State->PendingInitialTransitions.empty() && State->PendingCopies.empty())
+        return;
+
+    WaitForPendingUploads();
+
+    if (vkResetFences(State->Device, 1, &State->UploadFence) != VK_SUCCESS
+        || vkResetCommandBuffer(State->CommandBuffer, 0) != VK_SUCCESS)
     {
         return;
     }
@@ -650,99 +495,149 @@ void TexcacheVulkanLoader::UploadTexture(TextureHandle handle, u32 width, u32 he
     VkCommandBufferBeginInfo beginInfo{};
     beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
     beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-    if (vkBeginCommandBuffer(uploadSlot->CommandBuffer, &beginInfo) != VK_SUCCESS)
+    if (vkBeginCommandBuffer(State->CommandBuffer, &beginInfo) != VK_SUCCESS)
         return;
 
-    constexpr VkPipelineStageFlags kTextureShaderStages =
-        VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT | VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+    constexpr VkPipelineStageFlags kTextureShaderStages = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
 
-    VkImageMemoryBarrier toTransferBarrier{};
-    toTransferBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-    toTransferBarrier.srcAccessMask = VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT;
-    toTransferBarrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
-    toTransferBarrier.oldLayout = VK_IMAGE_LAYOUT_GENERAL;
-    toTransferBarrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
-    toTransferBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-    toTransferBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-    toTransferBarrier.image = textureArray.Image;
-    toTransferBarrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-    toTransferBarrier.subresourceRange.baseMipLevel = 0;
-    toTransferBarrier.subresourceRange.levelCount = 1;
-    toTransferBarrier.subresourceRange.baseArrayLayer = layer;
-    toTransferBarrier.subresourceRange.layerCount = 1;
-    vkCmdPipelineBarrier(
-        uploadSlot->CommandBuffer,
-        kTextureShaderStages,
-        VK_PIPELINE_STAGE_TRANSFER_BIT,
-        0,
-        0,
-        nullptr,
-        0,
-        nullptr,
-        1,
-        &toTransferBarrier
-    );
+    if (!State->PendingInitialTransitions.empty())
+    {
+        std::vector<VkImageMemoryBarrier> initBarriers;
+        initBarriers.reserve(State->PendingInitialTransitions.size());
+        for (const auto& item : State->PendingInitialTransitions)
+        {
+            VkImageMemoryBarrier barrier{};
+            barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+            barrier.srcAccessMask = 0;
+            barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+            barrier.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+            barrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+            barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+            barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+            barrier.image = item.Image;
+            barrier.subresourceRange = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, item.Layers};
+            initBarriers.push_back(barrier);
+        }
+        vkCmdPipelineBarrier(
+            State->CommandBuffer,
+            VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
+            kTextureShaderStages,
+            0, 0, nullptr, 0, nullptr,
+            static_cast<u32>(initBarriers.size()),
+            initBarriers.data());
+        State->PendingInitialTransitions.clear();
+    }
 
-    VkBufferImageCopy copyRegion{};
-    copyRegion.bufferOffset = 0;
-    copyRegion.bufferRowLength = 0;
-    copyRegion.bufferImageHeight = 0;
-    copyRegion.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-    copyRegion.imageSubresource.mipLevel = 0;
-    copyRegion.imageSubresource.baseArrayLayer = layer;
-    copyRegion.imageSubresource.layerCount = 1;
-    copyRegion.imageOffset = {0, 0, 0};
-    copyRegion.imageExtent.width = width;
-    copyRegion.imageExtent.height = height;
-    copyRegion.imageExtent.depth = 1;
-    vkCmdCopyBufferToImage(
-        uploadSlot->CommandBuffer,
-        uploadSlot->StagingBuffer,
-        textureArray.Image,
-        VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-        1,
-        &copyRegion
-    );
-    VkImageMemoryBarrier backToGeneralBarrier{};
-    backToGeneralBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-    backToGeneralBarrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
-    backToGeneralBarrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT;
-    backToGeneralBarrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
-    backToGeneralBarrier.newLayout = VK_IMAGE_LAYOUT_GENERAL;
-    backToGeneralBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-    backToGeneralBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-    backToGeneralBarrier.image = textureArray.Image;
-    backToGeneralBarrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-    backToGeneralBarrier.subresourceRange.baseMipLevel = 0;
-    backToGeneralBarrier.subresourceRange.levelCount = 1;
-    backToGeneralBarrier.subresourceRange.baseArrayLayer = layer;
-    backToGeneralBarrier.subresourceRange.layerCount = 1;
-    vkCmdPipelineBarrier(
-        uploadSlot->CommandBuffer,
-        VK_PIPELINE_STAGE_TRANSFER_BIT,
-        kTextureShaderStages,
-        0,
-        0,
-        nullptr,
-        0,
-        nullptr,
-        1,
-        &backToGeneralBarrier
-    );
+    if (!State->PendingCopies.empty())
+    {
+        std::vector<VkImageMemoryBarrier> preBarriers;
+        std::vector<VkImageMemoryBarrier> postBarriers;
+        preBarriers.reserve(State->PendingCopies.size());
+        postBarriers.reserve(State->PendingCopies.size());
 
-    if (vkEndCommandBuffer(uploadSlot->CommandBuffer) != VK_SUCCESS)
+        for (size_t i = 0; i < State->PendingCopies.size(); i++)
+        {
+            const auto& copy = State->PendingCopies[i];
+            bool duplicate = false;
+            for (size_t j = 0; j < i; j++)
+            {
+                if (State->PendingCopies[j].Image == copy.Image && State->PendingCopies[j].Layer == copy.Layer)
+                {
+                    duplicate = true;
+                    break;
+                }
+            }
+            if (duplicate)
+                continue;
+
+            VkImageMemoryBarrier toTransfer{};
+            toTransfer.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+            toTransfer.srcAccessMask = VK_ACCESS_SHADER_READ_BIT;
+            toTransfer.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+            toTransfer.oldLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+            toTransfer.newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+            toTransfer.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+            toTransfer.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+            toTransfer.image = copy.Image;
+            toTransfer.subresourceRange = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, copy.Layer, 1};
+            preBarriers.push_back(toTransfer);
+
+            VkImageMemoryBarrier toRead{};
+            toRead.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+            toRead.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+            toRead.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+            toRead.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+            toRead.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+            toRead.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+            toRead.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+            toRead.image = copy.Image;
+            toRead.subresourceRange = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, copy.Layer, 1};
+            postBarriers.push_back(toRead);
+        }
+
+        vkCmdPipelineBarrier(
+            State->CommandBuffer,
+            kTextureShaderStages,
+            VK_PIPELINE_STAGE_TRANSFER_BIT,
+            0, 0, nullptr, 0, nullptr,
+            static_cast<u32>(preBarriers.size()),
+            preBarriers.data());
+
+        for (size_t i = 0; i < State->PendingCopies.size(); i++)
+        {
+            const auto& copy = State->PendingCopies[i];
+            if (i > 0)
+            {
+                for (size_t j = 0; j < i; j++)
+                {
+                    if (State->PendingCopies[j].Image == copy.Image && State->PendingCopies[j].Layer == copy.Layer)
+                    {
+                        VkMemoryBarrier waw{VK_STRUCTURE_TYPE_MEMORY_BARRIER, nullptr, VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_TRANSFER_WRITE_BIT};
+                        vkCmdPipelineBarrier(State->CommandBuffer, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT,
+                            0, 1, &waw, 0, nullptr, 0, nullptr);
+                        break;
+                    }
+                }
+            }
+            VkBufferImageCopy region{};
+            region.bufferOffset = copy.BufferOffset;
+            region.imageSubresource = {VK_IMAGE_ASPECT_COLOR_BIT, 0, copy.Layer, 1};
+            region.imageExtent = {copy.Width, copy.Height, 1};
+            vkCmdCopyBufferToImage(
+                State->CommandBuffer,
+                State->StagingBuffer,
+                copy.Image,
+                VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                1,
+                &region);
+        }
+
+        vkCmdPipelineBarrier(
+            State->CommandBuffer,
+            VK_PIPELINE_STAGE_TRANSFER_BIT,
+            kTextureShaderStages,
+            0, 0, nullptr, 0, nullptr,
+            static_cast<u32>(postBarriers.size()),
+            postBarriers.data());
+
+        State->PendingCopies.clear();
+    }
+
+    State->StagingUsed = 0;
+
+    if (vkEndCommandBuffer(State->CommandBuffer) != VK_SUCCESS)
         return;
 
     VkSubmitInfo submitInfo{};
     submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
     submitInfo.commandBufferCount = 1;
-    submitInfo.pCommandBuffers = &uploadSlot->CommandBuffer;
+    submitInfo.pCommandBuffers = &State->CommandBuffer;
     {
         std::scoped_lock queueLock(VulkanContext::Get().GetQueueLock());
-        if (vkQueueSubmit(State->Queue, 1, &submitInfo, uploadSlot->Fence) != VK_SUCCESS)
+        if (vkQueueSubmit(State->Queue, 1, &submitInfo, State->UploadFence) != VK_SUCCESS)
             return;
     }
-    uploadSlot->InFlight = true;
+    State->UploadInFlight = true;
 }
 
 void TexcacheVulkanLoader::DeleteTexture(TextureHandle handle)
@@ -754,6 +649,7 @@ void TexcacheVulkanLoader::DeleteTexture(TextureHandle handle)
     if (it == State->TextureArrays.end())
         return;
 
+    FlushPendingUploads();
     WaitForPendingUploads();
     DestroyTextureArray(it->second);
     State->TextureArrays.erase(it);
@@ -764,39 +660,39 @@ void TexcacheVulkanLoader::DeleteTexture(TextureHandle handle)
 
 bool TexcacheVulkanLoader::GetTextureDescriptor(TextureHandle handle, VkDescriptorImageInfo* outImageInfo) const
 {
-    if (State == nullptr || outImageInfo == nullptr)
+    if (State == nullptr || outImageInfo == nullptr || State->NearestSampler == VK_NULL_HANDLE)
         return false;
 
     auto it = State->TextureArrays.find(handle);
     if (it == State->TextureArrays.end())
         return false;
 
-    TextureArray& textureArray = it->second;
-    if (textureArray.ArrayView == VK_NULL_HANDLE || textureArray.Sampler == VK_NULL_HANDLE)
+    const TextureArray& textureArray = it->second;
+    if (textureArray.ArrayView == VK_NULL_HANDLE)
         return false;
 
-    outImageInfo->sampler = textureArray.Sampler;
+    outImageInfo->sampler = State->NearestSampler;
     outImageInfo->imageView = textureArray.ArrayView;
-    outImageInfo->imageLayout = VK_IMAGE_LAYOUT_GENERAL;
+    outImageInfo->imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
     return true;
 }
 
 bool TexcacheVulkanLoader::GetTextureNormalizedDescriptor(TextureHandle handle, VkDescriptorImageInfo* outImageInfo) const
 {
-    if (State == nullptr || outImageInfo == nullptr)
+    if (State == nullptr || outImageInfo == nullptr || State->NearestSampler == VK_NULL_HANDLE)
         return false;
 
     auto it = State->TextureArrays.find(handle);
     if (it == State->TextureArrays.end())
         return false;
 
-    TextureArray& textureArray = it->second;
-    if (textureArray.NormalizedArrayView == VK_NULL_HANDLE || textureArray.Sampler == VK_NULL_HANDLE)
+    const TextureArray& textureArray = it->second;
+    if (textureArray.NormalizedArrayView == VK_NULL_HANDLE)
         return false;
 
-    outImageInfo->sampler = textureArray.Sampler;
+    outImageInfo->sampler = State->NearestSampler;
     outImageInfo->imageView = textureArray.NormalizedArrayView;
-    outImageInfo->imageLayout = VK_IMAGE_LAYOUT_GENERAL;
+    outImageInfo->imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
     return true;
 }
 
@@ -814,32 +710,6 @@ bool TexcacheVulkanLoader::IsTextureLayerOpaque(TextureHandle handle, u32 layer)
         return false;
 
     return (textureArray.LayerFlags[layer] & TextureArray::Opaque) != 0u;
-}
-
-bool TexcacheVulkanLoader::ReadTextureLayerTexel(TextureHandle handle, u32 layer, u32 x, u32 y, u32* outTexel) const
-{
-    if (State == nullptr || outTexel == nullptr)
-        return false;
-
-    auto it = State->TextureArrays.find(handle);
-    if (it == State->TextureArrays.end())
-        return false;
-
-    const TextureArray& textureArray = it->second;
-    if (layer >= textureArray.Layers || x >= textureArray.Width || y >= textureArray.Height)
-        return false;
-
-    const size_t pixelIndex =
-        (static_cast<size_t>(layer) * static_cast<size_t>(textureArray.Width) * static_cast<size_t>(textureArray.Height))
-        + (static_cast<size_t>(y) * static_cast<size_t>(textureArray.Width))
-        + static_cast<size_t>(x);
-    if (!textureArray.LayerPixels)
-        return false;
-
-    *outTexel = (textureArray.LayerFlags[layer] & TextureArray::CpuMirrorReady)
-        ? textureArray.LayerPixels[pixelIndex]
-        : 0u;
-    return true;
 }
 
 }

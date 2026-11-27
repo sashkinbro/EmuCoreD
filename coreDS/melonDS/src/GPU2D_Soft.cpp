@@ -667,6 +667,11 @@ u64 SoftRenderer::GetFaithfulRequiredCaptureTerminalGeneration() const noexcept
 
 void SoftRenderer::CollectUnreferencedFaithfulCaptureProducts() noexcept
 {
+    if (FaithfulCaptureProductRegistry.empty()
+        && FaithfulRequiredCaptureTerminalCount == 0u)
+    {
+        return;
+    }
     try
     {
     const bool certifiedEnvelopeValid =
@@ -3564,10 +3569,12 @@ void SoftRenderer::PublishFaithfulPhysicalSnapshot() noexcept
                 FaithfulPrevVisiblePixelLineageStorage.data()
                     + pixelOffset);
         }
-        FaithfulPrevVisibleLineageClassifiedStorage =
-            FaithfulVisibleLineageClassifiedStorage;
         if (FaithfulVisibleAllNative)
         {
+            if (!FaithfulPrevVisibleAllNative)
+            {
+                FaithfulPrevVisibleLineageClassifiedStorage.fill(0u);
+            }
             if (!FaithfulPrevVisibleAllNative
                 || FaithfulPrevVisibleProductCount != 2u)
             {
@@ -3578,6 +3585,8 @@ void SoftRenderer::PublishFaithfulPhysicalSnapshot() noexcept
         }
         else
         {
+            FaithfulPrevVisibleLineageClassifiedStorage =
+                FaithfulVisibleLineageClassifiedStorage;
             FaithfulPrevVisibleProductTable = FaithfulVisibleProductTable;
             FaithfulPrevVisibleProductCount = FaithfulVisibleProductCount;
         }
@@ -3588,16 +3597,18 @@ void SoftRenderer::PublishFaithfulPhysicalSnapshot() noexcept
     }
     else
     {
-
-        FaithfulPrevVisiblePixelLineageStorage.fill(
-            MakeFaithfulVisibleAmbiguousPixel());
-        FaithfulPrevVisibleLineageRows.fill({});
-        FaithfulPrevVisibleLineageClassifiedStorage.fill(0u);
-        FaithfulPrevVisibleProductTable.fill({});
-        FaithfulPrevVisibleProductCount = 0u;
-        FaithfulPrevVisibleLineageGeneration = 0u;
-        FaithfulPrevVisibleAllNative = false;
-        FaithfulPhysicalSidecarPrevReady = false;
+        if (FaithfulPhysicalSidecarPrevReady)
+        {
+            FaithfulPrevVisiblePixelLineageStorage.fill(
+                MakeFaithfulVisibleAmbiguousPixel());
+            FaithfulPrevVisibleLineageRows.fill({});
+            FaithfulPrevVisibleLineageClassifiedStorage.fill(0u);
+            FaithfulPrevVisibleProductTable.fill({});
+            FaithfulPrevVisibleProductCount = 0u;
+            FaithfulPrevVisibleLineageGeneration = 0u;
+            FaithfulPrevVisibleAllNative = false;
+            FaithfulPhysicalSidecarPrevReady = false;
+        }
     }
 }
 
@@ -3624,16 +3635,27 @@ void SoftRenderer::PublishFaithfulRegisterSnapshot() noexcept
     if (FaithfulComponerActivo[0])
         FaithfulPrevLine3DOperands = FaithfulLine3DOperands;
 
-    FaithfulPrevModo2Linea = FaithfulModo2Linea;
+    if (FaithfulModo2UsedThisFrame)
+    {
+        FaithfulPrevModo2Linea = FaithfulModo2Linea;
+        FaithfulPrevModo2Valid = true;
+    }
+    else if (FaithfulPrevModo2Valid)
+    {
+        FaithfulPrevModo2Valid = false;
+    }
     FaithfulPrevCaptureProduct = FaithfulCaptureProduct;
-    FaithfulPrevCaptureLineProducts = FaithfulCaptureLineProducts;
-    FaithfulPrevCaptureProductPixelMask = FaithfulCaptureProductPixelMask;
-    FaithfulPrevCaptureProductMaterial = FaithfulCaptureProductMaterial;
-    FaithfulPrevCaptureProductCausalLines =
-        FaithfulCaptureProductCausalLines;
+    if (FaithfulCaptureProduct.Valid || FaithfulCaptureUsedThisFrame)
+    {
+        FaithfulPrevCaptureLineProducts = FaithfulCaptureLineProducts;
+        FaithfulPrevCaptureProductPixelMask = FaithfulCaptureProductPixelMask;
+        FaithfulPrevCaptureProductMaterial = FaithfulCaptureProductMaterial;
+        FaithfulPrevCaptureProductCausalLines =
+            FaithfulCaptureProductCausalLines;
 
-    FaithfulPrevCaptureProductRecipeSlot =
-        FaithfulCaptureProductRecipeSlot;
+        FaithfulPrevCaptureProductRecipeSlot =
+            FaithfulCaptureProductRecipeSlot;
+    }
 }
 
 void SoftRenderer::PublishCompletedFaithfulFrame() noexcept
@@ -3925,6 +3947,8 @@ void SoftRenderer::CaptureFaithfulLineRegs(u32 line, int n3dline,
 
         FaithfulComponerActivo[0] = false;
         FaithfulComponerActivo[1] = false;
+        FaithfulModo2UsedThisFrame = false;
+        FaithfulCaptureUsedThisFrame = false;
 
         GPU.GPU3D.GetCurrentRenderer().SetFaithfulComposeActiveHint(
             FaithfulComponerActivo[0]);
@@ -3941,7 +3965,10 @@ void SoftRenderer::CaptureFaithfulLineRegs(u32 line, int n3dline,
     }
 
     if (engine == 0u && CurUnit->CaptureLatch && !FrameskipCapturaSuprimidaFrame)
+    {
         FaithfulFrameMeta[1] = 1u;
+        FaithfulCaptureUsedThisFrame = true;
+    }
     if (engine == 0u && CurUnit->CaptureLatch && FrameskipCapturaSuprimidaFrame)
         FaithfulFrameMeta[10] = 1u;
 
@@ -7372,7 +7399,7 @@ void SoftRenderer::DrawScanlineActivePipeline(u32 line, Unit* unit)
     const bool faithfulStagedObjHasCaptureTags = UseFaithfulVulkan2D()
         && CurUnit->Num < OBJLineFaithfulCaptureTagsAvailable.size()
         && OBJLineFaithfulCaptureTagsAvailable[CurUnit->Num];
-    if (c5dSinComposicion && UseFaithfulVulkan2D() && dispmode == 1u
+    if (c5dSinComposicion && UseFaithfulVulkan2D() && (dispmode == 1u || dispmode == 0u)
         && !CurUnit->CaptureLatch
         && !FaithfulComponerActivo[CurUnit->Num]
         && !faithfulMappedBgHasCaptureTags
@@ -7610,6 +7637,7 @@ void SoftRenderer::DrawScanlineActivePipeline(u32 line, Unit* unit)
 
                 if (UseFaithfulVulkan2D() && CurUnit->Num == 0u && line < 192u)
                 {
+                    FaithfulModo2UsedThisFrame = true;
                     std::memcpy(&FaithfulModo2Linea[line * 256u], vram,
                                 256u * sizeof(u16));
                     mode2HasUniformSpan =
@@ -7770,6 +7798,7 @@ void SoftRenderer::DrawScanlineActivePipeline(u32 line, Unit* unit)
 
                 if (UseFaithfulVulkan2D() && CurUnit->Num == 0u && line < 192u)
                 {
+                    FaithfulModo2UsedThisFrame = true;
                     std::memset(&FaithfulModo2Linea[line * 256u], 0,
                                 256u * sizeof(u16));
                     ClearFaithfulCaptureLineProduct(0u, line);
@@ -11712,6 +11741,21 @@ void SoftRenderer::DrawSpritesActivePipeline(u32 line, Unit* unit)
         auto objDirty = GPU.VRAMDirty_BOBJ.DeriveState(GPU.VRAMMap_BOBJ, GPU);
         if (UseFaithfulVulkan2D()) AcumularFielDirty(FaithfulDirty.BOBJ, objDirty);
         GPU.MakeVRAMFlat_BOBJCoherent(objDirty);
+    }
+
+    const u32 dispModeObj = (CurUnit->DispCnt >> 16u) & (CurUnit->Num ? 1u : 3u);
+    const bool mayNeedCpuCaptureOrFallback =
+        CurUnit->CaptureLatch
+        || (CurUnit->Num == 0u && line == 0u && (CurUnit->CaptureCnt & (1u << 31u)) != 0u)
+        || FaithfulComponerActivo[CurUnit->Num]
+        || TrackSpriteFaithfulCaptureProduct
+        || TrackSpriteObjCaptureIdentity
+        || dispModeObj >= 2u
+        || renderer2dDebugControlsActive
+        || (UseFaithfulVulkan2D() && GPU.HasFaithfulVramCaptureTags(FaithfulMappedBgPhysicalBankMask(CurUnit->Num)));
+    if (UseFaithfulVulkan2D() && !mayNeedCpuCaptureOrFallback)
+    {
+        return;
     }
 
     u16* oam = (u16*)&GPU.OAM[CurUnit->Num ? 0x400 : 0];

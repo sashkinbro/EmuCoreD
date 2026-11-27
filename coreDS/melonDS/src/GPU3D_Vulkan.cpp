@@ -766,7 +766,10 @@ bool VulkanRenderer3D::flushDeferredRenderSubmission(VkSemaphore dependency, u64
     submit.commandBufferCount = 1;
     submit.pCommandBuffers = &context->CommandBuffer;
     VkTimelineSemaphoreSubmitInfo timeline{};
-    VkPipelineStageFlags waitStage = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT;
+    VkPipelineStageFlags waitStage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT
+        | VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT
+        | VK_PIPELINE_STAGE_TRANSFER_BIT
+        | VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
     if (dependency != VK_NULL_HANDLE && value != 0u)
     {
         timeline.sType = VK_STRUCTURE_TYPE_TIMELINE_SEMAPHORE_SUBMIT_INFO;
@@ -1066,8 +1069,7 @@ void VulkanRenderer3D::RenderFrame(GPU& gpu)
 
     const bool eagerNativeProjectionSubmitted =
         scale > 1u
-        && (captureNeedsGpuCaptureLine || prefetchNativeForCompose
-            || gpu.GPU3D.RenderNumPolygons != 0u)
+        && (captureNeedsGpuCaptureLine || prefetchNativeForCompose)
         && submitFaithfulNativeProjection(gpu);
     if (eagerNativeProjectionSubmitted && prefetchNativeForCompose)
         NativeComposePrefetchCount++;
@@ -1126,9 +1128,15 @@ void VulkanRenderer3D::RenderFrame(GPU& gpu)
             return;
         }
 
-        LineCache.fill(material.Packed6A5);
+        if (captureEnabled || !PlainRearPlaneCacheValid
+            || PlainRearPlaneCachedColor != material.Packed6A5)
+        {
+            LineCache.fill(material.Packed6A5);
+            SweepLineCache = LineCache;
+            PlainRearPlaneCachedColor = material.Packed6A5;
+            PlainRearPlaneCacheValid = !captureEnabled;
+        }
         LineCacheIdentity = CurrentFrameServedIdentity;
-        SweepLineCache = LineCache;
         SweepLineCacheIdentity = LineCacheIdentity;
         ExactCaptureLineCachePrepared = true;
         ExactCaptureLineCacheFresh = true;
@@ -1155,7 +1163,7 @@ void VulkanRenderer3D::RenderFrame(GPU& gpu)
     }
 
     const u64 bufferPrepStartNs = DiagnosticNowNs();
-    if (!ensureTriangleBuffer(renderContext, Triangles.size()))
+    if (!ensureTriangleBuffer(renderContext, 1))
     {
         HasCpuFrame = false;
         return;
@@ -1429,7 +1437,7 @@ bool VulkanRenderer3D::submitFaithfulNativeProjection(GPU& gpu)
     TriangleBuildCpuWindow.Add(DiagnosticNowNs() - nativeBuildStartNs);
 
     const bool nativeResourcesReady =
-        ensureTriangleBuffer(nativeContext, Triangles.size())
+        ensureTriangleBuffer(nativeContext, 1)
         && ensureToonBuffer(nativeContext)
         && ensureGraphicsVertexBuffer(nativeContext, GraphicsVertices.size())
         && ensureGraphicsSceneVertexBuffer(
@@ -7545,7 +7553,6 @@ bool VulkanRenderer3D::ensureGraphicsClearBuffer(RenderContext* context)
 
     if (clearBuffer != VK_NULL_HANDLE && clearBufferSize >= requiredSize && clearMapped != nullptr)
     {
-        updateGraphicsDescriptorSet(context);
         return true;
     }
 
@@ -7603,6 +7610,10 @@ void VulkanRenderer3D::destroyGraphicsClearBuffer(RenderContext* context)
     }
 
     clearBufferSize = 0;
+    if (context != nullptr)
+        context->LastClearValid = false;
+    else
+        LastClearValid = false;
 }
 
 bool VulkanRenderer3D::updateGraphicsClearBuffer(RenderContext* context, const GPU& gpu)
@@ -7613,12 +7624,6 @@ bool VulkanRenderer3D::updateGraphicsClearBuffer(RenderContext* context, const G
 
     if (clearBuffer == VK_NULL_HANDLE || clearMemory == VK_NULL_HANDLE || clearMapped == nullptr)
         return false;
-
-    u32* clearWords = reinterpret_cast<u32*>(const_cast<void*>(clearMapped));
-    constexpr size_t clearPixelCount = 256u * 192u;
-    u32* clearColorWords = clearWords;
-    u32* clearAttrWords = clearWords + clearPixelCount;
-    u32* clearDepthWords = clearWords + (clearPixelCount * 2u);
 
     const u32 clearAttr1 = gpu.GPU3D.RenderClearAttr1;
     const u32 clearAttr2 = gpu.GPU3D.RenderClearAttr2;
@@ -7631,14 +7636,43 @@ bool VulkanRenderer3D::updateGraphicsClearBuffer(RenderContext* context, const G
     const u32 clearFogByte = clearFogFlag != 0u ? 0x80u : 0u;
     const u32 plainAttr = clearPolyIdByte | (clearFogByte << 8u) | 0xFF000000u;
     const u32 clearDepthBits = BitCastFloatToU32(static_cast<float>(clearDepth) * (1.0f / 16777215.0f));
+    const bool bitmapClear = (gpu.GPU3D.RenderDispCnt & (1u << 14u)) != 0u;
 
-    if ((gpu.GPU3D.RenderDispCnt & (1u << 14u)) == 0u)
+    bool& lastClearValid = context != nullptr ? context->LastClearValid : LastClearValid;
+    bool& lastClearBitmap = context != nullptr ? context->LastClearBitmap : LastClearBitmap;
+    u32& lastClearColor = context != nullptr ? context->LastClearColor : LastClearColor;
+    u32& lastClearAttr = context != nullptr ? context->LastClearAttr : LastClearAttr;
+    u32& lastClearDepth = context != nullptr ? context->LastClearDepth : LastClearDepth;
+
+    if (!bitmapClear
+        && lastClearValid
+        && !lastClearBitmap
+        && lastClearColor == clearColor
+        && lastClearAttr == plainAttr
+        && lastClearDepth == clearDepthBits)
+    {
+        return true;
+    }
+
+    u32* clearWords = reinterpret_cast<u32*>(const_cast<void*>(clearMapped));
+    constexpr size_t clearPixelCount = 256u * 192u;
+    u32* clearColorWords = clearWords;
+    u32* clearAttrWords = clearWords + clearPixelCount;
+    u32* clearDepthWords = clearWords + (clearPixelCount * 2u);
+
+    if (!bitmapClear)
     {
         std::fill_n(clearColorWords, clearPixelCount, clearColor);
         std::fill_n(clearAttrWords, clearPixelCount, plainAttr);
         std::fill_n(clearDepthWords, clearPixelCount, clearDepthBits);
+        lastClearValid = true;
+        lastClearBitmap = false;
+        lastClearColor = clearColor;
+        lastClearAttr = plainAttr;
+        lastClearDepth = clearDepthBits;
         return true;
     }
+    lastClearValid = false;
 
     u8 baseXOff = (clearAttr2 >> 16u) & 0xFFu;
     u8 yOff = (clearAttr2 >> 24u) & 0xFFu;
@@ -8006,7 +8040,7 @@ bool VulkanRenderer3D::createFallbackTexture()
     toGeneralBarrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
     toGeneralBarrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
     toGeneralBarrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
-    toGeneralBarrier.newLayout = VK_IMAGE_LAYOUT_GENERAL;
+    toGeneralBarrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
     toGeneralBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
     toGeneralBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
     toGeneralBarrier.image = FallbackTextureImage;
@@ -8018,7 +8052,7 @@ bool VulkanRenderer3D::createFallbackTexture()
     vkCmdPipelineBarrier(
         CommandBuffer,
         VK_PIPELINE_STAGE_TRANSFER_BIT,
-        VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+        VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
         0,
         0,
         nullptr,
@@ -8496,6 +8530,18 @@ void VulkanRenderer3D::updateGraphicsDescriptorSet(
     GraphicsDescriptorSetCache& descriptorCache =
         getGraphicsDescriptorSetCache(context, faithfulDescriptorSlot);
 
+    if (descriptorCache.Ready
+        && descriptorCache.TextureDescriptorGeneration == TextureDescriptorGeneration
+        && descriptorCache.TriangleBuffer == triangleBuffer
+        && descriptorCache.ToonBuffer == toonBuffer
+        && descriptorCache.ClearBuffer == clearBuffer
+        && descriptorCache.AttrImageView == attrImageView
+        && descriptorCache.DepthImageView == depthImageView
+        && descriptorCache.AttachmentSampler == GraphicsAttachmentSampler)
+    {
+        return;
+    }
+
     VkDescriptorBufferInfo triangleInfo{};
     triangleInfo.buffer = triangleBuffer;
     triangleInfo.offset = 0;
@@ -8511,19 +8557,19 @@ void VulkanRenderer3D::updateGraphicsDescriptorSet(
     clearInfo.offset = 0;
     clearInfo.range = VK_WHOLE_SIZE;
 
-    std::array<VkDescriptorImageInfo, TextureDescriptorPageStorageCapacity> textureInfos{};
-    std::array<VkDescriptorImageInfo, TextureDescriptorPageStorageCapacity> normalizedTextureInfos{};
+    auto& textureInfos = DescriptorTextureInfosScratch;
+    auto& normalizedTextureInfos = DescriptorNormalizedTextureInfosScratch;
     VkDescriptorImageInfo fallbackInfo{};
     fallbackInfo.sampler = FallbackTextureSampler;
     fallbackInfo.imageView = FallbackTextureView;
-    fallbackInfo.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
+    fallbackInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
     textureInfos.fill(fallbackInfo);
     if (normalizedTextureDescriptors)
     {
         VkDescriptorImageInfo normalizedFallbackInfo{};
         normalizedFallbackInfo.sampler = FallbackTextureSampler;
         normalizedFallbackInfo.imageView = FallbackTextureNormalizedView;
-        normalizedFallbackInfo.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
+        normalizedFallbackInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
         normalizedTextureInfos.fill(normalizedFallbackInfo);
     }
     for (u32 i = 0;
@@ -8545,7 +8591,7 @@ void VulkanRenderer3D::updateGraphicsDescriptorSet(
     depthInfo.imageView = depthImageView;
     depthInfo.imageLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL;
 
-    std::array<VkWriteDescriptorSet, 7u * GraphicsTextureDescriptorPageCount> writes{};
+    auto& writes = DescriptorWritesScratch;
     u32 writeCount = 0;
 
     for (u32 page = 0u; page < GraphicsTextureDescriptorPageCount; page++)
@@ -8619,6 +8665,7 @@ void VulkanRenderer3D::updateGraphicsDescriptorSet(
         vkUpdateDescriptorSets(Device, writeCount, writes.data(), 0, nullptr);
 
     descriptorCache.Ready = true;
+    descriptorCache.TextureDescriptorGeneration = TextureDescriptorGeneration;
     descriptorCache.TriangleBuffer = triangleBuffer;
     descriptorCache.ToonBuffer = toonBuffer;
     descriptorCache.ClearBuffer = clearBuffer;
@@ -8774,7 +8821,9 @@ bool VulkanRenderer3D::dispatchPlainRearPlaneOnly(
     toTransferDestination.subresourceRange.layerCount = 1u;
     vkCmdPipelineBarrier(
         commandBuffer,
-        VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
+        VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT
+            | VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT
+            | VK_PIPELINE_STAGE_TRANSFER_BIT,
         VK_PIPELINE_STAGE_TRANSFER_BIT,
         0,
         0,
@@ -8815,7 +8864,9 @@ bool VulkanRenderer3D::dispatchPlainRearPlaneOnly(
     vkCmdPipelineBarrier(
         commandBuffer,
         VK_PIPELINE_STAGE_TRANSFER_BIT,
-        VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
+        VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT
+            | VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT
+            | VK_PIPELINE_STAGE_TRANSFER_BIT,
         0,
         0,
         nullptr,
@@ -9146,133 +9197,13 @@ bool VulkanRenderer3D::dispatchGraphicsRasterAndReadback(
             consumeGpuTiming(nullptr);
     }
 
-    const bool depthComplementClearState =
-        ((clearAttr >> 16u) & 0x1Fu) == 0u
-        && ((clearAttr >> 24u) & 0x3Fu) == 63u
-        && (dispCnt & (1u << 3u)) != 0u;
-    const size_t shadowProtocolDrawCount = GraphicsShadowDrawIndices.size();
-    const bool supportedShadowProtocolPhase =
-        shadowProtocolDrawCount == 3u
-        || shadowProtocolDrawCount == 4u
-        || shadowProtocolDrawCount == 7u;
-    if (usesGraphicsProductResources
-        && depthComplementClearState
-        && GraphicsShadowMaskDrawIndices.size() == 1u
-        && supportedShadowProtocolPhase)
-    {
-        const auto trianglesMatchProtocol = [&](const GraphicsPolygonDraw& draw,
-                                                bool textured,
-                                                u32 texParam,
-                                                u32 texWidth,
-                                                u32 texHeight,
-                                                u32 colorRgba8) -> bool {
-            if (draw.firstTriangle > Triangles.size()
-                || draw.triangleCount > Triangles.size() - draw.firstTriangle)
-            {
-                return false;
-            }
-
-            for (u32 triangleOffset = 0u; triangleOffset < draw.triangleCount; triangleOffset++)
-            {
-                const TriangleGpu& triangle = Triangles[draw.firstTriangle + triangleOffset];
-                if (((triangle.flags & kTriangleFlagTextured) != 0u) != textured
-                    || (triangle.flags & kTriangleFlagWBuffer) != 0u
-                    || triangle.texParam != texParam
-                    || triangle.texWidth != texWidth
-                    || triangle.texHeight != texHeight
-                    || triangle.polyAttr != draw.polyAttr
-                    || triangle.color0Rgba8 != colorRgba8
-                    || triangle.color1Rgba8 != colorRgba8
-                    || triangle.color2Rgba8 != colorRgba8
-                    || triangle.w0 != 4096.0f
-                    || triangle.w1 != 4096.0f
-                    || triangle.w2 != 4096.0f)
-                {
-                    return false;
-                }
-            }
-            return true;
-        };
-
-        const u32 maskDrawIndex = GraphicsShadowMaskDrawIndices.front();
-        if (maskDrawIndex < GraphicsPolygons.size())
-        {
-            const GraphicsPolygonDraw& maskDraw = GraphicsPolygons[maskDrawIndex];
-            const u32 maskPolyId = (maskDraw.polyAttr >> 24u) & 0x3Fu;
-            const u32 maskAlpha5 = (maskDraw.polyAttr >> 16u) & 0x1Fu;
-            const u32 maskBlendMode = (maskDraw.polyAttr >> 4u) & 0x3u;
-            const u32 expectedMaskFlags = AcceleratedPolygonFlagTranslucent
-                | AcceleratedPolygonFlagShadowMask
-                | AcceleratedPolygonFlagFacingView
-                | AcceleratedPolygonFlagFogWrite;
-            const bool maskMatches =
-                maskDraw.flags == expectedMaskFlags
-                && maskPolyId == 0u
-                && maskAlpha5 == 8u
-                && maskBlendMode == 3u
-                && (maskDraw.polyAttr & (1u << 11u)) == 0u
-                && maskDraw.triangleCount == 4u
-                && trianglesMatchProtocol(maskDraw, true, 0x06500000u, 256u, 128u, 0x42FFFFFFu);
-            if (maskMatches)
-                depthComplementShadowMaskDraw = &maskDraw;
-        }
-
-        bool allShadowsMatch = depthComplementShadowMaskDraw != nullptr;
-        if (allShadowsMatch)
-        {
-            const u32 expectedShadowFlags = AcceleratedPolygonFlagTranslucent
-                | AcceleratedPolygonFlagShadow
-                | AcceleratedPolygonFlagFacingView
-                | AcceleratedPolygonFlagFogWrite;
-            constexpr std::array<u32, 7> fullAlphaRamp = {5u, 13u, 24u, 30u, 24u, 13u, 5u};
-            const u32 alphaRampOffset = shadowProtocolDrawCount == 3u
-                ? 4u
-                : (shadowProtocolDrawCount == 4u ? 3u : 0u);
-            for (u32 shadowIndex = 0u; shadowIndex < GraphicsShadowDrawIndices.size(); shadowIndex++)
-            {
-                const u32 drawIndex = GraphicsShadowDrawIndices[shadowIndex];
-                if (drawIndex >= GraphicsPolygons.size()
-                    || drawIndex != maskDrawIndex + 1u + shadowIndex)
-                {
-                    allShadowsMatch = false;
-                    break;
-                }
-
-                const GraphicsPolygonDraw& draw = GraphicsPolygons[drawIndex];
-                const u32 polyId = (draw.polyAttr >> 24u) & 0x3Fu;
-                const u32 alpha5 = (draw.polyAttr >> 16u) & 0x1Fu;
-                const u32 blendMode = (draw.polyAttr >> 4u) & 0x3u;
-                const u32 expectedAlpha5 = fullAlphaRamp[alphaRampOffset + shadowIndex];
-                const u32 expectedAlpha8 = (expectedAlpha5 << 3u) | (expectedAlpha5 >> 2u);
-                const u32 expectedColor = 0x00FFFFFFu | (expectedAlpha8 << 24u);
-                const bool triangleCountMatches = shadowProtocolDrawCount == 7u
-                    ? (draw.triangleCount == 4u || (shadowIndex == 3u && draw.triangleCount == 5u))
-                    : (draw.triangleCount == (shadowIndex == 0u ? 1u : 4u));
-                const bool shadowMatches =
-                    draw.flags == expectedShadowFlags
-                    && polyId == 6u
-                    && alpha5 == expectedAlpha5
-                    && triangleCountMatches
-                    && blendMode == 3u
-                    && (draw.polyAttr & (1u << 11u)) == 0u
-                    && trianglesMatchProtocol(draw, false, 0u, 0u, 0u, expectedColor);
-                if (!shadowMatches)
-                {
-                    allShadowsMatch = false;
-                    break;
-                }
-            }
-        }
-
-        if (!allShadowsMatch)
-            depthComplementShadowMaskDraw = nullptr;
-    }
+    (void)depthComplementShadowMaskDraw;
 
     if (!updateToonBuffer(context, toonTable))
         return false;
 
-    if (!Triangles.empty())
-        std::memcpy(triangleMapped, Triangles.data(), Triangles.size() * sizeof(TriangleGpu));
+    Texcache.GetLoader().FlushPendingUploads();
+
     if (!GraphicsVertices.empty())
         std::memcpy(graphicsVertexMapped, GraphicsVertices.data(), GraphicsVertices.size() * sizeof(GraphicsVertexGpu));
     if (!GraphicsSceneVertices.empty())
@@ -9360,94 +9291,6 @@ bool VulkanRenderer3D::dispatchGraphicsRasterAndReadback(
 #endif
         return false;
     }();
-
-    std::array<VkBufferMemoryBarrier, 6> graphicsReadBarriers{};
-    u32 graphicsReadBarrierCount = 0;
-
-    VkBufferMemoryBarrier triangleBufferBarrier{};
-    triangleBufferBarrier.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
-    triangleBufferBarrier.srcAccessMask = VK_ACCESS_HOST_WRITE_BIT;
-    triangleBufferBarrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
-    triangleBufferBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-    triangleBufferBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-    triangleBufferBarrier.buffer = triangleBuffer;
-    triangleBufferBarrier.offset = 0;
-    triangleBufferBarrier.size = VK_WHOLE_SIZE;
-    graphicsReadBarriers[graphicsReadBarrierCount++] = triangleBufferBarrier;
-
-    VkBufferMemoryBarrier graphicsVertexBufferBarrier{};
-    graphicsVertexBufferBarrier.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
-    graphicsVertexBufferBarrier.srcAccessMask = VK_ACCESS_HOST_WRITE_BIT;
-    graphicsVertexBufferBarrier.dstAccessMask = VK_ACCESS_VERTEX_ATTRIBUTE_READ_BIT;
-    graphicsVertexBufferBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-    graphicsVertexBufferBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-    graphicsVertexBufferBarrier.buffer = graphicsVertexBuffer;
-    graphicsVertexBufferBarrier.offset = 0;
-    graphicsVertexBufferBarrier.size = VK_WHOLE_SIZE;
-    graphicsReadBarriers[graphicsReadBarrierCount++] = graphicsVertexBufferBarrier;
-
-    VkBufferMemoryBarrier graphicsSceneVertexBufferBarrier{};
-    graphicsSceneVertexBufferBarrier.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
-    graphicsSceneVertexBufferBarrier.srcAccessMask = VK_ACCESS_HOST_WRITE_BIT;
-    graphicsSceneVertexBufferBarrier.dstAccessMask = VK_ACCESS_VERTEX_ATTRIBUTE_READ_BIT;
-    graphicsSceneVertexBufferBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-    graphicsSceneVertexBufferBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-    graphicsSceneVertexBufferBarrier.buffer = graphicsSceneVertexBuffer;
-    graphicsSceneVertexBufferBarrier.offset = 0;
-    graphicsSceneVertexBufferBarrier.size = VK_WHOLE_SIZE;
-    graphicsReadBarriers[graphicsReadBarrierCount++] = graphicsSceneVertexBufferBarrier;
-
-    VkBufferMemoryBarrier graphicsEdgeIndexBufferBarrier{};
-    graphicsEdgeIndexBufferBarrier.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
-    graphicsEdgeIndexBufferBarrier.srcAccessMask = VK_ACCESS_HOST_WRITE_BIT;
-    graphicsEdgeIndexBufferBarrier.dstAccessMask = VK_ACCESS_INDEX_READ_BIT;
-    graphicsEdgeIndexBufferBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-    graphicsEdgeIndexBufferBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-    graphicsEdgeIndexBufferBarrier.buffer = graphicsEdgeIndexBuffer;
-    graphicsEdgeIndexBufferBarrier.offset = 0;
-    graphicsEdgeIndexBufferBarrier.size = VK_WHOLE_SIZE;
-    graphicsReadBarriers[graphicsReadBarrierCount++] = graphicsEdgeIndexBufferBarrier;
-
-    if (toonBuffer != VK_NULL_HANDLE)
-    {
-        VkBufferMemoryBarrier toonBufferBarrier{};
-        toonBufferBarrier.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
-        toonBufferBarrier.srcAccessMask = VK_ACCESS_HOST_WRITE_BIT;
-        toonBufferBarrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
-        toonBufferBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-        toonBufferBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-        toonBufferBarrier.buffer = toonBuffer;
-        toonBufferBarrier.offset = 0;
-        toonBufferBarrier.size = VK_WHOLE_SIZE;
-        graphicsReadBarriers[graphicsReadBarrierCount++] = toonBufferBarrier;
-    }
-
-    if (clearBuffer != VK_NULL_HANDLE)
-    {
-        VkBufferMemoryBarrier clearBufferBarrier{};
-        clearBufferBarrier.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
-        clearBufferBarrier.srcAccessMask = VK_ACCESS_HOST_WRITE_BIT;
-        clearBufferBarrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
-        clearBufferBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-        clearBufferBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-        clearBufferBarrier.buffer = clearBuffer;
-        clearBufferBarrier.offset = 0;
-        clearBufferBarrier.size = VK_WHOLE_SIZE;
-        graphicsReadBarriers[graphicsReadBarrierCount++] = clearBufferBarrier;
-    }
-
-    vkCmdPipelineBarrier(
-        commandBuffer,
-        VK_PIPELINE_STAGE_HOST_BIT,
-        VK_PIPELINE_STAGE_VERTEX_INPUT_BIT | VK_PIPELINE_STAGE_VERTEX_SHADER_BIT | VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
-        0,
-        0,
-        nullptr,
-        graphicsReadBarrierCount,
-        graphicsReadBarriers.data(),
-        0,
-        nullptr
-    );
 
     std::array<VkImageMemoryBarrier, 4> rasterAttachmentBarriers{};
     for (VkImageMemoryBarrier& barrier : rasterAttachmentBarriers)
@@ -10786,194 +10629,8 @@ bool VulkanRenderer3D::dispatchGraphicsRasterAndReadback(
             && !mirrorS
             && !mirrorT;
     };
-    const auto isCompactPaletteUiReplayTriangle = [&](const TriangleGpu& tri) -> bool {
-        if (!isClampPaletteUiTriangle(tri))
-            return false;
-
-        const u32 texturePage = tri.texParam & 0xFFFFu;
-        return texturePage == 0x05C0u
-            || texturePage == 0x85C0u;
-    };
-    const auto isFlatDsUiPlaneTriangle = [&](const TriangleGpu& tri) -> bool {
-        constexpr float kUiPlaneW = 25600.0f;
-        constexpr float kUiPlaneTolerance = 0.5f;
-        return std::abs(tri.w0 - kUiPlaneW) <= kUiPlaneTolerance
-            && std::abs(tri.w1 - kUiPlaneW) <= kUiPlaneTolerance
-            && std::abs(tri.w2 - kUiPlaneW) <= kUiPlaneTolerance;
-    };
-    const auto isCompactTopStatusGlyphTriangle = [&](const TriangleGpu& tri) -> bool {
-        const u32 texParam = tri.texParam;
-        const u32 textureFormat = (texParam >> 26u) & 0x7u;
-        const bool color0Transparent = (texParam & (1u << 29u)) != 0u;
-        const bool repeatS = (texParam & (1u << 16u)) != 0u;
-        const bool repeatT = (texParam & (1u << 17u)) != 0u;
-        const bool mirrorS = (texParam & (1u << 18u)) != 0u;
-        const bool mirrorT = (texParam & (1u << 19u)) != 0u;
-        return (tri.flags & kTriangleFlagTextured) != 0u
-            && textureFormat == 3u
-            && color0Transparent
-            && (texParam & 0xFFFFu) == 0x05C0u
-            && !repeatS
-            && !repeatT
-            && !mirrorS
-            && !mirrorT;
-    };
-    const auto isCompactTopStatusGlyphDraw = [&](const GraphicsPolygonDraw& draw) -> bool {
-        if (draw.firstTriangle >= Triangles.size())
-            return false;
-
-        const u32 alpha5 = (draw.polyAttr >> 16u) & 0x1Fu;
-        const u32 blendMode = (draw.polyAttr >> 4u) & 0x3u;
-        if (alpha5 != 31u
-            || blendMode != 0u
-            || (draw.polyAttr & (1u << 11u)) == 0u
-            || !isCompactTopStatusGlyphTriangle(Triangles[draw.firstTriangle]))
-        {
-            return false;
-        }
-
-        const float scale = static_cast<float>(effectiveRasterScale);
-        const auto [xMin, xMax] = drawXBounds(draw);
-        const auto [yTop, yBottom] = drawYBounds(draw);
-        const float xMinDs = xMin / scale;
-        const float xMaxDs = xMax / scale;
-        const float yTopDs = static_cast<float>(yTop) / scale;
-        const float yBottomDs = static_cast<float>(yBottom) / scale;
-        return xMinDs >= 38.0f
-            && xMaxDs <= 46.0f
-            && yTopDs >= 6.0f
-            && yBottomDs <= 16.0f;
-    };
-    const auto isCompactTopStatusGlyphOverlay = [&](const GraphicsPolygonDraw& draw) -> bool {
-        if (!clearPlaneAlphaZero
-            || !alphaBlendEnabled
-            || draw.firstTriangle >= Triangles.size()
-            || (draw.flags & AcceleratedPolygonFlagTranslucent) == 0u)
-        {
-            return false;
-        }
-
-        const u32 alpha5 = (draw.polyAttr >> 16u) & 0x1Fu;
-        const u32 blendMode = (draw.polyAttr >> 4u) & 0x3u;
-        return alpha5 == 9u
-            && blendMode == 0u
-            && (draw.polyAttr & (1u << 11u)) != 0u
-            && isCompactTopStatusGlyphTriangle(Triangles[draw.firstTriangle]);
-    };
-    const auto isTranslucentPaletteUiOverlay = [&](const GraphicsPolygonDraw& draw) -> bool {
-        if (!clearPlaneAlphaZero
-            || !alphaBlendEnabled
-            || draw.firstTriangle >= Triangles.size()
-            || (draw.flags & AcceleratedPolygonFlagTranslucent) == 0u)
-        {
-            return false;
-        }
-
-        const u32 alpha5 = (draw.polyAttr >> 16u) & 0x1Fu;
-        const u32 blendMode = (draw.polyAttr >> 4u) & 0x3u;
-        const u32 polyId = (draw.polyAttr >> 24u) & 0x3Fu;
-        return alpha5 > 0u
-            && alpha5 < 31u
-            && blendMode == 0u
-            && polyId >= 3u
-            && (draw.polyAttr & (1u << 11u)) == 0u
-            && isClampPaletteUiTriangle(Triangles[draw.firstTriangle]);
-    };
-    const auto isPaletteUiHelpPanelOverlay = [&](const GraphicsPolygonDraw& draw) -> bool {
-        if (!isTranslucentPaletteUiOverlay(draw))
-            return false;
-
-        const u32 alpha5 = (draw.polyAttr >> 16u) & 0x1Fu;
-        const u32 polyId = (draw.polyAttr >> 24u) & 0x3Fu;
-        const u32 texParam = Triangles[draw.firstTriangle].texParam;
-        return alpha5 == 24u
-            && polyId == 11u
-            && texParam == 0x6DC00200u;
-    };
-    const bool hasLowAlphaPaletteUiOverlay = [&]() -> bool {
-        for (u32 alphaDrawIndex : GraphicsAlphaDrawIndices)
-        {
-            if (alphaDrawIndex >= GraphicsPolygons.size())
-                continue;
-
-            const GraphicsPolygonDraw& alphaDraw = GraphicsPolygons[alphaDrawIndex];
-            if (!isTranslucentPaletteUiOverlay(alphaDraw))
-                continue;
-
-            const u32 alpha5 = (alphaDraw.polyAttr >> 16u) & 0x1Fu;
-            if (alpha5 < 27u)
-                return true;
-        }
+    const auto shouldReplayOpaquePaletteUiDraw = [&](const GraphicsPolygonDraw&) -> bool {
         return false;
-    }();
-    const auto shouldReplayOpaquePaletteUiDraw = [&](const GraphicsPolygonDraw& draw) -> bool {
-        if (!clearPlaneAlphaZero
-            || !alphaBlendEnabled
-            || draw.firstTriangle >= Triangles.size()
-            || (draw.flags & AcceleratedPolygonFlagTranslucent) != 0u)
-        {
-            return false;
-        }
-
-        const u32 alpha5 = (draw.polyAttr >> 16u) & 0x1Fu;
-        const u32 blendMode = (draw.polyAttr >> 4u) & 0x3u;
-        const u32 texParam = draw.firstTriangle < Triangles.size() ? Triangles[draw.firstTriangle].texParam : 0u;
-        const bool compactStatusGlyph = isCompactTopStatusGlyphDraw(draw);
-        const bool paletteUiReplay =
-            alpha5 == 31u
-            && blendMode == 0u
-            && (draw.polyAttr & (1u << 11u)) == 0u
-            && texParam != 0x68C01B10u
-            && texParam != 0x6A5016D0u
-            && isClampPaletteUiTriangle(Triangles[draw.firstTriangle])
-            && isFlatDsUiPlaneTriangle(Triangles[draw.firstTriangle]);
-        if (!compactStatusGlyph && !paletteUiReplay)
-        {
-            return false;
-        }
-        if (paletteUiReplay
-            && !hasLowAlphaPaletteUiOverlay
-            && ((draw.polyAttr >> 24u) & 0x3Fu) != 0u)
-        {
-            return false;
-        }
-
-        bool matchesPaletteUiOverlay = false;
-        for (u32 alphaDrawIndex : GraphicsAlphaDrawIndices)
-        {
-            if (alphaDrawIndex >= GraphicsPolygons.size())
-                continue;
-
-            const GraphicsPolygonDraw& alphaDraw = GraphicsPolygons[alphaDrawIndex];
-            if (compactStatusGlyph)
-            {
-                if (isCompactTopStatusGlyphOverlay(alphaDraw)
-                    && yBoundsOverlap(draw, alphaDraw))
-                {
-                    return true;
-                }
-                continue;
-            }
-
-            if (!isTranslucentPaletteUiOverlay(alphaDraw)
-                || !yBoundsOverlap(draw, alphaDraw))
-            {
-                continue;
-            }
-
-            if (isPaletteUiHelpPanelOverlay(alphaDraw)
-                && xBoundsOverlap(draw, alphaDraw))
-            {
-                return false;
-            }
-            const u32 alpha5 = (alphaDraw.polyAttr >> 16u) & 0x1Fu;
-            if (!hasLowAlphaPaletteUiOverlay && alpha5 >= 27u && drawTopDs(draw) >= 18.0f)
-            {
-                return false;
-            }
-            matchesPaletteUiOverlay = true;
-        }
-        return matchesPaletteUiOverlay;
     };
 
     const auto isOpaqueFullAlpha = [&](const GraphicsPolygonDraw& draw) -> bool {
@@ -11870,25 +11527,9 @@ bool VulkanRenderer3D::dispatchGraphicsRasterAndReadback(
 
             const bool wBuffer = (Triangles[draw.firstTriangle].flags & kTriangleFlagWBuffer) != 0u;
             const u32 wMode = wBuffer ? 1u : 0u;
-            const bool useDepthComplement = &draw == depthComplementShadowMaskDraw;
-            const auto& shadowMaskPipelines = useDepthComplement
-                ? GraphicsShadowMaskDepthComplementPipelines
-                : GraphicsShadowMaskPipelines;
-            const VkPipeline pipeline = wMode < shadowMaskPipelines.size()
-                ? shadowMaskPipelines[wMode]
+            const VkPipeline pipeline = wMode < GraphicsShadowMaskPipelines.size()
+                ? GraphicsShadowMaskPipelines[wMode]
                 : VK_NULL_HANDLE;
-            if (useDepthComplement
-                && MelonDSAndroid::areRendererDebugToolsEnabled()
-                && ShadowMaskDepthComplementLogsRemaining > 0u)
-            {
-                EMUCORED_DIAGNOSTIC_LOG(Log(
-                    LogLevel::Warn,
-                    "VulkanGraphics[ShadowMaskDepthComplement]: maskPolyAttr=%#x shadows=%zu clearAttr=%#x",
-                    draw.polyAttr,
-                    shadowProtocolDrawCount,
-                    clearAttr));
-                ShadowMaskDepthComplementLogsRemaining--;
-            }
             if (bindAndDrawGraphics(draw, pipeline, 0x80u, 0x80u, 0x80u))
             {
                 graphicsPassDebugStats.mainShadowMask++;
@@ -11957,48 +11598,6 @@ bool VulkanRenderer3D::dispatchGraphicsRasterAndReadback(
     }
     currentGraphicsDebugPassKind = GraphicsDebugPassKind::Other;
 
-    for (u32 drawIndex : GraphicsOpaqueDrawIndices)
-    {
-        if (drawIndex >= GraphicsPolygons.size())
-            continue;
-
-        const GraphicsPolygonDraw& draw = GraphicsPolygons[drawIndex];
-        if (!shouldReplayOpaquePaletteUiDraw(draw))
-            continue;
-
-        GraphicsPolygonDraw replayDraw = draw;
-        replayDraw.polyAttr |= 1u << 14u;
-        VkPipeline pipeline = VK_NULL_HANDLE;
-        if (isCompactTopStatusGlyphDraw(draw))
-        {
-            const bool wBuffer = replayDraw.triangleCount > 0u
-                && replayDraw.firstTriangle < Triangles.size()
-                && ((Triangles[replayDraw.firstTriangle].flags & kTriangleFlagWBuffer) != 0u);
-            const u32 wMode = wBuffer ? 1u : 0u;
-            pipeline = wMode < GraphicsOpaqueUiOverlayPipelines.size()
-                ? GraphicsOpaqueUiOverlayPipelines[wMode]
-                : VK_NULL_HANDLE;
-        }
-        else
-        {
-            const u32 pipelineIndex = opaquePipelineIndexFor(replayDraw);
-            pipeline = fastOpaqueModulatePipelineFor(replayDraw, pipelineIndex, false);
-            if (pipeline == VK_NULL_HANDLE)
-            {
-                pipeline = opaquePipelineFor(replayDraw, pipelineIndex, false);
-            }
-        }
-        if (bindAndDrawGraphics(replayDraw, pipeline, 0xFFu, 0xFFu, (replayDraw.polyAttr >> 24u) & 0x3Fu))
-        {
-            if (graphicsPassDebugStats.paletteUiOpaqueReplay == 0u)
-            {
-                paletteUiOpaqueReplayFirstDraw = drawIndex;
-                paletteUiOpaqueReplayFirstPolyId = (replayDraw.polyAttr >> 24u) & 0x3Fu;
-                paletteUiOpaqueReplayFirstTexParam = Triangles[replayDraw.firstTriangle].texParam;
-            }
-            graphicsPassDebugStats.paletteUiOpaqueReplay++;
-        }
-    }
     GraphicsAlphaCpuWindow.Add(DiagnosticNowNs() - graphicsAlphaCpuStartNs);
     if ((timestampQueryPool != VK_NULL_HANDLE) && timestampPending && perfSecciones)
         EMUCORED_DIAGNOSTIC_LOG(vkCmdWriteTimestamp(commandBuffer, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, timestampQueryPool, 6));
@@ -12575,7 +12174,7 @@ bool VulkanRenderer3D::dispatchGraphicsRasterAndReadback(
         vkCmdPipelineBarrier(
             commandBuffer,
             VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
-            VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
+            VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT | VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT | VK_PIPELINE_STAGE_TRANSFER_BIT | VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
             0,
             0,
             nullptr,
@@ -14081,88 +13680,8 @@ void VulkanRenderer3D::buildGraphicsTriangleList(GPU& gpu)
         }
 
         bool hasTexture = polygonTextured && texWidth > 0u && texHeight > 0u;
-        bool constantTextureCollapsed = false;
-        u32 constantTextureTexel = 0u;
-        constexpr bool kEnableConstantTextureCollapse = false;
-        const u64 constantTextureStartNs = perPolygonTiming ? DiagnosticNowNs() : 0u;
-        if (kEnableConstantTextureCollapse
-            && hasTexture
-            && textureHandle != 0
-            && textureLayerOpaque
-            && !textureFallbackUsed
-            && !isTranslucent
-            && blendMode == 0u
-            && alpha5 == 31u
-            && (polygonMeta.Flags & (AcceleratedPolygonFlagShadowMask | AcceleratedPolygonFlagShadow)) == 0u)
-        {
-            const bool linear = (polygon->TexParam & (1u << 30u)) != 0u;
-            const bool repeatS = (polygon->TexParam & (1u << 16u)) != 0u;
-            const bool repeatT = (polygon->TexParam & (1u << 17u)) != 0u;
-            const bool mirrorS = (polygon->TexParam & (1u << 18u)) != 0u;
-            const bool mirrorT = (polygon->TexParam & (1u << 19u)) != 0u;
-            bool hasReferenceTexel = false;
-            int referenceS = 0;
-            int referenceT = 0;
-            bool allVerticesUseSameTexel = !linear;
-
-            for (u32 triangleIndex = sceneDraw.FirstTriangle;
-                 allVerticesUseSameTexel && triangleIndex < sceneDraw.FirstTriangle + sceneDraw.TriangleCount;
-                 triangleIndex++)
-            {
-                if (triangleIndex >= SharedGraphicsScene.Triangles.size())
-                    break;
-
-                const AcceleratedSceneTriangle& sceneTriangle = SharedGraphicsScene.Triangles[triangleIndex];
-                for (u32 corner = 0; corner < 3u; corner++)
-                {
-                    const u16 vertexIndex = sceneTriangle.Indices[corner];
-                    if (vertexIndex >= SharedGraphicsScene.Vertices.size())
-                    {
-                        allVerticesUseSameTexel = false;
-                        break;
-                    }
-
-                    const AcceleratedSceneVertex& vertex = SharedGraphicsScene.Vertices[vertexIndex];
-                    const int sampleS = wrapTextureCoord(
-                        static_cast<int>(std::floor(static_cast<float>(vertex.TexCoordS))),
-                        static_cast<int>(texWidth),
-                        repeatS,
-                        mirrorS);
-                    const int sampleT = wrapTextureCoord(
-                        static_cast<int>(std::floor(static_cast<float>(vertex.TexCoordT))),
-                        static_cast<int>(texHeight),
-                        repeatT,
-                        mirrorT);
-                    if (!hasReferenceTexel)
-                    {
-                        referenceS = sampleS;
-                        referenceT = sampleT;
-                        hasReferenceTexel = true;
-                    }
-                    else if (sampleS != referenceS || sampleT != referenceT)
-                    {
-                        allVerticesUseSameTexel = false;
-                        break;
-                    }
-                }
-            }
-
-            if (allVerticesUseSameTexel
-                && hasReferenceTexel
-                && Texcache.GetLoader().ReadTextureLayerTexel(
-                    textureHandle,
-                    textureLayer,
-                    static_cast<u32>(referenceS),
-                    static_cast<u32>(referenceT),
-                    &constantTextureTexel)
-                && ((constantTextureTexel >> 24u) & 0x1Fu) == 31u)
-            {
-                constantTextureCollapsed = true;
-                hasTexture = false;
-                constantTextureCollapseCount++;
-            }
-        }
-        if (perPolygonTiming) graphicsConstantTextureCpuNs += DiagnosticNowNs() - constantTextureStartNs;
+        const bool constantTextureCollapsed = false;
+        const u32 constantTextureTexel = 0u;
         if (perPolygonTiming) graphicsTextureLookupCpuNs += DiagnosticNowNs() - graphicsTextureLookupStartNs;
 
         const u64 graphicsVertexEmitStartNs = perPolygonTiming ? DiagnosticNowNs() : 0u;
@@ -14559,11 +14078,6 @@ void VulkanRenderer3D::buildGraphicsTriangleList(GPU& gpu)
                 ? (1u << ((polygonMeta.PolyId >> 3u) & 0x7u))
                 : 0u;
             const u32 wireframeEdgeColorOverridePacked = hiddenLayerAlphaZero ? 0x00FFFFFFu : 0u;
-            if (hiddenLayerAlphaZero && polygonMeta.PolyId == 56u)
-            {
-                GraphicsHiddenAlphaZeroFinalEdgePolyIdOverride = 56u;
-                GraphicsHiddenAlphaZeroFinalEdgeColorOverride = 0x00FFFFFFu;
-            }
 
             u32 emittedBoundaryEdgeCount = 0u;
             for (u32 triangleIndex = sceneDraw.FirstTriangle;
@@ -15184,9 +14698,14 @@ void VulkanRenderer3D::buildTriangleList(GPU& gpu)
     GraphicsAlphaDrawIndices.clear();
     GraphicsShadowMaskDrawIndices.clear();
     GraphicsShadowDrawIndices.clear();
+    PrevActiveTextureDescriptorCount = ActiveTextureDescriptorCount;
     ActiveTextureDescriptorCount = 0;
-    ActiveTextureDescriptors.fill(VkDescriptorImageInfo{});
-    ActiveNormalizedTextureDescriptors.fill(VkDescriptorImageInfo{});
+    if (PrevActiveTextureDescriptorCount > 0)
+    {
+        std::fill_n(ActiveTextureDescriptors.data(), PrevActiveTextureDescriptorCount, VkDescriptorImageInfo{});
+        if (getTextureDescriptorPolicy().RequiresNormalizedTextureDescriptor())
+            std::fill_n(ActiveNormalizedTextureDescriptors.data(), PrevActiveTextureDescriptorCount, VkDescriptorImageInfo{});
+    }
     Triangles.reserve(static_cast<size_t>(gpu.GPU3D.RenderNumPolygons) * 3u);
     GraphicsVertices.reserve(static_cast<size_t>(gpu.GPU3D.RenderNumPolygons) * 9u);
     GraphicsPolygons.reserve(static_cast<size_t>(gpu.GPU3D.RenderNumPolygons));
@@ -15197,6 +14716,7 @@ void VulkanRenderer3D::buildTriangleList(GPU& gpu)
     GraphicsShadowDrawIndices.reserve(static_cast<size_t>(gpu.GPU3D.RenderNumPolygons));
 
     buildGraphicsTriangleList(gpu);
+    TextureDescriptorGeneration++;
 }
 
 bool VulkanRenderer3D::copyReadyCaptureLineToLineCache()
@@ -15356,6 +14876,7 @@ u32 VulkanRenderer3D::buildClearColorRgba8(const GPU& gpu) const
 void VulkanRenderer3D::clearLineCache()
 {
     std::fill(LineCache.begin(), LineCache.end(), 0);
+    PlainRearPlaneCacheValid = false;
     LineCacheIdentity = {};
     ExactCaptureLineCachePrepared = false;
     ExactCaptureLineCacheFresh = false;

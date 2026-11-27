@@ -202,84 +202,6 @@ Color6A5 unpackToonColor(uint shadeIndex)
     return color;
 }
 
-#if MELONDS_FAST_OPAQUE_MODULATE == 0
-bool usesDsPixelCenteredTranslucentPaletteUi(uint flags, uint polyAttr, uint texParam)
-{
-    uint textureFormat = (texParam >> 26u) & 0x7u;
-    uint polyAlpha = (polyAttr >> 16u) & 0x1Fu;
-    uint blendMode = (polyAttr >> 4u) & 0x3u;
-    bool color0Transparent = (texParam & (1u << 29u)) != 0u;
-    bool depthWriteDisabled = (polyAttr & (1u << 11u)) == 0u;
-    bool clearAlphaZero = ((pc.clearAttr >> 16u) & 0x1Fu) == 0u;
-    bool alphaBlendEnabled = (pc.dispCnt & (1u << 3u)) != 0u;
-    bool repeatS = (texParam & (1u << 16u)) != 0u;
-    bool repeatT = (texParam & (1u << 17u)) != 0u;
-    bool mirrorS = (texParam & (1u << 18u)) != 0u;
-    bool mirrorT = (texParam & (1u << 19u)) != 0u;
-    bool menuTexturePage = (texParam & 0xFFFFu) == 0xA3A0u;
-    return TRANSLUCENT_PASS != 0u
-        && (flags & TRI_FLAG_LINEAR) != 0u
-        && textureFormat == 3u
-        && color0Transparent
-        && menuTexturePage
-        && depthWriteDisabled
-        && clearAlphaZero
-        && alphaBlendEnabled
-        && blendMode == 0u
-        && polyAlpha > 0u
-        && polyAlpha < 31u
-        && !repeatS
-        && !repeatT
-        && !mirrorS
-        && !mirrorT;
-}
-
-bool usesPaletteUiAlphaHoleFill(uint flags, uint polyAttr, uint texParam)
-{
-    uint polyAlpha = (polyAttr >> 16u) & 0x1Fu;
-    return usesDsPixelCenteredTranslucentPaletteUi(flags, polyAttr, texParam)
-        && polyAlpha >= 21u;
-}
-
-bool usesCompactOpaqueDepthWritePaletteUi(uint flags, uint polyAttr, uint texParam)
-{
-    uint textureFormat = (texParam >> 26u) & 0x7u;
-    uint polyAlpha = (polyAttr >> 16u) & 0x1Fu;
-    uint blendMode = (polyAttr >> 4u) & 0x3u;
-    bool color0Transparent = (texParam & (1u << 29u)) != 0u;
-    bool depthWriteEnabled = (polyAttr & (1u << 11u)) != 0u;
-    bool clearAlphaZero = ((pc.clearAttr >> 16u) & 0x1Fu) == 0u;
-    bool repeatS = (texParam & (1u << 16u)) != 0u;
-    bool repeatT = (texParam & (1u << 17u)) != 0u;
-    bool mirrorS = (texParam & (1u << 18u)) != 0u;
-    bool mirrorT = (texParam & (1u << 19u)) != 0u;
-    bool statusGlyphTexturePage = (texParam & 0xFFFFu) == 0x05C0u;
-
-    return TRANSLUCENT_PASS == 0u
-        && (flags & TRI_FLAG_TEXTURED) != 0u
-        && (flags & TRI_FLAG_LINEAR) != 0u
-        && textureFormat == 3u
-        && color0Transparent
-        && statusGlyphTexturePage
-        && depthWriteEnabled
-        && clearAlphaZero
-        && blendMode == 0u
-        && polyAlpha == 31u
-        && !repeatS
-        && !repeatT
-        && !mirrorS
-        && !mirrorT;
-}
-
-vec2 dsPixelCenterDelta()
-{
-    vec2 renderScale = max(vec2(float(pc.width) * (1.0 / 256.0), float(pc.height) * (1.0 / 192.0)), vec2(1.0));
-    vec2 subpixelOffset = mod(gl_FragCoord.xy - vec2(0.5), renderScale);
-    vec2 dsPixelCenterOffset = max((renderScale - vec2(1.0)) * 0.5, vec2(0.0));
-    return dsPixelCenterOffset - subpixelOffset;
-}
-#endif
-
 Color6A5 sampleTexture(uint polyAttr)
 {
     Color6A5 whiteTexel;
@@ -322,20 +244,6 @@ Color6A5 sampleTexture(uint polyAttr)
     bool mirrorS = (texParam & (1u << 18u)) != 0u;
     bool mirrorT = (texParam & (1u << 19u)) != 0u;
 
-#if MELONDS_FAST_OPAQUE_MODULATE == 0
-    if (usesDsPixelCenteredTranslucentPaletteUi(flags, polyAttr, texParam))
-    {
-        vec2 centerDelta = dsPixelCenterDelta();
-        texcoord += dFdx(fTexcoord) * centerDelta.x + dFdy(fTexcoord) * centerDelta.y;
-    }
-    else if (usesCompactOpaqueDepthWritePaletteUi(flags, polyAttr, texParam))
-    {
-        vec2 centerDelta = dsPixelCenterDelta();
-        texcoord += dFdx(fTexcoord) * centerDelta.x + dFdy(fTexcoord) * centerDelta.y;
-    }
-
-#endif
-
     texcoord = clampPolygonTexcoord(texcoord);
     int sampleS = int(floor(texcoord.x));
     int sampleT = int(floor(texcoord.y));
@@ -350,28 +258,6 @@ Color6A5 sampleTexture(uint polyAttr)
     sampleT = wrapTexelCoord(sampleT, int(texHeight), repeatT, mirrorT);
 
     uvec4 texel = fetchTextureArrayTexel(texArrayIndex, ivec3(sampleS, sampleT, int(texLayer)));
-#endif
-#if MELONDS_FAST_OPAQUE_MODULATE == 0
-    if (usesPaletteUiAlphaHoleFill(flags, polyAttr, texParam)
-        && (texel.a & 0x1Fu) == 0u)
-    {
-        int leftS = wrapTexelCoord(sampleS - 1, int(texWidth), repeatS, mirrorS);
-        int rightS = wrapTexelCoord(sampleS + 1, int(texWidth), repeatS, mirrorS);
-        int upT = wrapTexelCoord(sampleT - 1, int(texHeight), repeatT, mirrorT);
-        int downT = wrapTexelCoord(sampleT + 1, int(texHeight), repeatT, mirrorT);
-        uvec4 leftTexel = fetchTextureArrayTexel(texArrayIndex, ivec3(leftS, sampleT, int(texLayer)));
-        uvec4 rightTexel = fetchTextureArrayTexel(texArrayIndex, ivec3(rightS, sampleT, int(texLayer)));
-        uvec4 upTexel = fetchTextureArrayTexel(texArrayIndex, ivec3(sampleS, upT, int(texLayer)));
-        uvec4 downTexel = fetchTextureArrayTexel(texArrayIndex, ivec3(sampleS, downT, int(texLayer)));
-        if ((leftTexel.a & 0x1Fu) != 0u)
-            texel = leftTexel;
-        else if ((rightTexel.a & 0x1Fu) != 0u)
-            texel = rightTexel;
-        else if ((upTexel.a & 0x1Fu) != 0u)
-            texel = upTexel;
-        else if ((downTexel.a & 0x1Fu) != 0u)
-            texel = downTexel;
-    }
 #endif
 #if MELONDS_FAST_OPAQUE_FULL_ALPHA != 0
     return decodeTexelRgb6Opaque(texel);
@@ -605,14 +491,7 @@ void main()
         if (sourceColor.a <= 0 || sourceColor.a >= 31)
             discard;
 
-#if MELONDS_FAST_OPAQUE_MODULATE == 0
-        if (usesPaletteUiAlphaHoleFill(flags, polyAttr, fTriInfo1.y))
-            oColor = encodeColorDsTranslucentBlendAlpha(sourceColor);
-        else
-            oColor = encodeColorDsTranslucentBlendAlpha(sourceColor);
-#else
         oColor = encodeColorDsTranslucentBlendAlpha(sourceColor);
-#endif
 #if MELONDS_COLOR_ONLY == 0
 
         oAttr = vec4(0.0, ((polyAttr & (1u << 15u)) != 0u) ? 0.5 : 0.0, 0.0, 1.0);

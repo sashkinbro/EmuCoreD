@@ -255,6 +255,7 @@ private:
     struct GraphicsDescriptorSetCache
     {
         bool Ready = false;
+        u64 TextureDescriptorGeneration = 0;
         VkBuffer TriangleBuffer = VK_NULL_HANDLE;
         VkBuffer ToonBuffer = VK_NULL_HANDLE;
         VkBuffer ClearBuffer = VK_NULL_HANDLE;
@@ -332,6 +333,11 @@ private:
         VkDeviceMemory ClearMemory = VK_NULL_HANDLE;
         VkDeviceSize ClearBufferSize = 0;
         void* ClearMapped = nullptr;
+        bool LastClearValid = false;
+        bool LastClearBitmap = false;
+        u32 LastClearColor = 0;
+        u32 LastClearAttr = 0;
+        u32 LastClearDepth = 0;
         VkBuffer CaptureLineBuffer = VK_NULL_HANDLE;
         VkDeviceMemory CaptureLineMemory = VK_NULL_HANDLE;
         VkDeviceSize CaptureLineBufferSize = 0;
@@ -884,6 +890,16 @@ private:
     std::array<VkDescriptorImageInfo, TextureDescriptorStorageCapacity> ActiveTextureDescriptors{};
     std::array<VkDescriptorImageInfo, TextureDescriptorStorageCapacity> ActiveNormalizedTextureDescriptors{};
     u32 ActiveTextureDescriptorCount = 0;
+    u32 PrevActiveTextureDescriptorCount = 0;
+    u64 TextureDescriptorGeneration = 1;
+    std::array<VkDescriptorImageInfo, TextureDescriptorPageStorageCapacity> DescriptorTextureInfosScratch{};
+    std::array<VkDescriptorImageInfo, TextureDescriptorPageStorageCapacity> DescriptorNormalizedTextureInfosScratch{};
+    std::array<VkWriteDescriptorSet, 7u * GraphicsTextureDescriptorPageCount> DescriptorWritesScratch{};
+    bool LastClearValid = false;
+    bool LastClearBitmap = false;
+    u32 LastClearColor = 0;
+    u32 LastClearAttr = 0;
+    u32 LastClearDepth = 0;
     std::unordered_map<u64, GraphicsResolvedTextureCacheEntry> GraphicsResolvedTextureCache;
 
     std::vector<TriangleGpu> Triangles;
@@ -908,6 +924,8 @@ private:
     std::array<CaptureSourceIdentity, 2> LastValidExactCaptureIdentity{};
     CaptureSourceIdentity LastServedCaptureSourceIdentity{};
     u32 ExactCaptureFallbackPackedColor = 0;
+    u32 PlainRearPlaneCachedColor = 0;
+    bool PlainRearPlaneCacheValid = false;
     bool ExactCaptureFallbackValid = false;
     bool ExactCaptureLineCacheFallbackOnly = false;
     std::array<bool, 2> HasLastValidExactCaptureParidad{false, false};

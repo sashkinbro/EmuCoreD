@@ -23,17 +23,16 @@ public:
 
     TextureHandle GenerateTexture(u32 width, u32 height, u32 layers);
     void UploadTexture(TextureHandle handle, u32 width, u32 height, u32 layer, void* data);
+    void FlushPendingUploads();
     void DeleteTexture(TextureHandle handle);
     bool GetTextureDescriptor(TextureHandle handle, VkDescriptorImageInfo* outImageInfo) const;
     bool GetTextureNormalizedDescriptor(TextureHandle handle, VkDescriptorImageInfo* outImageInfo) const;
     bool IsTextureLayerOpaque(TextureHandle handle, u32 layer) const;
-    bool ReadTextureLayerTexel(TextureHandle handle, u32 layer, u32 x, u32 y, u32* outTexel) const;
 
 private:
     struct TextureArray
     {
         static constexpr u8 Opaque = 1u;
-        static constexpr u8 CpuMirrorReady = 2u;
 
         u32 Width = 0;
         u32 Height = 0;
@@ -43,33 +42,38 @@ private:
         VkDeviceMemory Memory = VK_NULL_HANDLE;
         VkImageView ArrayView = VK_NULL_HANDLE;
         VkImageView NormalizedArrayView = VK_NULL_HANDLE;
-        VkSampler Sampler = VK_NULL_HANDLE;
 
-        VkBuffer StagingBuffer = VK_NULL_HANDLE;
-        VkDeviceMemory StagingMemory = VK_NULL_HANDLE;
-        VkDeviceSize StagingSize = 0;
         std::vector<u8> LayerFlags;
-        std::unique_ptr<u32[]> LayerPixels;
     };
 
     struct SharedState
     {
-        struct UploadSlot
+        struct PendingInitialTransition
         {
-            VkBuffer StagingBuffer = VK_NULL_HANDLE;
-            VkDeviceMemory StagingMemory = VK_NULL_HANDLE;
-            VkDeviceSize StagingSize = 0;
-            VkCommandBuffer CommandBuffer = VK_NULL_HANDLE;
-            VkFence Fence = VK_NULL_HANDLE;
-            bool InFlight = false;
+            VkImage Image = VK_NULL_HANDLE;
+            u32 Layers = 0;
         };
 
-        static constexpr size_t UploadSlotCount = 8;
+        struct PendingCopy
+        {
+            VkImage Image = VK_NULL_HANDLE;
+            u32 Layer = 0;
+            u32 Width = 0;
+            u32 Height = 0;
+            VkDeviceSize BufferOffset = 0;
+        };
 
         TextureHandle NextHandle = 1;
         std::unordered_map<TextureHandle, TextureArray> TextureArrays;
-        std::array<UploadSlot, UploadSlotCount> UploadSlots{};
-        size_t NextUploadSlot = 0;
+        std::vector<PendingInitialTransition> PendingInitialTransitions;
+        std::vector<PendingCopy> PendingCopies;
+
+        VkSampler NearestSampler = VK_NULL_HANDLE;
+        VkBuffer StagingBuffer = VK_NULL_HANDLE;
+        VkDeviceMemory StagingMemory = VK_NULL_HANDLE;
+        VkDeviceSize StagingCapacity = 0;
+        VkDeviceSize StagingUsed = 0;
+        void* StagingMapped = nullptr;
 
         bool ContextAcquired = false;
         VkDevice Device = VK_NULL_HANDLE;
@@ -78,9 +82,11 @@ private:
         VkCommandPool CommandPool = VK_NULL_HANDLE;
         VkCommandBuffer CommandBuffer = VK_NULL_HANDLE;
         VkFence UploadFence = VK_NULL_HANDLE;
+        bool UploadInFlight = false;
     };
 
     bool EnsureVulkanState();
+    bool EnsureStagingCapacity(VkDeviceSize requiredBytes);
     void CleanupVulkanState();
     void DestroyTextureArray(TextureArray& textureArray);
     void WaitForPendingUploads();

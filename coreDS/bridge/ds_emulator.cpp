@@ -249,7 +249,7 @@ bool DsEmulator::Start(const std::string& rom_path, const std::string& sram_path
         args.Renderer3D = std::make_unique<melonDS::SoftRenderer>();
     }
     args.JIT = melonDS::JITArgs{};
-    args.JIT->FastMemory = false;
+    args.JIT->FastMemory = melonDS::ARMJIT_Memory::IsFastMemSupported();
     frame_count_ = 0;
 
     nds_ = std::make_unique<melonDS::NDS>(std::move(args), this);
@@ -282,8 +282,7 @@ bool DsEmulator::Start(const std::string& rom_path, const std::string& sram_path
             for (auto& frame : vulkan_frames_) frame = std::make_unique<Frame>();
             vulkan_frame_cursor_ = 0;
             vulkan_frame_id_ = 0;
-            vulkan_readback_.assign(
-                static_cast<size_t>(256 * scale) * static_cast<size_t>(386 * scale), 0u);
+            vulkan_readback_.clear();
             surface_presenter_ = std::make_unique<MelonDSAndroid::VulkanSurfacePresenter>(true);
             if (!surface_presenter_->init()) {
                 EMUCORED_DIAGNOSTIC_LOG(__android_log_print(ANDROID_LOG_WARN, "EmuCoreDS",
@@ -309,6 +308,7 @@ bool DsEmulator::Start(const std::string& rom_path, const std::string& sram_path
         std::lock_guard lock(surface_mutex_);
         if (vulkan_output_) {
             AttachVulkanSurfaceLocked();
+            AttachVulkanSecondarySurfaceLocked();
         } else {
             if (!presenter_) presenter_ = std::make_unique<DsPresenter>();
             presenter_->SetSurface(window_);
@@ -437,13 +437,11 @@ void DsEmulator::Run() {
                 }
             }
             if (vulkan_output_) {
-                if (auto* renderer2d =
-                        dynamic_cast<melonDS::GPU2D::SoftRenderer*>(&nds_->GPU.GetRenderer2D())) {
-                    renderer2d->BeginStructuredVulkan2DFrame();
-                }
                 if (vulkan_output_->ensureFaithfulAtlas()) {
                     vulkan_output_->uploadFaithfulAtlasPreFrame(nds_->GPU);
-                    vulkan_output_->publishFaithfulCertifiedCaptureTerminals(nds_->GPU, 1);
+                    const auto terminal_scale = static_cast<melonDS::u32>(
+                        std::clamp(active_scale_.load(std::memory_order_relaxed), 1, 8));
+                    vulkan_output_->publishFaithfulCertifiedCaptureTerminals(nds_->GPU, terminal_scale);
                 }
             }
             nds_->RunFrame();
@@ -556,12 +554,12 @@ void DsEmulator::PresentVulkanFrame() {
         return;
     }
 
-    const bool snapshot_captured =
-        vulkan_output_->captureRenderer3dSnapshot(frame, *renderer3d, false);
+    vulkan_output_->solicitarSnapshotEnCompose(renderer3d, false);
     MelonDSAndroid::VulkanCompositionInputs inputs{};
     if (!vulkan_output_->buildCompositionInputs(
             frame, *renderer3d, scale, MelonDSAndroid::VulkanFilterMode::Nearest,
             false, false, false, inputs)) {
+        vulkan_output_->solicitarSnapshotEnCompose(nullptr, false);
         if (log_now) {
             EMUCORED_DIAGNOSTIC_LOG(__android_log_print(ANDROID_LOG_WARN, "EmuCoreDS", "Vulkan composition inputs failed"));
         }
@@ -576,6 +574,7 @@ void DsEmulator::PresentVulkanFrame() {
         frame_trace_.observe(length > 0 ? trace_property[0] - '0' : 0);
     }
     if (frame_trace_.take(log_now)) {
+        const bool snapshot_captured = vulkan_output_->frameHasOwnRenderer3dSnapshot(frame);
         melonDS::CaptureSourceIdentity published{}, served{};
         melonDS::LiveRenderProductIdentity live{};
         (void)renderer3d->GetPublishedRenderIdentity(published);
@@ -656,6 +655,7 @@ void DsEmulator::PresentVulkanFrame() {
             const auto result = surface_presenter_->presentFrame(
                 frame, *vulkan_output_, inputs, 100'000'000ull, 16'000'000ull,
                 wait_runner);
+            vulkan_output_->solicitarSnapshotEnCompose(nullptr, false);
             presented = result == MelonDSAndroid::VulkanPresentationResult::Presented;
             if (!presented) {
                 static int presenter_log = 0;
@@ -675,7 +675,9 @@ void DsEmulator::PresentVulkanFrame() {
     const size_t readback_size = static_cast<size_t>(frame_width) * frame_height;
     if (vulkan_readback_.size() != readback_size) vulkan_readback_.assign(readback_size, 0u);
     inputs.needsReadback = true;
-    if (!vulkan_output_->composeAndSubmitFrame(frame, inputs)) {
+    const bool composed = vulkan_output_->composeAndSubmitFrame(frame, inputs);
+    vulkan_output_->solicitarSnapshotEnCompose(nullptr, false);
+    if (!composed) {
         if (log_now) {
             EMUCORED_DIAGNOSTIC_LOG(__android_log_print(ANDROID_LOG_WARN, "EmuCoreDS", "Vulkan compose failed frame=%llu",
                                 (unsigned long long)frame->frameId));
@@ -718,9 +720,6 @@ void DsEmulator::ApplyRenderScaleLocked() {
     renderer3d->SetRenderSettings(false, true, requested, false, 0.0f, 0.0f, false, false, false,
                                   nds_->GPU);
     active_scale_.store(requested, std::memory_order_relaxed);
-    const size_t readback_size = static_cast<size_t>(256 * requested) *
-        static_cast<size_t>(386 * requested);
-    vulkan_readback_.assign(readback_size, 0u);
     EMUCORED_DIAGNOSTIC_LOG(__android_log_print(ANDROID_LOG_WARN, "EmuCoreDS", "DS render scale set to %dx", requested));
 }
 
@@ -742,12 +741,73 @@ void DsEmulator::AttachVulkanSurfaceLocked() {
 }
 
 void DsEmulator::DetachVulkanSurfaceLocked() {
+    DetachVulkanSecondarySurfaceLocked();
     if (!surface_presenter_ || vulkan_surface_id_ == 0) return;
     {
         std::lock_guard present_lock(vulkan_present_mutex_);
         surface_presenter_->detachSurface(vulkan_surface_id_);
     }
     vulkan_surface_id_ = 0;
+}
+
+void DsEmulator::AttachVulkanSecondarySurfaceLocked() {
+    if (!surface_presenter_ || !secondary_window_ || vulkan_secondary_surface_id_ != 0
+        || screen_layout_.load(std::memory_order_relaxed) != 1) {
+        return;
+    }
+
+    ANativeWindow_acquire(secondary_window_);
+    const uint32_t width = static_cast<uint32_t>(std::max(1, ANativeWindow_getWidth(secondary_window_)));
+    const uint32_t height = static_cast<uint32_t>(std::max(1, ANativeWindow_getHeight(secondary_window_)));
+    vulkan_secondary_surface_id_ = surface_presenter_->attachSurface(secondary_window_, width, height);
+    if (vulkan_secondary_surface_id_ == 0) {
+        ANativeWindow_release(secondary_window_);
+        EMUCORED_DIAGNOSTIC_LOG(__android_log_print(ANDROID_LOG_WARN, "EmuCoreDS", "Vulkan secondary presenter surface attach failed"));
+        return;
+    }
+    ConfigureVulkanSecondarySurfaceLocked();
+}
+
+void DsEmulator::DetachVulkanSecondarySurfaceLocked() {
+    if (!surface_presenter_ || vulkan_secondary_surface_id_ == 0) return;
+    {
+        std::lock_guard present_lock(vulkan_present_mutex_);
+        surface_presenter_->detachSurface(vulkan_secondary_surface_id_);
+    }
+    vulkan_secondary_surface_id_ = 0;
+}
+
+void DsEmulator::ConfigureVulkanSecondarySurfaceLocked() {
+    if (!surface_presenter_ || !secondary_window_ || vulkan_secondary_surface_id_ == 0) return;
+
+    const int window_width = std::max(1, ANativeWindow_getWidth(secondary_window_));
+    const int window_height = std::max(1, ANativeWindow_getHeight(secondary_window_));
+    const float window_aspect = static_cast<float>(window_width) / static_cast<float>(window_height);
+    const float aspect = 256.0f / 192.0f;
+    int w = window_width;
+    int h = window_height;
+    if (window_aspect > aspect) {
+        w = static_cast<int>(static_cast<float>(window_height) * aspect + 0.5f);
+    } else {
+        h = static_cast<int>(static_cast<float>(window_width) / aspect + 0.5f);
+    }
+    w = std::max(2, w);
+    h = std::max(2, h);
+    const int x = (window_width - w) / 2;
+    const int y = (window_height - h) / 2;
+
+    MelonDSAndroid::VulkanSurfaceConfig config{};
+    const bool swap = swap_screens_.load(std::memory_order_relaxed);
+    if (!swap) {
+        config.bottomScreen = {true, x, y, w, h};
+        config.topScreen = {false, 0, 0, 0, 0};
+    } else {
+        config.topScreen = {true, x, y, w, h};
+        config.bottomScreen = {false, 0, 0, 0, 0};
+    }
+    config.filtering = MelonDSAndroid::VulkanFilterMode::Linear;
+    const MelonDSAndroid::VulkanBackgroundImage background{};
+    surface_presenter_->configureSurface(vulkan_secondary_surface_id_, config, background);
 }
 
 void DsEmulator::ConfigureVulkanSurfaceLocked() {
@@ -831,22 +891,36 @@ void DsEmulator::SetSwapScreens(bool swap) {
     std::lock_guard surface_lock(surface_mutex_);
     std::lock_guard present_lock(vulkan_present_mutex_);
     ConfigureVulkanSurfaceLocked();
+    ConfigureVulkanSecondarySurfaceLocked();
     presentation_dirty_.store(true, std::memory_order_relaxed);
 }
 
 void DsEmulator::SetScreenLayout(int mode) {
     if (screen_layout_.exchange(mode) == mode) return;
     std::lock_guard surface_lock(surface_mutex_);
+    if (mode == 1 && surface_presenter_ && secondary_window_ && vulkan_surface_id_ != 0) {
+        AttachVulkanSecondarySurfaceLocked();
+    } else {
+        DetachVulkanSecondarySurfaceLocked();
+    }
+    if (secondary_presenter_) {
+        secondary_presenter_->SetSurface(vulkan_secondary_surface_id_ == 0 ? secondary_window_ : nullptr);
+    }
     std::lock_guard present_lock(vulkan_present_mutex_);
     ConfigureVulkanSurfaceLocked();
+    ConfigureVulkanSecondarySurfaceLocked();
     presentation_dirty_.store(true, std::memory_order_relaxed);
 }
 
 void DsEmulator::SetSecondarySurface(ANativeWindow* window) {
     std::lock_guard lock(surface_mutex_);
+    DetachVulkanSecondarySurfaceLocked();
     secondary_window_ = window;
+    if (surface_presenter_ && vulkan_surface_id_ != 0) {
+        AttachVulkanSecondarySurfaceLocked();
+    }
     if (!secondary_presenter_) secondary_presenter_ = std::make_unique<DsPresenter>();
-    secondary_presenter_->SetSurface(window);
+    secondary_presenter_->SetSurface(vulkan_secondary_surface_id_ == 0 ? window : nullptr);
 }
 
 void DsEmulator::SetKeyMask(uint32_t mask) {
