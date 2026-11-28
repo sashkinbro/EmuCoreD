@@ -7248,7 +7248,8 @@ void SoftRenderer::DrawScanlineActivePipeline(u32 line, Unit* unit)
     }
 
     if (CurUnit->Num == 0u && line == 0u)
-        GPU.SetFaithfulVramCaptureTrackingEnabled(UseFaithfulVulkan2D());
+        GPU.SetFaithfulVramCaptureTrackingEnabled(
+            UseFaithfulVulkan2D() && FaithfulHighresCaptureConsumerActive);
 
     if (UseFaithfulVulkan2D())
     {
@@ -8071,8 +8072,10 @@ void SoftRenderer::DoCapture(u32 line, u32 width, u32 sourceLine)
         latchServedCaptureSourceIdentity();
     }
 
+    const bool trackFaithfulHighresCapture =
+        useFaithfulVulkan2D && FaithfulHighresCaptureConsumerActive;
     auto faithfulProductGuard = MakeScopeExit([&]() {
-        if (!useFaithfulVulkan2D)
+        if (!trackFaithfulHighresCapture)
             return;
         StampFaithfulCaptureLine(
             line,
@@ -8128,7 +8131,7 @@ void SoftRenderer::DoCapture(u32 line, u32 width, u32 sourceLine)
     if (!useStructuredVulkan2D)
     {
 
-        FaithfulPendingCaptureRecipeExact = useFaithfulVulkan2D
+        FaithfulPendingCaptureRecipeExact = trackFaithfulHighresCapture
             && line < kStructuredScreenHeight
             && width <= kStructuredScreenWidth
             && (!faithfulCaptureLineUses3d
@@ -8269,7 +8272,7 @@ void SoftRenderer::DoCapture(u32 line, u32 width, u32 sourceLine)
         dstaddr &= 0xFFFF;
         srcBaddr &= 0xFFFF;
 
-        if (useFaithfulVulkan2D && FaithfulPendingCaptureRecipeExact)
+        if (trackFaithfulHighresCapture && FaithfulPendingCaptureRecipeExact)
         {
             const u32 effectiveEvb =
                 std::min<u32>((captureCnt >> 8u) & 0x1Fu, 16u);
@@ -8320,7 +8323,7 @@ void SoftRenderer::DoCapture(u32 line, u32 width, u32 sourceLine)
             }
         }
 
-        if (useFaithfulVulkan2D)
+        if (trackFaithfulHighresCapture)
         {
             FaithfulCaptureProductLineCausalMetadata causal {};
             const u32 effectiveEva = std::min<u32>(captureCnt & 0x1Fu, 16u);
@@ -8381,9 +8384,12 @@ void SoftRenderer::DoCapture(u32 line, u32 width, u32 sourceLine)
                 {
                     causal.SourceBBank = static_cast<u8>(sourceBVram);
                     causal.SourceBLineOffsetPixels = srcBaddr;
-                    if (!sourceBVramMapped || srcB == nullptr)
+                    if (!sourceBVramMapped || srcB == nullptr
+                        || !GPU.HasFaithfulVramCaptureTags(1u << sourceBVram))
                     {
-                        causal.SourceB = FaithfulCaptureSourceBKind::Unavailable;
+                        causal.SourceB = (!sourceBVramMapped || srcB == nullptr)
+                            ? FaithfulCaptureSourceBKind::Unavailable
+                            : FaithfulCaptureSourceBKind::Vram;
                         causal.SourceBLineage =
                             FaithfulCaptureSourceBLineage::Untracked;
                     }

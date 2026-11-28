@@ -1203,6 +1203,7 @@ void VulkanOutput::publishFaithfulCertifiedCaptureTerminals(
         faithfulHighresConsumerActive = highresConsumerReady;
         faithfulCaptureLineageInvalidationPending = true;
     }
+    sr->SetFaithfulHighresCaptureConsumerActive(faithfulHighresConsumerActive);
     if (faithfulCaptureLineageInvalidationPending)
     {
 

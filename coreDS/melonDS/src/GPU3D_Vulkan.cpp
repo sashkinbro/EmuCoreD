@@ -510,7 +510,8 @@ bool createBufferAllocation(
     VkMemoryPropertyFlags fallbackProperties,
     VkBuffer& buffer,
     VkDeviceMemory& memory,
-    void** mappedMemory = nullptr)
+    void** mappedMemory = nullptr,
+    u32* outMemoryTypeIndex = nullptr)
 {
     VkBufferCreateInfo bufferCreateInfo = makeBufferCreateInfo(size, usage);
     if (vkCreateBuffer(device, &bufferCreateInfo, nullptr, &buffer) != VK_SUCCESS)
@@ -556,6 +557,8 @@ bool createBufferAllocation(
         return false;
     }
 
+    if (outMemoryTypeIndex != nullptr)
+        *outMemoryTypeIndex = memoryTypeIndex;
     return true;
 }
 
@@ -1069,7 +1072,7 @@ void VulkanRenderer3D::RenderFrame(GPU& gpu)
 
     const bool eagerNativeProjectionSubmitted =
         scale > 1u
-        && (captureNeedsGpuCaptureLine || prefetchNativeForCompose)
+        && (!captureNeedsGpuCaptureLine && prefetchNativeForCompose)
         && submitFaithfulNativeProjection(gpu);
     if (eagerNativeProjectionSubmitted && prefetchNativeForCompose)
         NativeComposePrefetchCount++;
@@ -1131,10 +1134,15 @@ void VulkanRenderer3D::RenderFrame(GPU& gpu)
         if (captureEnabled || !PlainRearPlaneCacheValid
             || PlainRearPlaneCachedColor != material.Packed6A5)
         {
-            LineCache.fill(material.Packed6A5);
-            SweepLineCache = LineCache;
+            detachLineCacheForWrite();
+            activeLineCache().fill(material.Packed6A5);
+            SweepLineCacheSlot = LineCacheSlot;
             PlainRearPlaneCachedColor = material.Packed6A5;
             PlainRearPlaneCacheValid = !captureEnabled;
+        }
+        else
+        {
+            SweepLineCacheSlot = LineCacheSlot;
         }
         LineCacheIdentity = CurrentFrameServedIdentity;
         SweepLineCacheIdentity = LineCacheIdentity;
@@ -1220,9 +1228,7 @@ void VulkanRenderer3D::RenderFrame(GPU& gpu)
             CaptureSource3dCount++;
     }
 
-    const bool inlineCaptureReadback =
-        captureNeedsGpuCaptureLine
-        && scale == 1u;
+    const bool inlineCaptureReadback = captureNeedsGpuCaptureLine;
     const u64 dispatchCpuStartNs = DiagnosticNowNs();
     const bool dispatchOk = dispatchRasterAndReadback(
             renderContext,
@@ -1325,13 +1331,13 @@ u32* VulkanRenderer3D::GetLine(int line)
         if (prepareFaithfulExactCaptureLineCache()
             && captureIdentityMatchesCurrentFrameKey(LineCacheIdentity))
         {
-            SweepLineCache = LineCache;
+            SweepLineCacheSlot = LineCacheSlot;
             SweepLineCacheIdentity = LineCacheIdentity;
         }
         else
         {
-
-            SweepLineCache.fill(0u);
+            detachSweepLineCacheForWrite();
+            activeSweepLineCache().fill(0u);
             SweepLineCacheIdentity = {};
         }
     }
@@ -1340,7 +1346,7 @@ u32* VulkanRenderer3D::GetLine(int line)
         captureIdentityMatchesCurrentFrameKey(SweepLineCacheIdentity)
             ? SweepLineCacheIdentity
             : CaptureSourceIdentity{};
-    return &SweepLineCache[static_cast<size_t>(line) * 256u];
+    return &activeSweepLineCache()[static_cast<size_t>(line) * 256u];
 }
 
 bool VulkanRenderer3D::captureIdentityMatchesCurrentFrameKey(
@@ -1550,7 +1556,7 @@ bool VulkanRenderer3D::prepareFaithfulExactCaptureLineCache()
     if (LineCacheIdentity.Valid || ExactCaptureLineCachePrepared)
         traceFaithfulCaptureDecision("prepare", "retire-line-cache", LineCacheIdentity);
     HasCpuFrame = false;
-    clearLineCache();
+    resetLineCacheMetadata();
 
     const auto consumeReadyExact = [&]() -> bool {
         if (!CaptureLineReady)
@@ -3089,6 +3095,7 @@ void VulkanRenderer3D::destroyVulkan()
     Queue = VK_NULL_HANDLE;
     QueueFamilyIndex = 0;
     ResetQueryPool = nullptr;
+    InvalidateMappedMemoryRanges = nullptr;
     TimestampPeriodNs = 0.0f;
     TimestampQueriesSupported = false;
     Initialized = false;
@@ -3441,6 +3448,7 @@ void VulkanRenderer3D::syncActiveCaptureLineBufferSlot()
     CaptureLineMemory = CaptureLineMemories[ActiveCaptureLineBufferSlot];
     CaptureLineBufferSize = CaptureLineBufferSizes[ActiveCaptureLineBufferSlot];
     CaptureLineMapped = CaptureLineMappedSlots[ActiveCaptureLineBufferSlot];
+    CaptureLineCoherent = CaptureLineCoherentSlots[ActiveCaptureLineBufferSlot];
 }
 
 void VulkanRenderer3D::storeActiveCaptureLineBufferSlot()
@@ -3449,6 +3457,7 @@ void VulkanRenderer3D::storeActiveCaptureLineBufferSlot()
     CaptureLineMemories[ActiveCaptureLineBufferSlot] = CaptureLineMemory;
     CaptureLineBufferSizes[ActiveCaptureLineBufferSlot] = CaptureLineBufferSize;
     CaptureLineMappedSlots[ActiveCaptureLineBufferSlot] = CaptureLineMapped;
+    CaptureLineCoherentSlots[ActiveCaptureLineBufferSlot] = CaptureLineCoherent;
 }
 
 void VulkanRenderer3D::selectActiveCaptureLineBufferSlot(u32 slot)
@@ -3469,6 +3478,8 @@ void VulkanRenderer3D::resetCaptureLineState()
     CaptureLineDataIsRgba8 = false;
     PendingCaptureLineContext = nullptr;
     ReadyCaptureLineData = nullptr;
+    ReadyCaptureLineMemory = VK_NULL_HANDLE;
+    ReadyCaptureLineCoherent = true;
     PendingCaptureLineBufferSlot = -1;
     ReadyCaptureLineBufferSlot = -1;
     PendingCaptureLineScreenSwap = false;
@@ -3659,18 +3670,38 @@ bool VulkanRenderer3D::finalizeCaptureLineFrame(bool blocking)
     if (PendingCaptureLineContext != nullptr)
     {
         ReadyCaptureLineData = reinterpret_cast<const u32*>(PendingCaptureLineContext->CaptureLineMapped);
+        ReadyCaptureLineMemory = PendingCaptureLineContext->CaptureLineMemory;
+        ReadyCaptureLineCoherent = PendingCaptureLineContext->CaptureLineCoherent;
         ReadyCaptureLineBufferSlot = -1;
     }
     else if (PendingCaptureLineBufferSlot >= 0)
     {
-        ReadyCaptureLineData = reinterpret_cast<const u32*>(
-            CaptureLineMappedSlots[static_cast<size_t>(PendingCaptureLineBufferSlot)]);
+        const size_t readySlot = static_cast<size_t>(PendingCaptureLineBufferSlot);
+        ReadyCaptureLineData = reinterpret_cast<const u32*>(CaptureLineMappedSlots[readySlot]);
+        ReadyCaptureLineMemory = CaptureLineMemories[readySlot];
+        ReadyCaptureLineCoherent = CaptureLineCoherentSlots[readySlot];
         ReadyCaptureLineBufferSlot = PendingCaptureLineBufferSlot;
     }
     else
     {
         ReadyCaptureLineData = reinterpret_cast<const u32*>(CaptureLineMapped);
+        ReadyCaptureLineMemory = CaptureLineMemory;
+        ReadyCaptureLineCoherent = CaptureLineCoherent;
         ReadyCaptureLineBufferSlot = static_cast<int>(ActiveCaptureLineBufferSlot);
+    }
+
+    if (ReadyCaptureLineData != nullptr
+        && !ReadyCaptureLineCoherent
+        && ReadyCaptureLineMemory != VK_NULL_HANDLE
+        && InvalidateMappedMemoryRanges != nullptr
+        && Device != VK_NULL_HANDLE)
+    {
+        VkMappedMemoryRange invalidateRange{};
+        invalidateRange.sType = VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE;
+        invalidateRange.memory = ReadyCaptureLineMemory;
+        invalidateRange.offset = 0;
+        invalidateRange.size = VK_WHOLE_SIZE;
+        InvalidateMappedMemoryRanges(Device, 1, &invalidateRange);
     }
 
     if (PendingCaptureLineContext == &NativeProjectionContext)
@@ -7724,6 +7755,7 @@ bool VulkanRenderer3D::ensureCaptureLineBuffer(RenderContext* context)
     VkDeviceMemory& captureLineMemory = context != nullptr ? context->CaptureLineMemory : CaptureLineMemory;
     VkDeviceSize& captureLineBufferSize = context != nullptr ? context->CaptureLineBufferSize : CaptureLineBufferSize;
     void*& captureLineMapped = context != nullptr ? context->CaptureLineMapped : CaptureLineMapped;
+    bool& captureLineCoherent = context != nullptr ? context->CaptureLineCoherent : CaptureLineCoherent;
     constexpr VkDeviceSize requiredSize = static_cast<VkDeviceSize>(256u * 192u) * sizeof(u32);
 
     if (captureLineBuffer != VK_NULL_HANDLE && captureLineBufferSize >= requiredSize && captureLineMapped != nullptr)
@@ -7733,20 +7765,47 @@ bool VulkanRenderer3D::ensureCaptureLineBuffer(RenderContext* context)
 
     destroyCaptureLineBuffer(context);
 
+    if (InvalidateMappedMemoryRanges == nullptr && Device != VK_NULL_HANDLE)
+    {
+        InvalidateMappedMemoryRanges = reinterpret_cast<PFN_vkInvalidateMappedMemoryRanges>(
+            vkGetDeviceProcAddr(Device, "vkInvalidateMappedMemoryRanges"));
+    }
+
+    const VkMemoryPropertyFlags fallbackProps =
+        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
+    const VkMemoryPropertyFlags preferredProps = (InvalidateMappedMemoryRanges != nullptr)
+        ? (VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_CACHED_BIT)
+        : fallbackProps;
+    u32 allocatedMemoryType = UINT32_MAX;
+
     if (!createBufferAllocation(
             Device,
             [&](u32 typeBits, VkMemoryPropertyFlags properties) { return findMemoryType(typeBits, properties); },
             requiredSize,
             VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
-            VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-            VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+            preferredProps,
+            fallbackProps,
             captureLineBuffer,
             captureLineMemory,
-            &captureLineMapped))
+            &captureLineMapped,
+            &allocatedMemoryType))
     {
         EMUCORED_DIAGNOSTIC_LOG(Log(LogLevel::Error, "VulkanRenderer3D: failed to allocate capture line buffer"));
         destroyCaptureLineBuffer(context);
         return false;
+    }
+
+    captureLineCoherent = true;
+    if (PhysicalDevice != VK_NULL_HANDLE && allocatedMemoryType != UINT32_MAX)
+    {
+        VkPhysicalDeviceMemoryProperties memProperties{};
+        vkGetPhysicalDeviceMemoryProperties(PhysicalDevice, &memProperties);
+        if (allocatedMemoryType < memProperties.memoryTypeCount)
+        {
+            captureLineCoherent =
+                (memProperties.memoryTypes[allocatedMemoryType].propertyFlags
+                    & VK_MEMORY_PROPERTY_HOST_COHERENT_BIT) != 0;
+        }
     }
 
     std::memset(captureLineMapped, 0, static_cast<size_t>(requiredSize));
@@ -7763,6 +7822,7 @@ void VulkanRenderer3D::destroyCaptureLineBuffer(RenderContext* context)
     VkDeviceMemory& captureLineMemory = context != nullptr ? context->CaptureLineMemory : CaptureLineMemory;
     VkDeviceSize& captureLineBufferSize = context != nullptr ? context->CaptureLineBufferSize : CaptureLineBufferSize;
     void*& captureLineMapped = context != nullptr ? context->CaptureLineMapped : CaptureLineMapped;
+    bool& captureLineCoherent = context != nullptr ? context->CaptureLineCoherent : CaptureLineCoherent;
 
     if (captureLineMapped != nullptr && captureLineMemory != VK_NULL_HANDLE)
     {
@@ -7783,6 +7843,7 @@ void VulkanRenderer3D::destroyCaptureLineBuffer(RenderContext* context)
     }
 
     captureLineBufferSize = 0;
+    captureLineCoherent = true;
 
     if (context == nullptr)
     {
@@ -8346,7 +8407,7 @@ void VulkanRenderer3D::InvalidatePresentationState(bool discardColorTarget) noex
     if (conservarExport1x)
     {
         CurrentFrameServedIdentity = keyServida;
-        SweepLineCache = LineCache;
+        SweepLineCacheSlot = LineCacheSlot;
         SweepLineCacheIdentity = LineCacheIdentity;
         HasCpuFrame = true;
         traceFaithfulCaptureDecision(
@@ -9511,9 +9572,7 @@ bool VulkanRenderer3D::dispatchGraphicsRasterAndReadback(
         && !sinR3b
         && GraphicsRasterSinEscrituraRenderPass != VK_NULL_HANDLE
         && !fotogramaNecesitaEdgeR3b
-        && !fotogramaNecesitaNieblaR3b
-
-        && !captureReadbackPath;
+        && !fotogramaNecesitaNieblaR3b;
 
     {
         static int g1UltimoSinEscritura = -1;
@@ -10014,9 +10073,6 @@ bool VulkanRenderer3D::dispatchGraphicsRasterAndReadback(
     const auto canSkipOpaqueAttrWrite = [&](const GraphicsPolygonDraw& draw) -> bool {
         constexpr bool kEnableOpaqueNoAttrFastPath = true;
         if (!usesGraphicsProductResources || !kEnableOpaqueNoAttrFastPath)
-            return false;
-
-        if (captureReadbackPath)
             return false;
 
         if (fogFlagEnabledFor(draw)
@@ -12411,6 +12467,8 @@ bool VulkanRenderer3D::dispatchGraphicsRasterAndReadback(
         CaptureLineReady = false;
         ReadyCaptureLineBufferSlot = -1;
         ReadyCaptureLineData = nullptr;
+        ReadyCaptureLineMemory = VK_NULL_HANDLE;
+        ReadyCaptureLineCoherent = true;
         ReadyCaptureLineScreenSwap = false;
         ReadyCaptureLineIdentity = {};
         ActiveCapturePathMode = CapturePathMode::CaptureLineExport;
@@ -12669,7 +12727,9 @@ bool VulkanRenderer3D::submitGraphicsCaptureExportForCurrentFrame()
         colorToCaptureReadBarrier.subresourceRange.layerCount = 1;
         vkCmdPipelineBarrier(
             CommandBuffer,
-            VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
+            VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT
+                | VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT
+                | VK_PIPELINE_STAGE_TRANSFER_BIT,
             VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
             0,
             0,
@@ -12785,6 +12845,8 @@ bool VulkanRenderer3D::submitGraphicsCaptureExportForCurrentFrame()
     CaptureLineReady = false;
     ReadyCaptureLineBufferSlot = -1;
     ReadyCaptureLineData = nullptr;
+    ReadyCaptureLineMemory = VK_NULL_HANDLE;
+    ReadyCaptureLineCoherent = true;
     ReadyCaptureLineScreenSwap = false;
     ReadyCaptureLineIdentity = {};
     ActiveCapturePathMode = CapturePathMode::CaptureLineExport;
@@ -14743,9 +14805,11 @@ bool VulkanRenderer3D::copyReadyCaptureLineToLineCache()
     }
 
     LineCacheIdentity = {};
+    detachLineCacheForWrite();
+    auto& lineCache = activeLineCache();
     if (CaptureLineDataIsRgba8)
     {
-        const size_t pixelCount = LineCache.size();
+        const size_t pixelCount = lineCache.size();
         for (size_t i = 0; i < pixelCount; i++)
         {
             const u32 sourcePixel = captureSource[i];
@@ -14754,7 +14818,7 @@ bool VulkanRenderer3D::copyReadyCaptureLineToLineCache()
             const u32 b = (sourcePixel >> 16u) & 0xFFu;
             const u32 a = (sourcePixel >> 24u) & 0xFFu;
 
-            LineCache[i] =
+            lineCache[i] =
                 (r >> 2u)
                 | ((g >> 2u) << 8u)
                 | ((b >> 2u) << 16u)
@@ -14763,7 +14827,7 @@ bool VulkanRenderer3D::copyReadyCaptureLineToLineCache()
     }
     else
     {
-        std::memcpy(LineCache.data(), captureSource, LineCache.size() * sizeof(u32));
+        std::memcpy(lineCache.data(), captureSource, lineCache.size() * sizeof(u32));
     }
 
     ExactCaptureLineCachePrepared = true;
@@ -14774,6 +14838,8 @@ bool VulkanRenderer3D::copyReadyCaptureLineToLineCache()
     }
     CaptureLineReady = false;
     ReadyCaptureLineData = nullptr;
+    ReadyCaptureLineMemory = VK_NULL_HANDLE;
+    ReadyCaptureLineCoherent = true;
     ReadyCaptureLineBufferSlot = -1;
     ReadyCaptureLineScreenSwap = false;
     CaptureLineDataIsRgba8 = false;
@@ -14795,6 +14861,8 @@ void VulkanRenderer3D::convertReadbackToLineCache()
     }
 
     LineCacheIdentity = {};
+    detachLineCacheForWrite();
+    auto& lineCache = activeLineCache();
     const bool readbackIsNativeDs = RawReadbackWidth == 256u && RawReadbackHeight == 192u;
 
     if (readbackIsNativeDs)
@@ -14809,7 +14877,7 @@ void VulkanRenderer3D::convertReadbackToLineCache()
             const u32 b = (sourcePixel >> 16) & 0xFF;
             const u32 a = (sourcePixel >> 24) & 0xFF;
 
-            LineCache[i] =
+            lineCache[i] =
                 (r >> 2)
                 | ((g >> 2) << 8)
                 | ((b >> 2) << 16)
@@ -14836,7 +14904,7 @@ void VulkanRenderer3D::convertReadbackToLineCache()
             const u32 b = (sourcePixel >> 16) & 0xFF;
             const u32 a = (sourcePixel >> 24) & 0xFF;
 
-            LineCache[static_cast<size_t>(y) * 256u + x] =
+            lineCache[static_cast<size_t>(y) * 256u + x] =
                 (r >> 2)
                 | ((g >> 2) << 8)
                 | ((b >> 2) << 16)
@@ -14873,14 +14941,20 @@ u32 VulkanRenderer3D::buildClearColorRgba8(const GPU& gpu) const
     return r8 | (g8 << 8) | (b8 << 16) | (a8 << 24);
 }
 
-void VulkanRenderer3D::clearLineCache()
+void VulkanRenderer3D::resetLineCacheMetadata()
 {
-    std::fill(LineCache.begin(), LineCache.end(), 0);
     PlainRearPlaneCacheValid = false;
     LineCacheIdentity = {};
     ExactCaptureLineCachePrepared = false;
     ExactCaptureLineCacheFresh = false;
     ExactCaptureLineCacheFallbackOnly = true;
+}
+
+void VulkanRenderer3D::clearLineCache()
+{
+    detachLineCacheForWrite();
+    std::fill(activeLineCache().begin(), activeLineCache().end(), 0);
+    resetLineCacheMetadata();
 }
 
 void VulkanRenderer3D::WarmTextureCache(GPU& gpu)

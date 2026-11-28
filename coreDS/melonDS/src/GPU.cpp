@@ -505,6 +505,12 @@ void GPU::SetFaithfulVramCaptureTag(
 {
     if (!FaithfulVramCaptureTrackingEnabled || bank >= 9u)
         return;
+    FaithfulVramCaptureTag normalized =
+        tag.Valid() && tag.ProductEpoch == FaithfulCaptureProductEpoch
+            ? tag : FaithfulVramCaptureTag{};
+    const bool normalizedValid = normalized.Valid();
+    if (!normalizedValid && FaithfulVramValidTagCounts[bank] == 0u)
+        return;
     const u32 halfwordMask = VRAMMask[bank] >> 1u;
     const u32 normalizedHalfwordOffset = halfwordOffset & halfwordMask;
 
@@ -516,15 +522,11 @@ void GPU::SetFaithfulVramCaptureTag(
         pageSummary = {};
     FaithfulVramCaptureTag& stored =
         FaithfulVramCaptureTags[bank][normalizedHalfwordOffset];
-    FaithfulVramCaptureTag normalized =
-        tag.Valid() && tag.ProductEpoch == FaithfulCaptureProductEpoch
-            ? tag : FaithfulVramCaptureTag{};
     const bool storedValid = stored.Valid()
         && stored.ProductEpoch == FaithfulCaptureProductEpoch;
     const u64 oldProductId = storedValid ? stored.ProductId : 0u;
     if (oldProductId != normalized.ProductId)
         FaithfulCaptureProductPhysicalRefsDirty = true;
-    const bool normalizedValid = normalized.Valid();
     if (storedValid != normalizedValid)
     {
         u32& validCount = FaithfulVramValidTagCounts[bank];
@@ -560,11 +562,17 @@ void GPU::StampFaithfulVramCaptureTagLine(
         return;
     }
 
+    const bool publishValid = productEpoch == FaithfulCaptureProductEpoch
+        && productEpoch != 0u && productId != 0u;
+    if (!publishValid && FaithfulVramValidTagCounts[bank] == 0u)
+        return;
+
     const u32 halfwordMask = VRAMMask[bank] >> 1u;
     const u32 normalizedFirstHalfword = firstHalfwordOffset & halfwordMask;
     bool oldLineFullyTagged = false;
     if (halfwordCount == FaithfulVramSummaryPageHalfwords
-        && (normalizedFirstHalfword % FaithfulVramSummaryPageHalfwords) == 0u)
+        && (normalizedFirstHalfword % FaithfulVramSummaryPageHalfwords) == 0u
+        && FaithfulVramValidTagCounts[bank] != 0u)
     {
         const FaithfulVramCaptureSpan& oldSummary =
             FaithfulVramCapturePageSummaries[bank]
@@ -574,8 +582,11 @@ void GPU::StampFaithfulVramCaptureTagLine(
             && oldSummary.StorageBank == bank;
     }
 
-    InvalidateFaithfulVramCapturePageSummaries(
-        bank, firstHalfwordOffset, halfwordCount);
+    if (FaithfulVramValidTagCounts[bank] != 0u)
+    {
+        InvalidateFaithfulVramCapturePageSummaries(
+            bank, firstHalfwordOffset, halfwordCount);
+    }
 
     constexpr u32 kMaxCaptureLineHalfwords = 256u;
     if (halfwordCount > kMaxCaptureLineHalfwords)
@@ -583,8 +594,7 @@ void GPU::StampFaithfulVramCaptureTagLine(
         for (u32 x = 0u; x < halfwordCount; x++)
         {
             FaithfulVramCaptureTag tag {};
-            if (productEpoch == FaithfulCaptureProductEpoch
-                && productId != 0u)
+            if (publishValid)
             {
                 tag.ProductEpoch = productEpoch;
                 tag.ProductId = productId;
@@ -596,11 +606,9 @@ void GPU::StampFaithfulVramCaptureTagLine(
         return;
     }
 
-    const bool publishValid = productEpoch == FaithfulCaptureProductEpoch
-        && productEpoch != 0u && productId != 0u;
     u32 oldValidCount = oldLineFullyTagged ? halfwordCount : 0u;
 
-    if (!oldLineFullyTagged)
+    if (!oldLineFullyTagged && FaithfulVramValidTagCounts[bank] != 0u)
     {
         for (u32 x = 0u; x < halfwordCount; x++)
         {
@@ -1134,9 +1142,17 @@ bool GPU::BeginFaithfulDmaLineageBatch(
         }
     }
 
-    if (destination.Kind == FaithfulDmaLineageStorageKind::Vram)
-    {
+    const bool sourceMayHaveTagsEarly =
+        source.Kind == FaithfulDmaLineageStorageKind::Vram
+            ? FaithfulVramValidTagCounts[source.Bank] != 0u
+            : FaithfulMainRamTaggedPageCount != 0u;
+    const bool destMayHaveTagsEarly =
+        destination.Kind == FaithfulDmaLineageStorageKind::Vram
+            ? FaithfulVramValidTagCounts[destination.Bank] != 0u
+            : FaithfulMainRamTaggedPageCount != 0u;
 
+    if (destination.Kind == FaithfulDmaLineageStorageKind::Vram && destMayHaveTagsEarly)
+    {
         InvalidateFaithfulVramCapturePageSummaries(
             destination.Bank,
             destination.ByteOffset >> 1u,
@@ -1147,7 +1163,8 @@ bool GPU::BeginFaithfulDmaLineageBatch(
     FaithfulDmaLineageDestination = destination;
     FaithfulDmaLineageMaximumByteCount = byteCount;
 
-    FaithfulCaptureProductPhysicalRefsDirty = true;
+    if (sourceMayHaveTagsEarly || destMayHaveTagsEarly)
+        FaithfulCaptureProductPhysicalRefsDirty = true;
     FaithfulDmaLineageBatchActive = true;
     return true;
 }
@@ -1172,7 +1189,7 @@ void GPU::FinishFaithfulDmaLineageBatch(
     if ((transferredByteCount & 1u) != 0u
         || transferredByteCount > maximumByteCount)
     {
-
+        FaithfulCaptureProductPhysicalRefsDirty = true;
         transferredByteCount = maximumByteCount & ~1u;
         for (u32 offset = 0u; offset < transferredByteCount; offset += 2u)
         {
@@ -1197,10 +1214,7 @@ void GPU::FinishFaithfulDmaLineageBatch(
         if (destination.Kind == FaithfulDmaLineageStorageKind::Vram
             && FaithfulVramValidTagCounts[destination.Bank] == 0u)
         {
-
-            std::fill_n(FaithfulVramCaptureTags[destination.Bank].get()
-                    + (destination.ByteOffset >> 1u),
-                transferredByteCount >> 1u, FaithfulVramCaptureTag{});
+            // Bank is already free of valid tags; skip redundant 24B-per-halfword zero-fill.
             return;
         }
         if (destination.Kind == FaithfulDmaLineageStorageKind::MainRam

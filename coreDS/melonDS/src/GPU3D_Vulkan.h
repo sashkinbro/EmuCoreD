@@ -342,6 +342,7 @@ private:
         VkDeviceMemory CaptureLineMemory = VK_NULL_HANDLE;
         VkDeviceSize CaptureLineBufferSize = 0;
         void* CaptureLineMapped = nullptr;
+        bool CaptureLineCoherent = true;
         VkQueryPool TimestampQueryPool = VK_NULL_HANDLE;
         bool TimestampPending = false;
         GraphicsDescriptorSetCache GraphicsDescriptorCache{};
@@ -603,6 +604,29 @@ private:
     void convertReadbackToLineCache();
     u32 buildClearColorRgba8(const GPU& gpu) const;
     void clearLineCache();
+    void resetLineCacheMetadata();
+    std::array<u32, 256 * 192>& activeLineCache() noexcept
+    {
+        return CaptureLineCachePool[LineCacheSlot];
+    }
+    const std::array<u32, 256 * 192>& activeLineCache() const noexcept
+    {
+        return CaptureLineCachePool[LineCacheSlot];
+    }
+    std::array<u32, 256 * 192>& activeSweepLineCache() noexcept
+    {
+        return CaptureLineCachePool[SweepLineCacheSlot];
+    }
+    void detachLineCacheForWrite() noexcept
+    {
+        if (LineCacheSlot == SweepLineCacheSlot)
+            LineCacheSlot = 1u - SweepLineCacheSlot;
+    }
+    void detachSweepLineCacheForWrite() noexcept
+    {
+        if (SweepLineCacheSlot == LineCacheSlot)
+            SweepLineCacheSlot = 1u - LineCacheSlot;
+    }
 
 private:
     TexcacheVulkan Texcache;
@@ -863,11 +887,13 @@ private:
     VkDeviceMemory CaptureLineMemory = VK_NULL_HANDLE;
     VkDeviceSize CaptureLineBufferSize = 0;
     void* CaptureLineMapped = nullptr;
+    bool CaptureLineCoherent = true;
     static constexpr u32 CaptureLineBufferSlotCount = 6;
     std::array<VkBuffer, CaptureLineBufferSlotCount> CaptureLineBuffers{};
     std::array<VkDeviceMemory, CaptureLineBufferSlotCount> CaptureLineMemories{};
     std::array<VkDeviceSize, CaptureLineBufferSlotCount> CaptureLineBufferSizes{};
     std::array<void*, CaptureLineBufferSlotCount> CaptureLineMappedSlots{};
+    std::array<bool, CaptureLineBufferSlotCount> CaptureLineCoherentSlots{true, true, true, true, true, true};
     u32 ActiveCaptureLineBufferSlot = 0;
     int PendingCaptureLineBufferSlot = -1;
     int ReadyCaptureLineBufferSlot = -1;
@@ -875,6 +901,9 @@ private:
     bool ReadyCaptureLineScreenSwap = false;
     bool NativeProjectionCapturePending = false;
     VkFence PendingCaptureLineFence = VK_NULL_HANDLE;
+    VkDeviceMemory ReadyCaptureLineMemory = VK_NULL_HANDLE;
+    bool ReadyCaptureLineCoherent = true;
+    PFN_vkInvalidateMappedMemoryRanges InvalidateMappedMemoryRanges = nullptr;
     CaptureSourceIdentity PendingCaptureLineIdentity{};
     CaptureSourceIdentity ReadyCaptureLineIdentity{};
 
@@ -915,8 +944,9 @@ private:
     u32 GraphicsHiddenAlphaZeroFinalEdgePolyIdOverride = 0xFFFFFFFFu;
     u32 GraphicsHiddenAlphaZeroFinalEdgeColorOverride = 0;
     std::vector<u32> RawReadbackRgba;
-    std::array<u32, 256 * 192> LineCache{};
-    std::array<u32, 256 * 192> SweepLineCache{};
+    std::array<std::array<u32, 256 * 192>, 2> CaptureLineCachePool{};
+    u32 LineCacheSlot = 0;
+    u32 SweepLineCacheSlot = 1;
 
     std::array<std::array<u32, 256 * 192>, 2> LastValidExactCaptureLineCache{};
     CaptureSourceIdentity LineCacheIdentity{};

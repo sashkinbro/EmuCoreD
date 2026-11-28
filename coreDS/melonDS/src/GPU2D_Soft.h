@@ -576,6 +576,10 @@ public:
     [[nodiscard]] u64 SetFaithfulCertifiedCaptureTerminals(
         u64 productEpoch, const FaithfulCaptureKey* keys,
         size_t count) noexcept;
+    void SetFaithfulHighresCaptureConsumerActive(bool active) noexcept
+    {
+        FaithfulHighresCaptureConsumerActive = active;
+    }
 
     [[nodiscard]] u64 SetFaithfulCaptureNativeFrontiers(
         u64 productEpoch, const FaithfulCaptureKey* keys,
@@ -1177,6 +1181,7 @@ private:
     bool FaithfulCaptureProductCausalCoherent = false;
     bool FaithfulCaptureProductIdentityExact = false;
     bool FaithfulCaptureProductDependenciesExact = false;
+    bool FaithfulHighresCaptureConsumerActive = false;
     u64 FaithfulSeenCaptureProductEpoch = 0;
 
     std::array<u16, 2 * 192 * 256> FaithfulCapEscrita {};
